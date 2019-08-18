@@ -100,9 +100,8 @@ You haven't seen them yet, but we had some tests for our Presenter.
 //#include "java/PresenterTests.java"
 /*-
 ```
-Due to the seamless interoperation between Kotlin and Java, these continue to pass once with the converted class, so we can conclude that the Kotlin compiler is not only generating the methods we knew about, but also `getId` and `getName`. If we convert the tests themselves to Kotlin
+Due to the seamless interoperation between Kotlin and Java, these continue to pass once with the converted class, so we can infer that the Kotlin compiler is not only generating the methods we knew about, but also `getId` and `getName`. If we convert the tests themselves to Kotlin
 -*/
-
 object C {
     //`
     class PresenterTests {
@@ -133,9 +132,79 @@ object C {
 /*-
 we can see a few more differences between the languages.
 
-Firstly the `nat` and `duncan` properties are not declared in the primary constructor in this case (because we need a no-argument constructor for JUnit), so they are put in the class body, but marked as `val` because they are immutable. The Java did not mark the fields as `final`, but the conversion is smart enough to use `val` if properties are not changed.
+Firstly the `nat` and `duncan` properties are not declared in the primary constructor in this case (because we need a no-argument constructor for JUnit), so they are put in the class body, but marked as `val` because they are immutable. The Java did not declare the fields as `final`, but the conversion is smart enough to use `val` if properties are not changed.
 
 Secondly there is no `new` keyword to construct instances of classes - 'invoking' the class name as a function calls the relevant constructor.
 
 Finally Kotlin accesses properties as eg `name` rather than `getName()`. We'll look at properties in more detail later, but for now it's enough to say that while this looks the same as if we had given public access to the field in Java, it is actually calling a method.
+
+We are almost done with this first refactoring, but before we go there is another feature that data classes give us for free but we haven't seen. Immutable data classes are nice, but what when we discover that Nat would rather be known as Nathaniel? We could create a copy of a Presenter by invoking the constructor
+-*/
+
+object D {
+    //`
+    data class Presenter(val id: String, val name: String) {
+        fun withName(newName: String): Presenter {
+            return Presenter(id, newName)
+        }
+    }
+
+    class PresenterTests {
+
+        private val nat = Presenter("1", "Nat")
+
+        @Test
+        fun renaming() {
+            val renamedNat = nat.withName("Nathaniel")
+            assertEquals(Presenter(nat.id, "Nathaniel"), renamedNat)
+        }
+    }
+    //`
+}
+
+/*-
+Here we have added a `withName` method on Presenter. Methods are defined inside the class body with the `fun` keyword, and specify their return type after the arguments (we'll see a shorter syntax later).
+
+Creating such copy methods works, but it gets tired really quickly when there are lots of properties. Data classes step up by defining a `copy` method for us that we can invoke with named arguments to specify which properties we want to change.
+-*/
+
+object E {
+    //`
+    data class Presenter(val id: String, val name: String)
+
+    class PresenterTests {
+
+        private val nat = Presenter("1", "Nat")
+        //...
+
+        @Test
+        fun copying() {
+            val renamedNat = nat.copy(name = "Nathaniel")
+            assertEquals(Presenter(nat.id, "Nathaniel"), renamedNat)
+
+            val differentPresenterSameName = nat.copy(id = "3")
+            assertEquals(Presenter("3", "Nat"), differentPresenterSameName)
+
+            val allChange = nat.copy(id = "4", name = "Bob")
+            assertEquals(Presenter("4", "Bob"), allChange)
+        }
+    }
+    //`
+}
+
+/*-
+As Java does not have named parameters, if we want to make use of copy from Java the tedium returns
+```java
+-*/
+//#include "java/PresenterKotlinTests.java"
+/*-
+```
+but this might be transition strategy until we can translate all callers to Kotlin.
+
+## Conclusions
+
+* Minimum ceremony
+* Convenience
+* Favour immutability
+
 -*/
