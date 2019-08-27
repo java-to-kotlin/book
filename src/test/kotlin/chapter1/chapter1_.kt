@@ -1,0 +1,26 @@
+/*-
+# Where to start?
+
+You probably won't be able to dedicate time solely to porting your Java code to idiomatic Kotlin. You’ll have to work incrementally, porting parts of your codebase to Kotlin as you continue to add features to the system, maintaining a mixed Java/Kotlin codebase as you do so. Luckily Kotlin’s tooling supports this exceptionally well, and our experience is that you soon see enough productivity benefits from Kotlin that the effort pays for itself. That leaves the question of where to start the conversion effort.
+
+The first time we were in this situation was with a small team that included six developers, building a relatively greenfield project.  We had already deployed some small web applications with Kotlin but the enterprise architects insisted that the new system be written in Java 8. This was shortly after Kotlin 1.0 had been released but before Google announced that Kotlin was an official language for Android, so it was understandable that the architects would be wary about committing to a language with an uncertain future for a strategic system that they expected to be around for decades.
+
+Even in Java, we leant towards a functional approach, designing the core application domain model as immutable data types transformed by streams. But eventually we found the limitations of Java too irksome: the verbosity required to implement immutable value types, the distinction between primitive and reference types, null references, Streams lacking common FP operations such as zip, ....  By this time Google had made their announcement and Kotlin was being adopted at an ever increasing rate across the industry and within the company, We decided to start converting the Java codebase to Kotlin.
+
+We decided that starting in the core domain model would give us the biggest bang for our buck.  Kotlin's data classes shrunk the code significantly, replacing in some cases hundreds of lines of code with a single declaration. We started carefully, using IntelliJ to convert a small value class that had no dependencies on other classes beyond those in the standard library, and examined how that affected the rest of our Java codebase. It had no effect at all! Emboldened by this success we picked up the pace. Whenever a new feature needed changes to a Java domain model class, we would first convert it to a Kotlin data class, commit the conversion, and then implement the feature.
+
+As more of the domain model logic became implemented purely in Kotlin, we were able to make better use of Kotlin features. For example, we replaced calls to the Stream API with Kotlin's standard functions on collections and sequences. The biggest improvement, was replacing our use of Java's Optional type with nullable references. This simplified our code and gave us greater confidence in its null safety.
+
+TBD: another, significantly different, example (Oscar? Did Oscar start by turning UtterlyIdle into HTTP4K to get rid of the dependency injection jibber-jabber?)
+
+As you can see from these different experiences, the choice of starting point depends on a number of factors: why is the team adopting Kotlin, how large is the codebase, how frequent are changes being made to it, how large is the team, … and you probably have reasons aren't in this list.
+
+If you are choosing Kotlin for its language features it makes sense to convert the classes you are working in most frequently, as we did in the first example above. If you are choosing Kotlin to use a specific library then it makes sense to start writing Kotlin against the API, annotate it to make your Kotlin code convenient to the Java code in the rest of the app, and continue from there.
+
+In a small team it’s easy to establish the Kotlin coding style for your system (beyond the standard style guide) — eg error handling conventions, how code is to be organised into files, what should be a top-level declaration and what should be in an object, etc.
+
+Above a certain size, you run the risk of Kotlin code becoming inconsistent as people establish their own conventions in different parts of the system. So it may be worth starting with a small sub-team working in one area of the system, who establish conventions and build up a body of example code. Once there are some established conventions, you can expand the effort to the rest of the team and other parts of the system.
+
+In the rest of this book we will examine in detail how to progress, how to keep your Java code maintainable while you are introducing Kotlin that it depends upon, how to take advantage of Kotlin's features to further simplify the code after IntelliJ has performed its conversion magic, and
+But first, we'll start, as the team above started, by converting a small, immutable value class from an application's domain model into Kotlin and turning it into a data class.
+-*/

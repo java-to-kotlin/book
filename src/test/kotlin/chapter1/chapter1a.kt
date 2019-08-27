@@ -8,14 +8,6 @@ import java.util.*
 
 
 /*-
----
-title: Data Classes
-layout: post
-hidden: true
----
--*/
-
-/*-
 Kotlin Data classes are probably the quickest win for most Java projects. Let's warm up on a very simple example.
 
 ```java
