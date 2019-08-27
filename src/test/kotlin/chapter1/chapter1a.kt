@@ -11,6 +11,7 @@ import java.util.*
 ---
 title: Data Classes
 layout: post
+hidden: true
 ---
 -*/
 
@@ -24,9 +25,9 @@ Kotlin Data classes are probably the quickest win for most Java projects. Let's 
 ```
 Looking at the code you can see:
 
-1. Presenter is immutable. Because we don't have to worry about changes in state, we can give access directly to fields rather than provide 'getters'.
+1. Presenter is immutable.
 
-2. We want to make sure that two presenters with the same fields compare equal, and have the same hashcode. Presenter is a Value Object. There is quite a lot of code to make that happen, but luckily our IDE has generated it for us.
+2. We want to make sure that two presenters with the same fields compare equal, and have the same hashcode - Presenter is a Value Object. There is quite a lot of code to make that happen, but luckily our IDE has generated it for us.
 
 3. We come from the school of Java that assumes that everything we pass, store or return is not null unless explicitly indicated otherwise.
 
@@ -100,7 +101,7 @@ You haven't seen them yet, but we had some tests for our Presenter.
 //#include "java/PresenterTests.java"
 /*-
 ```
-Due to the seamless interoperation between Kotlin and Java, these continue to pass once with the converted class, so we can infer that the Kotlin compiler is not only generating the methods we knew about, but also `getId` and `getName`. If we convert the tests themselves to Kotlin
+Due to the excellent interoperation between Kotlin and Java, these continue to pass once with the converted class, so we can infer that the Kotlin compiler is not only generating the methods we knew about, but also `getId` and `getName`. If we convert the tests themselves to Kotlin
 -*/
 object C {
     //`
