@@ -18,7 +18,7 @@ Looking in the codebase in which we found Presenter, we find another class ripe 
 //#include "java/SessionTests.java"
 /*-
 ```
-Session is another Value Object, with tedious `equals`, `hashCode` and `toString` methods, but this time it already has copy methods, the `withPresenters` etc.
+Session is another Value Object, with tedious `equals`, `hashCode` and `toString` methods, but this time it has copy methods, the `withPresenters` etc.
 
 `subtitleOrNull` is both named and annotated to let us know that it may not be present, so we had better check for null before using the subtitle. Some shops would have had a getter returning an Optional<String>, but in this case it seems that we took advantage of the class' immutability to leave out the getters in favour of direct public field access.
 

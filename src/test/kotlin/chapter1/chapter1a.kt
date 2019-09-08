@@ -10,6 +10,8 @@ import java.util.*
 /*-
 Kotlin Data classes are probably the quickest win for most Java projects. Let's warm up on a very simple example.
 
+A> We'll skip over configuring your build system to handle Kotlin for now.
+
 ```java
 -*/
 //#include "java/Presenter.java"
@@ -23,7 +25,7 @@ Looking at the code you can see:
 
 3. We come from the school of Java that assumes that everything we pass, store or return is not null unless explicitly indicated otherwise.
 
-Now we take this code and ask IntelliJ to convert it to Kotlin for us (TODO keystroke)
+IntelliJ has a command to convert a Java source file to Kotlin. It is called (at the time of writing) 'Convert Java File to Kotlin File', and is bound to Ctrl+Shift+Alt+K on Windows and Linux, Cmd-Shift-Option-K on Mac. If we run that command on Presenter.java we get
 -*/
 
 object A {
@@ -51,7 +53,9 @@ object A {
     //`
 }
 /*-
-Comparing this to the Java we see that the Kotlin class definition is quite similar to Java, but our fields have been moved into brackets after the class name. This is a primary constructor (we'll come to secondary constructors later) and any parameters to this constructor may be labelled as `val` and will automatically become available as properties. In other words that first line stands in for all this Java
+Take some time to compare the two files.
+
+To our eyes the most noticeable difference is that the in the Kotlin file fields have been moved into brackets after the class name. This is a primary constructor (we'll come to secondary constructors later). Any parameters to the primary constructor may be labelled as `val` and will automatically become available as properties. In other words that first line stands in for all this Java
 
 ```java
 public class Presenter {
@@ -73,7 +77,7 @@ public class Presenter {
     }
 ```
 
-`val` is short for 'value' and marks a property that you cannot change once set - the equivalent of Java's `final`. We could (but almost always wouldn't) have used `var` for `variable`, in which case the property could be modified.
+`val` is short for 'value' and marks a property that you cannot change once set - the equivalent of Java's `final`. We could (but almost always wouldn't) have used `var` for `variable`, in which case the property could be modified and a Java setter would be generated.
 
 So far converting our Presenter to Kotlin has saved us 13 lines of code, but we aren't done yet. Value types like this are so useful but so tedious to get right and keep right that Kotlin supports them at a language level. Mark the class with the `data` modifier and the compiler will generate the `equals`, `hashCode` and `toString` methods automatically, leaving us with just
 -*/
@@ -87,13 +91,29 @@ object B {
 /*-
 Ah that's better, and when we add properties to a Presenter we won't have to remember to update the generated methods or find ourselves with hard-to-diagnose bugs.
 
+Now there is so little code, it's easy to pick out a few more differences between Java and Kotlin.
+
+Firstly, the default visibility in Kotlin is public, so `public class Presenter` can just be `class Presenter`.
+
+A> If you are the same sort of Java programmer as we were you may question this language design decision. Our experience working with the language is that it fits well with a more data-oriented design philosophy, where less state has to be hidden. See Chapter TODO.
+
+Secondly, type specifiers in Kotlin come after the identifier, not before it. So instead of `String id` we have `id: String`. This turns out to play nicer with complex nested types and we found that we very quickly didn't notice it at all.
+
+Finally, we have been able to remove the body of the class altogether, so there isn't an empty `{}` pair.
+
 You haven't seen them yet, but we had some tests for our Presenter.
 ```java
 -*/
 //#include "java/PresenterTests.java"
 /*-
 ```
-Due to the excellent interoperation between Kotlin and Java, these continue to pass once with the converted class, so we can infer that the Kotlin compiler is not only generating the methods we knew about, but also `getId` and `getName`. If we convert the tests themselves to Kotlin
+Due to the excellent interoperation between Kotlin and Java, these continue to pass with the converted class. Take a moment to think what that implies about the generated class.
+
+Our Java Presenter had explicit `getId` and `getName` methods. These are not in the converted Kotlin, but still our Java can call them. This means that the Kotlin compiler is not only generating the `equals`, `hashCode` and `toString` methods we knew about, but also `getId` and `getName`. `id` and `name` are not fields in Kotlin, they are properties.
+
+A> We'll have a lot to say about properties later, but for now if you think of them as a private field with a public getter you won't often be wrong.
+
+Let's convert the tests themselves to Kotlin
 -*/
 object C {
     //`
@@ -123,81 +143,31 @@ object C {
 //`
 }
 /*-
-we can see a few more differences between the languages.
+As usual, take a few moments to compare before and after.
 
-Firstly the `nat` and `duncan` properties are not declared in the primary constructor in this case (because we need a no-argument constructor for JUnit), so they are put in the class body, but marked as `val` because they are immutable. The Java did not declare the fields as `final`, but the conversion is smart enough to use `val` if properties are not changed.
+The first thing that we spot is that the Java fields, `nat` and `duncan` are declared as `val` properties but we haven't had to repeat their type - `Presenter nat = new Presenter(...);`. Kotlin would allow us to say `val nat: Presenter = Presenter(...)` but does not require it here.
 
-Secondly there is no `new` keyword to construct instances of classes - 'invoking' the class name as a function calls the relevant constructor.
+A> Properties can be declared with `val` if they don't change, and `var` if they do. Even though the fields were not declared as `final` in the Java; in this case the conversion has been clever enough to see that they are not changed and to convert them to `val`.
 
-Finally Kotlin accesses properties as eg `name` rather than `getName()`. We'll look at properties in more detail later, but for now it's enough to say that while this looks the same as if we had given public access to the field in Java, it is actually calling a method.
+Looking at the properties, we see that there is no `new` keyword to construct instances of classes - 'invoking' the class name as a function calls the relevant constructor.
 
-We are almost done with this first refactoring, but before we go there is another feature that data classes give us for free but we haven't seen. Immutable data classes are nice, but what when we discover that Nat would rather be known as Nathaniel? We could create a copy of a Presenter by invoking the constructor
--*/
+At the end of the line, if you're already used to reading languages other than Java you may not notice the lack of semicolons to terminate statements. They are optional in Kotlin - you can use them to separate statements on a single line, but if the compiler can make sense of code by pretending that there is one on the end of a line it will.
 
-object D {
-    //`
-    data class Presenter(val id: String, val name: String) {
-        fun withName(newName: String): Presenter {
-            return Presenter(id, newName)
-        }
-    }
+Moving on, we might infer that the Java `void` keyword is replaced in Kotlin by `fun`. Actually though, methods in Kotlin are marked by `fun` and, where they return nothing, do not have to declare a return type.
 
-    class PresenterTests {
+Looking in the body of the methods, where Java called `nat.getId()`, Kotlin accesses the property `nat.id`. In actual fact Kotlin will call the `getId` that it has generated (or one supplied by a Java class) rather than accessing a field directly - so nothing has really changed except that we can drop the `get` and `()`.
 
-        private val nat = Presenter("1", "Nat")
+A> There is quite a bit of subtlety to properties. We will keep on returning to this subject.
 
-        @Test
-        fun renaming() {
-            val renamedNat = nat.withName("Nathaniel")
-            assertEquals(Presenter(nat.id, "Nathaniel"), renamedNat)
-        }
-    }
-    //`
-}
-
-/*-
-Here we have added a `withName` method on Presenter. Methods are defined inside the class body with the `fun` keyword, and specify their return type after the arguments (we'll see a shorter syntax later).
-
-Creating such copy methods works, but it gets tired really quickly when there are lots of properties. Data classes step up by defining a `copy` method for us that we can invoke with named arguments to specify which properties we want to change.
--*/
-
-object E {
-    //`
-    data class Presenter(val id: String, val name: String)
-
-    class PresenterTests {
-
-        private val nat = Presenter("1", "Nat")
-        //...
-
-        @Test
-        fun copying() {
-            val renamedNat = nat.copy(name = "Nathaniel")
-            assertEquals(Presenter(nat.id, "Nathaniel"), renamedNat)
-
-            val differentPresenterSameName = nat.copy(id = "3")
-            assertEquals(Presenter("3", "Nat"), differentPresenterSameName)
-
-            val allChange = nat.copy(id = "4", name = "Bob")
-            assertEquals(Presenter("4", "Bob"), allChange)
-        }
-    }
-    //`
-}
-
-/*-
-As Java does not have named parameters, if we want to make use of copy from Java the tedium returns
-```java
--*/
-//#include "java/PresenterKotlinTests.java"
-/*-
-```
-but this might be transition strategy until we can translate all callers to Kotlin.
+Stepping away from the Java, and comparing with our previous Kotlin class, Presenter, we see that in the tests the class properties are not declared in the primary constructor.  JUnit requires a default (no argument) constructor, and where properties are not initialised through a constructor (like `nat` and `duncan` here) they are not declared in the primary constructor but rather inside the class body.
 
 ## Conclusions
 
+* Convert to Kotlin is handy
+* But does not do all the work for you
 * Minimum ceremony
 * Convenience
 * Favour immutability
+* Data classes FTW
 
 -*/
