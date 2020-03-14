@@ -46,7 +46,7 @@ public class Session {
 
     @Override
     public String toString() {
-        return "Session{" +
+        return "chapter1.java.Session{" +
                 "title='" + title + '\'' +
                 ", subtitle='" + subtitleOrNull + '\'' +
                 ", slots=" + slots +

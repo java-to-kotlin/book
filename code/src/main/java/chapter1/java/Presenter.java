@@ -22,7 +22,7 @@ public class Presenter {
 
     @Override
     public String toString() {
-        return "Presenter{" +
+        return "chapter1.java.Presenter{" +
                 "id='" + id + '\'' +
                 ", name='" + name + '\'' +
                 '}';

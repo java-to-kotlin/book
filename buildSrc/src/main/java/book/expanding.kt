@@ -4,23 +4,32 @@ import java.io.File
 import kotlin.text.RegexOption.DOT_MATCHES_ALL
 import kotlin.text.RegexOption.MULTILINE
 
+private const val abortOnFailure = true
 
-fun processFiles(dir: File) {
+fun processFiles(dir: File, srcRoot: File) {
     dir.listFiles().filter { it.name.endsWith(".ad") }.forEach { file ->
-        processFile(dir, file, file)
+        processFile(file, file, srcRoot)
     }
 }
 
-private fun processFile(root: File, src: File, dest: File) {
+private fun processFile(src: File, dest: File, srcRoot: File) {
     val text = src.readText()
-    dest.writeText(expandCodeBlocks(text, lookupWithRoot(root)))
+    dest.writeText(expandCodeBlocks(text, lookupWithRoot(srcRoot)))
 }
 
-private fun lookupWithRoot(dir: File) = fun (key: String): String {
-    val file = dir.resolve(key.trim())
-    if (!file.isFile) error("File not found for $file")
-    return FileSnippet(file).toString()
-}
+private fun lookupWithRoot(dir: File) =
+    fun(key: String): String {
+        val file = dir.resolve(key.trim())
+        if (!file.isFile) {
+            val message = "File not found for $file"
+            if (abortOnFailure) {
+                error(message)
+            } else {
+                return message
+            }
+        }
+        return FileSnippet(file).toString()
+    }
 
 private fun expandCodeBlocks(text: String, lookup: (String) -> String): String =
     expandedCodeBlockFinder.replace(text) { matchResult ->

@@ -1,6 +1,5 @@
 package chapter1.kotlin
 
-import chapter1.java.Presenter
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 
@@ -23,7 +22,10 @@ class PresenterTests {
 
     @Test
     fun testHashCode() {
-        Assertions.assertEquals(nat.hashCode(), Presenter("1", "Nat").hashCode())
+        Assertions.assertEquals(nat.hashCode(), Presenter(
+            "1",
+            "Nat"
+        ).hashCode())
         Assertions.assertNotEquals(nat.hashCode(), duncan.hashCode())
     }
 }

@@ -5,7 +5,7 @@ import java.util.*
 class Presenter(val id: String, val name: String) {
 
     override fun toString(): String {
-        return "Presenter{" +
+        return "chapter1.java.Presenter{" +
             "id='" + id + '\''.toString() +
             ", name='" + name + '\''.toString() +
             '}'.toString()

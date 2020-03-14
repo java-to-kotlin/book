@@ -26,7 +26,7 @@ public class Slots {
 
     @Override
     public String toString() {
-        return "Slots{" +
+        return "chapter1.java.Slots{" +
                 "start=" + start +
                 ", endInclusive=" + endInclusive +
                 '}';
