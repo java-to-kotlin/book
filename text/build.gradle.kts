@@ -4,45 +4,55 @@ import kotlin.text.RegexOption.MULTILINE
 tasks {
     create("build") {
         doFirst {
-            processMarkDown(project.projectDir)
+            processFiles(project.projectDir)
         }
     }
 }
 
-fun processMarkDown(dir: File) {
+val root = project.projectDir
+
+fun processFiles(dir: File) {
     dir.listFiles().filter { it.name.endsWith(".ad") }.forEach { file ->
-        processMarkDown(file, file)
+        processFile(file, file)
     }
 }
 
-fun processMarkDown(src: File, dest: File) {
+fun processFile(src: File, dest: File) {
     val text = src.readText()
-    dest.writeText(expandCodeBlocks(text))
+    dest.writeText(expandCodeBlocks(text, ::lookup))
 }
+
+class FileSnippet(private val file: File) {
+    override fun toString() = (listOf(
+        "[source,$sourceType]",
+        "----"
+    ) + file.readLines().withoutPreamble() +
+        "----").joinToString("\n")
+
+    private val sourceType = when (file.extension) {
+        "kt" -> "kotlin"
+        "java" -> "java"
+        else -> "text"
+    }
+}
+
+fun lookup(key: String): String {
+    val file = root.resolve(key.trim())
+    if (!file.isFile) error("File not found for $file")
+    return FileSnippet(file).toString()
+}
+
+fun expandCodeBlocks(text: String, lookup: (String) -> String): String =
+    expandedCodeBlockFinder.replace(text) { matchResult ->
+        val lines = listOf(matchResult.groups["intro"]!!.value) +
+            lookup(matchResult.groups["key"]!!.value) +
+            matchResult.groups["outro"]!!.value
+        lines.joinToString("\n")
+    }
+
+//language=RegExp
+val expandedCodeBlockFinder = """^(?<intro>// \[start-insert\] <(?<key>.*?)>)(.*?)^(?<outro>// \[end-insert].*?)$""".toRegex(setOf(DOT_MATCHES_ALL, MULTILINE))
 
 fun Iterable<String>.withoutPreamble(): List<String> = this
     .filter { !it.startsWith("import") && !it.startsWith("package") }
     .dropWhile { it.isEmpty() }
-
-val root = project.projectDir
-
-fun expandCodeBlocks(text: String): String =
-    expandedCodeBlockFinder.replace(text) { matchResult ->
-        matchResult.groups[1]?.value?.let { filename ->
-            expandCodeBlock(filename.trim(), root.resolve(filename.trim()).readLines().withoutPreamble())
-        } ?: error("No filename found for kotlin block")
-    }
-
-fun expandCodeBlock(filename: String, content: List<String>): String = (
-    listOf(
-        "[start-insert]: <$filename>",
-        "[source,kotlin]",
-        "----"
-    )
-        + content
-        + "----"
-        + "[end-insert]: <>"
-    ).joinToString("\n")
-
-//language=RegExp
-val expandedCodeBlockFinder = """^\[start-insert\]: <(.*?)>(.*?)^\[end-insert]:.*?$""".toRegex(setOf(DOT_MATCHES_ALL, MULTILINE))
