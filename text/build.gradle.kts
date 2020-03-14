@@ -4,7 +4,7 @@ import book.processFiles
 tasks {
     create("build") {
         doFirst {
-            processFiles(project.projectDir, File("../code/src"))
+            processFiles(project.projectDir, project.rootProject.projectDir.toPath().resolve("code/src").toFile())
         }
     }
 }
