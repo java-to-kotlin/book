@@ -8,40 +8,28 @@ Casting around the code for some more easy wins we find another value class -  S
 public class Session {
 
     public final String title;
-    @Nullable // <1>
-    public final String subtitleOrNull;
-    public final List<Presenter> presenters; // <2>
+    public final List<Presenter> presenters; // <1>
 
-    public Session(String title, @Nullable String subtitle, List<Presenter> presenters) {
+    public Session(String title, List<Presenter> presenters) {
         this.title = title;
-        this.subtitleOrNull = subtitle;
-        this.presenters = Collections.unmodifiableList(new ArrayList<>(presenters)); // <3>
+        this.presenters = List.copyOf(presenters); // <2>
     }
 
     public String getTitle() {
         return title;
     }
 
-    @Nullable
-    public String getSubtitleOrNull() {
-        return subtitleOrNull;
-    }
-
     public List<Presenter> getPresenters() {
         return presenters;
     }
 
-    // <4>
+    // <3>
     public Session withPresenters(List<Presenter> newLineUp) {
-        return new Session(title, subtitleOrNull, newLineUp);
+        return new Session(title, newLineUp);
     }
 
     public Session withTitle(String newTitle) {
-        return new Session(newTitle, subtitleOrNull, presenters);
-    }
-
-    public Session withSubtitle(@Nullable String newSubtitle) {
-        return new Session(title, newSubtitle, presenters);
+        return new Session(newTitle, presenters);
     }
 
     @Override
@@ -50,22 +38,20 @@ public class Session {
         if (o == null || getClass() != o.getClass()) return false;
         Session session = (Session) o;
         return Objects.equals(title, session.title) &&
-                Objects.equals(subtitleOrNull, session.subtitleOrNull) &&
-                Objects.equals(presenters, session.presenters);
+            Objects.equals(presenters, session.presenters);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(title, subtitleOrNull, presenters);
+        return Objects.hash(title, presenters);
     }
 
     @Override
     public String toString() {
         return "chapter1.java.Session{" +
-                "title='" + title + '\'' +
-                ", subtitle='" + subtitleOrNull + '\'' +
-                ", presenters=" + presenters +
-                '}';
+            "title='" + title + '\'' +
+            ", presenters=" + presenters +
+            '}';
     }
 }
 ----
@@ -73,37 +59,26 @@ public class Session {
 
 Like Presenter, Session is immutable and has tedious code to manage object identity. But it has some other features, namely
 
-<1> One of the fields is optional. We've represented that here with a `@Nullable` and a pedantic name.
+<1> One of the fields is a collection.
 
-<2> One of the fields is a collection.
+<2> Because `presenters` is a collection, and Java collections are mutable, we take a defensive copy in the constructor.
 
-<3> Because `presenters` is a collection, and Java collections are mutable, we take a defensive copy in the constructor.
-
-<4> There are some convenience methods that return a copy of the session with modified properties.
+<3> There are some convenience methods that return a copy of the session with modified properties.
 
 If we use IntelliJ to convert this to Kotlin, we get the following
 
 // [start-insert] <main/kotlin/chapter1/kotlin/Session.kt>
 [source,kotlin]
 ----
-class Session(
-    val title: String,
-    val subtitleOrNull: String?,
-    presenters: List<Presenter>? // <1>
-) {
+class Session(val title: String, presenters: List<Presenter>?) { // <1>
+    val presenters: List<Presenter> // <2>
 
-    val presenters : List<Presenter> // <2>
-
-    fun withPresenters(newLineUp: List<Presenter>?): Session {
-        return Session(title, subtitleOrNull, newLineUp)
+    fun withPresenters(newLineUp: List<Presenter>?): Session { // <4>
+        return Session(title, newLineUp)
     }
 
     fun withTitle(newTitle: String): Session {
-        return Session(newTitle, subtitleOrNull, presenters)
-    }
-
-    fun withSubtitle(newSubtitle: String?): Session {
-        return Session(title, newSubtitle, presenters)
+        return Session(newTitle, presenters)
     }
 
     override fun equals(o: Any?): Boolean {
@@ -111,24 +86,22 @@ class Session(
         if (o == null || javaClass != o.javaClass) return false
         val session = o as Session
         return title == session.title &&
-            subtitleOrNull == session.subtitleOrNull &&
             presenters == session.presenters
     }
 
     override fun hashCode(): Int {
-        return Objects.hash(title, subtitleOrNull, presenters)
+        return Objects.hash(title, presenters)
     }
 
     override fun toString(): String {
         return "chapter1.java.Session{" +
             "title='" + title + '\'' +
-            ", subtitle='" + subtitleOrNull + '\'' +
             ", presenters=" + presenters +
             '}'
     }
 
-    init { // <3>
-        this.presenters = Collections.unmodifiableList(ArrayList(presenters))
+    init {
+        this.presenters = java.util.List.copyOf(presenters) // <3>
     }
 }
 ----
@@ -136,24 +109,80 @@ class Session(
 
 The conversion has left us with some dubious Kotlin
 
-<1> The `presenters` constructor parameter is marked with a `?` - Kotlin's way of indicating that it may be null. Why this is where title isn't we don't know. (Don't worry, we'll talk a lot more about nullability throughout this book.)
-<2> We have a `presenters` property
-<3> Which is initialised in this dangling `init` block
+<1> The `presenters` constructor parameter is marked with a `?` - Kotlin's way of indicating that it may be null. Why this is we don't know. (Don't worry, we'll talk a lot more about nullability throughout this book.)
+<2> We have a `presenters` property outside the constructor.
+<3> Which is initialised in this dangling `init` block.
 <4> The `newPresenters` parameter has also been made nullable.
 
 Alt-Enter at <3> will join the initialisation
 
 [source,kotlin]
 ----
-val presenters : List<Presenter> = Collections.unmodifiableList(ArrayList(presenters))
+    val presenters : List<Presenter> = java.util.List.copyOf(presenters)
 ----
 
-and we seem to be creating an unnecessary
+and we can just delete the question marks to show that `presenters` is not nullable.
 
+// [start-insert] <main/kotlin/chapter1/kotlin/Session.2.kt>
 [source,kotlin]
 ----
-val presenters : List<Presenter> = Collections.unmodifiableList(ArrayList(presenters))
+class Session(val title: String, presenters: List<Presenter>) {
+
+    val presenters : List<Presenter> = java.util.List.copyOf(presenters)
+
+    fun withPresenters(newLineUp: List<Presenter>): Session {
+        return Session(title, newLineUp)
+    }
+
+    fun withTitle(newTitle: String): Session {
+        return Session(newTitle, presenters)
+    }
+
+    override fun equals(o: Any?): Boolean {
+        if (this === o) return true
+        if (o == null || javaClass != o.javaClass) return false
+        val session = o as Session
+        return title == session.title &&
+            presenters == session.presenters
+    }
+
+    override fun hashCode(): Int {
+        return Objects.hash(title, presenters)
+    }
+
+    override fun toString(): String {
+        return "chapter1.java.Session{" +
+            "title='" + title + '\'' +
+            ", presenters=" + presenters +
+            '}'
+    }
+}
 ----
+// [end-insert]
+
+`java.util.List` may have caught your attention. The other Lists here are Kotlin's own types, which are essentially immutable views of the Java type. You'll find they are often interchangeable, and we'll cover them in detail in later chapters. Here you can see that we can assign a `java.util.List` to a Kotlin list.
+
+We would like to be able to remove all that value object boilerplate by making Session a data class, but in order to do that we have to have all the properties initialised in the constructor, and that defensive `java.util.List.copyOf` is presenting that at the moment. Checking all the callers of the constructor we find that none of them mutate the presenters having passed them in, so we can move the property into the constructor and we have another data class.
+
+// [start-insert] <main/kotlin/chapter1/kotlin/Session.3.kt>
+[source,kotlin]
+----
+data class Session(
+    val title: String,
+    val presenters: List<Presenter>
+) {
+
+    fun withPresenters(newLineUp: List<Presenter>): Session {
+        return Session(title, newLineUp)
+    }
+
+    fun withTitle(newTitle: String): Session {
+        return Session(newTitle, presenters)
+    }
+}
+----
+// [end-insert]
+
 
 
 ====

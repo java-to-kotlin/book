@@ -3,24 +3,16 @@ package chapter1.kotlin2
 import chapter1.java.Presenter
 import java.util.*
 
-class Session(
-    val title: String,
-    val subtitleOrNull: String?,
-    presenters: List<Presenter> // <1>
-) {
+class Session(val title: String, presenters: List<Presenter>) {
 
-    val presenters : List<Presenter> = Collections.unmodifiableList(presenters) // <2>
+    val presenters : List<Presenter> = java.util.List.copyOf(presenters)
 
     fun withPresenters(newLineUp: List<Presenter>): Session {
-        return Session(title, subtitleOrNull, newLineUp)
+        return Session(title, newLineUp)
     }
 
     fun withTitle(newTitle: String): Session {
-        return Session(newTitle, subtitleOrNull, presenters)
-    }
-
-    fun withSubtitle(newSubtitle: String?): Session {
-        return Session(title, newSubtitle, presenters)
+        return Session(newTitle, presenters)
     }
 
     override fun equals(o: Any?): Boolean {
@@ -28,18 +20,16 @@ class Session(
         if (o == null || javaClass != o.javaClass) return false
         val session = o as Session
         return title == session.title &&
-            subtitleOrNull == session.subtitleOrNull &&
             presenters == session.presenters
     }
 
     override fun hashCode(): Int {
-        return Objects.hash(title, subtitleOrNull, presenters)
+        return Objects.hash(title, presenters)
     }
 
     override fun toString(): String {
         return "chapter1.java.Session{" +
             "title='" + title + '\'' +
-            ", subtitle='" + subtitleOrNull + '\'' +
             ", presenters=" + presenters +
             '}'
     }
