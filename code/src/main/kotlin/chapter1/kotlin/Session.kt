@@ -6,18 +6,12 @@ import java.util.*
 class Session(
     val title: String,
     val subtitleOrNull: String?,
-    presenters: List<Presenter>
+    presenters: List<Presenter>? // <1>
 ) {
 
-    val presenters : List<Presenter>
+    val presenters : List<Presenter> // <2>
 
-    constructor(title: String, subtitle: String?, vararg presenters: Presenter) : this(
-        title,
-        subtitle,
-        presenters.asList()
-    )
-
-    fun withPresenters(newLineUp: List<Presenter>): Session {
+    fun withPresenters(newLineUp: List<Presenter>?): Session {
         return Session(title, subtitleOrNull, newLineUp)
     }
 
@@ -50,7 +44,7 @@ class Session(
             '}'
     }
 
-    init {
+    init { // <3>
         this.presenters = Collections.unmodifiableList(ArrayList(presenters))
     }
 }

@@ -18,10 +18,6 @@ public class Session {
         this.presenters = Collections.unmodifiableList(new ArrayList<>(presenters)); // <3>
     }
 
-    public Session(String title, @Nullable String subtitle, Presenter... presenters) {
-        this(title, subtitle, asList(presenters));
-    }
-
     public String getTitle() {
         return title;
     }
@@ -87,25 +83,17 @@ Like Presenter, Session is immutable and has tedious code to manage object ident
 
 If we use IntelliJ to convert this to Kotlin, we get the following
 
-// [start-insert] <main/kotlin/chapter1/kotlin/Session.kt.broken>
-[source,text]
+// [start-insert] <main/kotlin/chapter1/kotlin/Session.kt>
+[source,kotlin]
 ----
 class Session(
     val title: String,
     val subtitleOrNull: String?,
-    presenters: List<Presenter>?
+    presenters: List<Presenter>? // <1>
 ) {
 
-    val presenters : List<Presenter>
+    val presenters : List<Presenter> // <2>
 
-    constructor(title: String, subtitle: String?, vararg presenters: Presenter?) : this(
-        title,
-        subtitle,
-        Arrays.asList(*presenters)
-    ) {
-    }
-
-    // <4>
     fun withPresenters(newLineUp: List<Presenter>?): Session {
         return Session(title, subtitleOrNull, newLineUp)
     }
@@ -139,14 +127,33 @@ class Session(
             '}'
     }
 
-    init {
+    init { // <3>
         this.presenters = Collections.unmodifiableList(ArrayList(presenters))
     }
 }
 ----
 // [end-insert]
 
-This isn't IDEA's finest hour, as not only is this not very good Kotlin, it doesn't even compile
+The conversion has left us with some dubious Kotlin
+
+<1> The `presenters` constructor parameter is marked with a `?` - Kotlin's way of indicating that it may be null. Why this is where title isn't we don't know. (Don't worry, we'll talk a lot more about nullability throughout this book.)
+<2> We have a `presenters` property
+<3> Which is initialised in this dangling `init` block
+<4> The `newPresenters` parameter has also been made nullable.
+
+Alt-Enter at <3> will join the initialisation
+
+[source,kotlin]
+----
+val presenters : List<Presenter> = Collections.unmodifiableList(ArrayList(presenters))
+----
+
+and we seem to be creating an unnecessary
+
+[source,kotlin]
+----
+val presenters : List<Presenter> = Collections.unmodifiableList(ArrayList(presenters))
+----
 
 
 ====

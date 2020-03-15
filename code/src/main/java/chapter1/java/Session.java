@@ -23,10 +23,6 @@ public class Session {
         this.presenters = Collections.unmodifiableList(new ArrayList<>(presenters)); // <3>
     }
 
-    public Session(String title, @Nullable String subtitle, Presenter... presenters) {
-        this(title, subtitle, asList(presenters));
-    }
-
     public String getTitle() {
         return title;
     }

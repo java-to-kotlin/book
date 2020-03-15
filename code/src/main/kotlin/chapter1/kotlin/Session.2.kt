@@ -1,4 +1,4 @@
-package chapter1.kotlin
+package chapter1.kotlin2
 
 import chapter1.java.Presenter
 import java.util.*
@@ -6,20 +6,12 @@ import java.util.*
 class Session(
     val title: String,
     val subtitleOrNull: String?,
-    presenters: List<Presenter>?
+    presenters: List<Presenter> // <1>
 ) {
 
-    val presenters : List<Presenter>
+    val presenters : List<Presenter> = Collections.unmodifiableList(presenters) // <2>
 
-    constructor(title: String, subtitle: String?, vararg presenters: Presenter?) : this(
-        title,
-        subtitle,
-        Arrays.asList(*presenters)
-    ) {
-    }
-
-    // <4>
-    fun withPresenters(newLineUp: List<Presenter>?): Session {
+    fun withPresenters(newLineUp: List<Presenter>): Session {
         return Session(title, subtitleOrNull, newLineUp)
     }
 
@@ -50,9 +42,5 @@ class Session(
             ", subtitle='" + subtitleOrNull + '\'' +
             ", presenters=" + presenters +
             '}'
-    }
-
-    init {
-        this.presenters = Collections.unmodifiableList(ArrayList(presenters))
     }
 }
