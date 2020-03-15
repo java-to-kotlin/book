@@ -24,9 +24,9 @@ public class Presenter {
     @Override
     public String toString() {
         return "chapter1.java.Presenter{" +
-                "id='" + id + '\'' +
-                ", name='" + name + '\'' +
-                '}';
+            "id='" + id + '\'' +
+            ", name='" + name + '\'' +
+            '}';
     }
 
     @Override
@@ -35,7 +35,7 @@ public class Presenter {
         if (o == null || getClass() != o.getClass()) return false;
         Presenter presenter = (Presenter) o;
         return id.equals(presenter.id) && // <3>
-                name.equals(presenter.name);
+            name.equals(presenter.name);
     }
 
     @Override
