@@ -7,7 +7,7 @@ import kotlin.text.RegexOption.MULTILINE
 private const val abortOnFailure = true
 
 fun processFiles(dir: File, srcRoot: File) {
-    dir.listFiles().filter { it.name.endsWith(".ad") }.forEach { file ->
+    dir.walkTopDown().filter { it.name.endsWith(".ad") }.forEach { file ->
         processFile(file, file, srcRoot)
     }
 }
