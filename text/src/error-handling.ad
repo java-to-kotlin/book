@@ -1,0 +1,507 @@
+== Error Handling
+
+=== Programs can go wrong for so many reasons!
+
+Note that when we say Program we also mean functions, methods, procedures - any code that we invoke.
+
+Often we don’t give them the correct input that they need to do their job.
+
+Sometimes they need to talk to other systems and that fails in some way
+
+I have heard of programmers making errors. Apparently they read of past the end of arrays, or try to get the first item of an empty list
+
+Sometimes the environment that we are running in fails for some reason, we might run out of memory, or not be able to load a class
+
+I’m sure there are failures that don’t fit into these categories, but these cover most eventualities
+
+
+=== Error handling is hard to get right
+
+Empirical studies have found that (a) error signals are frequently lost in large systems between where they are raised and where they can be handled, and (b) where error handling code is invoked, it often has defects that have catastrophic effects, but could be caught by simple unit tests.
+
+"Without correct error propagation, any comprehensive failure policy is useless … We find that error handling is occasionally correct. Specifically, we see that low-level errors are sometimes lost as they travel through [...] many layers [...]"
+EIO: Error handling is occasionally correct.
+H. S. Gunawi, et al. In Proc. of the 6th USENIX Conference on File and Storage Technologies, FAST’08, 2008.
+
+"Almost all catastrophic failures (92%) are the result of incorrect handling of non-fatal errors explicitly signaled in software"
+Simple Testing Can Prevent Most Critical Failures: An Analysis of Production Failures in Distributed Data-Intensive Systems.
+Ding Yuan, et al., University of Toronto. In Proceedings of the 11th USENIX Symposium on Operating Systems Design and Implementation, OSDI14, 2014
+
+
+Why is error handling hard?
+
+We often don’t know if and how an operation could fail
+Knowledge of how to handle an error can be a long way from where the error is detected
+Errors can leave our system in states from which it can’t recover
+Error handling is hard to isolate from its surrounding code and therefore hard to test
+
+If something is hard work and error prone, I like the computer to do the drudge work so I can focus on the creative work
+
+We’ll look at error handling in the context of these problems
+
+
+=== Java and Checked Exceptions
+
+There were a lot of variously unsatisfactory error handling strategies before the industry began to settle on exceptions.
+
+Java introduced checked exceptions - a way of forcing programmers to handle what could fail
+
+Java type checks exceptions that can be expected to occur. That is, exceptions caused by failures in the environment that the program interfaces with: I/O, network communication, etc.
+
+This ensures that the programmer takes account of all errors caused by something in the program’s environment.
+
+Some failures cannot be type checked in this way: they can happen at any time. They are:
+Runtime exceptions: programmer mistakes detected by the runtime.  E.g. array access out of bounds, dereference of null
+Errors: JVM failure so severe that it can no longer guarantee the semantics of the language. E.g. missing class file, out of memory, stack overflow.
+
+When these kinds of failures occur, there's not much a program can do. The program's mutable data may well have been left in an inconsistent state, and continuing will result in erroneous behaviour or other unchecked exceptions.
+(A good reason to use immutable data!)
+
+Checked Exception::
+  Something failed in the program's environment. The program could recover. The type checker ensures that the programmer considers all possible environmental failures in their design.
+RuntimeException::
+  A programmer made a mistake that was detected by the runtime. All bets are off (because of non-transactional  mutable state)
+Error::
+  The JVM can no longer guarantee the semantics of the language. All bets are off.
+
+Java's Exception class hierarchy is awkward but could not be changed after Java was released.
+RuntimeException being subclass of Exception means code that catches all environmental failures also catches programmer errors, unless catch-RuntimeException-and-rethrow boilerplate added.
+
+From the start, Java exceptions were not used consistently in the standard library
+(eg URL constructor throws a checked exception, Integer.parseInt doesn’t. Assertions throw an Error, not a RuntimeException)
+
+It got worse over time, especially with the rapid adoption of open source libraries by Java programmers
+Popular frameworks wrap APIs to convert checked exceptions into RuntimeExceptions, making well behaved libraries worse
+
+The JVM exception hierarchy is now inconsistent and hard to use effectively
+Plus, higher-order functions muddy the exception waters
+
+When it comes to error handling, it’s not just that we cannot rely on the type checker to help. It now actually hinders.
+
+
+=== And now Kotlin
+
+Kotlin has exceptions, because it targets the JVM.
+Kotlin’s designers took the pragmatic decision not to typecheck exceptions.
+By the point the language was designed, they didn’t really have another choice.
+(They could do this because checked exceptions do not exist in the JVM. It’s a compiler feature.)
+But that leads to the following question...
+
+What is the best way to handle errors in Kotlin?
+
+How do we, as Kotlin programmers, get back to a consistent categorisation and reporting of errors, supported by the type checker?
+
+
+The answer is, as always, _it depends_.
+
+The different approaches to error handling have trade-offs, and you'll have to find a combination of approaches that makes sense for your application.
+
+Different techniques will be most suited to different parts of your application, and you will need to translate from one technique to another across the boundaries between those areas.
+
+And, as your system evolves, the trade-offs will change, and so the choice of error handling techniques must change.
+
+So we want our tooling – and the type checker in particular – to support us as we make those changes.
+
+=== Exceptions
+
+We could just use exceptions.
+
+One big advantage: They're built into the language.  You don't need an additional library.
+
+But... it's too easy to throw so many different types of exception that the handling code gets too complicated
+
+[source,kotlin]
+----
+fun handlePost(request: HttpRequest): HttpResponse {
+    val action = try {
+        parseRequest_1(request)
+    } catch (e: NumberFormatException) {
+         return HttpResponse(HTTP_BAD_REQUEST)
+    } catch (e: NoSuchElementException) {
+         return HttpResponse(HTTP_BAD_REQUEST)
+    }
+
+    perform(action)
+    return HttpResponse(HTTP_OK)
+}
+
+...
+
+fun parseRequest(request: HttpRequest): BigInteger {
+    val form = request.readForm()
+    return form["id"]?.toBigInteger()
+        ?: throw NoSuchElementException("id missing")
+}
+
+----
+
+If we do not know the source of an exception we don't know how to handle it
+
+Does it indicate invalid input (400 status) or a programming bug (500 status).
+Sending the wrong status can trigger systemic problems such as retry storms.
+
+
+=== Categorise errors as they cross domain boundaries
+
+We typically avoid letting arbitrary exceptions propagate through our system.
+
+Instead we convert them as they cross _bounded contexts_ to categorise them for easier handling further up the call stack
+
+[source,kotlin]
+----
+fun handlePost(request: HttpRequest): HttpResponse {
+   val action = try {
+       parseRequest(request)
+   } catch (e: BadRequest) {
+       return HttpResponse(HTTP_BAD_REQUEST)
+   }
+
+   perform(action)
+   return HttpResponse(HTTP_OK)
+}
+
+...
+
+fun parseRequest(request: HttpRequest) =
+   try {
+       val form = request.readForm()
+       form["id"]?.toBigInteger()
+           ?: throw BadRequest("id missing")
+   } catch(e: NumberFormatException) {
+       throw BadRequest(e)
+   }
+----
+
+=== Code using exceptions can be difficult to change.
+
+Without support from the type checker, even this is fraught with difficulty, especially when we change our system.
+
+Can you spot the bug?
+
+[source,kotlin]
+----
+fun handlePost(request: HttpRequest): HttpResponse {
+   val action = try {
+       parseRequest(request)
+   } catch (e: BadRequest) {
+       return HttpResponse(HTTP_BAD_REQUEST)
+   }
+
+   perform(action)
+   return HttpResponse(HTTP_OK)
+}
+
+...
+
+fun parseRequest(request: HttpRequest) =
+   try {
+       val json = request.readJson()
+       json["id"].textValue().toBigInteger()
+   } catch(e: NumberFormatException) {
+       throw BadRequest(e)
+   }
+----
+
+It's a trick question: there's no way to see the bug in this code
+
+In the JSON API we're using, the indexing operator (e.g. `json["id"]`) throws `JsonException` when a property does not exist.  That exception is not handled by try/catch block in the `parseRequest` function and so is not converted to a `BadRequest` exception but propagates to the HTTP layer, which returns 500 instead of 400.
+
+
+The open exception class hierarchy means that compiler cannot tell if we’ve handled all error cases, or have code that handles impossible cases
+
+Without support from the type checker it’s easy to introduce bugs in error handling code
+
+=== Fuzz test to ensure no unexpected exceptions
+
+[source,kotlin]
+----
+@Test
+fun `Does not throw unexpected exceptions on parse failure`() {
+   Random().mutants(1000, validInput)
+       .forEach { possiblyInvalidInput ->
+           try { parse(possiblyInvalidInput) }
+           catch (e: BadRequest) { /* allowed */ }
+           catch (e: Exception) {
+               fail("unexpected exception $e for: $possiblyInvalidInput")
+           }
+       }
+}
+----
+
+Fuzzing is one of those unreasonably effective practices that provides ridiculous amounts of bang for the buck.
+
+Mutation-based fuzzing generates thousands of possibly invalid inputs by mutating inputs that are known to be valid. Where do you get inputs known to be valid?  From your positive test cases!
+
+=== Summary
+
+Exceptions are fine when the behaviour of the program does not depend on the type of error.
+For example
+
+* It can just crash (and maybe rely on a supervisor to restart it)
+* It can write a message to stderr and return an error code to the shell
+* It can display a dialog and let the user correct the problem
+
+This becomes a risk if:
+
+* the context of our app changes so that its behaviour in the face of errors is part of the program's functional requirements,
+* the code evolves, changing which exceptions get thrown
+
+
+== TODO: digression about total and partial functions
+
+== Nullable Types
+
+We could use null to represent errors.
+
+Nullable types
+Advantages:
+* Like exceptions, null is built into the language -- we don't need an additional library
+* Unlike exceptions, the type checker helps us use nulls correctly
+
+Disadvantage:
+* no way to include diagnostic info with errors
+
+So, best to use for error handling in "small scale" code.  E.g. `List<T>.singleOrNull()`, or `String.toIntOrNull()`.
+
+E.g. parsing strings to "primitive" values, currency codes, numbers, etc.
+
+But not for errors where we want information about the cause. E.g. I/O errors, or errors parsing structured data (we want to know where the error is).
+
+
+Kotlin stdlib uses the convention of returning null on error extensively. Has a consistent, if rather awkward, naming convention -- the "OrNull" suffix.
+
+[source,kotlin]
+----
+/**
+* Parses the string as an [Int] number and returns the result
+* or `null` if the string is not a valid representation of a number.
+*/
+@SinceKotlin("1.1")
+public fun String.toIntOrNull(): Int? = ...
+----
+
+Errors can be handled with the elvis operator.
+
+[source,kotlin]
+----
+fun handleGet(request: HttpRequest): HttpResponse {
+    val count = request["count"].firstOrNull()
+        ?.toIntOrNull()
+        ?: return HttpResponse(HTTP_BAD_REQUEST).body("invalid count")
+
+    val startTime = request["from"].firstOrNull()
+        ?.let { ISO_INSTANT.parseInstant(it) }
+        ?: return HttpResponse(HTTP_BAD_REQUEST).body("invalid from time")
+
+    ...
+----
+
+Null handling is more convenient with extension methods
+
+However, the same construct represents absence and error.
+
+[source,kotlin]
+----
+fun handleGet(request: HttpRequest): HttpResponse {
+    val count = request["count"].firstOrNull()?.let {
+        it.toIntOrNull()
+            ?: return HttpResponse(HTTP_BAD_REQUEST)
+                .body("invalid count parameter")
+    } ?: 100
+
+    val startTime = request["from"].firstOrNull()?.let {
+        ISO_INSTANT.parseInstant(it)
+            ?: return HttpResponse(HTTP_BAD_REQUEST)
+                .body("invalid from parameter")
+    } ?: Instant.now()
+
+    ...
+----
+
+Anywhere there’s a subtle distinction between different uses of a single construct you’re going to get bugs
+
+If you have to distinguish between absence and error, there’s not much to choose between functions and extensions.
+
+
+=== Convert exceptions to null close to their source
+
+[source,kotlin]
+----
+fun DateTimeFormatter.parseInstant(s: String): Instant? =
+       try {
+           parse(s, Instant::from)
+       }
+       catch (e: DateTimeParseException) {
+           null
+       }
+----
+
+=== Summary
+
+Using null for error cases is fine when...
+
+* the cause of an error is obvious from the context.
+*  optionality and errors are not handled by the same code.
+
+For example:
+
+* Parsing a simple typed value from a string
+* Looking up data that may not be present
+
+Be aware of when that context changes.
+
+And fuzz test to ensure no unexpected exceptions.
+
+
+=== TODO: move errors to outer layers
+
+
+=== Using an albegraic data type
+
+Or, in Kotlin, a "sealed class hierarchy".
+
+Sealed class hierarchy: a Result is either a successful result or an error.
+
+[source,kotlin]
+----
+sealed class Result<out T, out E>
+data class Success<out T>(val value: T) : Result<T, Nothing>()
+data class Failure<out E>(val reason: E) : Result<Nothing, E>()
+----
+
+This example is from Result4k.
+
+Some people like to have the T and E parameters the other way round. This is convenient in languages like Haskell that support currying of type parameters. In other languages, like Rust, people seem to prefer to have the success case first. In Kotlin, we have to use typealiases instead of currying, so I copied Rust's convention.  Arrow copies Haskell's convention.
+
+TIP: Note that there is a Result type in the standard library. It isn’t an algebraic data type and when you try to use it, IntelliJ complains. It’s probably best ignored except for the few uses in coroutines.
+
+Unlike using null to represent error, an algebraic data type can easily distinguish between error and absence: have a result with a nullable success type
+
+A Result type forces the programmer to consider the failure case. You cannot get the value from a Result without ensuring that it is a Success.
+
+[source,kotlin]
+----
+val result = operationThatCanFail()
+when (result) {
+   is Success<Value> -> doSomethingWith(result.value)
+   is Failure<Error> -> handleError(result.reason)
+}
+----
+
+But this is too awkward to use for every function call that might fail.
+
+And begs a new question: how should we represent the failure reasons?
+
+Drawback: We can ignore errors by discarding entire results (unlike when errors are reported as exceptions).  E.g. we could ignore errors from _procedures_.   Single expression functions prevent this.
+
+
+=== Convenience operations instead of when expressions
+
+[source,kotlin]
+----
+fun handlePost(request: HttpRequest): HttpResponse =
+    request.readJson()
+        .flatMap { json -> json.toCommand() }
+        .flatMap(::performCommand)
+        .map { outcome -> outcome.toHttpResponse() }
+        .mapFailure { errorCode -> errorCode.toHttpResponse() }
+        .get()
+----
+
+Operations that use successfully computed values can be defined in terms of flatMap and Success/Failure, or the equivalent for failures: flatMapFailure
+
+Naming: “flatMap” (Kotlin terminology), “then” (JavaScript terminology). What’s best?
+
+We can define other operations with when expressions if we want to (e.g. for efficiency) -- it’s just a sealed hierarchy of data classes after all.
+
+Get allows computation to safely "escape the monad" and return to the world of plain ol' values.
+a primitive operation -- it cannot be defined in terms of flatMap or flatMapFailure
+
+So far we've got the type checker to help us to maintain a distinction between success and failure cases.
+
+
+Drawback: no language support for monads.
+
+Kotlin doesn’t have language support for monads like Scala or Haskell
+When flatMaps need to use values from earlier in the pipeline you end up with deeply nested blocks.
+
+[source,kotlin]
+----
+fun handlePost(request: HttpRequest): Result<HttpResponse,Error> =
+   request.readJson()
+       .flatMap { json ->
+           json.toCommand()
+               .flatMap { command ->
+                   loadResourceFor(request)
+                       .flatMap { resource ->
+                           performCommand(resource, command)
+                               .map { outcome ->
+                                   outcome.toHttpResponseFor(request)
+                               }
+                       }
+               }
+       }
+----
+
+Instead we use inline functions and early returns.
+Codes to the grain of the language. Explicit control flow is a Kotlin principle (except for exceptions!). E.g. cannot override shortcut logical operators.
+
+
+[source,kotlin]
+----
+inline fun <T, E> Result<T, E>.onFailure(block: (Failure<E>) -> Nothing): T =
+    when (this) {
+        is Success<T> -> value
+        is Failure<E> -> block(this)
+    }
+
+...
+
+fun handlePost(request: HttpRequest): Result<HttpResponse,Error> {
+   val json = request.readJson().onFailure { return it }
+   val command = json.toCommand().onFailure { return it }
+   val resource = loadResource(request).onFailure { return it }
+   val outcome = performCommand(resource, command).onFailure { return it }
+
+   return Success(outcome.toHttpResponseFor(request))
+}
+----
+
+Performs well, but comes at the expense of boilerplate code
+
+=== How to model error reasons in the Failure case?
+
+How do we model the error codes so that the type checker makes sure we've handled all possible errors?
+
+Exceptions or open class hierarchy? Same problems as try/catch — the open class hierarchy means that the compiler cannot tell if we’ve handled all possible cases, or have code handling an impossible case.
+Sealed class hierarchy? Define a sealed hierarchy of data classes for each bounded context in the app. But have to convert errors as they cross boundaries from one context to another. And cannot easily write code common to all types of error.
+Exceptions have a stack trace, data classes do not. But in practice we’ve not found this a problem: stack traces are only useful for diagnosing programmer mistakes, which are still reported as exceptions.
+
+Use exceptions for programming errors (bugs), because you care about the stack trace.
+
+Use ADTs for explicit error reporting, that operators or users might care about
+
+
+This avoids combinatorial explosion of errors you have to consider.
+
+Abstractions leak when failures happen
+
+
+=== Summary
+
+A Result type is fine when
+
+* your team are used to a functional programming style
+* you don't need stack traces
+
+For example
+
+* Propagating exceptional cases in business logic to web pages
+* Looking up data that may not be present
+
+Dealing with pure-side-effecty code is a problem: Result<Unit, *> can fail silently.
+But as we’ve said, you should be suspicious of that sort of code and try and move it to the outer layers of your codebase where it can do less damage.
+
+Be aware of when that context changes.
+And convert exceptions to Failures close to source & fuzz test.
+
