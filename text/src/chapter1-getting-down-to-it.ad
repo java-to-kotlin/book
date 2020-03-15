@@ -1,18 +1,20 @@
-= Chapter 1
-
-== Getting Down To It
+= Chapter 1 - Getting Down To It
 
 Kotlin Data classes are probably the quickest win for most Java projects. Let's warm up on a very simple example.
 
-A> We'll skip over configuring your build system to handle Kotlin for now.
+====
+We're keen to get to showing you Kotlin as soon as possible, so we'll skip over how to configure your build system for now. We'll return to that in Chapter TODO.
+====
+
+Here is a typical Java class, representing a Presenter at a conference.
 
 // [start-insert] <main/java/chapter1/java/Presenter.java>
 [source,java]
 ----
 public class Presenter {
 
-    private final String id;
-    private final String name;
+    private final String id;   // <1>
+    private final String name; // <1>
 
     public Presenter(String id, String name) {
         this.id = id;
@@ -27,6 +29,7 @@ public class Presenter {
         return name;
     }
 
+    // <2>
     @Override
     public String toString() {
         return "chapter1.java.Presenter{" +
@@ -40,7 +43,7 @@ public class Presenter {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Presenter presenter = (Presenter) o;
-        return id.equals(presenter.id) &&
+        return id.equals(presenter.id) && // <3>
                 name.equals(presenter.name);
     }
 
@@ -112,6 +115,9 @@ public class Presenter {
     public String getName() {
         return name;
     }
+
+    //...
+}
 ----
 
 `val` is short for 'value' and marks a property that you cannot change once set - the equivalent of Java's `final`. We could (but almost always wouldn't) have used `var` for `variable`, in which case the property could be modified and a Java setter would be generated.
@@ -129,15 +135,15 @@ Now there is so little code, it's easy to pick out a few more differences betwee
 
 Firstly, the default visibility in Kotlin is public, so `public class Presenter` can just be `class Presenter`.
 
-A> If you are the same sort of Java programmer as we were you may question this language design decision. Our experience working with the language is that it fits well with a more data-oriented design philosophy, where less state has to be hidden. See Chapter TODO.
+====
+If you are the same sort of Java programmer as we were you may question this language design decision. Our experience working with the language is that it fits well with a more data-oriented design philosophy, where less state has to be hidden. See Chapter TODO.
+====
 
 Secondly, type specifiers in Kotlin come after the identifier, not before it. So instead of `String id` we have `id: String`. This turns out to play nicer with complex nested types and we found that we very quickly didn't notice it at all.
 
 Finally, we have been able to remove the body of the class altogether, so there isn't an empty `{}` pair.
 
 You haven't seen them yet, but we had some tests for our Presenter.
-
-
 
 // [start-insert] <test/java/chapter1/java/PresenterTests.java>
 [source,java]
@@ -172,7 +178,9 @@ Due to the excellent interoperation between Kotlin and Java, these continue to p
 
 Our Java Presenter had explicit `getId` and `getName` methods. These are not in the converted Kotlin, but still our Java can call them. This means that the Kotlin compiler is not only generating the `equals`, `hashCode` and `toString` methods we knew about, but also `getId` and `getName`. `id` and `name` are not fields in Kotlin, they are properties.
 
-A> We'll have a lot to say about properties later, but for now if you think of them as a private field with a public getter you won't often be wrong.
+====
+We'll have a lot to say about properties later, but for now if you think of them as a private field with a public getter you won't often be wrong.
+====
 
 Let's convert the tests themselves to Kotlin
 
@@ -212,7 +220,9 @@ As usual, take a few moments to compare before and after.
 
 The first thing that we spot is that the Java fields, `nat` and `duncan` are declared as `val` properties but we haven't had to repeat their type - `Presenter nat = new Presenter(...);`. Kotlin would allow us to say `val nat: Presenter = Presenter(...)` but does not require it here.
 
-A> Properties can be declared with `val` if they don't change, and `var` if they do. Even though the fields were not declared as `final` in the Java; in this case the conversion has been clever enough to see that they are not changed and to convert them to `val`.
+====
+Properties can be declared with `val` if they don't change, and `var` if they do. Even though the fields were not declared as `final` in the Java; in this case the conversion has been clever enough to see that they are not changed and to convert them to `val`.
+====
 
 Looking at the properties, we see that there is no `new` keyword to construct instances of classes - 'invoking' the class name as a function calls the relevant constructor.
 
@@ -222,7 +232,11 @@ Moving on, we might infer that the Java `void` keyword is replaced in Kotlin by 
 
 Looking in the body of the methods, where Java called `nat.getId()`, Kotlin accesses the property `nat.id`. In actual fact Kotlin will call the `getId` that it has generated (or one supplied by a Java class) rather than accessing a field directly - so nothing has really changed except that we can drop the `get` and `()`.
 
-A> There is quite a bit of subtlety to properties. We will keep on returning to this subject.
+====
+There is quite a bit of subtlety to properties. We will keep on returning to this subject.
+====
+
+One irritation is that for us the static import of `org.junit.jupiter.api.Assertions.*` has been lost in the conversion. The converter is a work in progress and that may have changed by the time that you read this. A couple of quick Alt-Enters will fix it up in any case.
 
 Stepping away from the Java, and comparing with our previous Kotlin class, Presenter, we see that in the tests the class properties are not declared in the primary constructor.  JUnit requires a default (no argument) constructor, and where properties are not initialised through a constructor (like `nat` and `duncan` here) they are not declared in the primary constructor but rather inside the class body.
 

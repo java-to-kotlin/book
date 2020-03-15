@@ -4,8 +4,8 @@ import java.util.Objects;
 
 public class Presenter {
 
-    private final String id;
-    private final String name;
+    private final String id;   // <1>
+    private final String name; // <1>
 
     public Presenter(String id, String name) {
         this.id = id;
@@ -20,6 +20,7 @@ public class Presenter {
         return name;
     }
 
+    // <2>
     @Override
     public String toString() {
         return "chapter1.java.Presenter{" +
@@ -33,7 +34,7 @@ public class Presenter {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Presenter presenter = (Presenter) o;
-        return id.equals(presenter.id) &&
+        return id.equals(presenter.id) && // <3>
                 name.equals(presenter.name);
     }
 
