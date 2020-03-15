@@ -11,21 +11,46 @@ import static java.util.Arrays.asList;
 
 
 public class Session {
-    public final String title;
-    @Nullable
-    public final String subtitleOrNull;
-    public final Slots slots;
-    public final List<Presenter> presenters;
 
-    public Session(String title, @Nullable String subtitle, Slots slots, List<Presenter> presenters) {
+    public final String title;
+    @Nullable // <1>
+    public final String subtitleOrNull;
+    public final List<Presenter> presenters; // <2>
+
+    public Session(String title, @Nullable String subtitle, List<Presenter> presenters) {
         this.title = title;
         this.subtitleOrNull = subtitle;
-        this.slots = slots;
-        this.presenters = Collections.unmodifiableList(new ArrayList<>(presenters));
+        this.presenters = Collections.unmodifiableList(new ArrayList<>(presenters)); // <3>
     }
 
-    public Session(String title, @Nullable String subtitle, Slots slots, Presenter... presenters) {
-        this(title, subtitle, slots, asList(presenters));
+    public Session(String title, @Nullable String subtitle, Presenter... presenters) {
+        this(title, subtitle, asList(presenters));
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    @Nullable
+    public String getSubtitleOrNull() {
+        return subtitleOrNull;
+    }
+
+    public List<Presenter> getPresenters() {
+        return presenters;
+    }
+
+    // <4>
+    public Session withPresenters(List<Presenter> newLineUp) {
+        return new Session(title, subtitleOrNull, newLineUp);
+    }
+
+    public Session withTitle(String newTitle) {
+        return new Session(newTitle, subtitleOrNull, presenters);
+    }
+
+    public Session withSubtitle(@Nullable String newSubtitle) {
+        return new Session(title, newSubtitle, presenters);
     }
 
     @Override
@@ -35,13 +60,12 @@ public class Session {
         Session session = (Session) o;
         return Objects.equals(title, session.title) &&
                 Objects.equals(subtitleOrNull, session.subtitleOrNull) &&
-                Objects.equals(slots, session.slots) &&
                 Objects.equals(presenters, session.presenters);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(title, subtitleOrNull, slots, presenters);
+        return Objects.hash(title, subtitleOrNull, presenters);
     }
 
     @Override
@@ -49,20 +73,7 @@ public class Session {
         return "chapter1.java.Session{" +
                 "title='" + title + '\'' +
                 ", subtitle='" + subtitleOrNull + '\'' +
-                ", slots=" + slots +
                 ", presenters=" + presenters +
                 '}';
-    }
-
-    public Session withPresenters(List<Presenter> newLineUp) {
-        return new Session(title, subtitleOrNull, slots, newLineUp);
-    }
-
-    public Session withTitle(String newTitle) {
-        return new Session(newTitle, subtitleOrNull, slots, presenters);
-    }
-
-    public Session withSubtitle(@Nullable String newSubtitle) {
-        return new Session(title, newSubtitle, slots, presenters);
     }
 }

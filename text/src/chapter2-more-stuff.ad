@@ -1,0 +1,158 @@
+= Chapter 2 - More Stuff
+
+Casting around the code for some more easy wins we find another value class -  Session.
+
+// [start-insert] <main/java/chapter1/java/Session.java>
+[source,java]
+----
+public class Session {
+
+    public final String title;
+    @Nullable // <1>
+    public final String subtitleOrNull;
+    public final List<Presenter> presenters; // <2>
+
+    public Session(String title, @Nullable String subtitle, List<Presenter> presenters) {
+        this.title = title;
+        this.subtitleOrNull = subtitle;
+        this.presenters = Collections.unmodifiableList(new ArrayList<>(presenters)); // <3>
+    }
+
+    public Session(String title, @Nullable String subtitle, Presenter... presenters) {
+        this(title, subtitle, asList(presenters));
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    @Nullable
+    public String getSubtitleOrNull() {
+        return subtitleOrNull;
+    }
+
+    public List<Presenter> getPresenters() {
+        return presenters;
+    }
+
+    // <4>
+    public Session withPresenters(List<Presenter> newLineUp) {
+        return new Session(title, subtitleOrNull, newLineUp);
+    }
+
+    public Session withTitle(String newTitle) {
+        return new Session(newTitle, subtitleOrNull, presenters);
+    }
+
+    public Session withSubtitle(@Nullable String newSubtitle) {
+        return new Session(title, newSubtitle, presenters);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Session session = (Session) o;
+        return Objects.equals(title, session.title) &&
+                Objects.equals(subtitleOrNull, session.subtitleOrNull) &&
+                Objects.equals(presenters, session.presenters);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(title, subtitleOrNull, presenters);
+    }
+
+    @Override
+    public String toString() {
+        return "chapter1.java.Session{" +
+                "title='" + title + '\'' +
+                ", subtitle='" + subtitleOrNull + '\'' +
+                ", presenters=" + presenters +
+                '}';
+    }
+}
+----
+// [end-insert]
+
+Like Presenter, Session is immutable and has tedious code to manage object identity. But it has some other features, namely
+
+<1> One of the fields is optional. We've represented that here with a `@Nullable` and a pedantic name.
+
+<2> One of the fields is a collection.
+
+<3> Because `presenters` is a collection, and Java collections are mutable, we take a defensive copy in the constructor.
+
+<4> There are some convenience methods that return a copy of the session with modified properties.
+
+If we use IntelliJ to convert this to Kotlin, we get the following
+
+// [start-insert] <main/kotlin/chapter1/kotlin/Session.kt.broken>
+[source,text]
+----
+class Session(
+    val title: String,
+    val subtitleOrNull: String?,
+    presenters: List<Presenter>?
+) {
+
+    val presenters : List<Presenter>
+
+    constructor(title: String, subtitle: String?, vararg presenters: Presenter?) : this(
+        title,
+        subtitle,
+        Arrays.asList(*presenters)
+    ) {
+    }
+
+    // <4>
+    fun withPresenters(newLineUp: List<Presenter>?): Session {
+        return Session(title, subtitleOrNull, newLineUp)
+    }
+
+    fun withTitle(newTitle: String): Session {
+        return Session(newTitle, subtitleOrNull, presenters)
+    }
+
+    fun withSubtitle(newSubtitle: String?): Session {
+        return Session(title, newSubtitle, presenters)
+    }
+
+    override fun equals(o: Any?): Boolean {
+        if (this === o) return true
+        if (o == null || javaClass != o.javaClass) return false
+        val session = o as Session
+        return title == session.title &&
+            subtitleOrNull == session.subtitleOrNull &&
+            presenters == session.presenters
+    }
+
+    override fun hashCode(): Int {
+        return Objects.hash(title, subtitleOrNull, presenters)
+    }
+
+    override fun toString(): String {
+        return "chapter1.java.Session{" +
+            "title='" + title + '\'' +
+            ", subtitle='" + subtitleOrNull + '\'' +
+            ", presenters=" + presenters +
+            '}'
+    }
+
+    init {
+        this.presenters = Collections.unmodifiableList(ArrayList(presenters))
+    }
+}
+----
+// [end-insert]
+
+This isn't IDEA's finest hour, as not only is this not very good Kotlin, it doesn't even compile
+
+
+====
+TODO Something about the potential bug in allowing out the List<Presenter>
+====
+
+== Conclusions
+
+*
