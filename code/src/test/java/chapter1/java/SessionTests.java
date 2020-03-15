@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 import java.util.List;
 
-import static java.util.Arrays.asList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -28,7 +27,7 @@ public class SessionTests {
     @Test
     public void can_change_presenters() {
         assertThat(
-            aSession.withPresenters(asList(bob, alice)),
+            aSession.withPresenters(List.of(bob, alice)),
             equalTo(new Session("The Title", List.of(bob, alice))));
     }
 }

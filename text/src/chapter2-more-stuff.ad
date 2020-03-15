@@ -183,11 +183,36 @@ data class Session(
 ----
 // [end-insert]
 
+None of the Java users of Session have had to change so far - let's look at the tests for example.
 
+// [start-insert] <test/java/chapter1/java/SessionTests.java>
+[source,java]
+----
+public class SessionTests {
 
-====
-TODO Something about the potential bug in allowing out the List<Presenter>
-====
+    private static Presenter alice = new Presenter("id1", "Alice");
+    private static Presenter bob = new Presenter("id2", "Bob");
+    private final List<Presenter> noPresenters = Collections.emptyList();
+
+    private Session aSession = new Session("The Title", noPresenters);
+
+    @Test
+    public void can_change_title() {
+        assertThat(
+            aSession.withTitle("Another Title"),
+            equalTo(new Session("Another Title", noPresenters)));
+    }
+
+    @Test
+    public void can_change_presenters() {
+        assertThat(
+            aSession.withPresenters(List.of(bob, alice)),
+            equalTo(new Session("The Title", List.of(bob, alice))));
+    }
+}
+----
+// [end-insert]
+
 
 == Conclusions
 
