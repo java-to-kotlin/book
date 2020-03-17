@@ -14,7 +14,9 @@ fun processFiles(dir: File, srcRoot: File) {
 
 private fun processFile(src: File, dest: File, srcRoot: File) {
     val text = src.readText()
-    dest.writeText(expandCodeBlocks(text, lookupWithRoot(srcRoot)))
+    val newText = expandCodeBlocks(text, lookupWithRoot(srcRoot))
+    if (newText != text)
+        dest.writeText(newText)
 }
 
 private fun lookupWithRoot(dir: File) =
