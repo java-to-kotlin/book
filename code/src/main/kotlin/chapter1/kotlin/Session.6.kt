@@ -1,6 +1,6 @@
-package chapter1.kotlin3
+package chapter1.kotlin6
 
-import chapter1.kotlin.Presenter
+import chapter1.java.Presenter
 
 data class Session(
     val title: String,
@@ -8,10 +8,10 @@ data class Session(
 ) {
 
     fun withPresenters(newLineUp: List<Presenter>): Session {
-        return Session(title, newLineUp)
+        return copy(presenters = newLineUp)
     }
 
     fun withTitle(newTitle: String): Session {
-        return Session(newTitle, presenters)
+        return copy(title = newTitle)
     }
 }

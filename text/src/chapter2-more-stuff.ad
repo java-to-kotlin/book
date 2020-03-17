@@ -192,27 +192,264 @@ public class SessionTests {
 
     private static Presenter alice = new Presenter("id1", "Alice");
     private static Presenter bob = new Presenter("id2", "Bob");
-    private final List<Presenter> noPresenters = Collections.emptyList();
+    private static final List<Presenter> noPresenters = Collections.emptyList();
 
-    private Session aSession = new Session("The Title", noPresenters);
+    private Session aSession = new Session("The Title", List.of(bob, alice));
 
     @Test
     public void can_change_title() {
-        assertThat(
-            aSession.withTitle("Another Title"),
-            equalTo(new Session("Another Title", noPresenters)));
+        assertEquals(
+            new Session("Another Title", List.of(bob, alice)),
+            aSession.withTitle("Another Title")
+        );
     }
 
     @Test
     public void can_change_presenters() {
-        assertThat(
-            aSession.withPresenters(List.of(bob, alice)),
-            equalTo(new Session("The Title", List.of(bob, alice))));
+        assertEquals(
+            new Session("The Title", noPresenters),
+            aSession.withPresenters(noPresenters)
+        );
     }
 }
 ----
 // [end-insert]
 
+<1> We can see that the `java.util.List<String>` argument is compatible with the `kotlin.collections.List<String>` parameter.
+
+Converting the tests to Kotlin with IntelliJ we get
+
+// [start-insert] <test/kotlin/chapter1/kotlin/SessionTests.kt>
+[source,kotlin]
+----
+class SessionTests {
+    private val aSession = Session(
+        "The Title",
+        java.util.List.of(bob, alice)
+    )
+
+    @Test
+    fun can_change_title() {
+        assertEquals( // <1>
+            Session(
+                "Another Title",
+                java.util.List.of(bob, alice)
+            ),
+            aSession.withTitle("Another Title")
+        )
+    }
+
+    @Test
+    fun can_change_presenters() {
+        assertEquals(
+            Session("The Title", noPresenters),
+            aSession.withPresenters(noPresenters)
+        )
+    }
+
+    companion object {
+        private val alice = Presenter("id1", "Alice")
+        private val bob = Presenter("id2", "Bob")
+        private val noPresenters: List<Presenter> = emptyList()
+    }
+}
+----
+// [end-insert]
+
+<1> Actually we had that irritating lack of static imports again - we've fixed that already.
+
+Look at the differences between the Java and Kotlin versions. They are very similar except that the static members have been moved onto a companion object. This provides a namespace for class-scoped code with advantages over Java that we will examine in later chapters. For now though it's just a bit of an irritation, so we'll make the properties plain old fields.
+
+The `java.util.List.of` also stands out, and in fact IntelliJ offers to convert it to the Kotlin equivalent - `kotlin.collections.listOf`. Another Alt-Enter Easter egg can be found on the function names - IntelliJ will offer to convert them to eg `can change title` using the backtick feature to allow spaces and other characters in identifiers.
+
+Once we're done the tests now look like this
+
+// [start-insert] <test/kotlin/chapter1/kotlin/SessionTests.2.kt>
+[source,kotlin]
+----
+class SessionTests {
+
+    private val alice = Presenter("id1", "Alice")
+    private val bob = Presenter("id2", "Bob")
+    private val noPresenters: List<Presenter> = emptyList()
+
+    private val aSession = Session(
+        "The Title",
+        listOf(bob, alice)
+    )
+
+    @Test
+    fun `can change title`() {
+        assertEquals(
+            Session(
+                "Another Title",
+                listOf(bob, alice)
+            ),
+            aSession.withTitle("Another Title")
+        )
+    }
+
+    @Test
+    fun `can change presenters`() {
+        assertEquals(
+            Session("The Title", noPresenters),
+            aSession.withPresenters(noPresenters)
+        )
+    }
+}
+----
+// [end-insert]
+
+We have one more data class trick up our sleeve. Returning to Session
+
+// [start-insert] <main/kotlin/chapter1/kotlin/Session.3.kt>
+[source,kotlin]
+----
+data class Session(
+    val title: String,
+    val presenters: List<Presenter>
+) {
+
+    fun withPresenters(newLineUp: List<Presenter>): Session {
+        return Session(title, newLineUp)
+    }
+
+    fun withTitle(newTitle: String): Session {
+        return Session(newTitle, presenters)
+    }
+}
+----
+// [end-insert]
+
+we can make use of Kotlin's named parameters (Alt-Enter inside the brackets)
+
+// [start-insert] <main/kotlin/chapter1/kotlin/Session.4.kt>
+[source,kotlin]
+----
+data class Session(
+    val title: String,
+    val presenters: List<Presenter>
+) {
+
+    fun withPresenters(newLineUp: List<Presenter>): Session {
+        return Session(title = title, presenters = newLineUp)
+    }
+
+    fun withTitle(newTitle: String): Session {
+        return Session(title = newTitle, presenters = presenters)
+    }
+}
+----
+// [end-insert]
+
+and then replace the constructor invocations with the special copy method
+
+// [start-insert] <main/kotlin/chapter1/kotlin/Session.5.kt>
+[source,kotlin]
+----
+data class Session(
+    val title: String,
+    val presenters: List<Presenter>
+) {
+
+    fun withPresenters(newLineUp: List<Presenter>): Session {
+        return copy(title = title, presenters = newLineUp)
+    }
+
+    fun withTitle(newTitle: String): Session {
+        return copy(title = newTitle, presenters = presenters)
+    }
+}
+----
+// [end-insert]
+
+Now remove the redundant arguments
+
+// [start-insert] <main/kotlin/chapter1/kotlin/Session.6.kt>
+[source,kotlin]
+----
+data class Session(
+    val title: String,
+    val presenters: List<Presenter>
+) {
+
+    fun withPresenters(newLineUp: List<Presenter>): Session {
+        return copy(presenters = newLineUp)
+    }
+
+    fun withTitle(newTitle: String): Session {
+        return copy(title = newTitle)
+    }
+}
+----
+// [end-insert]
+
+Where a Kotlin function body consists of a single expression you can Alt-Enter on the brace to convert it to a shorter form.
+
+// [start-insert] <main/kotlin/chapter1/kotlin/Session.7.kt>
+[source,kotlin]
+----
+data class Session(
+    val title: String,
+    val presenters: List<Presenter>
+) {
+
+    fun withPresenters(newLineUp: List<Presenter>) = copy(presenters = newLineUp)
+
+    fun withTitle(newTitle: String) = copy(title = newTitle)
+}
+----
+// [end-insert]
+
+All the time that there are Java uses of `withPresenters` and `withTitle` that is as far as we can go, but once the all callers have been converted to Kotlin, we can inline the methods
+
+// [start-insert] <test/kotlin/chapter1/kotlin/SessionTests.3.kt>
+[source,kotlin]
+----
+class SessionTests {
+
+    private val alice = Presenter("id1", "Alice")
+    private val bob = Presenter("id2", "Bob")
+    private val noPresenters: List<Presenter> = emptyList()
+
+    private val aSession = Session(
+        "The Title",
+        listOf(bob, alice)
+    )
+
+    @Test
+    fun `can change title`() {
+        assertEquals(
+            Session(
+                "Another Title",
+                listOf(bob, alice)
+            ),
+            aSession.copy(title = "Another Title")
+        )
+    }
+
+    @Test
+    fun `can change presenters`() {
+        assertEquals(
+            Session("The Title", noPresenters),
+            aSession.copy(presenters = noPresenters)
+        )
+    }
+}
+----
+// [end-insert]
+
+at which point the test is now just checking the compiler, so we can delete it, leaving just the Session class.
+
+// [start-insert] <main/kotlin/chapter1/kotlin/Session.8.kt>
+[source,kotlin]
+----
+data class Session(
+    val title: String,
+    val presenters: List<Presenter>
+)
+----
+// [end-insert]
 
 == Conclusions
 
