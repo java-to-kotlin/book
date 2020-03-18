@@ -1,7 +1,7 @@
 
 formats=html pdf epub
 
-src:=$(wildcard text/src/*.ad)
+src:=$(wildcard text/src/*.ad) $(wildcard text/src/diagrams/*.plantuml)
 srcroot = text/src/book.ad
 
 asciidoctor_plugins=diagram epub3 pdf
