@@ -1,32 +1,29 @@
 
-formats=html pdf epub
+formats=html pdf
 
 src:=$(wildcard text/src/*.ad) $(wildcard text/src/diagrams/*.plantuml)
 srcroot = text/src/book.ad
 
-asciidoctor_plugins=diagram epub3 pdf
-
 outdir=$(abspath $(dir $@))
 imagesoutdir=$(outdir)/images
+outtype=$(subst .,,$(suffix $@))
 
 asciidoctor_opts=\
 	--doctype=book \
 	--source-dir=book \
 	--destination-dir="$(outdir)" \
-	$(asciidoctor_plugins:%=--require=asciidoctor-%) \
+	--require=asciidoctor-diagram \
 	--attribute source-highlighter=rouge \
 	--attribute imagesoutdir="$(imagesoutdir)" \
-	--attribute imagesdir="$(imagesoutdir)" \
-	$(asciidoctor_opts_$(backend))
+	$(asciidoctor_opts_$(outtype))
 
-# embed images in HTML docs to work around asciidoctor's appalling handling of image paths
-asciidoctor_opts_html=--attribute data-uri
+asciidoctor_opts_pdf=--require=asciidoctor-pdf --attribute imagesdir="$(imagesoutdir)"
+asciidoctor_opts_html=--attribute imagesdir=images
 
 all: $(formats)
 $(foreach f,$(formats),$(eval $f: out/$f/book.$f;))
 
-out/%: backend=$(subst .,,$(suffix $@))
-out/%.epub: backend=epub3
+out/%: backend=$(outtype)
 out/%: $(src) | $(dir $@)/
 	asciidoctor $(asciidoctor_opts) --backend=$(backend) $(srcroot)
 
