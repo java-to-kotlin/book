@@ -323,14 +323,9 @@ data class Session(
 
 we can make use of Kotlin's named parameters (Alt-Enter inside the brackets)
 
-// [start-insert] <main/kotlin/chapter1/kotlin/Session.4.kt>
+// [start-insert] <main/kotlin/chapter1/kotlin/Session.4.kt#foo>
 [source,kotlin]
 ----
-data class Session(
-    val title: String,
-    val presenters: List<Presenter>
-) {
-
     fun withPresenters(newLineUp: List<Presenter>): Session {
         return Session(title = title, presenters = newLineUp)
     }
@@ -338,20 +333,14 @@ data class Session(
     fun withTitle(newTitle: String): Session {
         return Session(title = newTitle, presenters = presenters)
     }
-}
 ----
 // [end-insert]
 
 and then replace the constructor invocations with the special copy method
 
-// [start-insert] <main/kotlin/chapter1/kotlin/Session.5.kt>
+// [start-insert] <main/kotlin/chapter1/kotlin/Session.5.kt#foo>
 [source,kotlin]
 ----
-data class Session(
-    val title: String,
-    val presenters: List<Presenter>
-) {
-
     fun withPresenters(newLineUp: List<Presenter>): Session {
         return copy(title = title, presenters = newLineUp)
     }
@@ -359,20 +348,14 @@ data class Session(
     fun withTitle(newTitle: String): Session {
         return copy(title = newTitle, presenters = presenters)
     }
-}
 ----
 // [end-insert]
 
 Now remove the redundant arguments
 
-// [start-insert] <main/kotlin/chapter1/kotlin/Session.6.kt>
+// [start-insert] <main/kotlin/chapter1/kotlin/Session.6.kt#foo>
 [source,kotlin]
 ----
-data class Session(
-    val title: String,
-    val presenters: List<Presenter>
-) {
-
     fun withPresenters(newLineUp: List<Presenter>): Session {
         return copy(presenters = newLineUp)
     }
@@ -380,43 +363,25 @@ data class Session(
     fun withTitle(newTitle: String): Session {
         return copy(title = newTitle)
     }
-}
 ----
 // [end-insert]
 
 Where a Kotlin function body consists of a single expression you can Alt-Enter on the brace to convert it to a shorter form.
 
-// [start-insert] <main/kotlin/chapter1/kotlin/Session.7.kt>
+// [start-insert] <main/kotlin/chapter1/kotlin/Session.7.kt#foo>
 [source,kotlin]
 ----
-data class Session(
-    val title: String,
-    val presenters: List<Presenter>
-) {
-
     fun withPresenters(newLineUp: List<Presenter>) = copy(presenters = newLineUp)
 
     fun withTitle(newTitle: String) = copy(title = newTitle)
-}
 ----
 // [end-insert]
 
 All the time that there are Java uses of `withPresenters` and `withTitle` that is as far as we can go, but once the all callers have been converted to Kotlin, we can inline the methods
 
-// [start-insert] <test/kotlin/chapter1/kotlin/SessionTests.3.kt>
+// [start-insert] <test/kotlin/chapter1/kotlin/SessionTests.3.kt#foo>
 [source,kotlin]
 ----
-class SessionTests {
-
-    private val alice = Presenter("id1", "Alice")
-    private val bob = Presenter("id2", "Bob")
-    private val noPresenters: List<Presenter> = emptyList()
-
-    private val aSession = Session(
-        "The Title",
-        listOf(bob, alice)
-    )
-
     @Test
     fun `can change title`() {
         assertEquals(
@@ -435,7 +400,6 @@ class SessionTests {
             aSession.copy(presenters = noPresenters)
         )
     }
-}
 ----
 // [end-insert]
 

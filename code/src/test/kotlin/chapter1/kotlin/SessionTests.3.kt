@@ -16,6 +16,7 @@ class SessionTests {
         listOf(bob, alice)
     )
 
+    /// begin: foo
     @Test
     fun `can change title`() {
         assertEquals(
@@ -34,4 +35,5 @@ class SessionTests {
             aSession.copy(presenters = noPresenters)
         )
     }
+    /// end: foo
 }

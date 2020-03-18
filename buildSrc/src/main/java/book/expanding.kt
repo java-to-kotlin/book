@@ -21,7 +21,8 @@ private fun processFile(src: File, dest: File, srcRoot: File) {
 
 private fun lookupWithRoot(dir: File) =
     fun(key: String): String {
-        val file = dir.resolve(key.trim())
+        val (filename, fragment) = key.parse()
+        val file = dir.resolve(filename)
         if (!file.isFile) {
             val message = "File not found for $file"
             if (abortOnFailure) {
@@ -30,8 +31,12 @@ private fun lookupWithRoot(dir: File) =
                 return message
             }
         }
-        return FileSnippet(file).toString()
+        return FileSnippet(file, fragment).toString()
     }
+
+private fun String.parse(): Pair<String, String?> = this
+    .trim()
+    .split("#").let { it.first() to (if (it.size == 2) it[1] else null) }
 
 private fun expandCodeBlocks(text: String, lookup: (String) -> String): String =
     expandedCodeBlockFinder.replace(text) { matchResult ->
@@ -46,11 +51,11 @@ private val expandedCodeBlockFinder =
     """^(?<intro>// \[start-insert\] <(?<key>.*?)>)(.*?)^(?<outro>// \[end-insert].*?)$"""
         .toRegex(setOf(DOT_MATCHES_ALL, MULTILINE))
 
-class FileSnippet(private val file: File) {
+class FileSnippet(private val file: File, private val fragment: String?) {
     override fun toString() = (listOf(
         "[source,$sourceType]",
         "----"
-    ) + file.readLines().withoutPreamble() +
+    ) + filter(file.readLines()) +
         "----").joinToString("\n")
 
     private val sourceType = when (file.extension) {
@@ -58,6 +63,8 @@ class FileSnippet(private val file: File) {
         "java" -> "java"
         else -> "text"
     }
+
+    private fun filter(lines: List<String>) = lines.withoutPreamble().snipped(fragment)
 }
 
 private fun Iterable<String>.withoutPreamble(): List<String> = this

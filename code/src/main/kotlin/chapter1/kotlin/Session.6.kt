@@ -6,7 +6,7 @@ data class Session(
     val title: String,
     val presenters: List<Presenter>
 ) {
-
+    /// begin: foo
     fun withPresenters(newLineUp: List<Presenter>): Session {
         return copy(presenters = newLineUp)
     }
@@ -14,4 +14,5 @@ data class Session(
     fun withTitle(newTitle: String): Session {
         return copy(title = newTitle)
     }
+    /// end: foo
 }

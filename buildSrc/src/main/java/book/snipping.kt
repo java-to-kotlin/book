@@ -1,12 +1,7 @@
 package book
 
-import book.Line
-import book.Line.Marker.Begin
-import book.Line.Marker.End
-import book.Line.Marker.Mute
-import book.Line.Marker.Resume
+import book.Line.Marker.*
 import book.Line.Text
-import java.io.File
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
@@ -53,39 +48,49 @@ fun parseLine(line: String): Line? {
     }
 }
 
+fun Iterable<String>.snipped(name: String?): List<String> {
+    val result = mutableListOf<String>()
+    var output = name == null
+    this.forEach { line ->
+        when (val parsed = parseLine(line)) {
+            null -> {
+                System.err.println("unable to parse marker from line: $line")
+            }
+            is Text ->
+                if (output) {
+                    result.add(parsed.text)
+                }
+            is Begin ->
+                if (name in parsed.tags) {
+                    output = true
+                }
+            is End ->
+                if (name in parsed.tags) {
+                    output = false
+                }
+            is Mute ->
+                if (name in parsed.tags) {
+                    result.add(parsed.replacementLine)
+                    output = false
+                }
+            is Resume ->
+                if (name in parsed.tags) {
+                    output = true
+                }
+        }
+    }
+    return result
+}
 
-//val snipName = args[0]
-//var output = false
-//
-//File(args[1]).useLines { lines ->
-//    lines.forEach { line ->
-//        val parsed = parseLine(line)
-//
-//        when (parsed) {
-//            null -> {
-//                System.err.println("unable to parse marker from line: $line")
-//            }
-//            is Text ->
-//                if (output) {
-//                    println(parsed.text)
-//                }
-//            is Begin ->
-//                if (snipName in parsed.tags) {
-//                    output = true
-//                }
-//            is End ->
-//                if (snipName in parsed.tags) {
-//                    output = false
-//                }
-//            is Mute ->
-//                if (snipName in parsed.tags) {
-//                    println(parsed.replacementLine)
-//                    output = false
-//                }
-//            is Resume ->
-//                if (snipName in parsed.tags) {
-//                    output = true
-//                }
-//        }
-//    }
-//}
+/*
+/// begin: foo
+fun foo(): Int {
+    val a = 10
+    /// mute: foo [// it doesn't matter what happens in the rest of the function...]
+    println("you should not see this")
+    /// resume: foo
+    return a
+}
+/// end: foo
+
+*/
