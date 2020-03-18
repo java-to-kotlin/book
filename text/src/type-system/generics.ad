@@ -1,0 +1,45 @@
+
+Let's look more closely at generics and subtyping. But first, let's again take another short detour to define some terminology...
+
+A generic is not a type, but is best thought of as a "function on types".  Applying a function to a value (or values) produces a value. Applying a generic to an type (or types) produces a type.  We call the type that it produces an _instantiation_ of the generic.
+
+For example, here is a definition of a generic type, `Box`.  The basic syntax for generic types is the same as Java.
+
+[source,kotlin]
+----
+interface Box<ITEM> {
+    fun put(item: ITEM)
+    fun take(): ITEM
+}
+----
+
+To use a Box, we have to apply `Box<ITEM>` to a type of ITEM that we want to store in a box.  Or, in jargon, we want to _instantiate_ the generic for the type of item we want to store.  For example, we can have a `Box<Orange>` or `Box<Fish>`:
+
+[kotlin,source]
+----
+class Orange { ... }
+class Fish { ... }
+
+val boxOfOranges : Box<Orange> = ...
+val boxOfFish : Box<Fish> = ...
+----
+
+`Box<Orange>` and `Box<Fish>` are different types, which means that Kotlin will not let us pass a box of fish to code that expects a box of oranges and vice versa.
+
+****
+Generics highlight the difference between types and classes.  A generic is not a type, but does have a class.  The actual types created by applying the generic to type parameters are types, but the class is the class of the generic.  Kotlin doesn't create new class objects to represent instantiated generics.
+Luckily you don't have to worry about that distinction unless you use reflection.
+****
+
+== Generics and subtyping
+
+By default, generic types do not introduce subtyping relationships between instantiations of the generic.
+
+For example, if `Orange` and `Apple` are subtypes of `Fruit`, the types `Box<Orange>` and `Box<Apple>` are _not_ subtypes of `Box<Fruit>`.
+
+Let's walk through what would happen if they _were_... TODO
+
+
+But it is useful to have subtyping relationships between instantiations of a generic type, and Kotlin helps us create these relationships more conveniently than in Java, by specifying _variance declarations_ on generic parameters.
+
+"Out" variance identifies a type that is returned from the generic.
