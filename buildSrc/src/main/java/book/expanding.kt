@@ -60,6 +60,7 @@ class FileSnippet(private val file: File, private val fragment: String?) {
 
     private val sourceType = when (file.extension) {
         "kt" -> "kotlin"
+        "ktx" -> "kotlin"
         "java" -> "java"
         else -> "text"
     }

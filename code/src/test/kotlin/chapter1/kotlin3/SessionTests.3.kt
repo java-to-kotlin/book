@@ -1,6 +1,5 @@
-package chapter1.kotlin3
+package chapter1.kotlin
 
-import chapter1.kotlin.Presenter
 import chapter1.kotlin7.Session
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test

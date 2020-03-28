@@ -123,7 +123,7 @@ Alt-Enter at <3> will join the initialisation
 
 and we can just delete the question marks to show that `presenters` is not nullable.
 
-// begin-insert: main/kotlin/chapter1/kotlin/Session.2.kt
+// begin-insert: main/kotlin/chapter1/kotlin2/Session.2.kt
 [source,kotlin]
 ----
 class Session(val title: String, presenters: List<Presenter>) {
@@ -164,7 +164,7 @@ class Session(val title: String, presenters: List<Presenter>) {
 
 We would like to be able to remove all that value object boilerplate by making Session a data class, but in order to do that we have to have all the properties initialised in the constructor, and that defensive `java.util.List.copyOf` is presenting that at the moment. Checking all the callers of the constructor we find that none of them mutate the presenters having passed them in, so we can move the property into the constructor and we have another data class.
 
-// begin-insert: main/kotlin/chapter1/kotlin/Session.3.kt
+// begin-insert: main/kotlin/chapter1/kotlin3/Session.3.kt
 [source,kotlin]
 ----
 data class Session(
@@ -264,7 +264,7 @@ The `java.util.List.of` also stands out, and in fact IntelliJ offers to convert 
 
 Once we're done the tests now look like this
 
-// begin-insert: test/kotlin/chapter1/kotlin/SessionTests.2.kt
+// begin-insert: test/kotlin/chapter1/kotlin2/SessionTests.2.kt
 [source,kotlin]
 ----
 class SessionTests {
@@ -302,7 +302,7 @@ class SessionTests {
 
 We have one more data class trick up our sleeve. Returning to Session
 
-// begin-insert: main/kotlin/chapter1/kotlin/Session.3.kt
+// begin-insert: main/kotlin/chapter1/kotlin3/Session.3.kt
 [source,kotlin]
 ----
 data class Session(
@@ -323,7 +323,7 @@ data class Session(
 
 we can make use of Kotlin's named parameters (Alt-Enter inside the brackets)
 
-// begin-insert: main/kotlin/chapter1/kotlin/Session.4.kt#foo
+// begin-insert: main/kotlin/chapter1/kotlin4/Session.4.kt#foo
 [source,kotlin]
 ----
     fun withPresenters(newLineUp: List<Presenter>): Session {
@@ -338,7 +338,7 @@ we can make use of Kotlin's named parameters (Alt-Enter inside the brackets)
 
 and then replace the constructor invocations with the special copy method
 
-// begin-insert: main/kotlin/chapter1/kotlin/Session.5.kt#foo
+// begin-insert: main/kotlin/chapter1/kotlin5/Session.5.kt#foo
 [source,kotlin]
 ----
     fun withPresenters(newLineUp: List<Presenter>): Session {
@@ -353,7 +353,7 @@ and then replace the constructor invocations with the special copy method
 
 Now remove the redundant arguments
 
-// begin-insert: main/kotlin/chapter1/kotlin/Session.6.kt#foo
+// begin-insert: main/kotlin/chapter1/kotlin6/Session.6.kt#foo
 [source,kotlin]
 ----
     fun withPresenters(newLineUp: List<Presenter>): Session {
@@ -368,7 +368,7 @@ Now remove the redundant arguments
 
 Where a Kotlin function body consists of a single expression you can Alt-Enter on the brace to convert it to a shorter form.
 
-// begin-insert: main/kotlin/chapter1/kotlin/Session.7.kt#foo
+// begin-insert: main/kotlin/chapter1/kotlin7/Session.7.kt#foo
 [source,kotlin]
 ----
     fun withPresenters(newLineUp: List<Presenter>) = copy(presenters = newLineUp)
@@ -379,7 +379,7 @@ Where a Kotlin function body consists of a single expression you can Alt-Enter o
 
 All the time that there are Java uses of `withPresenters` and `withTitle` that is as far as we can go, but once the all callers have been converted to Kotlin, we can inline the methods
 
-// begin-insert: test/kotlin/chapter1/kotlin/SessionTests.3.kt#foo
+// begin-insert: test/kotlin/chapter1/kotlin3/SessionTests.3.kt#foo
 [source,kotlin]
 ----
     @Test
@@ -405,7 +405,7 @@ All the time that there are Java uses of `withPresenters` and `withTitle` that i
 
 at which point the test is now just checking the compiler, so we can delete it, leaving just the Session class.
 
-// begin-insert: main/kotlin/chapter1/kotlin/Session.8.kt
+// begin-insert: main/kotlin/chapter1/kotlin8/Session.8.kt
 [source,kotlin]
 ----
 data class Session(
