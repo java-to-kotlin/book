@@ -1,15 +1,16 @@
 @file:Suppress("UNUSED_PARAMETER", "UNUSED_VARIABLE")
 
-package example
+package digression.types
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
+import com.fasterxml.jackson.databind.node.ObjectNode
 
 
 private val factory = JsonNodeFactory.instance
 
 fun objectOf(vararg properties: Pair<String, JsonNode>) =
-    factory.objectNode().apply { setAll(properties.toMap()) }
+    factory.objectNode().apply { setAll<ObjectNode>(properties.toMap()) }
 
 infix fun String.of(propertyValue: Int?) =
     Pair(this, factory.numberNode(propertyValue))
