@@ -4,16 +4,190 @@ Some introduction on how it was watching me struggling to write simple things in
 
 Here is one of the many utility functions we've found in the code.
 
-// begin-insert: main/java/chapter1/java/Sessions.java#for
+// begin-insert: main/java/chapter1/java/Sessions.java
 [source,java]
 ----
-    ...
+public class Sessions {
+
+    public static Optional<Session> findSessionWithTitle(List<Session> sessions, String title) {
+        for (Session session : sessions) {
+            if (session.title.equals(title))
+                return Optional.of(session);
+        }
+        return Optional.empty();
+    }
 }
 ----
 // end-insert
 
-It might have been written with Java Streams, in which case it would have
+Let's see what we can do to make that better in Kotlin. Convert to Kotlin gives us this
 
+// begin-insert: main/kotlin/chapter1/kotlin/Sessions.kt
+[source,kotlin]
+----
+object Sessions {
+    @JvmStatic
+    fun findSessionWithTitle(
+        sessions: List<Session>,
+        title: String
+    ): Optional<Session> {
+        for (session in sessions) {
+            if (session.title == title) return Optional.of(session)
+        }
+        return Optional.empty()
+    }
+}
+----
+// end-insert
+
+Take a couple of minutes to note the differences and see what they tell you about Kotlin.
+
+First we have an object rather than a class declaration. Objects are Kotlin's way of creating a static namespace - as all the methods in the Java class were static the converter has placed them in an object.
+
+The method is marked with an `@JVMStatic` annotations. Annotations aren't used as much in Kotlin as they are in Java, but this one tells the compiler that there are Java usages of the method and so it had better mark the method as static in the bytecode for interoperability.
+
+The method parameters are as we would expect, with Kotlin `List<Session>` transparently accepting a `java.util.List`. You'll find that Kotlin code seems to flow better with more vertical breaks than Java, hence the 1 parameter to a line style. `Alt-Enter` in the parameter list will give you the option of swapping between one and multi-line style.
+
+The Kotlin for loop is very similar to Java's except for `in` rather than `:`, and similarly applies to any type that extends `Iterable`.
+
+We could leave it there, but this is not very idiomatic Kotlin. Arguably since the introduction of  streams it wasn't idiomatic Java either. Instead of a for loop we should look for something more intention-revealing.
+
+IntelliJ has ever-improving support in this area, and if you Alt-Enter on the `for` it offers to 'Replace with firstOrNull{}'. Accepting the offer we get
+
+// begin-insert: main/kotlin/chapter1/kotlin/Sessions.2.kt
+[source,kotlin]
+----
+object Sessions {
+    @JvmStatic
+    fun findSessionWithTitle(
+        sessions: List<Session>,
+        title: String
+    ): Optional<Session> {
+        return sessions
+            .firstOrNull { it.title == title }
+            ?.let { Optional.of(it) }
+            ?: Optional.empty()
+    }
+}
+----
+// end-insert
+
+Eeek, that escalated quickly! Even if that is logically correct it isn't easily readable, even with a few years Kotlin experience. Let's back out that change see if we can work our way to a nicer formulation.
+
+Now that we know that we can call `sessions
+.firstOrNull { it.title == title }` we can introduce a local variable, leaving the working code to do its job too.
+
+// begin-insert: main/kotlin/chapter1/kotlin/Sessions.3.kt#foo
+[source,kotlin]
+----
+        val thing = sessions.firstOrNull { it.title == title }
+
+        for (session in sessions) {
+            if (session.title == title) return Optional.of(session)
+        }
+        return Optional.empty()
+----
+// end-insert
+
+<Alt-Enter> on `thing` will give the option to 'Specify type explicitly'
+
+// begin-insert: main/kotlin/chapter1/kotlin/Sessions.4.kt#foo
+[source,kotlin]
+----
+        val thing: Session? = sessions.firstOrNull { it.title == title }
+
+        for (session in sessions) {
+            if (session.title == title) return Optional.of(session)
+        }
+        return Optional.empty()
+----
+// end-insert
+
+Hmmm, the type of `thing` is `Session?`. This is our first encounter with Kotlin's treatment of nullable references - `Session?` means that `thing` may be null, after all we have just called `firstOrNull`! What do we want to do with the value?
+
+Well, spelling it out
+
+// begin-insert: main/kotlin/chapter1/kotlin/Sessions.5.kt#foo
+[source,kotlin]
+----
+        val thing: Session? = sessions.firstOrNull { it.title == title }
+        if (thing != null)
+            return Optional.of(thing)
+        else
+            return Optional.empty()
+----
+// end-insert
+
+If you're playing along at home you may see that IntelliJ is a little unhappy with the `if` statement, as shown by a little wavy line and the offer to 'Lift return out of if'
+
+// begin-insert: main/kotlin/chapter1/kotlin/Sessions.6.kt#foo
+[source,kotlin]
+----
+        val thing: Session? = sessions.firstOrNull { it.title == title }
+        return if (thing != null)
+            Optional.of(thing)
+        else
+            Optional.empty()
+----
+// end-insert
+
+That's interesting. In Kotlin `if` is an expression, the value of which is the value of whichever branch is taken at runtime.
+
+Now unfortuately IntelliJ seems to have lost its mojo, as it doesn't (at the time of writing) suggest that that if expression is exactly `Optional.ofNullable()`
+
+// begin-insert: main/kotlin/chapter1/kotlin/Sessions.7.kt#foo
+[source,kotlin]
+----
+        val thing: Session? = sessions.firstOrNull { it.title == title }
+        return Optional.ofNullable(thing)
+----
+// end-insert
+
+A quick inline and we can make our function a single expression.
+
+// begin-insert: main/kotlin/chapter1/kotlin/Sessions.8.kt
+[source,kotlin]
+----
+object Sessions {
+    @JvmStatic
+    fun findSessionWithTitle(
+        sessions: List<Session>,
+        title: String
+    ): Optional<Session> =
+        Optional.ofNullable(sessions.firstOrNull { it.title == title })
+}
+----
+// end-insert
+
+Most developers would stop there, but you didn't buy this book to be in that group, you want to be the best. So let's go back a step.
+
+// begin-insert: main/kotlin/chapter1/kotlin/Sessions.7.kt#foo
+[source,kotlin]
+----
+        val thing: Session? = sessions.firstOrNull { it.title == title }
+        return Optional.ofNullable(thing)
+----
+// end-insert
+
+then select the `Optional.ofNullable(thing)` and extract method
+
+
+
+== The Same Thing With Streams
+
+It might have been written with Java Streams, in which case it would have been shorter, a bit more cryptic, and slower for all but very large lists.
+
+// begin-insert: main/java/chapter1/java/StreamSessions.java
+[source,java]
+----
+public class StreamSessions {
+
+    public static Optional<Session> findSessionWithTitle(List<Session> sessions, String title) {
+        return sessions.stream().filter(session -> session.title.equals(title)).findFirst();
+    }
+}
+----
+// end-insert
 == Conclusions
 
 *
