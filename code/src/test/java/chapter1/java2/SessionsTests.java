@@ -33,6 +33,7 @@ public class SessionsTests {
         );
     }
 
+    /// begin: baz
     @Test
     public void find_in_no_sessions() {
         assertEquals(
@@ -40,4 +41,5 @@ public class SessionsTests {
             Sessions.findWithTitle(emptyList(), "No such")
         );
     }
+    /// end: baz
 }

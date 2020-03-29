@@ -1,6 +1,6 @@
 = Static Stuff
 
-Some introduction on how it was watching me struggling to write simple things in Java that made Nat go out and find Kotlin.
+TODO - Some introduction on how it was watching me struggling to write simple things in Java that made Nat go out and find Kotlin.
 
 Here is one of the many utility functions we've found in the code.
 
@@ -72,12 +72,12 @@ object Sessions {
 ----
 // end-insert
 
-Eeek, that escalated quickly! Even if that is logically correct it isn't easily readable, even with a few years Kotlin experience. Let's back out that change see if we can work our way to a nicer formulation.
+Eeek, that escalated quickly! Even if it is logically correct it isn't easily readable, with or without a few years Kotlin experience. Let's back out that change and see if we can work our way to a nicer formulation.
 
 TODO Enough about lambdas to make progress
 
 Now that we know that we can call `sessions
-.firstOrNull { it.title == title }` we can introduce a local variable, leaving the working code to do its job too.
+.firstOrNull { it.title == title }` we can introduce a local variable, leaving the working code to do its job afterwards.
 
 // begin-insert: main/kotlin/chapter1/kotlin3/Sessions.3.kt#foo
 [source,kotlin]
@@ -135,7 +135,7 @@ If you're playing along at home you may see that IntelliJ is a little unhappy wi
 
 That's interesting. In Kotlin `if` is an expression, the value of which is the value of whichever branch is taken at runtime.
 
-Now unfortuately IntelliJ seems to have lost its mojo, as it doesn't (at the time of writing) suggest that that if expression is exactly `Optional.ofNullable()`
+After this promising intervention, unfortuately IntelliJ seems to have lost its mojo, as it doesn't (at the time of writing) suggest that the `if` expression is the definition of `Optional.ofNullable()`, Replacing it we have
 
 // begin-insert: main/kotlin/chapter1/kotlin7/Sessions.7.kt#foo
 [source,kotlin]
@@ -245,7 +245,7 @@ import path.Sessions.findSessionWithTitle;
 
 ...
 
-var matches = findSessionWithTitle(listOfSessions, "Refactoring to Kotlin");
+var match = findSessionWithTitle(listOfSessions, "Refactoring to Kotlin");
 ----
 
 or
@@ -256,7 +256,7 @@ import path.Sessions;
 
 ...
 
-var matches = Sessions.findSessionWithTitle(listOfSessions, "Refactoring to Kotlin");
+var match = Sessions.findSessionWithTitle(listOfSessions, "Refactoring to Kotlin");
 ----
 
 If we move to the second form we could rename the function
@@ -267,7 +267,7 @@ import path.Sessions;
 
 ...
 
-var matches = Sessions.findWithTitle(listOfSessions, "Refactoring to Kotlin");
+var match = Sessions.findWithTitle(listOfSessions, "Refactoring to Kotlin");
 ----
 
 which makes the Kotlin read better.
@@ -425,13 +425,18 @@ Meanwhile other uses, and in fact Java invocations, can still use the old method
             sessions.findWithTitle("No such")
         )
     }
+----
+// end-insert
 
+// begin-insert: test/java/chapter1/java2/SessionsTests.java#baz
+[source,java]
+----
     @Test
-    fun find_in_no_sessions() {
-        Assertions.assertEquals(
-            Optional.empty<Any>(),
-            emptyList<Session>().findWithTitle("No such")
-        )
+    public void find_in_no_sessions() {
+        assertEquals(
+            Optional.empty(),
+            Sessions.findWithTitle(emptyList(), "No such")
+        );
     }
 ----
 // end-insert
@@ -457,24 +462,18 @@ class SessionsTests {
 
     @Test
     fun `find no session with title`() {
-        assertEquals(
-            null,
-            sessions.firstWithTitle("No such")
-        )
+        assertNull(sessions.firstWithTitle("No such"))
     }
 
     @Test
     fun `find in no sessions`() {
-        assertEquals(
-            null,
-            emptyList<Session>().firstWithTitle("No such")
-        )
+        assertNull(emptyList<Session>().firstWithTitle("No such"))
     }
 }
 ----
 // end-insert
 
-we can remove the Java accomodations from Sessions, leaving just
+we can remove the Java accommodations from Sessions, leaving just
 
 // begin-insert: main/kotlin/chapter1/kotlin15/Sessions.15.kt
 [source,kotlin]

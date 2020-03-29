@@ -44,6 +44,7 @@ class SessionsTests {
             sessions.findWithTitle("No such")
         )
     }
+    /// end: baz
 
     @Test
     fun find_in_no_sessions() {
@@ -52,5 +53,4 @@ class SessionsTests {
             emptyList<Session>().findWithTitle("No such")
         )
     }
-    /// end: baz
 }
