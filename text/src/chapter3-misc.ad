@@ -22,7 +22,7 @@ public class Sessions {
 
 Let's see what we can do to make that better in Kotlin. Convert to Kotlin gives us this
 
-// begin-insert: main/kotlin/chapter1/kotlin/Sessions.kt
+// begin-insert: main/java/chapter1/kotlin/Sessions.kt
 [source,kotlin]
 ----
 object Sessions {
@@ -54,7 +54,7 @@ We could leave it there, but this is not very idiomatic Kotlin. Arguably since t
 
 IntelliJ has ever-improving support in this area, and if you Alt-Enter on the `for` it offers to 'Replace with firstOrNull{}'. Accepting the offer we get
 
-// begin-insert: main/kotlin/chapter1/kotlin2/Sessions.2.kt
+// begin-insert: main/java/chapter1/kotlin2/Sessions.2.kt
 [source,kotlin]
 ----
 object Sessions {
@@ -79,7 +79,7 @@ TODO Enough about lambdas to make progress
 Now that we know that we can call `sessions
 .firstOrNull { it.title == title }` we can introduce a local variable, leaving the working code to do its job afterwards.
 
-// begin-insert: main/kotlin/chapter1/kotlin3/Sessions.3.kt#foo
+// begin-insert: main/java/chapter1/kotlin3/Sessions.3.kt#foo
 [source,kotlin]
 ----
         val thing = sessions.firstOrNull { it.title == title }
@@ -93,7 +93,7 @@ Now that we know that we can call `sessions
 
 <Alt-Enter> on `thing` will give the option to 'Specify type explicitly'
 
-// begin-insert: main/kotlin/chapter1/kotlin4/Sessions.4.kt#foo
+// begin-insert: main/java/chapter1/kotlin4/Sessions.4.kt#foo
 [source,kotlin]
 ----
         val thing: Session? = sessions.firstOrNull { it.title == title }
@@ -109,7 +109,7 @@ Hmmm, the type of `thing` is `Session?`. This is our first encounter with Kotlin
 
 Well, spelling it out
 
-// begin-insert: main/kotlin/chapter1/kotlin5/Sessions.5.kt#foo
+// begin-insert: main/java/chapter1/kotlin5/Sessions.5.kt#foo
 [source,kotlin]
 ----
         val thing: Session? = sessions.firstOrNull { it.title == title }
@@ -122,7 +122,7 @@ Well, spelling it out
 
 If you're playing along at home you may see that IntelliJ is a little unhappy with the `if` statement, as shown by a little wavy line and the offer to 'Lift return out of if'
 
-// begin-insert: main/kotlin/chapter1/kotlin6/Sessions.6.kt#foo
+// begin-insert: main/java/chapter1/kotlin6/Sessions.6.kt#foo
 [source,kotlin]
 ----
         val thing: Session? = sessions.firstOrNull { it.title == title }
@@ -137,7 +137,7 @@ That's interesting. In Kotlin `if` is an expression, the value of which is the v
 
 After this promising intervention, unfortuately IntelliJ seems to have lost its mojo, as it doesn't (at the time of writing) suggest that the `if` expression is the definition of `Optional.ofNullable()`, Replacing it we have
 
-// begin-insert: main/kotlin/chapter1/kotlin7/Sessions.7.kt#foo
+// begin-insert: main/java/chapter1/kotlin7/Sessions.7.kt#foo
 [source,kotlin]
 ----
         val thing: Session? = sessions.firstOrNull { it.title == title }
@@ -147,7 +147,7 @@ After this promising intervention, unfortuately IntelliJ seems to have lost its 
 
 A quick inline and we can make our function a single expression.
 
-// begin-insert: main/kotlin/chapter1/kotlin8/Sessions.8.kt
+// begin-insert: main/java/chapter1/kotlin8/Sessions.8.kt
 [source,kotlin]
 ----
 object Sessions {
@@ -163,7 +163,7 @@ object Sessions {
 
 Most developers would stop there, but you didn't buy this book to be in that group, you want to be the best. So let's go back a step.
 
-// begin-insert: main/kotlin/chapter1/kotlin7/Sessions.7.kt#foo
+// begin-insert: main/java/chapter1/kotlin7/Sessions.7.kt#foo
 [source,kotlin]
 ----
         val thing: Session? = sessions.firstOrNull { it.title == title }
@@ -173,7 +173,7 @@ Most developers would stop there, but you didn't buy this book to be in that gro
 
 then select the `Optional.ofNullable(thing)` and extract method
 
-// begin-insert: main/kotlin/chapter1/kotlin9/Sessions.9.kt#foo
+// begin-insert: main/java/chapter1/kotlin9/Sessions.9.kt#foo
 [source,kotlin]
 ----
     @JvmStatic
@@ -191,7 +191,7 @@ then select the `Optional.ofNullable(thing)` and extract method
 
 Now <Alt-Enter> on the thing parameter and select 'Convert parameter to receiver'
 
-// begin-insert: main/kotlin/chapter1/kotlin10/Sessions.10.kt#foo
+// begin-insert: main/java/chapter1/kotlin10/Sessions.10.kt#foo
 [source,kotlin]
 ----
     @JvmStatic
@@ -209,7 +209,7 @@ Now <Alt-Enter> on the thing parameter and select 'Convert parameter to receiver
 
 We have just created our first extension function. In the JVM this is just a static function with the session as its first (well only) parameter, but in Kotlin we can invoke it postfix with a dot, as if it was a method. It isn't a method though, so that receiver (the `this`) can be null - hence the `?` in `Session?.optional()`. This turns out to be a very powerful technique to help break code down and help it read better. To see the effect, we'll rename `optional` to `toOptional` and then simplify all the things.
 
-// begin-insert: main/kotlin/chapter1/kotlin11/Sessions.11.kt#foo
+// begin-insert: main/java/chapter1/kotlin11/Sessions.11.kt#foo
 [source,kotlin]
 ----
     @JvmStatic
@@ -224,7 +224,7 @@ Ah that's a lot more expressive now - there is something about reading left to r
 
 Can we go further? Well we can make `findSessionsWithTitle` an extension function as well. We can still call it from Java without changing any callers due to its static nature, so now we have.
 
-// begin-insert: main/kotlin/chapter1/kotlin12/Sessions.12.kt
+// begin-insert: main/java/chapter1/kotlin12/Sessions.12.kt
 [source,kotlin]
 ----
 object Sessions {
@@ -272,7 +272,7 @@ var match = Sessions.findWithTitle(listOfSessions, "Refactoring to Kotlin");
 
 which makes the Kotlin read better.
 
-// begin-insert: main/kotlin/chapter1/kotlin13/Sessions.13.kt#foo
+// begin-insert: main/java/chapter1/kotlin13/Sessions.13.kt#foo
 [source,kotlin]
 ----
     @JvmStatic
@@ -322,7 +322,7 @@ public class SessionsTests {
 
 Converting this to Kotlin actually gives code that fails to compile
 
-// begin-insert: test/kotlin/chapter1/kotlin/SessionsTests.ktx#foo
+// begin-insert: test/java/chapter1/kotlin/SessionsTests.ktx#foo
 [source,kotlin]
 ----
     @Test
@@ -339,7 +339,7 @@ Converting this to Kotlin actually gives code that fails to compile
 
 We can fix that by giving the compiler a hint.
 
-// begin-insert: test/kotlin/chapter1/kotlin/SessionsTests.kt#baz
+// begin-insert: test/java/chapter1/kotlin/SessionsTests.kt#baz
 [source,kotlin]
 ----
     @Test
@@ -354,7 +354,7 @@ We can fix that by giving the compiler a hint.
 
 To simulate gradually converting the clients of Sessions to Kotlin, let's make the tests more idiomatic one at at time.
 
-// begin-insert: test/kotlin/chapter1/kotlin/SessionsTests.kt#foo
+// begin-insert: test/java/chapter1/kotlin/SessionsTests.kt#foo
 [source,kotlin]
 ----
     @Test
@@ -369,7 +369,7 @@ To simulate gradually converting the clients of Sessions to Kotlin, let's make t
 
 Kotlin clients would expect `sessions.findWithTitle` to return `Session?` rather than `Optional<Session>`. We can have both by extracting a method from `firstOrNull { it.title == title }` in Sessions - call it firstWithTitle for now - and make `toOptional` public
 
-// begin-insert: main/kotlin/chapter1/kotlin14/Sessions.14.kt#foo
+// begin-insert: main/java/chapter1/kotlin14/Sessions.14.kt#foo
 [source,kotlin]
 ----
     @JvmStatic
@@ -385,7 +385,7 @@ Kotlin clients would expect `sessions.findWithTitle` to return `Session?` rather
 
 Now we can inline individual invocations of `findWithTitle`
 
-// begin-insert: test/kotlin/chapter1/kotlin2/SessionsTests.kt#foo
+// begin-insert: test/java/chapter1/kotlin2/SessionsTests.kt#foo
 [source,kotlin]
 ----
     @Test
@@ -400,7 +400,7 @@ Now we can inline individual invocations of `findWithTitle`
 
 and unwrap the expected and actual from the Optional
 
-// begin-insert: test/kotlin/chapter1/kotlin2/SessionsTests.kt#bar
+// begin-insert: test/java/chapter1/kotlin2/SessionsTests.kt#bar
 [source,kotlin]
 ----
     @Test
@@ -415,7 +415,7 @@ and unwrap the expected and actual from the Optional
 
 Meanwhile other uses, and in fact Java invocations, can still use the old method
 
-// begin-insert: test/kotlin/chapter1/kotlin2/SessionsTests.kt#baz
+// begin-insert: test/java/chapter1/kotlin2/SessionsTests.kt#baz
 [source,kotlin]
 ----
     @Test
@@ -443,7 +443,7 @@ Meanwhile other uses, and in fact Java invocations, can still use the old method
 
 Once all the Java clients of Sessions have been converted to Kotlin, and all the Kotlin uses `Session?`
 
-// begin-insert: test/kotlin/chapter1/kotlin3/SessionsTests.kt
+// begin-insert: test/java/chapter1/kotlin3/SessionsTests.kt
 [source,kotlin]
 ----
 class SessionsTests {
@@ -475,7 +475,7 @@ class SessionsTests {
 
 we can remove the Java accommodations from Sessions, leaving just
 
-// begin-insert: main/kotlin/chapter1/kotlin15/Sessions.15.kt
+// begin-insert: main/java/chapter1/kotlin15/Sessions.15.kt
 [source,kotlin]
 ----
 object Sessions {
@@ -488,7 +488,7 @@ object Sessions {
 Now at this point we might discuss whether or not `firstWithTitle` is actually pulling its weight, as
 `firstOrNull { it.title == title }` is almost as descriptive. Should we decide that it isn't we can inline the function
 
-// begin-insert: test/kotlin/chapter1/kotlin4/SessionsTests.kt#foo
+// begin-insert: test/java/chapter1/kotlin4/SessionsTests.kt#foo
 [source,kotlin]
 ----
     @Test
