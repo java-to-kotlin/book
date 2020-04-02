@@ -24,7 +24,7 @@ all: $(formats)
 $(foreach f,$(formats),$(eval $f: out/$f/book.$f;))
 
 out/%: backend=$(outtype)
-out/%: $(src) | $(dir $@)/
+out/%: $(src) | $(dir $@)/ text/src/style.plantuml
 	asciidoctor $(asciidoctor_opts) --backend=$(backend) $(srcroot)
 
 %/:
