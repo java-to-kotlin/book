@@ -1,8 +1,20 @@
 == Making the project multilingual
 
-TODO
+When refactoring, we work by making a sequence of tiny changes that are each easy to understand, and cheap to discard if we find out they break something.
 
-Show how easy it is to add Kotlin to a Java Gradle project
+[TIP]
+====
+A rule of thumb we follow is: "commit for git bisect".  That is, imagine if you do, by accident, break something that is not caught by your test suite.  You'll want to be able to write a test that demonstrates the defect and find the first commit that makes that test fail.  Git Bisect is a tool that does just that.  But if the commits in your history each combine multiple changes, Git Bisect cannot tell you which of those combined changes introduced the error.  And if commits combine refactoring _and_ changes to behaviour, reverting a bad commit will break _other_ behaviour in the system.  Small, focused commits make it easy to understand what changed and fix the change if it was erroneous.
+====
+
+If we want to refactor our Java codebase to Kotlin, the first change we want to make is to give ourselves the ability write Kotlin code in our existing codebase.
+
+Happily, the Kotlin build tools and IDE make this very straightforward.  It takes a few additional lines in our Gradle build configuration for it to compile Kotlin code as well as Java.  And the IntelliJ IDE will pick up that configuration when we resync the build file, allowing us to navigate, autocomplete and refactor across both languages almost seamlessly.
+
+To add Kotlin to our Gradle build we need to add the Kotlin plugin.  There is a different plugin for each target that Kotlin supports (JVM, JavaScript and native code), and a plugin for building multiplatform projects.  Because we have a Java project, we can ignore other platforms and use the Kotlin JVM plugin.
+
+We also need to add the Kotlin standard library to our dependencies, and specify the minumum JVM version that the output bytecode will support.  Our project targets JDK 11 (the latest LTS at the time of writing). At the time of writing, the Kotlin compiler can generate bytecode compatible with JDK 1.6 or JDK 1.8.  JDK 1.8 bytecode is more efficient and runs fine on JDK 11, so we will pick that.
+
 
 // begin-insert: build.gradle#kotlin_plugin
 [source,groovy]
@@ -30,10 +42,39 @@ compileTestKotlin {
 ----
 // end-insert
 
-Rebuild the project: everything still works.
-Resync the Gradle project in: everything still works.
+Given those changes, we can rerun our build, and see that ...
 
-Commit!
+...
 
-We now have the _option_ to use Kotlin in our project. But where should we start?
+the build still works!
 
+We can also resync the Gradle project in IntelliJ, and after a waiting a while for IntelliJ to do some indexing, we can run our tests and programs from within the IDE
+
+Cool!  We've not broken anything.  But that doesn't prove we can add Kotlin code.  Let's test that by writing a hello world program in the root package of our Java source tree:
+
+.HelloWorld.kt
+
+// begin-insert: src/main/java/HelloWorld.kt
+[source,kotlin]
+----
+fun main() {
+    println("hello, world")
+}
+----
+// end-insert
+
+We can run that within the IDE by clicking on the little green arrow in the left hand margin next to "fun main()".
+
+And we can run our build, and then run it from the command line with the `java` command.  Compiling the source file named HelloWorld.kt creates a Java class file named `HelloWorldKt`.  We'll look into how Kotlin source gets translated into Java class files in more detail later, but for now, we can run our program with the `java` command like so:
+
+[source, text]
+----
+$ java -cp build/classes/kotlin/main HelloWorldKt
+hello, world
+----
+
+It lives!
+
+Let's delete HelloWorldKt -- it's done its job -- commit and push.
+
+We now have the _option_ to use Kotlin in our project. But where should we start using it?
