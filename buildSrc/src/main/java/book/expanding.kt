@@ -59,9 +59,9 @@ class FileSnippet(private val file: File, private val fragment: String?) {
         "----").joinToString("\n")
 
     private val sourceType = when (file.extension) {
-        "kt" -> "kotlin"
-        "ktx" -> "kotlin"
+        "kt","ktx","kts" -> "kotlin"
         "java" -> "java"
+        "gradle","groovy" -> "groovy"
         else -> "text"
     }
 

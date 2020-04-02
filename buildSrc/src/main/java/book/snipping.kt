@@ -15,11 +15,13 @@ sealed class Line {
         data class Begin(override val tags: Set<String>) : Marker()
         data class End(override val tags: Set<String>) : Marker()
         data class Mute(override val tags: Set<String>, val indent: String, val replacement: String) : Marker()
+        data class Insert(override val tags: Set<String>, val indent: String, val replacement: String) : Marker()
         data class Resume(override val tags: Set<String>) : Marker()
     }
 }
 
 val Mute.replacementLine get() = indent + replacement
+val Insert.replacementLine get() = indent + replacement
 
 
 val markerPattern = Pattern.compile("""(?<indent>\s*)///\s*(?<directive>[a-z]+)\s*:\s*(?<tags>(?:\s|[a-zA-Z_,])+)\s*(?:\[(?<replacement>[^\]]+)\]\s*)?""")
@@ -35,6 +37,7 @@ fun parseMarker(m: Matcher): Line.Marker? {
         "begin" -> Begin(tags)
         "end" -> End(tags)
         "mute" -> Mute(tags, m.group("indent"), m.group("replacement") ?: "...")
+        "insert" -> Insert(tags, m.group("indent"), m.group("replacement"))
         "resume" -> Resume(tags)
         else -> null
     }
@@ -77,6 +80,10 @@ fun Iterable<String>.snipped(name: String?): List<String> {
                 if (name in parsed.tags) {
                     output = true
                 }
+            is Insert ->
+                if (name in parsed.tags) {
+                    result.add(parsed.replacementLine)
+                }
         }
     }
     return result
@@ -84,6 +91,7 @@ fun Iterable<String>.snipped(name: String?): List<String> {
 
 /*
 /// begin: foo
+/// insert: foo [here is an example]
 fun foo(): Int {
     val a = 10
     /// mute: foo [// it doesn't matter what happens in the rest of the function...]

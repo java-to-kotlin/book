@@ -1,6 +1,10 @@
+/// begin: kotlin_plugin
 plugins {
+    /// insert: kotlin_plugin [... our existing plugins ...]
     id 'org.jetbrains.kotlin.jvm' version '1.3.70'
 }
+
+/// mute: kotlin_plugin
 
 group 'com.oneeyedmen'
 version '1.0-SNAPSHOT'
@@ -11,28 +15,34 @@ repositories {
     mavenLocal()
 }
 
+/// resume: kotlin_plugin
+
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.10.3'
 
+    /// mute: kotlin_plugin [ ... our existing dependencies ... ]
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.10.3'
     testImplementation "org.junit.jupiter:junit-jupiter-api:5.3.2"
     testImplementation "org.hamcrest:hamcrest-all:1.3"
     testRuntime "org.junit.jupiter:junit-jupiter-engine:5.3.2"
     testRuntime "org.junit.platform:junit-platform-launcher:1.3.2"
-
+    /// resume: kotlin_plugin
 }
+
+compileKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+
+compileTestKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+/// end: kotlin_plugin
 
 java {
     sourceCompatibility = JavaVersion.VERSION_11
     targetCompatibility = JavaVersion.VERSION_11
 }
 
-compileKotlin {
-    kotlinOptions.jvmTarget = "1.8"
-}
-compileTestKotlin {
-    kotlinOptions.jvmTarget = "1.8"
-}
 
 test {
     useJUnitPlatform {
@@ -42,3 +52,4 @@ test {
         events "skipped", "failed"
     }
 }
+/// END: kotlin_plugin
