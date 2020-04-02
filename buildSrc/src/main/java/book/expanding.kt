@@ -59,13 +59,20 @@ class FileSnippet(private val file: File, private val fragment: String?) {
         "----").joinToString("\n")
 
     private val sourceType = when (file.extension) {
-        "kt","ktx","kts" -> "kotlin"
+        "kt", "ktx", "kts" -> "kotlin"
         "java" -> "java"
-        "gradle","groovy" -> "groovy"
+        "gradle", "groovy" -> "groovy"
         else -> "text"
     }
 
-    private fun filter(lines: List<String>) = lines.withoutPreamble().snipped(fragment)
+    private fun filter(lines: List<String>) =
+        lines.withoutPreamble()
+            .snipped(fragment)
+            .also {
+                if (it.isEmpty()) {
+                    error("tag $fragment not found in file $file")
+                }
+            }
 }
 
 private fun Iterable<String>.withoutPreamble(): List<String> = this
