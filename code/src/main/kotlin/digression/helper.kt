@@ -1,3 +1,3 @@
-package digression.types
+package digression
 
 fun <T> example(): T = TODO()

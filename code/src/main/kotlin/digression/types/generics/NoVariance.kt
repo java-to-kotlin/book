@@ -1,7 +1,6 @@
 @file:Suppress("UNREACHABLE_CODE", "UNUSED_VARIABLE")
 
 package digression.types.generics
-import digression.types.example
 
 
 interface Hopper<T> {

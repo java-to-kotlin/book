@@ -1,6 +1,8 @@
 @file:Suppress("unused", "UNUSED_PARAMETER")
 
-package digression.types
+package digression.errorhandling.results
+
+import digression.example
 
 class Request
 class JsonNode

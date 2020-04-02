@@ -1,6 +1,6 @@
 @file:Suppress("UNUSED_PARAMETER", "UNUSED_VARIABLE")
 
-package digression.types
+package digression.gotchas
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
