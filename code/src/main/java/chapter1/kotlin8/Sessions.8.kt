@@ -9,5 +9,5 @@ object Sessions {
         sessions: List<Session>,
         title: String
     ): Optional<Session> =
-        Optional.ofNullable(sessions.firstOrNull { it.title == title })
+        Optional.ofNullable(sessions.firstOrNull { it.title == title }) /// change
 }

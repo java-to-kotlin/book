@@ -50,25 +50,23 @@ The method parameters are as we would expect, with Kotlin `List<Session>` transp
 
 The Kotlin for loop is very similar to Java's except for `in` rather than `:`, and similarly applies to any type that extends `Iterable`.
 
-We could leave it there, but this is not very idiomatic Kotlin. Arguably since the introduction of  streams it wasn't idiomatic Java either. Instead of a for loop we should look for something more intention-revealing.
+We could leave it there, but this is not very idiomatic Kotlin. Arguably since the introduction of streams it wasn't very idiomatic Java either. Instead of a for loop we should look for something more intention-revealing.
 
 IntelliJ has ever-improving support in this area, and if you Alt-Enter on the `for` it offers to 'Replace with firstOrNull{}'. Accepting the offer we get
 
-// begin-insert: src/main/java/chapter1/kotlin2/Sessions.2.kt
+// begin-insert: src/main/java/chapter1/kotlin2/Sessions.2.kt#foo
 [source,kotlin]
 ----
-object Sessions {
     @JvmStatic
     fun findSessionWithTitle(
         sessions: List<Session>,
         title: String
     ): Optional<Session> {
-        return sessions
-            .firstOrNull { it.title == title }
-            ?.let { Optional.of(it) }
-            ?: Optional.empty()
+        return sessions                         /// change
+            .firstOrNull { it.title == title }  /// change
+            ?.let { Optional.of(it) }           /// change
+            ?: Optional.empty()                 /// change
     }
-}
 ----
 // end-insert
 
@@ -79,44 +77,68 @@ TODO Enough about lambdas to make progress
 Now that we know that we can call `sessions
 .firstOrNull { it.title == title }` we can introduce a local variable, leaving the working code to do its job afterwards.
 
-// begin-insert: src/main/java/chapter1/kotlin3/Sessions.3.kt#foo
+// begin-insert: src/main/java/chapter1/kotlin3/Sessions.3.kt
 [source,kotlin]
 ----
-        val thing = sessions.firstOrNull { it.title == title }
+object Sessions {
+    @JvmStatic
+    fun findSessionWithTitle(
+        sessions: List<Session>,
+        title: String
+    ): Optional<Session> {
+        val thing = sessions.firstOrNull { it.title == title } /// insert
 
         for (session in sessions) {
             if (session.title == title) return Optional.of(session)
         }
         return Optional.empty()
+    }
+}
 ----
 // end-insert
 
 <Alt-Enter> on `thing` will give the option to 'Specify type explicitly'
 
-// begin-insert: src/main/java/chapter1/kotlin4/Sessions.4.kt#foo
+// begin-insert: src/main/java/chapter1/kotlin4/Sessions.4.kt
 [source,kotlin]
 ----
-        val thing: Session? = sessions.firstOrNull { it.title == title }
+object Sessions {
+    @JvmStatic
+    fun findSessionWithTitle(
+        sessions: List<Session>,
+        title: String
+    ): Optional<Session> {
+        val thing: Session? = sessions.firstOrNull { it.title == title } /// change
 
         for (session in sessions) {
             if (session.title == title) return Optional.of(session)
         }
         return Optional.empty()
+    }
+}
 ----
 // end-insert
 
-Hmmm, the type of `thing` is `Session?`. This is our first encounter with Kotlin's treatment of nullable references - `Session?` means that `thing` may be null, after all we have just called `firstOrNull`! What do we want to do with the value?
+Hmmm, the type of `thing` is `Session?`. This is our second encounter with Kotlin's treatment of nullable references - `Session?` means that `thing` may be null, after all we have just called `firstOrNull`! What do we want to do with the value?
 
 Well, spelling it out
 
-// begin-insert: src/main/java/chapter1/kotlin5/Sessions.5.kt#foo
+// begin-insert: src/main/java/chapter1/kotlin5/Sessions.5.kt
 [source,kotlin]
 ----
+object Sessions {
+    @JvmStatic
+    fun findSessionWithTitle(
+        sessions: List<Session>,
+        title: String
+    ): Optional<Session> {
         val thing: Session? = sessions.firstOrNull { it.title == title }
-        if (thing != null)
-            return Optional.of(thing)
-        else
-            return Optional.empty()
+        if (thing != null)              /// change
+            return Optional.of(thing)   /// change
+        else                            /// change
+            return Optional.empty()     /// change
+    }
+}
 ----
 // end-insert
 
@@ -126,10 +148,10 @@ If you're playing along at home you may see that IntelliJ is a little unhappy wi
 [source,kotlin]
 ----
         val thing: Session? = sessions.firstOrNull { it.title == title }
-        return if (thing != null)
-            Optional.of(thing)
-        else
-            Optional.empty()
+        return if (thing != null) /// change
+            Optional.of(thing)    /// change
+        else                      /// change
+            Optional.empty()      /// change
 ----
 // end-insert
 
@@ -141,7 +163,7 @@ After this promising intervention, unfortuately IntelliJ seems to have lost its 
 [source,kotlin]
 ----
         val thing: Session? = sessions.firstOrNull { it.title == title }
-        return Optional.ofNullable(thing)
+        return Optional.ofNullable(thing) /// change
 ----
 // end-insert
 
@@ -156,18 +178,18 @@ object Sessions {
         sessions: List<Session>,
         title: String
     ): Optional<Session> =
-        Optional.ofNullable(sessions.firstOrNull { it.title == title })
+        Optional.ofNullable(sessions.firstOrNull { it.title == title }) /// change
 }
 ----
 // end-insert
 
 Most developers would stop there, but you didn't buy this book to be in that group, you want to be the best. So let's go back a step.
 
-// begin-insert: src/main/java/chapter1/kotlin7/Sessions.7.kt#foo
+// begin-insert: src/main/java/chapter1/kotlin7/Sessions.7.kt#bar
 [source,kotlin]
 ----
         val thing: Session? = sessions.firstOrNull { it.title == title }
-        return Optional.ofNullable(thing)
+        return Optional.ofNullable(thing) 
 ----
 // end-insert
 
@@ -182,10 +204,10 @@ then select the `Optional.ofNullable(thing)` and extract method
         title: String
     ): Optional<Session> {
         val thing: Session? = sessions.firstOrNull { it.title == title }
-        return optional(thing)
+        return optional(thing) /// change
     }
 
-    private fun optional(thing: Session?) = Optional.ofNullable(thing)
+    private fun optional(thing: Session?) = Optional.ofNullable(thing) /// insert
 ----
 // end-insert
 
@@ -203,7 +225,7 @@ Now <Alt-Enter> on the thing parameter and select 'Convert parameter to receiver
         return thing.optional()
     }
 
-    private fun Session?.optional() = Optional.ofNullable(this)
+    private fun Session?.optional() = Optional.ofNullable(this) /// change
 ----
 // end-insert
 
@@ -213,10 +235,10 @@ We have just created our first extension function. In the JVM this is just a sta
 [source,kotlin]
 ----
     @JvmStatic
-    fun findSessionWithTitle(sessions: List<Session>, title: String) =
-        sessions.firstOrNull { it.title == title }.toOptional()
+    fun findSessionWithTitle(sessions: List<Session>, title: String) = /// change
+        sessions.firstOrNull { it.title == title }.toOptional()        /// change
 
-    private fun Session?.toOptional() = Optional.ofNullable(this)
+    private fun Session?.toOptional() = Optional.ofNullable(this) /// change
 ----
 // end-insert
 
@@ -229,8 +251,8 @@ Can we go further? Well we can make `findSessionsWithTitle` an extension functio
 ----
 object Sessions {
     @JvmStatic
-    fun List<Session>.findSessionWithTitle(title: String) =
-        firstOrNull { it.title == title }.toOptional()
+    fun List<Session>.findSessionWithTitle(title: String) = /// change
+        firstOrNull { it.title == title }.toOptional()      /// change
 
     private fun Session?.toOptional() = Optional.ofNullable(this)
 }
@@ -276,7 +298,7 @@ which makes the Kotlin read better.
 [source,kotlin]
 ----
     @JvmStatic
-    fun List<Session>.findWithTitle(title: String) =
+    fun List<Session>.findWithTitle(title: String) =  /// change
         firstOrNull { it.title == title }.toOptional()
 ----
 // end-insert
@@ -354,6 +376,8 @@ We can fix that by giving the compiler a hint.
 
 To simulate gradually converting the clients of Sessions to Kotlin, let's make the tests more idiomatic one at at time.
 
+First `find_session_with_title`.
+
 // begin-insert: src/test/java/chapter1/kotlin/SessionsTests.kt#foo
 [source,kotlin]
 ----
@@ -361,29 +385,53 @@ To simulate gradually converting the clients of Sessions to Kotlin, let's make t
     fun find_session_with_title() {
         Assertions.assertEquals(
             Optional.of(sessions[1]),
-            sessions.findWithTitle("Title Too")
+            sessions.findWithTitle("Title Too") 
         )
     }
 ----
 // end-insert
 
-Kotlin clients would expect `sessions.findWithTitle` to return `Session?` rather than `Optional<Session>`. We can have both by extracting a method from `firstOrNull { it.title == title }` in Sessions - call it firstWithTitle for now - and make `toOptional` public
+Kotlin clients would expect `sessions.findWithTitle` to return `Session?` rather than `Optional<Session>`.
+
+// begin-insert: src/main/java/chapter1/kotlin13/Sessions.13.kt#bar
+[source,kotlin]
+----
+    @JvmStatic
+    fun List<Session>.findWithTitle(title: String) =  
+        firstOrNull { it.title == title }.toOptional()
+----
+// end-insert
+
+We can have both by extracting a method from `firstOrNull { it.title == title }` in Sessions - call it firstWithTitle for now - and make `toOptional` public
 
 // begin-insert: src/main/java/chapter1/kotlin14/Sessions.14.kt#foo
 [source,kotlin]
 ----
     @JvmStatic
     fun List<Session>.findWithTitle(title: String) =
-        firstWithTitle(title).toOptional()
+        firstWithTitle(title).toOptional() /// change
 
-    fun List<Session>.firstWithTitle(title: String) =
-        firstOrNull { it.title == title }
+    fun List<Session>.firstWithTitle(title: String) = /// insert
+        firstOrNull { it.title == title }             /// insert
 
     fun Session?.toOptional() = Optional.ofNullable(this)
 ----
 // end-insert
 
 Now we can inline individual invocations of `findWithTitle`
+
+// begin-insert: src/test/java/chapter1/kotlin/SessionsTests.kt#fooo
+[source,kotlin]
+----
+    @Test
+    fun find_session_with_title() {
+        Assertions.assertEquals(
+            Optional.of(sessions[1]),
+            sessions.findWithTitle("Title Too") /// change
+        )
+    }
+----
+// end-insert
 
 // begin-insert: src/test/java/chapter1/kotlin2/SessionsTests.kt#foo
 [source,kotlin]
@@ -392,7 +440,7 @@ Now we can inline individual invocations of `findWithTitle`
     fun find_session_with_title() {
         Assertions.assertEquals(
             Optional.of(sessions[1]),
-            sessions.firstWithTitle("Title Too").toOptional()
+            sessions.firstWithTitle("Title Too").toOptional() /// change
         )
     }
 ----
@@ -406,8 +454,8 @@ and unwrap the expected and actual from the Optional
     @Test
     fun `find session with title`() {
         assertEquals(
-            sessions[1],
-            sessions.firstWithTitle("Title Too")
+            sessions[1],                         /// change
+            sessions.firstWithTitle("Title Too") /// change
         )
     }
 ----
@@ -456,18 +504,18 @@ class SessionsTests {
     fun `find session with title`() {
         assertEquals(
             sessions[1],
-            sessions.firstWithTitle("Title Too")
+            sessions.firstWithTitle("Title Too") 
         )
     }
 
     @Test
     fun `find no session with title`() {
-        assertNull(sessions.firstWithTitle("No such"))
+        assertNull(sessions.firstWithTitle("No such")) /// change
     }
 
     @Test
     fun `find in no sessions`() {
-        assertNull(emptyList<Session>().firstWithTitle("No such"))
+        assertNull(emptyList<Session>().firstWithTitle("No such")) /// change
     }
 }
 ----
@@ -488,20 +536,67 @@ object Sessions {
 Now at this point we might discuss whether or not `firstWithTitle` is actually pulling its weight, as
 `firstOrNull { it.title == title }` is almost as descriptive. Should we decide that it isn't we can inline the function
 
-// begin-insert: src/test/java/chapter1/kotlin4/SessionsTests.kt#foo
+// begin-insert: src/test/java/chapter1/kotlin3/SessionsTests.kt#foo
 [source,kotlin]
 ----
     @Test
     fun `find session with title`() {
         assertEquals(
             sessions[1],
-            sessions.firstOrNull { it.title == "Title Too" }
+            sessions.firstWithTitle("Title Too") /// change
         )
+    }
+
+    @Test
+    fun `find no session with title`() {
+        assertNull(sessions.firstWithTitle("No such")) /// change
+    }
+
+    @Test
+    fun `find in no sessions`() {
+        assertNull(emptyList<Session>().firstWithTitle("No such")) /// change
     }
 ----
 // end-insert
 
-and delete its definition and its tests, leaving us less code to document, build and maintain.
+// begin-insert: src/test/java/chapter1/kotlin4/SessionsTests.kt#foo
+[source,kotlin]
+----
+class SessionsTests {
+    private val sessions = listOf(
+        Session("Title", emptyList()),
+        Session("Title Too", emptyList())
+    )
+
+    @Test
+    fun `find session with title`() {
+        assertEquals(
+            sessions[1],
+            sessions.firstOrNull { it.title == "Title Too" } /// change
+        )
+    }
+
+
+    @Test
+    fun `find no session with title`() {
+        assertEquals(
+            null,
+            sessions.firstOrNull { it.title == "No such" } /// change
+        )
+    }
+
+    @Test
+    fun `find in no sessions`() {
+        assertEquals(
+            null,
+            emptyList<Session>().firstOrNull { it.title == "No such" } /// change
+        )
+    }
+}
+----
+// end-insert
+
+Once we have refactored our code into this state, where instead of creating our our methods we are just using the standard Kotlin API on our types, then there is no point in our tests. We can delete the definition of `Sessions.firstWithTitle` and the tests, leaving us less code to document, build and maintain.
 
 == Conclusions
 

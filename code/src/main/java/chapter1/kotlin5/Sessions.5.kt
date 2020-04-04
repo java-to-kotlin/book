@@ -9,12 +9,10 @@ object Sessions {
         sessions: List<Session>,
         title: String
     ): Optional<Session> {
-        /// begin: foo
         val thing: Session? = sessions.firstOrNull { it.title == title }
-        if (thing != null)
-            return Optional.of(thing)
-        else
-            return Optional.empty()
-        /// end: foo
+        if (thing != null)              /// change
+            return Optional.of(thing)   /// change
+        else                            /// change
+            return Optional.empty()     /// change
     }
 }

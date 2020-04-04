@@ -12,21 +12,23 @@ class SessionsTests {
         Session("Title Too", emptyList())
     )
 
+    /// begin: foo
     @Test
     fun `find session with title`() {
         assertEquals(
             sessions[1],
-            sessions.firstWithTitle("Title Too")
+            sessions.firstWithTitle("Title Too") /// change: foo
         )
     }
 
     @Test
     fun `find no session with title`() {
-        assertNull(sessions.firstWithTitle("No such"))
+        assertNull(sessions.firstWithTitle("No such")) /// change
     }
 
     @Test
     fun `find in no sessions`() {
-        assertNull(emptyList<Session>().firstWithTitle("No such"))
+        assertNull(emptyList<Session>().firstWithTitle("No such")) /// change
     }
+    /// end: foo
 }

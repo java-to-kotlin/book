@@ -7,10 +7,10 @@ object Sessions {
     /// begin: foo
     @JvmStatic
     fun List<Session>.findWithTitle(title: String) =
-        firstWithTitle(title).toOptional()
+        firstWithTitle(title).toOptional() /// change
 
-    fun List<Session>.firstWithTitle(title: String) =
-        firstOrNull { it.title == title }
+    fun List<Session>.firstWithTitle(title: String) = /// insert
+        firstOrNull { it.title == title }             /// insert
 
     fun Session?.toOptional() = Optional.ofNullable(this)
     /// end: foo

@@ -21,7 +21,7 @@ class SessionsTests {
     fun find_session_with_title() {
         Assertions.assertEquals(
             Optional.of(sessions[1]),
-            sessions.firstWithTitle("Title Too").toOptional()
+            sessions.firstWithTitle("Title Too").toOptional() /// change: foo
         )
     }
     /// end: foo
@@ -30,8 +30,8 @@ class SessionsTests {
     @Test
     fun `find session with title`() {
         assertEquals(
-            sessions[1],
-            sessions.firstWithTitle("Title Too")
+            sessions[1],                         ///  change: bar
+            sessions.firstWithTitle("Title Too") ///  change: bar
         )
     }
     /// end: bar

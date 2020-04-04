@@ -9,9 +9,9 @@ object Sessions {
         sessions: List<Session>,
         title: String
     ): Optional<Session> {
-        /// begin: foo
+        /// begin: foo, bar
         val thing: Session? = sessions.firstOrNull { it.title == title }
-        return Optional.ofNullable(thing)
-        /// end: foo
+        return Optional.ofNullable(thing) /// change: foo
+        /// end: foo, bar
     }
 }

@@ -13,15 +13,15 @@ class SessionsTests {
         Session("Title Too", emptyList())
     )
 
-    /// begin: foo
+    /// begin: foo, fooo
     @Test
     fun find_session_with_title() {
         Assertions.assertEquals(
             Optional.of(sessions[1]),
-            sessions.findWithTitle("Title Too")
+            sessions.findWithTitle("Title Too") /// change: fooo
         )
     }
-    /// end: foo
+    /// end: foo, fooo
 
     /// begin: bar
     @Test

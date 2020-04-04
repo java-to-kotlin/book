@@ -11,9 +11,9 @@ object Sessions {
         title: String
     ): Optional<Session> {
         val thing: Session? = sessions.firstOrNull { it.title == title }
-        return optional(thing)
+        return optional(thing) /// change
     }
 
-    private fun optional(thing: Session?) = Optional.ofNullable(thing)
+    private fun optional(thing: Session?) = Optional.ofNullable(thing) /// insert
     /// end: foo
 }

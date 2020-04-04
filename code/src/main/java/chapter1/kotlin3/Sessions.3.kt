@@ -9,13 +9,11 @@ object Sessions {
         sessions: List<Session>,
         title: String
     ): Optional<Session> {
-        /// begin: foo
-        val thing = sessions.firstOrNull { it.title == title }
+        val thing = sessions.firstOrNull { it.title == title } /// insert
 
         for (session in sessions) {
             if (session.title == title) return Optional.of(session)
         }
         return Optional.empty()
-        /// end: foo
     }
 }

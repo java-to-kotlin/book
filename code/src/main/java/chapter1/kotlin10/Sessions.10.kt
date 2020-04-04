@@ -14,6 +14,6 @@ object Sessions {
         return thing.optional()
     }
 
-    private fun Session?.optional() = Optional.ofNullable(this)
+    private fun Session?.optional() = Optional.ofNullable(this) /// change
     /// end: foo
 }

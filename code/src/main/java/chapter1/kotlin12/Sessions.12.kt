@@ -5,8 +5,8 @@ import java.util.*
 
 object Sessions {
     @JvmStatic
-    fun List<Session>.findSessionWithTitle(title: String) =
-        firstOrNull { it.title == title }.toOptional()
+    fun List<Session>.findSessionWithTitle(title: String) = /// change
+        firstOrNull { it.title == title }.toOptional()      /// change
 
     private fun Session?.toOptional() = Optional.ofNullable(this)
 }
