@@ -24,7 +24,7 @@ class SessionTests {
                 "Another Title",
                 listOf(bob, alice)
             ),
-            aSession.copy(title = "Another Title") /// change: foo
+            aSession.copy(title = "Another Title") /// change
         )
     }
 
@@ -32,7 +32,7 @@ class SessionTests {
     fun `can change presenters`() {
         assertEquals(
             Session("The Title", noPresenters),
-            aSession.copy(presenters = noPresenters) /// change: foo
+            aSession.copy(presenters = noPresenters) /// change
         )
     }
     /// end: foo

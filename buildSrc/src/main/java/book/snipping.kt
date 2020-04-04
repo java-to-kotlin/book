@@ -8,10 +8,10 @@ import java.util.regex.Pattern
 
 sealed class Line {
     data class Text(val text: String) : Line()
-    
+
     sealed class Marker : Line() {
         abstract val tags: Set<String>
-        
+
         data class Begin(override val tags: Set<String>) : Marker()
         data class End(override val tags: Set<String>) : Marker()
         data class Mute(override val tags: Set<String>, val indent: String, val replacement: String) : Marker()
@@ -24,7 +24,8 @@ val Mute.replacementLine get() = indent + replacement
 val Insert.replacementLine get() = indent + replacement
 
 
-val markerPattern = Pattern.compile("""(?<indent>\s*)///\s*(?<directive>[a-z]+)\s*:\s*(?<tags>(?:\s|[a-zA-Z_,])+)\s*(?:\[(?<replacement>[^\]]+)\]\s*)?""")
+val markerPattern =
+    Pattern.compile("""(?<indent>\s*)///\s*(?<directive>[a-z]+)\s*:\s*(?<tags>(?:\s|[a-zA-Z_,])+)\s*(?:\[(?<replacement>[^\]]+)\]\s*)?""")
 
 fun warn(s: String) {
     System.err.println(s)
@@ -51,9 +52,9 @@ fun parseLine(line: String): Line? {
     }
 }
 
-fun Iterable<String>.snipped(name: String?): List<String> {
+fun Iterable<String>.snipped(tagName: String?): List<String> {
     val result = mutableListOf<String>()
-    var output = name == null
+    var output = tagName == null
     this.forEach { line ->
         when (val parsed = parseLine(line)) {
             null -> {
@@ -64,30 +65,48 @@ fun Iterable<String>.snipped(name: String?): List<String> {
                     result.add(parsed.text)
                 }
             is Begin ->
-                if (name in parsed.tags) {
+                if (tagName in parsed.tags) {
                     output = true
                 }
             is End ->
-                if (name in parsed.tags) {
+                if (tagName in parsed.tags) {
                     output = false
                 }
             is Mute ->
-                if (name in parsed.tags) {
+                if (tagName in parsed.tags) {
                     result.add(parsed.replacementLine)
                     output = false
                 }
             is Resume ->
-                if (name in parsed.tags) {
+                if (tagName in parsed.tags) {
                     output = true
                 }
             is Insert ->
-                if (name in parsed.tags) {
+                if (tagName in parsed.tags) {
                     result.add(parsed.replacementLine)
                 }
         }
     }
-    return result
+    return result.withHighlights(tagName)
 }
+
+private fun List<String>.withHighlights(tagName: String?) = this.map { line ->
+    line.withHighlight(tagName)
+}
+
+private val highlightPattern = """///\s*(?<type>change|insert|delete)?(:\s*)(?<tag>.*)$""".toRegex()
+
+private fun String.withHighlight(tagName: String?) =
+    highlightPattern.replace(this) { matchResult ->
+        val type = matchResult.groups["type"]?.value
+        val tagValue = matchResult.groups["tag"]?.value
+        when {
+            tagValue.isNullOrBlank() -> "/// $type"
+            tagValue == tagName -> "/// $type"
+            else -> ""
+        }
+    }
+
 
 /*
 /// begin: foo
