@@ -160,7 +160,7 @@ class Session(val title: String, presenters: List<Presenter>) {
 ----
 // end-insert
 
-`java.util.List` may have caught your attention. The other Lists here are Kotlin's own types, which are essentially immutable views of the Java type. You'll find they are often interchangeable, and we'll cover them in detail in later chapters. Here you can see that we can assign a `java.util.List` to a Kotlin list.
+`java.util.List` may have caught your attention. The other Lists here are Kotlin's own types, which are read-only views of the Java type. You'll find they are often interchangeable, and we'll cover them in detail in later chapters. Here you can see that we can assign a `java.util.List` to a Kotlin list.
 
 We would like to be able to remove all that value object boilerplate by making Session a data class, but in order to do that we have to have all the properties initialised in the constructor, and that defensive `java.util.List.copyOf` is presenting that at the moment. Checking all the callers of the constructor we find that none of them mutate the presenters having passed them in, so we can move the property into the constructor and we have another data class.
 
@@ -285,7 +285,7 @@ class SessionTests {
                 "Another Title",
                 listOf(bob, alice)
             ),
-            aSession.withTitle("Another Title")
+            aSession.withTitle("Another Title") /// change: foo
         )
     }
 
@@ -293,7 +293,7 @@ class SessionTests {
     fun `can change presenters`() {
         assertEquals(
             Session("The Title", noPresenters),
-            aSession.withPresenters(noPresenters)
+            aSession.withPresenters(noPresenters) /// change: foo
         )
     }
 }
@@ -327,11 +327,11 @@ we can make use of Kotlin's named parameters (Alt-Enter inside the brackets)
 [source,kotlin]
 ----
     fun withPresenters(newLineUp: List<Presenter>): Session {
-        return Session(title = title, presenters = newLineUp)
+        return Session(title = title, presenters = newLineUp) /// change
     }
 
     fun withTitle(newTitle: String): Session {
-        return Session(title = newTitle, presenters = presenters)
+        return Session(title = newTitle, presenters = presenters) /// change
     }
 ----
 // end-insert
@@ -342,11 +342,11 @@ and then replace the constructor invocations with the special copy method
 [source,kotlin]
 ----
     fun withPresenters(newLineUp: List<Presenter>): Session {
-        return copy(title = title, presenters = newLineUp)
+        return copy(title = title, presenters = newLineUp) /// change
     }
 
     fun withTitle(newTitle: String): Session {
-        return copy(title = newTitle, presenters = presenters)
+        return copy(title = newTitle, presenters = presenters) /// change
     }
 ----
 // end-insert
@@ -357,11 +357,11 @@ Now remove the redundant arguments
 [source,kotlin]
 ----
     fun withPresenters(newLineUp: List<Presenter>): Session {
-        return copy(presenters = newLineUp)
+        return copy(presenters = newLineUp) /// change
     }
 
     fun withTitle(newTitle: String): Session {
-        return copy(title = newTitle)
+        return copy(title = newTitle) /// change
     }
 ----
 // end-insert
@@ -371,13 +371,37 @@ Where a Kotlin function body consists of a single expression you can Alt-Enter o
 // begin-insert: src/main/java/chapter1/kotlin7/Session.7.kt#foo
 [source,kotlin]
 ----
-    fun withPresenters(newLineUp: List<Presenter>) = copy(presenters = newLineUp)
+    fun withPresenters(newLineUp: List<Presenter>) = copy(presenters = newLineUp) /// change
 
-    fun withTitle(newTitle: String) = copy(title = newTitle)
+    fun withTitle(newTitle: String) = copy(title = newTitle) /// change
 ----
 // end-insert
 
 All the time that there are Java uses of `withPresenters` and `withTitle` that is as far as we can go, but once the all callers have been converted to Kotlin, we can inline the methods
+
+// begin-insert: src/test/java/chapter1/kotlin2/SessionTests.2.kt#foo
+[source,kotlin]
+----
+    @Test
+    fun `can change title`() {
+        assertEquals(
+            Session(
+                "Another Title",
+                listOf(bob, alice)
+            ),
+            aSession.withTitle("Another Title") /// change: foo
+        )
+    }
+
+    @Test
+    fun `can change presenters`() {
+        assertEquals(
+            Session("The Title", noPresenters),
+            aSession.withPresenters(noPresenters) /// change: foo
+        )
+    }
+----
+// end-insert
 
 // begin-insert: src/test/java/chapter1/kotlin3/SessionTests.3.kt#foo
 [source,kotlin]
@@ -389,7 +413,7 @@ All the time that there are Java uses of `withPresenters` and `withTitle` that i
                 "Another Title",
                 listOf(bob, alice)
             ),
-            aSession.copy(title = "Another Title")
+            aSession.copy(title = "Another Title") /// change: foo
         )
     }
 
@@ -397,7 +421,7 @@ All the time that there are Java uses of `withPresenters` and `withTitle` that i
     fun `can change presenters`() {
         assertEquals(
             Session("The Title", noPresenters),
-            aSession.copy(presenters = noPresenters)
+            aSession.copy(presenters = noPresenters) /// change: foo
         )
     }
 ----

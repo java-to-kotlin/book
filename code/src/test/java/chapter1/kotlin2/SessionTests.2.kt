@@ -16,6 +16,7 @@ class SessionTests {
         listOf(bob, alice)
     )
 
+    /// begin: foo
     @Test
     fun `can change title`() {
         assertEquals(
@@ -23,7 +24,7 @@ class SessionTests {
                 "Another Title",
                 listOf(bob, alice)
             ),
-            aSession.withTitle("Another Title")
+            aSession.withTitle("Another Title") /// change: foo
         )
     }
 
@@ -31,7 +32,8 @@ class SessionTests {
     fun `can change presenters`() {
         assertEquals(
             Session("The Title", noPresenters),
-            aSession.withPresenters(noPresenters)
+            aSession.withPresenters(noPresenters) /// change: foo
         )
     }
+    /// end: foo
 }

@@ -7,8 +7,8 @@ data class Session(
     val presenters: List<Presenter>
 ) {
     /// begin: foo
-    fun withPresenters(newLineUp: List<Presenter>) = copy(presenters = newLineUp)
+    fun withPresenters(newLineUp: List<Presenter>) = copy(presenters = newLineUp) /// change
 
-    fun withTitle(newTitle: String) = copy(title = newTitle)
+    fun withTitle(newTitle: String) = copy(title = newTitle) /// change
     /// end: foo
 }

@@ -8,11 +8,11 @@ data class Session(
 ) {
     /// begin: foo
     fun withPresenters(newLineUp: List<Presenter>): Session {
-        return copy(presenters = newLineUp)
+        return copy(presenters = newLineUp) /// change
     }
 
     fun withTitle(newTitle: String): Session {
-        return copy(title = newTitle)
+        return copy(title = newTitle) /// change
     }
     /// end: foo
 }
