@@ -1,37 +1,36 @@
 == An opinionated history of Java programming style
-Kotlin has features that support different _styles_ of Java programming.  Over the decades, Java programming style has developed through several distinct eras, that I think of as: The Applets Age, The Beans Age, The Enterprise Age, and The Modern Age.  We'll refer to these "ages" as a shorthand when explaining why certain Kotlin features exist, and how to use them.
+
+Kotlin has features that support different _styles_ of Java programming.  Over the decades, Java programming style has developed through several distinct eras, that we'll name The Applets Age, The Beans Age, The Enterprise Age, and The Modern Age.  We'll refer to these "ages" as a shorthand when explaining why certain Kotlin features exist, and how to use them.
 
 === The Applets Age
 
-Java was originally developed for use in domestic appliances and interactive TV, but it only took off when Sun released their HotJava web browser. HotJava never achieved mass market success, but it did convince Netscape to support Java applets in their hugely popular Navigator browser.  Suddenly everyone with a web browser had a Java runtime environment.  Sun released the Java development kit 1.0, Microsoft included Java in Internet Explorer, and interest in Java as a programming language exploded.
+Java was originally developed for use in domestic appliances and interactive TV, but it only took off when Netscape added support for Java applets to their hugely popular Navigator browser.  Suddenly everyone with a web browser had a Java runtime environment.  Sun released the Java development kit 1.0, Microsoft included Java in Internet Explorer, and interest in Java as a programming language exploded.
 
-A lot of the fundamentals of Java existed by then: the Java virtual machine and its bytecode and classfile format; primitive and reference types; null references; garbage collection; classes and interfaces; methods and control flow statements; checked exceptions for error handling; the abstract windowing toolkit;  classes for networking with Internet and web protocols; and loading and linking of code at runtime, sandboxed by a security manager; However, Java wasn’t yet ready for general purpose programming: the JVM was slow and the standard library sparse.
+A lot of the fundamentals of Java existed at that time: the Java virtual machine and its bytecode and classfile format; primitive and reference types; null references; garbage collection; classes and interfaces; methods and control flow statements; checked exceptions for error handling; the abstract windowing toolkit; classes for networking with Internet and web protocols; and loading and linking of code at runtime, sandboxed by a security manager. However, Java wasn’t yet ready for general purpose programming: the JVM was slow and the standard library sparse.
 
 Java looked like a cross between C++ and Smalltalk, and Java programming style at the time was influenced by those two languages. It had not yet developed the "get/set/get/set" and "BeanFactoryFactoryProxyImplBeanFactoryBean" conventions that programmers of other languages poke fun at.
 
-One of Java's unsung innovations was an official coding convention that specified how programmers should name packages, classes, methods, and variables.  C and C++ programmers followed a seemingly infinite variety of coding conventions, and code that combined multiple libraries ended up looking [.line-through]#like a right dog's dinner# somewhat inconsistent.  Java's one true coding convention meant that Java programmers could seamlessly integrate strangers' libraries into their programs, which encouraged widespread use of open source in the Java community.
+One of Java's unsung innovations was an official coding convention that specified how programmers should name packages, classes, methods, and variables.  C and C++ programmers followed a seemingly infinite variety of coding conventions, and code that combined multiple libraries ended up looking [.line-through]#like a right dog's dinner# somewhat inconsistent.  Java's one true coding convention meant that Java programmers could seamlessly integrate strangers' libraries into their programs, and encouraged widespread use of open source libraries in the Java community.
 
 === The Beans Age
 
-Java started to become a practical tool with version 1.1. This brought a beefier JVM, language changes (most notably inner classes), a standard collections framework, a better GUI framework, a database API (JDBC, "inspired by" Microsoft’s ODBC), a Servlets and Java Beans. (from Microsoft's Active-X)
+1996: Java started to become a practical tool with version 1.1. This release introduced language changes (most notably inner classes), runtime changes (most notably just-in-time compilation and reflection), and many additions to the standard library.  1998: Java 1.2 introduced a standard collections API and the Swing cross-platform GUI framework, which ensured Java applications stood out on every desktop operating system.
 
-Sun was eyeing Microsoft's domination of the software development for corporate desktop. Java had a potential as a competitor to Visual Basic.  They added a slew of APIs that were, to be charitable, heavily inspired by Microsoft APIs.  JDBC for data base access (Microsoft had ODBC), Swing for desktop GUI programming (Microsoft had MFC), and the API that had the biggest influence on Java programming style: Java Beans.
+Sun was eyeing Microsoft's domination of the software development for corporate desktop. Java had potential as a competitor to Visual Basic.  They added a slew of APIs that were, to be charitable, heavily inspired by Microsoft APIs.  JDBC for data base access (Microsoft had ODBC), Swing for desktop GUI programming (Microsoft had MFC), and the API that had the biggest influence on Java programming style: Java Beans.
 
 Java Beans was Sun's attempt to compete with Microsoft's ActiveX component model for low-code, graphical, drag-and-drop programming.  Programmers could use ActiveX components in their Visual Basic programs, or embed them in office documents, or in web pages on their corporate intranet.  ActiveX components were notoriously difficult to write, and Java Beans were much easier.  You merely had to follow some additional coding conventions for your class to be considered a "bean" that could be instantiated and configured in a graphical UI designer.
 
-In the end, graphical composition of Java beans never really took off.  But the coding conventions stuck.  Java programmers followed the Java Bean conventions even when they had no intention of their class being used as a Java Bean. Beans had an enormous, lasting, and not entirely positive, influence on Java programming style.
+To be a Java Bean, a class had to have a constructor that took no arguments, and expose an interface made up of public properties that could be read and optionally written, methods that could be invoked, and events that objects of the class would announce.  In an application designer, programmers could instantiate beans, set their properties, and write event listeners that invoked methods of other beans.  By default, properties were defined by methods with names that started with get and set.  This default could be overridden, but doing so required so much boilerplate that programmers usually only did so for existing classes. It was much easier to follow the conventions in new classes.
 
-Bean style:
+The drawback of Beans style is that it relies heavily on mutable state, and requires more of that state to be public than plain ol' Java objects because you cannot pass parameters to an object's constructor.  Object state must be mutable so that it can be set after construction and objects must often be instantiated in an invalid state -- with required properties initialised to null, for example -- and then put into a valid state by setting their public properties.  The type checker can't ensure this has been done correctly. So writing a correct code is harder and changes in dependencies can silently break client code.
 
-* No arg constructor.
-* GetXxx/setXXX method pairs for public properties.
-* Event listeners interfaces and event objects, and addXxxListener/removeXxxListener method pairs for notifications.
-* Lots of mutable state.
-* Nulls leaking all over the place.
+In the end, graphical composition of Java beans never became mainstream, but the coding conventions stuck.  Java programmers followed the Java Bean conventions even when they had no intention of their class being used as a Java Bean.  Beans had an enormous, lasting, and not entirely positive, influence on Java programming style.
 
 === The Enterprise Age
 
-Java generics.  HotSpot.
+1998: J2EE released.  Java 2 rebranded as J2SE.
+
+1999... Java 5 (aka 1.5): Java generics and elided types.
 
 Server-side enterprise development. Servlets (Microsoft had IIS), EJBs (Microsoft had COM MTS), JMS, etc.  Abstraction Inversion.  The rise of Dependency Injection and the fall of object-oriented abstraction.
 
@@ -46,11 +45,11 @@ Best in class development tools.
 
 === The Modern Age
 
-Lambdas and streams.  Immutability, and a more functional programming style.  Additions to the standard library, such as the time API, ignoring Java Bean coding conventions.
+Lambdas and streams.  Immutability, and a more functional programming style.  Additions to the standard library, such as the time API, ignore Java Bean coding conventions.
 
 Modules.
 
-Lightweight web frameworks.
+Lightweight web application frameworks mean DI containers are unnecessary.
 
 === The future
 
