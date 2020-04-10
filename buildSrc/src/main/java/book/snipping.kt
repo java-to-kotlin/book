@@ -25,7 +25,7 @@ val Insert.replacementLine get() = indent + replacement
 
 
 val markerPattern =
-    Pattern.compile("""(?<indent>\s*)///\s*(?<directive>[a-z]+)\s*:\s*(?<tags>(?:\s|[a-zA-Z_,])+)\s*(?:\[(?<replacement>[^\]]+)\]\s*)?""")
+    Pattern.compile("""(?<prefix>\s*)///\s*(?<directive>[a-z]+)\s*:\s*(?<tags>(?:\s|[a-zA-Z_,])+)\s*(?:\[(?<replacement>[^\]]+)\]\s*)?""")
 
 fun warn(s: String) {
     System.err.println(s)
@@ -37,8 +37,8 @@ fun parseMarker(m: Matcher): Line.Marker? {
     return when (directive) {
         "begin" -> Begin(tags)
         "end" -> End(tags)
-        "mute" -> Mute(tags, m.group("indent"), m.group("replacement") ?: "...")
-        "insert" -> Insert(tags, m.group("indent"), m.group("replacement"))
+        "mute" -> Mute(tags, m.group("prefix"), m.group("replacement") ?: "...")
+        "insert" -> Insert(tags, m.group("prefix"), m.group("replacement"))
         "resume" -> Resume(tags)
         else -> null
     }
