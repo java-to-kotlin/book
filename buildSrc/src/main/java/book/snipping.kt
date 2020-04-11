@@ -14,22 +14,15 @@ sealed class Line {
 
         data class Begin(override val tags: Set<String>) : Marker()
         data class End(override val tags: Set<String>) : Marker()
-        data class Mute(override val tags: Set<String>, val indent: String, val replacement: String) : Marker()
-        data class Insert(override val tags: Set<String>, val indent: String, val replacement: String) : Marker()
+        data class Ellipsis(override val tags: Set<String>, val mute: Boolean, val prefix: String, val ellipsis: String) : Marker()
         data class Resume(override val tags: Set<String>) : Marker()
     }
 }
 
-val Mute.replacementLine get() = indent + replacement
-val Insert.replacementLine get() = indent + replacement
-
+val Ellipsis.replacementLine get() = prefix + ellipsis
 
 val markerPattern =
     Pattern.compile("""(?<prefix>\s*)///\s*(?<directive>[a-z]+)\s*:\s*(?<tags>(?:\s|[a-zA-Z_,])+)\s*(?:\[(?<replacement>[^\]]+)\]\s*)?""")
-
-fun warn(s: String) {
-    System.err.println(s)
-}
 
 fun parseMarker(m: Matcher): Line.Marker? {
     val directive = m.group("directive")
@@ -37,8 +30,8 @@ fun parseMarker(m: Matcher): Line.Marker? {
     return when (directive) {
         "begin" -> Begin(tags)
         "end" -> End(tags)
-        "mute" -> Mute(tags, m.group("prefix"), m.group("replacement") ?: "...")
-        "insert" -> Insert(tags, m.group("prefix"), m.group("replacement"))
+        "mute" -> Ellipsis(tags, true, m.group("prefix"), m.group("replacement") ?: "...")
+        "note" -> Ellipsis(tags, false, m.group("prefix"), m.group("replacement"))
         "resume" -> Resume(tags)
         else -> null
     }
@@ -62,7 +55,7 @@ fun Iterable<String>.snipped(tagName: String?): List<String> {
             }
             is Text ->
                 if (output) {
-                    result.add(parsed.text)
+                    result.add(parsed.text.withHighlight(tagName))
                 }
             is Begin ->
                 if (tagName in parsed.tags) {
@@ -72,27 +65,21 @@ fun Iterable<String>.snipped(tagName: String?): List<String> {
                 if (tagName in parsed.tags) {
                     output = false
                 }
-            is Mute ->
+            is Ellipsis ->
                 if (tagName in parsed.tags) {
                     result.add(parsed.replacementLine)
-                    output = false
+                    if (parsed.mute) output = false
                 }
             is Resume ->
                 if (tagName in parsed.tags) {
                     output = true
                 }
-            is Insert ->
-                if (tagName in parsed.tags) {
-                    result.add(parsed.replacementLine)
-                }
         }
     }
-    return result.withHighlights(tagName)
+
+    return result
 }
 
-private fun List<String>.withHighlights(tagName: String?) = this.map { line ->
-    line.withHighlight(tagName)
-}
 
 private val highlightPattern = """///\s*(?<type>change|insert|delete)?(:\s*)(?<tag>.*)$""".toRegex()
 
@@ -110,7 +97,7 @@ private fun String.withHighlight(tagName: String?) =
 
 /*
 /// begin: foo
-/// insert: foo [here is an example]
+/// note: foo [here is an example]
 fun foo(): Int {
     val a = 10
     /// mute: foo [// it doesn't matter what happens in the rest of the function...]

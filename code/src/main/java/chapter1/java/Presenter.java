@@ -22,7 +22,7 @@ public class Presenter {
         return name;
     }
 
-    /// insert: replaced_by_primary_constructor [...]
+    /// note: replaced_by_primary_constructor [...]
     /// end: replaced_by_primary_constructor
     // <3>
     @Override
