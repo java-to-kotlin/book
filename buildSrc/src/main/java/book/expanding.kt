@@ -1,10 +1,11 @@
 package book
 
 import java.io.File
+import java.util.concurrent.TimeUnit
 import kotlin.text.RegexOption.DOT_MATCHES_ALL
 import kotlin.text.RegexOption.MULTILINE
 
-private const val abortOnFailure = true
+private const val abortOnFailure = false
 
 fun processFiles(dir: File, srcRoot: File) {
     dir.walkTopDown().filter { it.name.endsWith(".ad") }.forEach { file ->
@@ -21,22 +22,23 @@ private fun processFile(src: File, dest: File, srcRoot: File) {
 
 private fun lookupWithRoot(dir: File) =
     fun(key: String): String {
-        val (filename, fragment) = key.parse()
-        val file = dir.resolve(filename)
-        if (!file.isFile) {
-            val message = "File not found for $file"
+        val (versionedFile, tag) = key.parse(dir)
+        if (!versionedFile.exists()) {
+            val message = "File not found for $versionedFile"
             if (abortOnFailure) {
                 error(message)
             } else {
                 return message
             }
         }
-        return FileSnippet(file, fragment).toString()
+        return FileSnippet(versionedFile, tag).toString()
     }
 
-private fun String.parse(): Pair<String, String?> = this
-    .trim()
-    .split("#").let { it.first() to (if (it.size == 2) it[1] else null) }
+private fun String.parse(rootDir: File): Pair<VersionedFile, String?> {
+    val (file, fragment) = this.trim().split("#").let { it.first() to (if (it.size == 2) it[1] else null) }
+    val (path, version) = file.split(":").let { it.last() to (if (it.size == 2) it.first() else null) }
+    return VersionedFile(file = rootDir.resolve(path).canonicalFile, version = version) to fragment
+}
 
 private fun expandCodeBlocks(text: String, lookup: (String) -> String): String =
     expandedCodeBlockFinder.replace(text) { matchResult ->
@@ -51,14 +53,14 @@ private val expandedCodeBlockFinder =
     """^(?<intro>// begin-insert: (?<key>.*?)$)(.*?)^(?<outro>// end-insert.*?)$"""
         .toRegex(setOf(DOT_MATCHES_ALL, MULTILINE))
 
-class FileSnippet(private val file: File, private val fragment: String?) {
+class FileSnippet(val versionedFile: VersionedFile, val fragment: String?) {
     override fun toString() = (listOf(
         "[source,$sourceType]",
         "----"
-    ) + filter(file.readLines()) +
+    ) + filter(versionedFile.readLines()) +
         "----").joinToString("\n")
 
-    private val sourceType = when (file.extension) {
+    private val sourceType = when (versionedFile.file.extension) {
         "kt", "ktx", "kts" -> "kotlin"
         "java" -> "java"
         "gradle", "groovy" -> "groovy"
@@ -70,7 +72,7 @@ class FileSnippet(private val file: File, private val fragment: String?) {
             .snipped(fragment)
             .also {
                 if (it.isEmpty()) {
-                    error("tag $fragment not found in file $file")
+                    error("tag $fragment not found in file $versionedFile")
                 }
             }
 }
@@ -78,3 +80,37 @@ class FileSnippet(private val file: File, private val fragment: String?) {
 private fun Iterable<String>.withoutPreamble(): List<String> = this
     .filter { !it.startsWith("import") && !it.startsWith("package") }
     .dropWhile { it.isEmpty() }
+
+data class VersionedFile(
+    val file: File,
+    val version: String?
+) {
+    fun readLines(): List<String> =
+        when (version) {
+            null -> file.readLines()
+            else -> readVersioned(file, version)
+        }
+
+    private fun readVersioned(file: File, version: String): List<String> =
+        "git show $version:./${file.name}"
+            .also(::println)
+    .runCommand(workingDir = file.parentFile)?.lines() ?: listOf("UNKNOWN")
+
+    fun exists(): Boolean = file.isFile
+}
+
+fun String.runCommand(
+    workingDir: File = File("."),
+    timeoutAmount: Long = 2,
+    timeoutUnit: TimeUnit = TimeUnit.SECONDS
+): String? = try {
+    ProcessBuilder(split("\\s".toRegex()))
+        .directory(workingDir)
+        .redirectOutput(ProcessBuilder.Redirect.PIPE)
+        .redirectError(ProcessBuilder.Redirect.PIPE)
+        .start().apply { waitFor(timeoutAmount, timeoutUnit) }
+        .inputStream.bufferedReader().readText()
+} catch (e: java.io.IOException) {
+    e.printStackTrace()
+    null
+}
