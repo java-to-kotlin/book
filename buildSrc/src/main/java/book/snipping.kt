@@ -22,7 +22,7 @@ sealed class Line {
 val Ellipsis.replacementLine get() = prefix + ellipsis
 
 val markerPattern =
-    Pattern.compile("""(?<prefix>\s*)///\s*(?<directive>[a-z]+)\s*:\s*(?<tags>(?:\s|[a-zA-Z_,])+)\s*(?:\[(?<replacement>[^\]]+)\]\s*)?""")
+    Pattern.compile("""(?<prefix>\s*)///\s*(?<directive>[a-z]+)\s*:\s*(?<tags>(?:\s|[a-zA-Z0-9_,])+)\s*(?:\[(?<replacement>[^\]]+)\]\s*)?""")
 
 fun parseMarker(m: Matcher): Line.Marker? {
     val directive = m.group("directive")
