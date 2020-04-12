@@ -1,5 +1,6 @@
 package book
 
+import com.natpryce.*
 import java.io.File
 import java.util.concurrent.TimeUnit
 import kotlin.text.RegexOption.DOT_MATCHES_ALL
@@ -24,14 +25,14 @@ private fun lookupWithRoot(dir: File) =
     fun(key: String): String {
         val (versionedFile, tag) = key.parse(dir)
         if (!versionedFile.exists()) {
-            val message = "File not found for $versionedFile"
+            val message = "File not found for $versionedFile (${versionedFile._lines.recover { it.message }})"
             if (abortOnFailure) {
                 error(message)
             } else {
                 return message
             }
         }
-        return FileSnippet(versionedFile, tag).toString()
+        return FileSnippet(versionedFile, tag).rendered()
     }
 
 private fun String.parse(rootDir: File): Pair<VersionedFile, String?> {
@@ -53,11 +54,11 @@ private val expandedCodeBlockFinder =
     """^(?<intro>// begin-insert: (?<key>.*?)$)(.*?)^(?<outro>// end-insert.*?)$"""
         .toRegex(setOf(DOT_MATCHES_ALL, MULTILINE))
 
-class FileSnippet(val versionedFile: VersionedFile, val fragment: String?) {
-    override fun toString() = (listOf(
+data class FileSnippet(val versionedFile: VersionedFile, val fragment: String?) {
+    fun rendered() = (listOf(
         "[source,$sourceType]",
         "----"
-    ) + filter(versionedFile.readLines()) +
+    ) + filter(versionedFile.lines) +
         "----").joinToString("\n")
 
     private val sourceType = when (versionedFile.file.extension) {
@@ -72,7 +73,7 @@ class FileSnippet(val versionedFile: VersionedFile, val fragment: String?) {
             .snipped(fragment)
             .also {
                 if (it.isEmpty()) {
-                    error("tag $fragment not found in file $versionedFile")
+                    error("$versionedFile is empty after filtering with $fragment")
                 }
             }
 }
@@ -85,32 +86,41 @@ data class VersionedFile(
     val file: File,
     val version: String?
 ) {
-    fun readLines(): List<String> =
+
+    val _lines: Result<List<String>, Exception> by lazy {
         when (version) {
-            null -> file.readLines()
+            null -> resultOf { file.readLines() }
             else -> readVersioned(file, version)
         }
+    }
 
-    private fun readVersioned(file: File, version: String): List<String> =
-        "git show $version:./${file.name}"
-            .also(::println)
-    .runCommand(workingDir = file.parentFile)?.lines() ?: listOf("UNKNOWN")
+    val lines: List<String> get() = _lines.recover { throw it }
 
-    fun exists(): Boolean = file.isFile
+    private fun readVersioned(file: File, version: String): Result<List<String>, Exception> =
+        "git show $version:./${file.name}".runCommand(workingDir = file.parentFile).map { it.lines() }
+
+    fun exists(): Boolean = _lines is Success
 }
 
 fun String.runCommand(
     workingDir: File = File("."),
     timeoutAmount: Long = 2,
     timeoutUnit: TimeUnit = TimeUnit.SECONDS
-): String? = try {
-    ProcessBuilder(split("\\s".toRegex()))
+): Result<String, Exception> = resultOf {
+    val completedProcess = ProcessBuilder(split("\\s".toRegex()))
         .directory(workingDir)
         .redirectOutput(ProcessBuilder.Redirect.PIPE)
         .redirectError(ProcessBuilder.Redirect.PIPE)
         .start().apply { waitFor(timeoutAmount, timeoutUnit) }
-        .inputStream.bufferedReader().readText()
-} catch (e: java.io.IOException) {
-    e.printStackTrace()
-    null
+    if (completedProcess.exitValue() == 0)
+        completedProcess.inputStream.bufferedReader().readText()
+    else
+        error(completedProcess.errorStream.bufferedReader().readText())
 }
+
+fun <R> resultOf(f: () -> R): Result<R, Exception> =
+    try {
+        Success(f())
+    } catch (e: Exception) {
+        Failure(e)
+    }
