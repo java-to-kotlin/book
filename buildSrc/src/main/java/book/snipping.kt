@@ -28,8 +28,15 @@ sealed class Line {
 
 val Ellipsis.replacementLine get() = prefix + ellipsis
 
+private val negateTagOperator = "!"
+
+private val tagSpec = """$negateTagOperator?[a-zA-Z0-9_]+""".toRegex()
+
+private fun commaSeparated(element: Regex) =
+    """$element(\s*,\s*$element)*""".toRegex()
+
 private val markerSyntax =
-    """\s*(?<directive>[a-z]+)(\s*:\s*(?<tags>(?:\s|[a-zA-Z0-9_,])+))?\s*(?:\[(?<replacement>[^]]+)]\s*)?""".toRegex()
+    """\s*(?<directive>[a-z]+)(\s*:\s*(?<tags>${commaSeparated(tagSpec)}))?\s*(?:\[(?<replacement>[^]]+)]\s*)?""".toRegex()
 
 private val markedLinePattern =
     """^(?<indent>\s*)///""".toRegex()
@@ -67,17 +74,25 @@ private fun parseDirective(parts: MatchGroupCollection) =
     parts["directive"]?.value ?: error("no sippet directive")
 
 
+
 private fun parseTags(parts: MatchResult): TagCriteria {
     return when (val tagsStr = parts.groups["tags"]?.value) {
         null -> { _ -> true }
-        else -> tagsStr
-            .split(",")
-            .map(String::trim)
-            .filterNot(String::isEmpty)
-            .toSet()
-            .let { parsedTags ->
-                fun(tag: String?) = tag != null && parsedTags.contains(tag)
-            }
+        else -> {
+            val tagSpecs = tagsStr
+                .split(",")
+                .map(String::trim)
+                .filterNot(String::isEmpty)
+
+            val includedTags = tagSpecs.filter { !it.startsWith(negateTagOperator) }.toSet()
+            val excludedTags = tagSpecs.filter { it.startsWith(negateTagOperator) }.map { it.drop(1) }.toSet()
+
+            return fun(tag: String?) =
+                when (tag) {
+                    null -> includedTags.isEmpty()
+                    else -> tag in includedTags && tag !in excludedTags
+                }
+        }
     }
 }
 
@@ -117,12 +132,14 @@ fun Iterable<String>.snipped(tagName: String?): List<String> {
 }
 
 
-
 private fun String.withHighlight(tagName: String?) =
     annotationPattern.replace(this) { matchResult ->
         val directive = matchResult.groups["directive"]?.value
+        val replacement = matchResult.groups["replacement"]?.value ?: ""
         val appliesToTag = parseTags(matchResult)
+
         when {
+            directive == "note" -> if (appliesToTag(tagName)) replacement else ""
             appliesToTag(tagName) -> "/// $directive"
             else -> ""
         }

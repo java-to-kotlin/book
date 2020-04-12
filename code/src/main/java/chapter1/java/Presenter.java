@@ -4,28 +4,25 @@ import java.util.Objects;
 
 /// begin: replaced_by_primary_constructor
 public class Presenter {
-    private final String id;   // <1>
-    private final String name; // <1>
+    private final String id;   /// note: !replaced_by_primary_constructor [// <1>]
+    private final String name; /// note: !replaced_by_primary_constructor [// <1>]
 
     public Presenter(String id, String name) {
         this.id = id;
         this.name = name;
     }
 
-    // <2>
-    public String getId() {
+    public String getId() { /// note: !replaced_by_primary_constructor [// <2>]
         return id;
     }
 
-    // <2>
-    public String getName() {
+    public String getName() { /// note: !replaced_by_primary_constructor [// <2>]
         return name;
     }
 
     /// note: replaced_by_primary_constructor [...]
     /// end: replaced_by_primary_constructor
-    // <3>
-    @Override
+    @Override  /// note: !replaced_by_primary_constructor [// <3>]
     public String toString() {
         return "chapter1.java.Presenter{" +
             "id='" + id + '\'' +
@@ -33,8 +30,7 @@ public class Presenter {
             '}';
     }
 
-    // <3>
-    @Override
+    @Override  /// note: !replaced_by_primary_constructor [// <3>]
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
@@ -43,8 +39,7 @@ public class Presenter {
             name.equals(presenter.name);
     }
 
-    // <3>
-    @Override
+    @Override  /// note: !replaced_by_primary_constructor [// <3>]
     public int hashCode() {
         return Objects.hash(id, name);
     }
