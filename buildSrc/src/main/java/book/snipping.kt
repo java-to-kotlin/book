@@ -2,46 +2,82 @@ package book
 
 import book.Line.Marker.*
 import book.Line.Text
-import java.util.regex.Matcher
-import java.util.regex.Pattern
 
+typealias TagCriteria = (String?) -> Boolean
+
+data class Annotation(val text: String, val tags: Set<String>)
 
 sealed class Line {
-    data class Text(val text: String) : Line()
+    data class Text(val text: String, val annotation: Annotation? = null) : Line()
 
     sealed class Marker : Line() {
-        abstract val tags: Set<String>
+        abstract val appliesToTag: TagCriteria
 
-        data class Begin(override val tags: Set<String>) : Marker()
-        data class End(override val tags: Set<String>) : Marker()
-        data class Ellipsis(override val tags: Set<String>, val mute: Boolean, val prefix: String, val ellipsis: String) : Marker()
-        data class Resume(override val tags: Set<String>) : Marker()
+        data class Begin(override val appliesToTag: TagCriteria) : Marker()
+        data class End(override val appliesToTag: TagCriteria) : Marker()
+        data class Ellipsis(
+            override val appliesToTag: TagCriteria,
+            val mute: Boolean,
+            val prefix: String,
+            val ellipsis: String
+        ) : Marker()
+
+        data class Resume(override val appliesToTag: TagCriteria) : Marker()
     }
 }
 
 val Ellipsis.replacementLine get() = prefix + ellipsis
 
-val markerPattern =
-    Pattern.compile("""(?<prefix>\s*)///\s*(?<directive>[a-z]+)\s*:\s*(?<tags>(?:\s|[a-zA-Z0-9_,])+)\s*(?:\[(?<replacement>[^\]]+)\]\s*)?""")
+private val markerSyntax =
+    """\s*(?<directive>[a-z]+)(\s*:\s*(?<tags>(?:\s|[a-zA-Z0-9_,])+))?\s*(?:\[(?<replacement>[^]]+)]\s*)?""".toRegex()
 
-fun parseMarker(m: Matcher): Line.Marker? {
-    val directive = m.group("directive")
-    val tags = m.group("tags").split(",").map(String::trim).filterNot(String::isEmpty).toSet()
+private val markedLinePattern =
+    """^(?<indent>\s*)///""".toRegex()
+
+private val markedLineSyntax =
+    """${markedLinePattern}${markerSyntax}$""".toRegex()
+
+private val annotationPattern = """///\s*${markerSyntax}$""".toRegex()
+
+fun parseLine(line: String): Line? {
+    return when {
+        markedLinePattern.containsMatchIn(line) -> parseMarkedLine(
+            markedLineSyntax.matchEntire(line)
+                ?: error("cannot parse line marker: \"$line\"")
+        )
+        else -> Text(line)
+    }
+}
+
+fun parseMarkedLine(m: MatchResult): Line.Marker? {
+    val parts = m.groups
+    val directive = parseDirective(parts)
+    val tags = parseTags(m)
     return when (directive) {
         "begin" -> Begin(tags)
         "end" -> End(tags)
-        "mute" -> Ellipsis(tags, true, m.group("prefix"), m.group("replacement") ?: "...")
-        "note" -> Ellipsis(tags, false, m.group("prefix"), m.group("replacement"))
+        "mute" -> Ellipsis(tags, true, parts["indent"]?.value ?: "", parts["replacement"]?.value ?: "...")
+        "note" -> Ellipsis(tags, false, parts["indent"]?.value ?: "", parts["replacement"]?.value ?: "...")
         "resume" -> Resume(tags)
         else -> null
     }
 }
 
-fun parseLine(line: String): Line? {
-    val m = markerPattern.matcher(line)
-    return when {
-        m.matches() -> parseMarker(m)
-        else -> Text(line)
+private fun parseDirective(parts: MatchGroupCollection) =
+    parts["directive"]?.value ?: error("no sippet directive")
+
+
+private fun parseTags(parts: MatchResult): TagCriteria {
+    return when (val tagsStr = parts.groups["tags"]?.value) {
+        null -> { _ -> true }
+        else -> tagsStr
+            .split(",")
+            .map(String::trim)
+            .filterNot(String::isEmpty)
+            .toSet()
+            .let { parsedTags ->
+                fun(tag: String?) = tag != null && parsedTags.contains(tag)
+            }
     }
 }
 
@@ -58,20 +94,20 @@ fun Iterable<String>.snipped(tagName: String?): List<String> {
                     result.add(parsed.text.withHighlight(tagName))
                 }
             is Begin ->
-                if (tagName in parsed.tags) {
+                if (parsed.appliesToTag(tagName)) {
                     output = true
                 }
             is End ->
-                if (tagName in parsed.tags) {
+                if (parsed.appliesToTag(tagName)) {
                     output = false
                 }
             is Ellipsis ->
-                if (tagName in parsed.tags) {
+                if (parsed.appliesToTag(tagName)) {
                     result.add(parsed.replacementLine)
                     if (parsed.mute) output = false
                 }
             is Resume ->
-                if (tagName in parsed.tags) {
+                if (parsed.appliesToTag(tagName)) {
                     output = true
                 }
         }
@@ -81,15 +117,13 @@ fun Iterable<String>.snipped(tagName: String?): List<String> {
 }
 
 
-private val highlightPattern = """///\s*(?<type>change|insert|delete)?(:\s*)(?<tag>.*)$""".toRegex()
 
 private fun String.withHighlight(tagName: String?) =
-    highlightPattern.replace(this) { matchResult ->
-        val type = matchResult.groups["type"]?.value
-        val tagValue = matchResult.groups["tag"]?.value
+    annotationPattern.replace(this) { matchResult ->
+        val directive = matchResult.groups["directive"]?.value
+        val appliesToTag = parseTags(matchResult)
         when {
-            tagValue.isNullOrBlank() -> "/// $type"
-            tagValue == tagName -> "/// $type"
+            appliesToTag(tagName) -> "/// $directive"
             else -> ""
         }
     }
