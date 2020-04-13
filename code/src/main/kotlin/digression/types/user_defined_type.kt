@@ -1,4 +1,4 @@
-@file:Suppress("UNUSED_VARIABLE")
+@file:Suppress("unused")
 
 package digression.types
 

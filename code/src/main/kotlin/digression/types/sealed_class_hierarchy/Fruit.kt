@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package digression.types.sealed_class_hierarchy
 
 
