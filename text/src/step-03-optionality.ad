@@ -2,16 +2,16 @@
 
 TODO - Some introduction on how it was watching me struggling to write simple things in Java that made Nat go out and find Kotlin.
 
-Here is one of the many utility functions we've found in the code.
+Here is one of the many utility functions we've found in the code
 
-// begin-insert: src/main/java/chapter1/java/Sessions.java
+// begin-insert: tags/r17:src/main/java/colloquiumatic/Sessions.java
 [source,java]
 ----
 public class Sessions {
 
     public static Optional<Session> findSessionWithTitle(List<Session> sessions, String title) {
         for (Session session : sessions) {
-            if (session.title.equals(title))
+            if (session.getTitle().equals(title))
                 return Optional.of(session);
         }
         return Optional.empty();
@@ -20,9 +20,49 @@ public class Sessions {
 ----
 // end-insert
 
-Let's see what we can do to make that better in Kotlin. Convert to Kotlin gives us this
+and its tests.
 
-// begin-insert: src/main/java/chapter1/kotlin/Sessions.kt
+// begin-insert: tags/r17:src/test/java/colloquiumatic/SessionsTests.java
+[source,java]
+----
+public class SessionsTests {
+
+    private List<Session> sessions = List.of(
+        new Session("s1", "Title", emptyList()),
+        new Session("s2", "Title Too", emptyList())
+    );
+
+    @Test
+    public void find_session_with_title() {
+        assertEquals(
+            Optional.of(sessions.get(1)),
+            findSessionWithTitle(sessions, "Title Too")
+        );
+    }
+
+    @Test
+    public void find_no_session_with_title() {
+        assertEquals(
+            Optional.empty(),
+            findSessionWithTitle(sessions, "No such")
+        );
+    }
+
+    @Test
+    public void find_in_no_sessions() {
+        assertEquals(
+            Optional.empty(),
+            findSessionWithTitle(emptyList(), "No such")
+        );
+    }
+}
+
+----
+// end-insert
+
+Let's see what we can do to make things better in Kotlin. Convert to Kotlin on Sessions.java gives us this
+
+// begin-insert: tags/r18:src/main/java/colloquiumatic/Sessions.kt
 [source,kotlin]
 ----
 object Sessions {
@@ -54,30 +94,7 @@ We could leave it there, but this is not very idiomatic Kotlin. Arguably since t
 
 IntelliJ has ever-improving support in this area, and if you Alt-Enter on the `for` it offers to 'Replace with firstOrNull{}'. Accepting the offer we get
 
-// begin-insert: src/main/java/chapter1/kotlin2/Sessions.2.kt#foo
-[source,kotlin]
-----
-    @JvmStatic
-    fun findSessionWithTitle(
-        sessions: List<Session>,
-        title: String
-    ): Optional<Session> {
-        return sessions                         /// change
-            .firstOrNull { it.title == title }  /// change
-            ?.let { Optional.of(it) }           /// change
-            ?: Optional.empty()                 /// change
-    }
-----
-// end-insert
-
-Eeek, that escalated quickly! Even if it is logically correct it isn't easily readable, with or without a few years Kotlin experience. Let's back out that change and see if we can work our way to a nicer formulation.
-
-TODO Enough about lambdas to make progress
-
-Now that we know that we can call `sessions
-.firstOrNull { it.title == title }` we can introduce a local variable, leaving the working code to do its job afterwards.
-
-// begin-insert: src/main/java/chapter1/kotlin3/Sessions.3.kt
+// begin-insert: tags/r19:src/main/java/colloquiumatic/Sessions.kt
 [source,kotlin]
 ----
 object Sessions {
@@ -86,6 +103,31 @@ object Sessions {
         sessions: List<Session>,
         title: String
     ): Optional<Session> {
+        return sessions
+            .firstOrNull { it.title == title }
+            ?.let { Optional.of(it) }
+            ?: Optional.empty()
+    }
+}
+----
+// end-insert
+
+Eeek, that escalated quickly! Even if it is logically correct it isn't easily readable, with or without a few years Kotlin experience. Let's back out that change and see if we can work our way to a nicer formulation.
+
+TODO Enough about lambdas to make progress
+
+Now that we know that we can call `sessions.firstOrNull { it.title == title }` we can introduce a local variable, leaving the working code to do its job afterwards.
+
+// begin-insert: tags/r20:src/main/java/colloquiumatic/Sessions.kt
+[source,kotlin]
+----
+object Sessions {
+    @JvmStatic
+    fun findSessionWithTitle(
+        sessions: List<Session>,
+        title: String
+    ): Optional<Session> {
+
         val thing = sessions.firstOrNull { it.title == title } /// insert
 
         for (session in sessions) {
@@ -99,23 +141,10 @@ object Sessions {
 
 <Alt-Enter> on `thing` will give the option to 'Specify type explicitly'
 
-// begin-insert: src/main/java/chapter1/kotlin4/Sessions.4.kt
+// begin-insert: tags/r21:src/main/java/colloquiumatic/Sessions.kt#foo
 [source,kotlin]
 ----
-object Sessions {
-    @JvmStatic
-    fun findSessionWithTitle(
-        sessions: List<Session>,
-        title: String
-    ): Optional<Session> {
         val thing: Session? = sessions.firstOrNull { it.title == title } /// change
-
-        for (session in sessions) {
-            if (session.title == title) return Optional.of(session)
-        }
-        return Optional.empty()
-    }
-}
 ----
 // end-insert
 
@@ -123,28 +152,20 @@ Hmmm, the type of `thing` is `Session?`. This is our second encounter with Kotli
 
 Well, spelling it out
 
-// begin-insert: src/main/java/chapter1/kotlin5/Sessions.5.kt
+// begin-insert: tags/r22:src/main/java/colloquiumatic/Sessions.kt#foo
 [source,kotlin]
 ----
-object Sessions {
-    @JvmStatic
-    fun findSessionWithTitle(
-        sessions: List<Session>,
-        title: String
-    ): Optional<Session> {
         val thing: Session? = sessions.firstOrNull { it.title == title }
         if (thing != null)              /// change
             return Optional.of(thing)   /// change
         else                            /// change
             return Optional.empty()     /// change
-    }
-}
 ----
 // end-insert
 
 If you're playing along at home you may see that IntelliJ is a little unhappy with the `if` statement, as shown by a little wavy line and the offer to 'Lift return out of if'
 
-// begin-insert: src/main/java/chapter1/kotlin6/Sessions.6.kt#foo
+// begin-insert: tags/r23:src/main/java/colloquiumatic/Sessions.kt#foo
 [source,kotlin]
 ----
         val thing: Session? = sessions.firstOrNull { it.title == title }
@@ -159,7 +180,7 @@ That's interesting. In Kotlin `if` is an expression, the value of which is the v
 
 After this promising intervention, unfortuately IntelliJ seems to have lost its mojo, as it doesn't (at the time of writing) suggest that the `if` expression is the definition of `Optional.ofNullable()`, Replacing it we have
 
-// begin-insert: src/main/java/chapter1/kotlin7/Sessions.7.kt#foo
+// begin-insert: tags/r24:src/main/java/colloquiumatic/Sessions.kt#foo
 [source,kotlin]
 ----
         val thing: Session? = sessions.firstOrNull { it.title == title }
@@ -169,7 +190,7 @@ After this promising intervention, unfortuately IntelliJ seems to have lost its 
 
 A quick inline and we can make our function a single expression.
 
-// begin-insert: src/main/java/chapter1/kotlin8/Sessions.8.kt
+// begin-insert: tags/r25:src/main/java/colloquiumatic/Sessions.kt
 [source,kotlin]
 ----
 object Sessions {
@@ -185,7 +206,7 @@ object Sessions {
 
 Most developers would stop there, but you didn't buy this book to be in that group, you want to be the best. So let's go back a step.
 
-// begin-insert: src/main/java/chapter1/kotlin7/Sessions.7.kt#bar
+// begin-insert: tags/r26:src/main/java/colloquiumatic/Sessions.kt#bar
 [source,kotlin]
 ----
         val thing: Session? = sessions.firstOrNull { it.title == title }
@@ -195,7 +216,7 @@ Most developers would stop there, but you didn't buy this book to be in that gro
 
 then select the `Optional.ofNullable(thing)` and extract method
 
-// begin-insert: src/main/java/chapter1/kotlin9/Sessions.9.kt#foo
+// begin-insert: tags/r27:src/main/java/colloquiumatic/Sessions.kt#foo
 [source,kotlin]
 ----
     @JvmStatic
@@ -213,7 +234,7 @@ then select the `Optional.ofNullable(thing)` and extract method
 
 Now <Alt-Enter> on the thing parameter and select 'Convert parameter to receiver'
 
-// begin-insert: src/main/java/chapter1/kotlin10/Sessions.10.kt#foo
+// begin-insert: tags/r28:src/main/java/colloquiumatic/Sessions.kt#foo
 [source,kotlin]
 ----
     @JvmStatic
@@ -222,7 +243,7 @@ Now <Alt-Enter> on the thing parameter and select 'Convert parameter to receiver
         title: String
     ): Optional<Session> {
         val thing: Session? = sessions.firstOrNull { it.title == title }
-        return thing.optional()
+        return thing.optional() /// change
     }
 
     private fun Session?.optional() = Optional.ofNullable(this) /// change
@@ -231,14 +252,16 @@ Now <Alt-Enter> on the thing parameter and select 'Convert parameter to receiver
 
 We have just created our first extension function. In the JVM this is just a static function with the session as its first (well only) parameter, but in Kotlin we can invoke it postfix with a dot, as if it was a method. It isn't a method though, so that receiver (the `this`) can be null - hence the `?` in `Session?.optional()`. This turns out to be a very powerful technique to help break code down and help it read better. To see the effect, we'll rename `optional` to `toOptional` and then simplify all the things.
 
-// begin-insert: src/main/java/chapter1/kotlin11/Sessions.11.kt#foo
+// begin-insert: tags/r29:src/main/java/colloquiumatic/Sessions.kt
 [source,kotlin]
 ----
+object Sessions {
     @JvmStatic
     fun findSessionWithTitle(sessions: List<Session>, title: String) = /// change
         sessions.firstOrNull { it.title == title }.toOptional()        /// change
 
     private fun Session?.toOptional() = Optional.ofNullable(this) /// change
+}
 ----
 // end-insert
 
@@ -246,7 +269,7 @@ Ah that's a lot more expressive now - there is something about reading left to r
 
 Can we go further? Well we can make `findSessionsWithTitle` an extension function as well. We can still call it from Java without changing any callers due to its static nature, so now we have.
 
-// begin-insert: src/main/java/chapter1/kotlin12/Sessions.12.kt
+// begin-insert: tags/r30:src/main/java/colloquiumatic/Sessions.kt
 [source,kotlin]
 ----
 object Sessions {
@@ -294,32 +317,36 @@ var match = Sessions.findWithTitle(listOfSessions, "Refactoring to Kotlin");
 
 which makes the Kotlin read better.
 
-// begin-insert: src/main/java/chapter1/kotlin13/Sessions.13.kt#foo
+// begin-insert: tags/r31:src/main/java/colloquiumatic/Sessions.kt
 [source,kotlin]
 ----
+object Sessions {
     @JvmStatic
-    fun List<Session>.findWithTitle(title: String) =  /// change
+    fun List<Session>.findWithTitle(title: String) =  
         firstOrNull { it.title == title }.toOptional()
+
+    private fun Session?.toOptional() = Optional.ofNullable(this)
+}
 ----
 // end-insert
 
 Apart from that last change, we have not so far had to change any of the code that references Sessions. Let's look at the tests as a representative sample.
 
-// begin-insert: src/test/java/chapter1/java2/SessionsTests.java
+// begin-insert: tags/r31:src/test/java/colloquiumatic/SessionsTests.java
 [source,java]
 ----
 public class SessionsTests {
 
     private List<Session> sessions = List.of(
-        new Session("Title", emptyList()),
-        new Session("Title Too", emptyList())
+        new Session("s1", "Title", emptyList()),
+        new Session("s2", "Title Too", emptyList())
     );
 
     @Test
     public void find_session_with_title() {
         assertEquals(
             Optional.of(sessions.get(1)),
-            Sessions.findWithTitle(sessions, "Title Too")
+            findWithTitle(sessions, "Title Too")
         );
     }
 
@@ -327,7 +354,7 @@ public class SessionsTests {
     public void find_no_session_with_title() {
         assertEquals(
             Optional.empty(),
-            Sessions.findWithTitle(sessions, "No such")
+            findWithTitle(sessions, "No such")
         );
     }
 
@@ -335,18 +362,41 @@ public class SessionsTests {
     public void find_in_no_sessions() {
         assertEquals(
             Optional.empty(),
-            Sessions.findWithTitle(emptyList(), "No such")
+            findWithTitle(emptyList(), "No such")
         );
     }
 }
+
 ----
 // end-insert
 
 Converting this to Kotlin actually gives code that fails to compile
 
-// begin-insert: src/test/java/chapter1/kotlin/SessionsTests.ktx#foo
+// begin-insert: tags/r32:src/test/java/colloquiumatic/SessionsTests.kt
 [source,kotlin]
 ----
+class SessionsTests {
+    private val sessions = List.of(
+        Session("s1", "Title", emptyList()),
+        Session("s2", "Title Too", emptyList())
+    )
+
+    @Test
+    fun find_session_with_title() {
+        Assertions.assertEquals(
+            Optional.of(sessions[1]),
+            sessions.findWithTitle("Title Too")
+        )
+    }
+
+    @Test
+    fun find_no_session_with_title() {
+        Assertions.assertEquals(
+            Optional.empty<Any>(),
+            sessions.findWithTitle("No such")
+        )
+    }
+
     @Test
     fun find_in_no_sessions() {
         Assertions.assertEquals(
@@ -354,6 +404,7 @@ Converting this to Kotlin actually gives code that fails to compile
             emptyList().findWithTitle("No such") // <1>
         )
     }
+}
 ----
 // end-insert
 
@@ -361,14 +412,14 @@ Converting this to Kotlin actually gives code that fails to compile
 
 We can fix that by giving the compiler a hint.
 
-// begin-insert: src/test/java/chapter1/kotlin/SessionsTests.kt#baz
+// begin-insert: tags/r33:src/test/java/colloquiumatic/SessionsTests.kt#get_compiling
 [source,kotlin]
 ----
     @Test
     fun find_in_no_sessions() {
         Assertions.assertEquals(
             Optional.empty<Any>(),
-            emptyList<Session>().findWithTitle("No such")
+            emptyList<Session>().findWithTitle("No such") /// change
         )
     }
 ----
@@ -378,7 +429,7 @@ To simulate gradually converting the clients of Sessions to Kotlin, let's make t
 
 First `find_session_with_title`.
 
-// begin-insert: src/test/java/chapter1/kotlin/SessionsTests.kt#foo
+// begin-insert: tags/r33:src/test/java/colloquiumatic/SessionsTests.kt#with_title_1
 [source,kotlin]
 ----
     @Test
@@ -393,7 +444,9 @@ First `find_session_with_title`.
 
 Kotlin clients would expect `sessions.findWithTitle` to return `Session?` rather than `Optional<Session>`.
 
-// begin-insert: src/main/java/chapter1/kotlin13/Sessions.13.kt#bar
+That code is currently
+
+// begin-insert: tags/r33:src/main/java/colloquiumatic/Sessions.kt#bar
 [source,kotlin]
 ----
     @JvmStatic
@@ -404,7 +457,7 @@ Kotlin clients would expect `sessions.findWithTitle` to return `Session?` rather
 
 We can have both by extracting a method from `firstOrNull { it.title == title }` in Sessions - call it firstWithTitle for now - and make `toOptional` public
 
-// begin-insert: src/main/java/chapter1/kotlin14/Sessions.14.kt#foo
+// begin-insert: tags/r34:src/main/java/colloquiumatic/Sessions.kt#foo
 [source,kotlin]
 ----
     @JvmStatic
@@ -414,13 +467,13 @@ We can have both by extracting a method from `firstOrNull { it.title == title }`
     fun List<Session>.firstWithTitle(title: String) = /// insert
         firstOrNull { it.title == title }             /// insert
 
-    fun Session?.toOptional() = Optional.ofNullable(this)
+    fun Session?.toOptional() = Optional.ofNullable(this) /// change
 ----
 // end-insert
 
-Now we can inline individual invocations of `findWithTitle`
+Now we can inline individual invocations of `findWithTitle`. Ie from
 
-// begin-insert: src/test/java/chapter1/kotlin/SessionsTests.kt#fooo
+// begin-insert: tags/r34:src/test/java/colloquiumatic/SessionsTests.kt#with_title_2
 [source,kotlin]
 ----
     @Test
@@ -433,7 +486,9 @@ Now we can inline individual invocations of `findWithTitle`
 ----
 // end-insert
 
-// begin-insert: src/test/java/chapter1/kotlin2/SessionsTests.kt#foo
+to
+
+// begin-insert: tags/r35:src/test/java/colloquiumatic/SessionsTests.kt#with_title
 [source,kotlin]
 ----
     @Test
@@ -448,12 +503,12 @@ Now we can inline individual invocations of `findWithTitle`
 
 and unwrap the expected and actual from the Optional
 
-// begin-insert: src/test/java/chapter1/kotlin2/SessionsTests.kt#bar
+// begin-insert: tags/r36:src/test/java/colloquiumatic/SessionsTests.kt#with_title
 [source,kotlin]
 ----
     @Test
-    fun `find session with title`() {
-        assertEquals(
+    fun find_session_with_title() {
+        Assertions.assertEquals(
             sessions[1],                         /// change
             sessions.firstWithTitle("Title Too") /// change
         )
@@ -463,7 +518,7 @@ and unwrap the expected and actual from the Optional
 
 Meanwhile other uses, and in fact Java invocations, can still use the old method
 
-// begin-insert: src/test/java/chapter1/kotlin2/SessionsTests.kt#baz
+// begin-insert: tags/r36:src/test/java/colloquiumatic/SessionsTests.kt#with_no_title
 [source,kotlin]
 ----
     @Test
@@ -476,14 +531,14 @@ Meanwhile other uses, and in fact Java invocations, can still use the old method
 ----
 // end-insert
 
-// begin-insert: src/test/java/chapter1/java2/SessionsTests.java#baz
+// begin-insert: tags/r0:src/test/java/colloquiumatic/SessionsTests.java#no_sessions
 [source,java]
 ----
     @Test
     public void find_in_no_sessions() {
         assertEquals(
             Optional.empty(),
-            Sessions.findWithTitle(emptyList(), "No such")
+            findSessionWithTitle(emptyList(), "No such")
         );
     }
 ----
@@ -491,20 +546,20 @@ Meanwhile other uses, and in fact Java invocations, can still use the old method
 
 Once all the Java clients of Sessions have been converted to Kotlin, and all the Kotlin uses `Session?`
 
-// begin-insert: src/test/java/chapter1/kotlin3/SessionsTests.kt
+// begin-insert: tags/r37:src/test/java/colloquiumatic/SessionsTests.kt
 [source,kotlin]
 ----
 class SessionsTests {
     private val sessions = listOf(
-        Session("Title", emptyList()),
-        Session("Title Too", emptyList())
+        Session("s1", "Title", emptyList()),
+        Session("s2", "Title Too", emptyList())
     )
 
     @Test
     fun `find session with title`() {
         assertEquals(
             sessions[1],
-            sessions.firstWithTitle("Title Too") 
+            sessions.firstWithTitle("Title Too")
         )
     }
 
@@ -523,7 +578,7 @@ class SessionsTests {
 
 we can remove the Java accommodations from Sessions, leaving just
 
-// begin-insert: src/main/java/chapter1/kotlin15/Sessions.15.kt
+// begin-insert: tags/r37:src/main/java/colloquiumatic/Sessions.kt
 [source,kotlin]
 ----
 object Sessions {
@@ -536,38 +591,9 @@ object Sessions {
 Now at this point we might discuss whether or not `firstWithTitle` is actually pulling its weight, as
 `firstOrNull { it.title == title }` is almost as descriptive. Should we decide that it isn't we can inline the function
 
-// begin-insert: src/test/java/chapter1/kotlin3/SessionsTests.kt#foo
+// begin-insert: tags/r38:src/test/java/colloquiumatic/SessionsTests.kt#foo
 [source,kotlin]
 ----
-    @Test
-    fun `find session with title`() {
-        assertEquals(
-            sessions[1],
-            sessions.firstWithTitle("Title Too") /// change
-        )
-    }
-
-    @Test
-    fun `find no session with title`() {
-        assertNull(sessions.firstWithTitle("No such")) /// change
-    }
-
-    @Test
-    fun `find in no sessions`() {
-        assertNull(emptyList<Session>().firstWithTitle("No such")) /// change
-    }
-----
-// end-insert
-
-// begin-insert: src/test/java/chapter1/kotlin4/SessionsTests.kt#foo
-[source,kotlin]
-----
-class SessionsTests {
-    private val sessions = listOf(
-        Session("Title", emptyList()),
-        Session("Title Too", emptyList())
-    )
-
     @Test
     fun `find session with title`() {
         assertEquals(
@@ -576,23 +602,15 @@ class SessionsTests {
         )
     }
 
-
     @Test
     fun `find no session with title`() {
-        assertEquals(
-            null,
-            sessions.firstOrNull { it.title == "No such" } /// change
-        )
+        assertNull(sessions.firstOrNull { it.title == "No such" }) /// change
     }
 
     @Test
     fun `find in no sessions`() {
-        assertEquals(
-            null,
-            emptyList<Session>().firstOrNull { it.title == "No such" } /// change
-        )
+        assertNull(emptyList<Session>().firstOrNull { it.title == "No such" }) /// change
     }
-}
 ----
 // end-insert
 
