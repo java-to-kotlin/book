@@ -134,11 +134,11 @@ Alt-Enter at <3> will join the initialisation and we can just delete the questio
 class Session(
     val id: String,
     val title: String,
-    presenters: List<Presenter> /// change
+    presenters: List<Presenter> /// |
 ) {
-    val presenters: List<Presenter> = java.util.List.copyOf(presenters) /// change
+    val presenters: List<Presenter> = java.util.List.copyOf(presenters) /// |
 
-    fun withPresenters(newLineUp: List<Presenter>): Session { /// change
+    fun withPresenters(newLineUp: List<Presenter>): Session { /// |
         return Session(id, title, newLineUp)
     }
 
@@ -176,10 +176,10 @@ We would like to be able to remove all that value object boilerplate by making S
 [source,kotlin]
 [%autofit]
 ----
-data class Session( /// change
+data class Session( /// |
     val id: String,
     val title: String,
-    val presenters: List<Presenter> /// change
+    val presenters: List<Presenter> /// |
 ) {
 
     fun withPresenters(newLineUp: List<Presenter>): Session {
@@ -285,11 +285,11 @@ class SessionTests {
     private val aSession = Session(
         "s1",
         "The Title",
-        listOf(bob, alice) /// change
+        listOf(bob, alice) /// |
     )
 
     @Test
-    fun `can change title`() { /// change
+    fun `can change title`() { /// |
         Assertions.assertEquals(
             Session(
                 "s1",
@@ -301,7 +301,7 @@ class SessionTests {
     }
 
     @Test
-    fun `can change presenters`() { /// change
+    fun `can change presenters`() { /// |
         Assertions.assertEquals(
             Session("s1", "The Title", noPresenters),
             aSession.withPresenters(noPresenters)
@@ -323,10 +323,10 @@ We have one more data class trick up our sleeve. Returning to Session
 [source,kotlin]
 [%autofit]
 ----
-data class Session( /// change
+data class Session( /// |
     val id: String,
     val title: String,
-    val presenters: List<Presenter> /// change
+    val presenters: List<Presenter> /// |
 ) {
 
     fun withPresenters(newLineUp: List<Presenter>): Session {
@@ -347,11 +347,11 @@ we can make use of Kotlin's named parameters (Alt-Enter inside the brackets)
 [%autofit]
 ----
     fun withPresenters(newLineUp: List<Presenter>): Session {
-        return Session(id = id, title = title, presenters = newLineUp) /// change
+        return Session(id = id, title = title, presenters = newLineUp) /// |
     }
 
     fun withTitle(newTitle: String): Session {
-        return Session(id = id, title = newTitle, presenters = presenters) /// change
+        return Session(id = id, title = newTitle, presenters = presenters) /// |
     }
 ----
 // end-insert
@@ -363,11 +363,11 @@ and then replace the constructor invocations with the special copy method
 [%autofit]
 ----
     fun withPresenters(newLineUp: List<Presenter>): Session {
-        return copy(id = id, title = title, presenters = newLineUp) /// change
+        return copy(id = id, title = title, presenters = newLineUp) /// |
     }
 
     fun withTitle(newTitle: String): Session {
-        return copy(id = id, title = newTitle, presenters = presenters) /// change
+        return copy(id = id, title = newTitle, presenters = presenters) /// |
     }
 ----
 // end-insert
@@ -379,11 +379,11 @@ Now remove the redundant arguments
 [%autofit]
 ----
     fun withPresenters(newLineUp: List<Presenter>): Session {
-        return copy(presenters = newLineUp) /// change
+        return copy(presenters = newLineUp) /// |
     }
 
     fun withTitle(newTitle: String): Session {
-        return copy(title = newTitle) /// change
+        return copy(title = newTitle) /// |
     }
 ----
 // end-insert
@@ -394,9 +394,9 @@ Where a Kotlin function body consists of a single expression you can Alt-Enter o
 [source,kotlin]
 [%autofit]
 ----
-    fun withPresenters(newLineUp: List<Presenter>) = copy(presenters = newLineUp) /// change
+    fun withPresenters(newLineUp: List<Presenter>) = copy(presenters = newLineUp) /// |
 
-    fun withTitle(newTitle: String) = copy(title = newTitle) /// change
+    fun withTitle(newTitle: String) = copy(title = newTitle) /// |
 ----
 // end-insert
 
@@ -414,7 +414,7 @@ All the time that there are Java uses of `withPresenters` and `withTitle` that i
                 "Another Title",
                 listOf(bob, alice)
             ),
-            aSession.withTitle("Another Title") /// change
+            aSession.withTitle("Another Title") /// |
         )
     }
 
@@ -422,7 +422,7 @@ All the time that there are Java uses of `withPresenters` and `withTitle` that i
     fun `can change presenters`() {
         Assertions.assertEquals(
             Session("s1", "The Title", noPresenters),
-            aSession.withPresenters(noPresenters) /// change
+            aSession.withPresenters(noPresenters) /// |
         )
     }
 ----
@@ -440,7 +440,7 @@ All the time that there are Java uses of `withPresenters` and `withTitle` that i
                 "Another Title",
                 listOf(bob, alice)
             ),
-            aSession.copy(title = "Another Title") /// change
+            aSession.copy(title = "Another Title") /// |
         )
     }
 
@@ -448,7 +448,7 @@ All the time that there are Java uses of `withPresenters` and `withTitle` that i
     fun `can change presenters`() {
         Assertions.assertEquals(
             Session("s1", "The Title", noPresenters),
-            aSession.copy(presenters = noPresenters) /// change
+            aSession.copy(presenters = noPresenters) /// |
         )
     }
 ----

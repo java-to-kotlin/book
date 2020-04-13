@@ -133,7 +133,7 @@ object Sessions {
         title: String
     ): Optional<Session> {
 
-        val thing = sessions.firstOrNull { it.title == title } /// insert
+        val thing = sessions.firstOrNull { it.title == title } /// +
 
         for (session in sessions) {
             if (session.title == title) return Optional.of(session)
@@ -150,7 +150,7 @@ object Sessions {
 [source,kotlin]
 [%autofit]
 ----
-        val thing: Session? = sessions.firstOrNull { it.title == title } /// change
+        val thing: Session? = sessions.firstOrNull { it.title == title } /// |
 ----
 // end-insert
 
@@ -163,10 +163,10 @@ Well, spelling it out
 [%autofit]
 ----
         val thing: Session? = sessions.firstOrNull { it.title == title }
-        if (thing != null)              /// change
-            return Optional.of(thing)   /// change
-        else                            /// change
-            return Optional.empty()     /// change
+        if (thing != null)              /// |
+            return Optional.of(thing)   /// |
+        else                            /// |
+            return Optional.empty()     /// |
 ----
 // end-insert
 
@@ -177,10 +177,10 @@ If you're playing along at home you may see that IntelliJ is a little unhappy wi
 [%autofit]
 ----
         val thing: Session? = sessions.firstOrNull { it.title == title }
-        return if (thing != null) /// change
-            Optional.of(thing)    /// change
-        else                      /// change
-            Optional.empty()      /// change
+        return if (thing != null) /// |
+            Optional.of(thing)    /// |
+        else                      /// |
+            Optional.empty()      /// |
 ----
 // end-insert
 
@@ -193,7 +193,7 @@ After this promising intervention, unfortuately IntelliJ seems to have lost its 
 [%autofit]
 ----
         val thing: Session? = sessions.firstOrNull { it.title == title }
-        return Optional.ofNullable(thing) /// change
+        return Optional.ofNullable(thing) /// |
 ----
 // end-insert
 
@@ -209,7 +209,7 @@ object Sessions {
         sessions: List<Session>,
         title: String
     ): Optional<Session> =
-        Optional.ofNullable(sessions.firstOrNull { it.title == title }) /// change
+        Optional.ofNullable(sessions.firstOrNull { it.title == title }) /// |
 }
 ----
 // end-insert
@@ -237,10 +237,10 @@ then select the `Optional.ofNullable(thing)` and extract method
         title: String
     ): Optional<Session> {
         val thing: Session? = sessions.firstOrNull { it.title == title }
-        return optional(thing) /// change
+        return optional(thing) /// |
     }
 
-    private fun optional(thing: Session?) = Optional.ofNullable(thing) /// insert
+    private fun optional(thing: Session?) = Optional.ofNullable(thing) /// +
 ----
 // end-insert
 
@@ -256,10 +256,10 @@ Now <Alt-Enter> on the thing parameter and select 'Convert parameter to receiver
         title: String
     ): Optional<Session> {
         val thing: Session? = sessions.firstOrNull { it.title == title }
-        return thing.optional() /// change
+        return thing.optional() /// |
     }
 
-    private fun Session?.optional() = Optional.ofNullable(this) /// change
+    private fun Session?.optional() = Optional.ofNullable(this) /// |
 ----
 // end-insert
 
@@ -271,10 +271,10 @@ We have just created our first extension function. In the JVM this is just a sta
 ----
 object Sessions {
     @JvmStatic
-    fun findSessionWithTitle(sessions: List<Session>, title: String) = /// change
-        sessions.firstOrNull { it.title == title }.toOptional()        /// change
+    fun findSessionWithTitle(sessions: List<Session>, title: String) = /// |
+        sessions.firstOrNull { it.title == title }.toOptional()        /// |
 
-    private fun Session?.toOptional() = Optional.ofNullable(this) /// change
+    private fun Session?.toOptional() = Optional.ofNullable(this) /// |
 }
 ----
 // end-insert
@@ -289,8 +289,8 @@ Can we go further? Well we can make `findSessionsWithTitle` an extension functio
 ----
 object Sessions {
     @JvmStatic
-    fun List<Session>.findSessionWithTitle(title: String) = /// change
-        firstOrNull { it.title == title }.toOptional()      /// change
+    fun List<Session>.findSessionWithTitle(title: String) = /// |
+        firstOrNull { it.title == title }.toOptional()      /// |
 
     private fun Session?.toOptional() = Optional.ofNullable(this)
 }
@@ -438,7 +438,7 @@ We can fix that by giving the compiler a hint.
     fun find_in_no_sessions() {
         Assertions.assertEquals(
             Optional.empty<Any>(),
-            emptyList<Session>().findWithTitle("No such") /// change
+            emptyList<Session>().findWithTitle("No such") /// |
         )
     }
 ----
@@ -484,12 +484,12 @@ We can have both by extracting a method from `firstOrNull { it.title == title }`
 ----
     @JvmStatic
     fun List<Session>.findWithTitle(title: String) =
-        firstWithTitle(title).toOptional() /// change
+        firstWithTitle(title).toOptional() /// |
 
-    fun List<Session>.firstWithTitle(title: String) = /// insert
-        firstOrNull { it.title == title }             /// insert
+    fun List<Session>.firstWithTitle(title: String) = /// +
+        firstOrNull { it.title == title }             /// +
 
-    fun Session?.toOptional() = Optional.ofNullable(this) /// change
+    fun Session?.toOptional() = Optional.ofNullable(this) /// |
 ----
 // end-insert
 
@@ -503,7 +503,7 @@ Now we can inline individual invocations of `findWithTitle`. Ie from
     fun find_session_with_title() {
         Assertions.assertEquals(
             Optional.of(sessions[1]),
-            sessions.findWithTitle("Title Too") /// change
+            sessions.findWithTitle("Title Too") /// |
         )
     }
 ----
@@ -519,7 +519,7 @@ to
     fun find_session_with_title() {
         Assertions.assertEquals(
             Optional.of(sessions[1]),
-            sessions.firstWithTitle("Title Too").toOptional() /// change
+            sessions.firstWithTitle("Title Too").toOptional() /// |
         )
     }
 ----
@@ -534,8 +534,8 @@ and unwrap the expected and actual from the Optional
     @Test
     fun find_session_with_title() {
         Assertions.assertEquals(
-            sessions[1],                         /// change
-            sessions.firstWithTitle("Title Too") /// change
+            sessions[1],                         /// |
+            sessions.firstWithTitle("Title Too") /// |
         )
     }
 ----
@@ -593,12 +593,12 @@ class SessionsTests {
 
     @Test
     fun `find no session with title`() {
-        assertNull(sessions.firstWithTitle("No such")) /// change
+        assertNull(sessions.firstWithTitle("No such")) /// |
     }
 
     @Test
     fun `find in no sessions`() {
-        assertNull(emptyList<Session>().firstWithTitle("No such")) /// change
+        assertNull(emptyList<Session>().firstWithTitle("No such")) /// |
     }
 }
 ----
@@ -628,18 +628,18 @@ Now at this point we might discuss whether or not `firstWithTitle` is actually p
     fun `find session with title`() {
         assertEquals(
             sessions[1],
-            sessions.firstOrNull { it.title == "Title Too" } /// change
+            sessions.firstOrNull { it.title == "Title Too" } /// |
         )
     }
 
     @Test
     fun `find no session with title`() {
-        assertNull(sessions.firstOrNull { it.title == "No such" }) /// change
+        assertNull(sessions.firstOrNull { it.title == "No such" }) /// |
     }
 
     @Test
     fun `find in no sessions`() {
-        assertNull(emptyList<Session>().firstOrNull { it.title == "No such" }) /// change
+        assertNull(emptyList<Session>().firstOrNull { it.title == "No such" }) /// |
     }
 ----
 // end-insert

@@ -91,8 +91,10 @@ data class FileSnippet(val versionedFile: VersionedFile, val fragment: String?) 
     }
 
     private fun filter(lines: List<String>) =
-        lines.withoutPreamble()
+        lines
             .snipped(fragment)
+            .withoutPreamble()
+            .convertingChangeMarkers()
             .also {
                 if (it.isEmpty()) {
                     error("$versionedFile is empty after filtering with $fragment")
@@ -103,6 +105,9 @@ data class FileSnippet(val versionedFile: VersionedFile, val fragment: String?) 
 private fun Iterable<String>.withoutPreamble(): List<String> = this
     .filter { !it.startsWith("import") && !it.startsWith("package") }
     .dropWhile { it.isEmpty() }
+
+private fun Iterable<String>.convertingChangeMarkers(): List<String> = this
+    .map { it.replace("/// change", "/// |").replace("/// insert", "/// +").replace("/// delete", "/// -") }
 
 data class VersionedFile(
     val file: File,
