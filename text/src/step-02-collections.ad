@@ -2,17 +2,23 @@
 
 Casting around the code for some more easy wins we find another value class -  Session.
 
-// begin-insert: src/main/java/chapter1/java/Session.java
+// begin-insert: tags/r6:src/main/java/colloquiumatic/Session.java
 [source,java]
 ----
 public class Session {
 
-    public final String title;
-    public final List<Presenter> presenters; // <1>
+    private final String id;
+    private final String title;
+    private final List<Presenter> presenters; // <1>
 
-    public Session(String title, List<Presenter> presenters) {
+    public Session(String id, String title, List<Presenter> presenters) {
+        this.id = id;
         this.title = title;
         this.presenters = List.copyOf(presenters); // <2>
+    }
+
+    public String getId() {
+        return id;
     }
 
     public String getTitle() {
@@ -25,11 +31,11 @@ public class Session {
 
     // <3>
     public Session withPresenters(List<Presenter> newLineUp) {
-        return new Session(title, newLineUp);
+        return new Session(id, title, newLineUp);
     }
 
     public Session withTitle(String newTitle) {
-        return new Session(newTitle, presenters);
+        return new Session(id, newTitle, presenters);
     }
 
     @Override
@@ -37,23 +43,26 @@ public class Session {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Session session = (Session) o;
-        return Objects.equals(title, session.title) &&
-            Objects.equals(presenters, session.presenters);
+        return id.equals(session.id) &&
+            title.equals(session.title) &&
+            presenters.equals(session.presenters);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(title, presenters);
+        return Objects.hash(id, title, presenters);
     }
 
     @Override
     public String toString() {
-        return "chapter1.java.Session{" +
-            "title='" + title + '\'' +
+        return "Session{" +
+            "id='" + id + '\'' +
+            ", title='" + title + '\'' +
             ", presenters=" + presenters +
             '}';
     }
 }
+
 ----
 // end-insert
 
@@ -67,35 +76,35 @@ Like Presenter, Session is immutable and has tedious code to manage value identi
 
 If we use IntelliJ to convert this to Kotlin, we get the following
 
-// begin-insert: src/main/java/chapter1/kotlin/Session.kt
+// begin-insert: tags/r7:src/main/java/colloquiumatic/Session.kt
 [source,kotlin]
 ----
-class Session(val title: String, presenters: List<Presenter>?) { // <1>
+class Session(val id: String, val title: String, presenters: List<Presenter>?) { // <1>
     val presenters: List<Presenter> // <2>
 
     fun withPresenters(newLineUp: List<Presenter>?): Session { // <4>
-        return Session(title, newLineUp)
+        return Session(id, title, newLineUp)
     }
 
     fun withTitle(newTitle: String): Session {
-        return Session(newTitle, presenters)
+        return Session(id, newTitle, presenters)
     }
 
     override fun equals(o: Any?): Boolean {
         if (this === o) return true
         if (o == null || javaClass != o.javaClass) return false
         val session = o as Session
-        return title == session.title &&
-            presenters == session.presenters
+        return id == session.id && title == session.title && presenters == session.presenters
     }
 
     override fun hashCode(): Int {
-        return Objects.hash(title, presenters)
+        return Objects.hash(id, title, presenters)
     }
 
     override fun toString(): String {
-        return "chapter1.java.Session{" +
-            "title='" + title + '\'' +
+        return "Session{" +
+            "id='" + id + '\'' +
+            ", title='" + title + '\'' +
             ", presenters=" + presenters +
             '}'
     }
@@ -114,45 +123,41 @@ The conversion has left us with some dubious Kotlin
 <3> Which is initialised in this dangling `init` block.
 <4> The `newPresenters` parameter has also been made nullable.
 
-Alt-Enter at <3> will join the initialisation
+Alt-Enter at <3> will join the initialisation and we can just delete the question marks to show that `presenters` is not nullable.
 
+// begin-insert: tags/r8:src/main/java/colloquiumatic/Session.kt
 [source,kotlin]
 ----
-    val presenters : List<Presenter> = java.util.List.copyOf(presenters)
-----
+class Session(
+    val id: String,
+    val title: String,
+    presenters: List<Presenter> /// change
+) {
+    val presenters: List<Presenter> = java.util.List.copyOf(presenters) /// change
 
-and we can just delete the question marks to show that `presenters` is not nullable.
-
-// begin-insert: src/main/java/chapter1/kotlin2/Session.2.kt
-[source,kotlin]
-----
-class Session(val title: String, presenters: List<Presenter>) {
-
-    val presenters : List<Presenter> = java.util.List.copyOf(presenters)
-
-    fun withPresenters(newLineUp: List<Presenter>): Session {
-        return Session(title, newLineUp)
+    fun withPresenters(newLineUp: List<Presenter>): Session { /// change
+        return Session(id, title, newLineUp)
     }
 
     fun withTitle(newTitle: String): Session {
-        return Session(newTitle, presenters)
+        return Session(id, newTitle, presenters)
     }
 
     override fun equals(o: Any?): Boolean {
         if (this === o) return true
         if (o == null || javaClass != o.javaClass) return false
         val session = o as Session
-        return title == session.title &&
-            presenters == session.presenters
+        return id == session.id && title == session.title && presenters == session.presenters
     }
 
     override fun hashCode(): Int {
-        return Objects.hash(title, presenters)
+        return Objects.hash(id, title, presenters)
     }
 
     override fun toString(): String {
-        return "chapter1.java.Session{" +
-            "title='" + title + '\'' +
+        return "Session{" +
+            "id='" + id + '\'' +
+            ", title='" + title + '\'' +
             ", presenters=" + presenters +
             '}'
     }
@@ -164,20 +169,21 @@ class Session(val title: String, presenters: List<Presenter>) {
 
 We would like to be able to remove all that value object boilerplate by making Session a data class, but in order to do that we have to have all the properties initialised in the constructor, and that defensive `java.util.List.copyOf` is presenting that at the moment. Checking all the callers of the constructor we find that none of them mutate the presenters having passed them in, so we can move the property into the constructor and we have another data class.
 
-// begin-insert: src/main/java/chapter1/kotlin3/Session.3.kt
+// begin-insert: tags/r9:src/main/java/colloquiumatic/Session.kt
 [source,kotlin]
 ----
-data class Session(
+data class Session( /// change
+    val id: String,
     val title: String,
-    val presenters: List<Presenter>
+    val presenters: List<Presenter> /// change
 ) {
 
     fun withPresenters(newLineUp: List<Presenter>): Session {
-        return Session(title, newLineUp)
+        return Session(id, title, newLineUp)
     }
 
     fun withTitle(newTitle: String): Session {
-        return Session(newTitle, presenters)
+        return Session(id, newTitle, presenters)
     }
 }
 ----
@@ -185,7 +191,7 @@ data class Session(
 
 None of the Java users of Session have had to change so far - let's look at the tests for example.
 
-// begin-insert: src/test/java/chapter1/java/SessionTests.java
+// begin-insert: tags/r9:src/test/java/colloquiumatic/SessionTests.java
 [source,java]
 ----
 public class SessionTests {
@@ -194,12 +200,12 @@ public class SessionTests {
     private static Presenter bob = new Presenter("id2", "Bob");
     private static final List<Presenter> noPresenters = Collections.emptyList();
 
-    private Session aSession = new Session("The Title", List.of(bob, alice)); // <1>
+    private Session aSession = new Session("s1", "The Title", List.of(bob, alice)); // <1>
 
     @Test
     public void can_change_title() {
         assertEquals(
-            new Session("Another Title", List.of(bob, alice)),
+            new Session("s1", "Another Title", List.of(bob, alice)),
             aSession.withTitle("Another Title")
         );
     }
@@ -207,11 +213,12 @@ public class SessionTests {
     @Test
     public void can_change_presenters() {
         assertEquals(
-            new Session("The Title", noPresenters),
+            new Session("s1", "The Title", noPresenters),
             aSession.withPresenters(noPresenters)
         );
     }
 }
+
 ----
 // end-insert
 
@@ -219,19 +226,21 @@ public class SessionTests {
 
 Converting the tests to Kotlin with IntelliJ we get
 
-// begin-insert: src/test/java/chapter1/kotlin/SessionTests.kt
+// begin-insert: tags/r10:src/test/java/colloquiumatic/SessionTests.kt
 [source,kotlin]
 ----
 class SessionTests {
     private val aSession = Session(
+        "s1",
         "The Title",
         java.util.List.of(bob, alice)
     )
 
     @Test
     fun can_change_title() {
-        assertEquals( // <1>
+        Assertions.assertEquals(
             Session(
+                "s1",
                 "Another Title",
                 java.util.List.of(bob, alice)
             ),
@@ -241,8 +250,8 @@ class SessionTests {
 
     @Test
     fun can_change_presenters() {
-        assertEquals(
-            Session("The Title", noPresenters),
+        Assertions.assertEquals(
+            Session("s1", "The Title", noPresenters),
             aSession.withPresenters(noPresenters)
         )
     }
@@ -256,45 +265,46 @@ class SessionTests {
 ----
 // end-insert
 
-<1> Actually we had that irritating lack of static imports again - we've fixed that already.
-
-Look at the differences between the Java and Kotlin versions. They are very similar except that the static members have been moved onto a companion object. This provides a namespace for class-scoped code with advantages over Java that we will examine in later chapters. For now though it's just a bit of an irritation, so we'll make the properties plain old fields.
+Look at the differences between the Java and Kotlin versions. They are very similar except that the static members have been moved onto a companion object. This provides a namespace for class-scoped code with advantages over Java that we will examine in later chapters.
 
 The `java.util.List.of` also stands out, and in fact IntelliJ offers to convert it to the Kotlin equivalent - `kotlin.collections.listOf`. Another Alt-Enter Easter egg can be found on the function names - IntelliJ will offer to convert them to eg `can change title` using the backtick feature to allow spaces and other characters in identifiers.
 
 Once we're done the tests now look like this
 
-// begin-insert: src/test/java/chapter1/kotlin2/SessionTests.2.kt
+// begin-insert: tags/r11:src/test/java/colloquiumatic/SessionTests.kt
 [source,kotlin]
 ----
 class SessionTests {
-
-    private val alice = Presenter("id1", "Alice")
-    private val bob = Presenter("id2", "Bob")
-    private val noPresenters: List<Presenter> = emptyList()
-
     private val aSession = Session(
+        "s1",
         "The Title",
-        listOf(bob, alice)
+        listOf(bob, alice) /// change
     )
 
     @Test
-    fun `can change title`() {
-        assertEquals(
+    fun `can change title`() { /// change
+        Assertions.assertEquals(
             Session(
+                "s1",
                 "Another Title",
                 listOf(bob, alice)
             ),
-            aSession.withTitle("Another Title") 
+            aSession.withTitle("Another Title")
         )
     }
 
     @Test
-    fun `can change presenters`() {
-        assertEquals(
-            Session("The Title", noPresenters),
-            aSession.withPresenters(noPresenters) 
+    fun `can change presenters`() { /// change
+        Assertions.assertEquals(
+            Session("s1", "The Title", noPresenters),
+            aSession.withPresenters(noPresenters)
         )
+    }
+
+    companion object {
+        private val alice = Presenter("id1", "Alice")
+        private val bob = Presenter("id2", "Bob")
+        private val noPresenters: List<Presenter> = emptyList()
     }
 }
 ----
@@ -302,20 +312,21 @@ class SessionTests {
 
 We have one more data class trick up our sleeve. Returning to Session
 
-// begin-insert: src/main/java/chapter1/kotlin3/Session.3.kt
+// begin-insert: tags/r11:src/main/java/colloquiumatic/Session.kt
 [source,kotlin]
 ----
-data class Session(
+data class Session( /// change
+    val id: String,
     val title: String,
-    val presenters: List<Presenter>
+    val presenters: List<Presenter> /// change
 ) {
 
     fun withPresenters(newLineUp: List<Presenter>): Session {
-        return Session(title, newLineUp)
+        return Session(id, title, newLineUp)
     }
 
     fun withTitle(newTitle: String): Session {
-        return Session(newTitle, presenters)
+        return Session(id, newTitle, presenters)
     }
 }
 ----
@@ -323,37 +334,37 @@ data class Session(
 
 we can make use of Kotlin's named parameters (Alt-Enter inside the brackets)
 
-// begin-insert: src/main/java/chapter1/kotlin4/Session.4.kt#foo
+// begin-insert: tags/r12:src/main/java/colloquiumatic/Session.kt#foo
 [source,kotlin]
 ----
     fun withPresenters(newLineUp: List<Presenter>): Session {
-        return Session(title = title, presenters = newLineUp) /// change
+        return Session(id = id, title = title, presenters = newLineUp) /// change
     }
 
     fun withTitle(newTitle: String): Session {
-        return Session(title = newTitle, presenters = presenters) /// change
+        return Session(id = id, title = newTitle, presenters = presenters) /// change
     }
 ----
 // end-insert
 
 and then replace the constructor invocations with the special copy method
 
-// begin-insert: src/main/java/chapter1/kotlin5/Session.5.kt#foo
+// begin-insert: tags/r13:src/main/java/colloquiumatic/Session.kt#foo
 [source,kotlin]
 ----
     fun withPresenters(newLineUp: List<Presenter>): Session {
-        return copy(title = title, presenters = newLineUp) /// change
+        return copy(id = id, title = title, presenters = newLineUp) /// change
     }
 
     fun withTitle(newTitle: String): Session {
-        return copy(title = newTitle, presenters = presenters) /// change
+        return copy(id = id, title = newTitle, presenters = presenters) /// change
     }
 ----
 // end-insert
 
 Now remove the redundant arguments
 
-// begin-insert: src/main/java/chapter1/kotlin6/Session.6.kt#foo
+// begin-insert: tags/r14:src/main/java/colloquiumatic/Session.kt#foo
 [source,kotlin]
 ----
     fun withPresenters(newLineUp: List<Presenter>): Session {
@@ -368,7 +379,7 @@ Now remove the redundant arguments
 
 Where a Kotlin function body consists of a single expression you can Alt-Enter on the brace to convert it to a shorter form.
 
-// begin-insert: src/main/java/chapter1/kotlin7/Session.7.kt#foo
+// begin-insert: tags/r15:src/main/java/colloquiumatic/Session.kt#foo
 [source,kotlin]
 ----
     fun withPresenters(newLineUp: List<Presenter>) = copy(presenters = newLineUp) /// change
@@ -379,13 +390,14 @@ Where a Kotlin function body consists of a single expression you can Alt-Enter o
 
 All the time that there are Java uses of `withPresenters` and `withTitle` that is as far as we can go, but once the all callers have been converted to Kotlin, we can inline the methods
 
-// begin-insert: src/test/java/chapter1/kotlin2/SessionTests.2.kt#foo
+// begin-insert: tags/r16:src/test/java/colloquiumatic/SessionTests.kt#foo
 [source,kotlin]
 ----
     @Test
     fun `can change title`() {
-        assertEquals(
+        Assertions.assertEquals(
             Session(
+                "s1",
                 "Another Title",
                 listOf(bob, alice)
             ),
@@ -395,21 +407,22 @@ All the time that there are Java uses of `withPresenters` and `withTitle` that i
 
     @Test
     fun `can change presenters`() {
-        assertEquals(
-            Session("The Title", noPresenters),
+        Assertions.assertEquals(
+            Session("s1", "The Title", noPresenters),
             aSession.withPresenters(noPresenters) /// change
         )
     }
 ----
 // end-insert
 
-// begin-insert: src/test/java/chapter1/kotlin3/SessionTests.3.kt#foo
+// begin-insert: tags/r17:src/test/java/colloquiumatic/SessionTests.kt#foo
 [source,kotlin]
 ----
     @Test
     fun `can change title`() {
-        assertEquals(
+        Assertions.assertEquals(
             Session(
+                "s1",
                 "Another Title",
                 listOf(bob, alice)
             ),
@@ -419,8 +432,8 @@ All the time that there are Java uses of `withPresenters` and `withTitle` that i
 
     @Test
     fun `can change presenters`() {
-        assertEquals(
-            Session("The Title", noPresenters),
+        Assertions.assertEquals(
+            Session("s1", "The Title", noPresenters),
             aSession.copy(presenters = noPresenters) /// change
         )
     }
@@ -429,10 +442,11 @@ All the time that there are Java uses of `withPresenters` and `withTitle` that i
 
 at which point the test is now just checking the compiler, so we can delete it, leaving just the Session class.
 
-// begin-insert: src/main/java/chapter1/kotlin8/Session.8.kt
+// begin-insert: tags/r17:src/main/java/colloquiumatic/Session.kt
 [source,kotlin]
 ----
 data class Session(
+    val id: String,
     val title: String,
     val presenters: List<Presenter>
 )
