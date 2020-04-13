@@ -16,13 +16,54 @@ To add Kotlin to our Gradle build we need to add the Kotlin plugin.  There is a 
 
 We also need to add the Kotlin standard library to our dependencies, and specify the minumum JVM version that the output bytecode will support.  Our project targets JDK 11 (the latest LTS at the time of writing). At the time of writing, the Kotlin compiler can generate bytecode compatible with JDK 1.6 or JDK 1.8.  JDK 1.8 bytecode is more efficient and runs fine on JDK 11, so we will pick that.
 
+Here is our Gradle build file before changes.
 
-// begin-insert: build.gradle#kotlin_plugin
+// begin-insert: tags/r0:build.gradle
 [source,groovy]
 ----
 plugins {
-    ... our existing plugins ...
-    id 'org.jetbrains.kotlin.jvm' version '1.3.70'
+    id("java")
+}
+
+group "com.colloquiumatic"
+version "1.0-SNAPSHOT"
+
+repositories {
+    mavenCentral()
+    jcenter()
+    mavenLocal()
+}
+
+dependencies {
+    testImplementation "org.junit.jupiter:junit-jupiter-api:5.3.2"
+    testRuntime "org.junit.jupiter:junit-jupiter-engine:5.3.2"
+    testRuntime "org.junit.platform:junit-platform-launcher:1.3.2"
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
+test {
+    useJUnitPlatform {
+        includeEngines "junit-jupiter"
+    }
+    testLogging {
+        events "skipped", "failed"
+    }
+}
+
+----
+// end-insert
+
+and after
+
+// begin-insert: tags/r1:build.gradle#kotlin_plugin
+[source,groovy]
+----
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.3.70' /// change
 }
 
 ...
@@ -41,7 +82,7 @@ compileTestKotlin {
     kotlinOptions.jvmTarget = "1.8"
 }
 ----
-// end-insert
+// end-insert:
 
 Given those changes, we can rerun our build, and see that ...
 
@@ -55,12 +96,13 @@ Cool!  We've not broken anything.  But that doesn't prove we can add Kotlin code
 
 .HelloWorld.kt
 
-// begin-insert: src/main/java/HelloWorld.kt
+// begin-insert: tags/r2:src/main/java/HelloWorld.kt
 [source,kotlin]
 ----
 fun main() {
     println("hello, world")
 }
+
 ----
 // end-insert
 
