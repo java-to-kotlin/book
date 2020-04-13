@@ -1,0 +1,23 @@
+#!/bin/sh
+set -eo pipefail
+
+if [ "$1" == "--for-real" ]
+then
+ echo "for real" 1>&2
+ cmd="git"
+else
+ echo "dry run" 1>&2
+ cmd="echo git"
+fi
+
+cd ../refactoring-to-kotlin-code
+
+git log --format=oneline | awk '
+    /[0-9a-f]+ r[0-9]+ :/ {
+      linerev = substr($2,1)
+      if (rev == "" || linerev < rev) {
+        rev = linerev
+        print $2, $1
+      }
+    }
+' | xargs -n 2 $cmd tag -f
