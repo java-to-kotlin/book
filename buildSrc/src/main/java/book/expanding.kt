@@ -8,22 +8,38 @@ import kotlin.text.RegexOption.MULTILINE
 
 private const val abortOnFailure = false
 
-fun processFiles(dir: File, srcRoot: File) {
-    dir.walkTopDown().filter { it.name.endsWith(".ad") }.forEach { file ->
-        processFile(file, file, srcRoot)
+private data class SourceRoots(
+    val workedExample: File,
+    val digressionCode: File
+)
+
+private fun SourceRoots.sourceRootFor(version: String?): File {
+    return when (version) {
+        null -> digressionCode
+        else -> workedExample
     }
 }
 
-private fun processFile(src: File, dest: File, srcRoot: File) {
+fun processFiles(dir: File, workedExampleSrcRoot: File, digressionSrcRoot: File) {
+    processFiles(dir, SourceRoots(workedExampleSrcRoot, digressionSrcRoot))
+}
+
+private fun processFiles(dir: File, sourceRoots: SourceRoots) {
+    dir.walkTopDown().filter { it.name.endsWith(".ad") }.forEach { file ->
+        processFile(file, file, sourceRoots)
+    }
+}
+
+private fun processFile(src: File, dest: File, srcRoot: SourceRoots) {
     val text = src.readText()
     val newText = expandCodeBlocks(text, lookupWithRoot(srcRoot))
     if (newText != text)
         dest.writeText(newText)
 }
 
-private fun lookupWithRoot(dir: File) =
+private fun lookupWithRoot(sourceRoots: SourceRoots) =
     fun(key: String): String {
-        val (versionedFile, tag) = key.parse(dir)
+        val (versionedFile, tag) = key.parse(sourceRoots)
         if (!versionedFile.exists()) {
             val message = "File not found for $versionedFile (${versionedFile._lines.recover { it.message }})"
             if (abortOnFailure) {
@@ -35,10 +51,15 @@ private fun lookupWithRoot(dir: File) =
         return FileSnippet(versionedFile, tag).rendered()
     }
 
-private fun String.parse(rootDir: File): Pair<VersionedFile, String?> {
-    val (file, fragment) = this.trim().split("#").let { it.first() to (if (it.size == 2) it[1] else null) }
-    val (path, version) = file.split(":").let { it.last() to (if (it.size == 2) it.first() else null) }
-    return VersionedFile(file = rootDir.resolve(path).canonicalFile, version = version) to fragment
+private fun String.parse(sourceRoots: SourceRoots): Pair<VersionedFile, String?> {
+    val (file, fragment) = this.trim().split("#").let { parts -> parts[0] to parts.getOrNull(1) }
+    val (path, version) = file.split(":").let { parts -> parts.last() to parts.first().takeIf { parts.size == 2 } }
+
+    val versionedFile = VersionedFile(
+        file = sourceRoots.sourceRootFor(version).resolve(path).canonicalFile,
+        version = version
+    )
+    return versionedFile to fragment
 }
 
 private fun expandCodeBlocks(text: String, lookup: (String) -> String): String =
