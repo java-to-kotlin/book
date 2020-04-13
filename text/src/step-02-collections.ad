@@ -4,6 +4,7 @@ Casting around the code for some more easy wins we find another value class -  S
 
 // begin-insert: tags/r6:src/main/java/colloquiumatic/Session.java
 [source,java]
+[%autofit]
 ----
 public class Session {
 
@@ -78,6 +79,7 @@ If we use IntelliJ to convert this to Kotlin, we get the following
 
 // begin-insert: tags/r7:src/main/java/colloquiumatic/Session.kt
 [source,kotlin]
+[%autofit]
 ----
 class Session(val id: String, val title: String, presenters: List<Presenter>?) { // <1>
     val presenters: List<Presenter> // <2>
@@ -127,6 +129,7 @@ Alt-Enter at <3> will join the initialisation and we can just delete the questio
 
 // begin-insert: tags/r8:src/main/java/colloquiumatic/Session.kt
 [source,kotlin]
+[%autofit]
 ----
 class Session(
     val id: String,
@@ -171,6 +174,7 @@ We would like to be able to remove all that value object boilerplate by making S
 
 // begin-insert: tags/r9:src/main/java/colloquiumatic/Session.kt
 [source,kotlin]
+[%autofit]
 ----
 data class Session( /// change
     val id: String,
@@ -193,6 +197,7 @@ None of the Java users of Session have had to change so far - let's look at the 
 
 // begin-insert: tags/r9:src/test/java/colloquiumatic/SessionTests.java
 [source,java]
+[%autofit]
 ----
 public class SessionTests {
 
@@ -228,6 +233,7 @@ Converting the tests to Kotlin with IntelliJ we get
 
 // begin-insert: tags/r10:src/test/java/colloquiumatic/SessionTests.kt
 [source,kotlin]
+[%autofit]
 ----
 class SessionTests {
     private val aSession = Session(
@@ -273,6 +279,7 @@ Once we're done the tests now look like this
 
 // begin-insert: tags/r11:src/test/java/colloquiumatic/SessionTests.kt
 [source,kotlin]
+[%autofit]
 ----
 class SessionTests {
     private val aSession = Session(
@@ -314,6 +321,7 @@ We have one more data class trick up our sleeve. Returning to Session
 
 // begin-insert: tags/r11:src/main/java/colloquiumatic/Session.kt
 [source,kotlin]
+[%autofit]
 ----
 data class Session( /// change
     val id: String,
@@ -336,6 +344,7 @@ we can make use of Kotlin's named parameters (Alt-Enter inside the brackets)
 
 // begin-insert: tags/r12:src/main/java/colloquiumatic/Session.kt#foo
 [source,kotlin]
+[%autofit]
 ----
     fun withPresenters(newLineUp: List<Presenter>): Session {
         return Session(id = id, title = title, presenters = newLineUp) /// change
@@ -351,6 +360,7 @@ and then replace the constructor invocations with the special copy method
 
 // begin-insert: tags/r13:src/main/java/colloquiumatic/Session.kt#foo
 [source,kotlin]
+[%autofit]
 ----
     fun withPresenters(newLineUp: List<Presenter>): Session {
         return copy(id = id, title = title, presenters = newLineUp) /// change
@@ -366,6 +376,7 @@ Now remove the redundant arguments
 
 // begin-insert: tags/r14:src/main/java/colloquiumatic/Session.kt#foo
 [source,kotlin]
+[%autofit]
 ----
     fun withPresenters(newLineUp: List<Presenter>): Session {
         return copy(presenters = newLineUp) /// change
@@ -381,6 +392,7 @@ Where a Kotlin function body consists of a single expression you can Alt-Enter o
 
 // begin-insert: tags/r15:src/main/java/colloquiumatic/Session.kt#foo
 [source,kotlin]
+[%autofit]
 ----
     fun withPresenters(newLineUp: List<Presenter>) = copy(presenters = newLineUp) /// change
 
@@ -392,6 +404,7 @@ All the time that there are Java uses of `withPresenters` and `withTitle` that i
 
 // begin-insert: tags/r16:src/test/java/colloquiumatic/SessionTests.kt#foo
 [source,kotlin]
+[%autofit]
 ----
     @Test
     fun `can change title`() {
@@ -417,6 +430,7 @@ All the time that there are Java uses of `withPresenters` and `withTitle` that i
 
 // begin-insert: tags/r17:src/test/java/colloquiumatic/SessionTests.kt#foo
 [source,kotlin]
+[%autofit]
 ----
     @Test
     fun `can change title`() {
@@ -444,6 +458,7 @@ at which point the test is now just checking the compiler, so we can delete it, 
 
 // begin-insert: tags/r17:src/main/java/colloquiumatic/Session.kt
 [source,kotlin]
+[%autofit]
 ----
 data class Session(
     val id: String,

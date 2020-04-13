@@ -78,6 +78,7 @@ private val expandedCodeBlockFinder =
 data class FileSnippet(val versionedFile: VersionedFile, val fragment: String?) {
     fun rendered() = (listOf(
         "[source,$sourceType]",
+        "[%autofit]",
         "----"
     ) + filter(versionedFile.lines) +
         "----").joinToString("\n")

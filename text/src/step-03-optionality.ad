@@ -6,6 +6,7 @@ Here is one of the many utility functions we've found in the code
 
 // begin-insert: tags/r17:src/main/java/colloquiumatic/Sessions.java
 [source,java]
+[%autofit]
 ----
 public class Sessions {
 
@@ -24,6 +25,7 @@ and its tests.
 
 // begin-insert: tags/r17:src/test/java/colloquiumatic/SessionsTests.java
 [source,java]
+[%autofit]
 ----
 public class SessionsTests {
 
@@ -64,6 +66,7 @@ Let's see what we can do to make things better in Kotlin. Convert to Kotlin on S
 
 // begin-insert: tags/r18:src/main/java/colloquiumatic/Sessions.kt
 [source,kotlin]
+[%autofit]
 ----
 object Sessions {
     @JvmStatic
@@ -96,6 +99,7 @@ IntelliJ has ever-improving support in this area, and if you Alt-Enter on the `f
 
 // begin-insert: tags/r19:src/main/java/colloquiumatic/Sessions.kt
 [source,kotlin]
+[%autofit]
 ----
 object Sessions {
     @JvmStatic
@@ -120,6 +124,7 @@ Now that we know that we can call `sessions.firstOrNull { it.title == title }` w
 
 // begin-insert: tags/r20:src/main/java/colloquiumatic/Sessions.kt
 [source,kotlin]
+[%autofit]
 ----
 object Sessions {
     @JvmStatic
@@ -143,6 +148,7 @@ object Sessions {
 
 // begin-insert: tags/r21:src/main/java/colloquiumatic/Sessions.kt#foo
 [source,kotlin]
+[%autofit]
 ----
         val thing: Session? = sessions.firstOrNull { it.title == title } /// change
 ----
@@ -154,6 +160,7 @@ Well, spelling it out
 
 // begin-insert: tags/r22:src/main/java/colloquiumatic/Sessions.kt#foo
 [source,kotlin]
+[%autofit]
 ----
         val thing: Session? = sessions.firstOrNull { it.title == title }
         if (thing != null)              /// change
@@ -167,6 +174,7 @@ If you're playing along at home you may see that IntelliJ is a little unhappy wi
 
 // begin-insert: tags/r23:src/main/java/colloquiumatic/Sessions.kt#foo
 [source,kotlin]
+[%autofit]
 ----
         val thing: Session? = sessions.firstOrNull { it.title == title }
         return if (thing != null) /// change
@@ -182,6 +190,7 @@ After this promising intervention, unfortuately IntelliJ seems to have lost its 
 
 // begin-insert: tags/r24:src/main/java/colloquiumatic/Sessions.kt#foo
 [source,kotlin]
+[%autofit]
 ----
         val thing: Session? = sessions.firstOrNull { it.title == title }
         return Optional.ofNullable(thing) /// change
@@ -192,6 +201,7 @@ A quick inline and we can make our function a single expression.
 
 // begin-insert: tags/r25:src/main/java/colloquiumatic/Sessions.kt
 [source,kotlin]
+[%autofit]
 ----
 object Sessions {
     @JvmStatic
@@ -208,6 +218,7 @@ Most developers would stop there, but you didn't buy this book to be in that gro
 
 // begin-insert: tags/r26:src/main/java/colloquiumatic/Sessions.kt#bar
 [source,kotlin]
+[%autofit]
 ----
         val thing: Session? = sessions.firstOrNull { it.title == title }
         return Optional.ofNullable(thing) 
@@ -218,6 +229,7 @@ then select the `Optional.ofNullable(thing)` and extract method
 
 // begin-insert: tags/r27:src/main/java/colloquiumatic/Sessions.kt#foo
 [source,kotlin]
+[%autofit]
 ----
     @JvmStatic
     fun findSessionWithTitle(
@@ -236,6 +248,7 @@ Now <Alt-Enter> on the thing parameter and select 'Convert parameter to receiver
 
 // begin-insert: tags/r28:src/main/java/colloquiumatic/Sessions.kt#foo
 [source,kotlin]
+[%autofit]
 ----
     @JvmStatic
     fun findSessionWithTitle(
@@ -254,6 +267,7 @@ We have just created our first extension function. In the JVM this is just a sta
 
 // begin-insert: tags/r29:src/main/java/colloquiumatic/Sessions.kt
 [source,kotlin]
+[%autofit]
 ----
 object Sessions {
     @JvmStatic
@@ -271,6 +285,7 @@ Can we go further? Well we can make `findSessionsWithTitle` an extension functio
 
 // begin-insert: tags/r30:src/main/java/colloquiumatic/Sessions.kt
 [source,kotlin]
+[%autofit]
 ----
 object Sessions {
     @JvmStatic
@@ -319,6 +334,7 @@ which makes the Kotlin read better.
 
 // begin-insert: tags/r31:src/main/java/colloquiumatic/Sessions.kt
 [source,kotlin]
+[%autofit]
 ----
 object Sessions {
     @JvmStatic
@@ -334,6 +350,7 @@ Apart from that last change, we have not so far had to change any of the code th
 
 // begin-insert: tags/r31:src/test/java/colloquiumatic/SessionsTests.java
 [source,java]
+[%autofit]
 ----
 public class SessionsTests {
 
@@ -374,6 +391,7 @@ Converting this to Kotlin actually gives code that fails to compile
 
 // begin-insert: tags/r32:src/test/java/colloquiumatic/SessionsTests.kt
 [source,kotlin]
+[%autofit]
 ----
 class SessionsTests {
     private val sessions = List.of(
@@ -414,6 +432,7 @@ We can fix that by giving the compiler a hint.
 
 // begin-insert: tags/r33:src/test/java/colloquiumatic/SessionsTests.kt#get_compiling
 [source,kotlin]
+[%autofit]
 ----
     @Test
     fun find_in_no_sessions() {
@@ -431,6 +450,7 @@ First `find_session_with_title`.
 
 // begin-insert: tags/r33:src/test/java/colloquiumatic/SessionsTests.kt#with_title_1
 [source,kotlin]
+[%autofit]
 ----
     @Test
     fun find_session_with_title() {
@@ -448,6 +468,7 @@ That code is currently
 
 // begin-insert: tags/r33:src/main/java/colloquiumatic/Sessions.kt#bar
 [source,kotlin]
+[%autofit]
 ----
     @JvmStatic
     fun List<Session>.findWithTitle(title: String) =  
@@ -459,6 +480,7 @@ We can have both by extracting a method from `firstOrNull { it.title == title }`
 
 // begin-insert: tags/r34:src/main/java/colloquiumatic/Sessions.kt#foo
 [source,kotlin]
+[%autofit]
 ----
     @JvmStatic
     fun List<Session>.findWithTitle(title: String) =
@@ -475,6 +497,7 @@ Now we can inline individual invocations of `findWithTitle`. Ie from
 
 // begin-insert: tags/r34:src/test/java/colloquiumatic/SessionsTests.kt#with_title_2
 [source,kotlin]
+[%autofit]
 ----
     @Test
     fun find_session_with_title() {
@@ -490,6 +513,7 @@ to
 
 // begin-insert: tags/r35:src/test/java/colloquiumatic/SessionsTests.kt#with_title
 [source,kotlin]
+[%autofit]
 ----
     @Test
     fun find_session_with_title() {
@@ -505,6 +529,7 @@ and unwrap the expected and actual from the Optional
 
 // begin-insert: tags/r36:src/test/java/colloquiumatic/SessionsTests.kt#with_title
 [source,kotlin]
+[%autofit]
 ----
     @Test
     fun find_session_with_title() {
@@ -520,6 +545,7 @@ Meanwhile other uses, and in fact Java invocations, can still use the old method
 
 // begin-insert: tags/r36:src/test/java/colloquiumatic/SessionsTests.kt#with_no_title
 [source,kotlin]
+[%autofit]
 ----
     @Test
     fun find_no_session_with_title() {
@@ -533,6 +559,7 @@ Meanwhile other uses, and in fact Java invocations, can still use the old method
 
 // begin-insert: tags/r0:src/test/java/colloquiumatic/SessionsTests.java#no_sessions
 [source,java]
+[%autofit]
 ----
     @Test
     public void find_in_no_sessions() {
@@ -548,6 +575,7 @@ Once all the Java clients of Sessions have been converted to Kotlin, and all the
 
 // begin-insert: tags/r37:src/test/java/colloquiumatic/SessionsTests.kt
 [source,kotlin]
+[%autofit]
 ----
 class SessionsTests {
     private val sessions = listOf(
@@ -580,6 +608,7 @@ we can remove the Java accommodations from Sessions, leaving just
 
 // begin-insert: tags/r37:src/main/java/colloquiumatic/Sessions.kt
 [source,kotlin]
+[%autofit]
 ----
 object Sessions {
     fun List<Session>.firstWithTitle(title: String) =
@@ -593,6 +622,7 @@ Now at this point we might discuss whether or not `firstWithTitle` is actually p
 
 // begin-insert: tags/r38:src/test/java/colloquiumatic/SessionsTests.kt#foo
 [source,kotlin]
+[%autofit]
 ----
     @Test
     fun `find session with title`() {
