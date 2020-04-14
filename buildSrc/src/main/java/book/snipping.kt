@@ -46,9 +46,9 @@ private val markedLineSyntax =
 
 private val annotationPattern = """///\s*${markerSyntax}$""".toRegex()
 
-fun parseLine(line: String): Line? {
+fun parseLine(line: String): Line {
     return when {
-        markedLinePattern.containsMatchIn(line) -> parseMarkedLine(
+        line.isMarker() -> parseMarkedLine(
             markedLineSyntax.matchEntire(line)
                 ?: error("cannot parse line marker: \"$line\"")
         )
@@ -56,27 +56,29 @@ fun parseLine(line: String): Line? {
     }
 }
 
-fun parseMarkedLine(m: MatchResult): Line.Marker? {
+private fun String.isMarker() = markedLinePattern.containsMatchIn(this)
+
+fun parseMarkedLine(m: MatchResult): Line.Marker {
     val parts = m.groups
-    val directive = parseDirective(parts)
-    val tags = parseTags(m)
-    return when (directive) {
+    val tags = parseTags(parts)
+
+    return when (val directive = parseDirective(parts)) {
         "begin" -> Begin(tags)
         "end" -> End(tags)
         "mute" -> Ellipsis(tags, true, parts["indent"]?.value ?: "", parts["replacement"]?.value ?: "...")
         "note" -> Ellipsis(tags, false, parts["indent"]?.value ?: "", parts["replacement"]?.value ?: "...")
         "resume" -> Resume(tags)
-        else -> null
+        else -> error("unsupported directive: $directive")
     }
 }
 
 private fun parseDirective(parts: MatchGroupCollection) =
-    parts["directive"]?.value ?: error("no sippet directive")
+    parts["directive"]?.value ?: error("no snippet directive")
 
 
 
-private fun parseTags(parts: MatchResult): TagCriteria {
-    return when (val tagsStr = parts.groups["tags"]?.value) {
+private fun parseTags(parts: MatchGroupCollection): TagCriteria {
+    return when (val tagsStr = parts["tags"]?.value) {
         null -> { _ -> true }
         else -> {
             val tagSpecs = tagsStr
@@ -101,9 +103,6 @@ fun Iterable<String>.snipped(tagName: String?): List<String> {
     var output = tagName == null
     this.forEach { line ->
         when (val parsed = parseLine(line)) {
-            null -> {
-                System.err.println("unable to parse marker from line: $line")
-            }
             is Text ->
                 if (output) {
                     result.add(parsed.text.withHighlight(tagName))
@@ -136,13 +135,17 @@ private fun String.withHighlight(tagName: String?) =
     annotationPattern.replace(this) { matchResult ->
         val directive = matchResult.groups["directive"]?.value
         val replacement = matchResult.groups["replacement"]?.value ?: ""
-        val appliesToTag = parseTags(matchResult)
+        val appliesToTag = parseTags(matchResult.groups)
 
-        when {
-            directive == "note" -> if (appliesToTag(tagName)) replacement else ""
-            appliesToTag(tagName) -> "/// $directive"
-            else -> ""
-        }
+        if (appliesToTag(tagName)) {
+            when (directive) {
+                "note" -> replacement
+                "change" -> "/// |"
+                "insert" -> "/// +"
+                "delete" -> "/// -"
+                else -> error("unknown highlight directive: $directive")
+            }
+        } else ""
     }
 
 
