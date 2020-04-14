@@ -46,14 +46,29 @@ But it is useful to have subtyping relationships between instantiations of a gen
 
 "Out" variance identifies data that is passed out from the generic.
 
-Out variance creates subtype relationships between instantations of the generic type that are the same as the subtype relationships between the actual parameter types.
+[source,kotlin]
+----
+interface Supplier<out T> {
+    fun receive(): T
+}
+----
+
+Out variance creates subtype relationships between instantiations of the generic type that are the same as the subtype relationships between the actual parameter types.
 
 For example: if I need a supplier of fruit,  then I can use a supplier that only supplies oranges.  But if I can only receive oranges, then a supplier that can supply all kinds of fruit will cause problems when they return a fruit that is not an orange.
 
 
 === In variance
 
-"In" variance identifies data that is passed in
+"In" variance identifies data that is passed into the generic.
+
+[source,kotlin]
+----
+interface Juicer<in T> {
+    fun juice(solid: T): Liquid
+}
+----
+
 
 In variance creates subtype relationships between instantations of the generic type that are the _opposite_ of subtype relationships between the actual parameter types.  It creates new supertypes!
 
@@ -73,7 +88,7 @@ However, variance is _not_ inferred for other generic types. As a result, it's e
 [source,kotlin]
 ----
 interface Source<T> {
-   fun takeOne(): T
+   fun take(): T
 }
 
 class AutomaticJuicer(val source: Source<Fruit>) ...
