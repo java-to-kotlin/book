@@ -1,7 +1,7 @@
 #!/bin/sh
-set -eo pipefail
+set -e
 
-if [ "$1" == "--for-real" ]
+if [ "$1" = "--for-real" ]
 then
  echo "for real" 1>&2
  cmd="git"
@@ -25,4 +25,4 @@ git log --format=oneline | awk '
          print $2, $1
       }
     }
-' | xargs -n 2 $cmd tag -f
+' | xargs -n 2 $cmd tag -a -m "tag generated automatically by retag-worked-example script" -f
