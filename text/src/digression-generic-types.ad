@@ -1,0 +1,124 @@
+[role="digression"]
+= The Ins and Outs of Generics
+
+Let's look more closely at generics and subtyping. But first, let's clarify some concepts and terminology...
+
+A generic is not a type. It is best thought of as a "function on types".  Applying a function to a value (or values) produces a value. Applying a generic to an type (or types) produces a type.  We call the type that it produces an _instantiation_ of the generic.
+
+For example, here is a definition of a generic type, `Box`.  The basic syntax for generic types is the same as Java: type parameters are specified between pointy brackets ("<" and ">").
+
+[source,kotlin]
+----
+interface Box<ITEM> {
+    fun put(item: ITEM)
+    fun take(): ITEM
+}
+----
+
+To use a Box, we have to apply `Box<ITEM>` to the type of ITEM that we want to store in a box.  Or, in jargon, we want to _instantiate_ the generic for the type of item we want to store.  For example, we can have a `Box<Orange>` or `Box<Chocolate>`:
+
+[source,kotlin]
+----
+class Orange { ... }
+class Chocolate { ... }
+
+val boxOfOranges : Box<Orange> = ...
+val boxOfChocolates : Box<Chocolate> = ...
+----
+
+`Box<Orange>` and `Box<Fish>` are different types, which means that Kotlin will not let us pass a box of chocolate to code that expects a box of oranges and vice versa.
+
+****
+Generics expose the difference between types and classes.  A generic is not a type, but does have a class.  Applying the generic to type parameters creates a type, but the class of the type is the same as the class of the generic.  Kotlin doesn't create new class objects to represent instantiated generics.  However, you don't have to worry about this distinction unless you use reflection.
+****
+
+
+== Generics, subtypes and variance declarations
+
+By default, generic types do not introduce subtyping relationships between instantiations of the generic.
+
+For example, if `Orange` and `Apple` are subtypes of `Fruit`, the types `Box<Orange>` and `Box<Apple>` are _not_ subtypes of `Box<Fruit>`.
+
+Let's walk through what would happen if they _were_... TODO
+
+But it is useful to have subtyping relationships between instantiations of a generic type, and Kotlin helps us create these relationships more conveniently than in Java, by specifying _variance declarations_ on generic parameters.
+
+
+"Out" variance identifies data that is passed out from the generic.
+
+[source,kotlin]
+----
+interface Source<out T> {
+    fun take(): T
+}
+----
+
+plantuml::diagrams/generics-out-variance.plantuml[]
+
+
+Out variance creates subtype relationships between instantiations of the generic type that are the same as the subtype relationships between the actual parameter types.
+
+For example: if I need a source of fruit, then I can use a source that only supplies oranges.  But if need a source of oranges, then a source that can supply all kinds of fruit will cause problems when it returns a fruit that is not an orange.
+
+
+"In" variance identifies data that is passed into the generic.
+
+[source,kotlin]
+----
+interface Juicer<in T> {
+    fun juice(solid: T): Liquid
+}
+----
+
+In variance creates subtype relationships between instantations of the generic type that are the _opposite_ of subtype relationships between the actual parameter types.  It creates new supertypes!
+
+plantuml::diagrams/generics-in-variance.plantuml[]
+
+A bit mind-bending, but makes sense when you think about it.
+
+If I have need to put oranges into a juicer, I can use an orange squeezer, or a generic juicer.  Both will be able to juice oranges.
+
+The other way would make no sense: if I need to juice different kinds of fruit, I cannot use a juicer that only squeezes oranges, and would get jammed if fed apples.
+
+
+== Variance and function types
+
+The Kotlin compiler infers variance for function types: parameter types automatically get in variance, and the result type out variance.
+
+However, it does _not_ infer variance for other generic types. As a result, it's easy to make our generic types too restrictive by leaving out variance modifiers.  For example, if we defined our `Source` type without `out` variance on the type parameter, we would get type errors when we used a Source in what we would consider to be perfectly reasonable ways.
+
+[source,kotlin]
+----
+interface Source<T> {
+   fun take(): T
+}
+
+class AutomaticJuicer(val source: Source<Fruit>) ...
+
+val apples: Source<Apple> = ...
+val juicer = AutomaticJuicer(apples) // type error
+----
+
+That's not a problem within a single codebase: when the type checker complains, you can add the variance modifiers to the generic.  Be careful if you publish a library:  your users will not have that option.
+
+When writing a generic type, keep an eye on IntelliJ's code analysis highlighting: it identifies where you should add variance declarations.
+
+
+== Define separate types for read, write, and read/write
+
+Use interfaces to define distinct types that can have in or out variance.
+
+[source,kotlin]
+----
+interface Store<in T> {
+   fun put(item: T)
+}
+
+interface Source<out T> {
+   fun take(): T
+}
+
+interface Box<T>: Store<T>, Source<T>
+----
+
+Lots of examples in the standard library. E.g. List<T> / MutableList<T>

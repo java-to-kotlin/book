@@ -16,7 +16,6 @@ interface Juicer<in SOLID> {
 }
 
 interface DomesticJuicer : Juicer<Fruit>
-
 interface CateringOrangeSqueezer: Juicer<Orange>
 
 fun `this works`() {
