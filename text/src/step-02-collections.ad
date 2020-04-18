@@ -2,7 +2,7 @@
 
 Casting around the code for some more easy wins we find another value class -  Session.
 
-// begin-insert: tags/r6:src/main/java/colloquiumatic/Session.java
+// begin-insert: tags/r2.0:src/main/java/colloquiumatic/Session.java
 [source,java]
 [%autofit]
 ----
@@ -77,7 +77,7 @@ Like Presenter, Session is immutable and has tedious code to manage value identi
 
 If we use IntelliJ to convert this to Kotlin, we get the following
 
-// begin-insert: tags/r7:src/main/java/colloquiumatic/Session.kt
+// begin-insert: tags/r2.1:src/main/java/colloquiumatic/Session.kt
 [source,kotlin]
 [%autofit]
 ----
@@ -127,7 +127,7 @@ The conversion has left us with some dubious Kotlin
 
 Alt-Enter at <3> will join the initialisation and we can just delete the question marks to show that `presenters` is not nullable.
 
-// begin-insert: tags/r8:src/main/java/colloquiumatic/Session.kt
+// begin-insert: tags/r2.2:src/main/java/colloquiumatic/Session.kt
 [source,kotlin]
 [%autofit]
 ----
@@ -172,7 +172,7 @@ class Session(
 
 We would like to be able to remove all that value object boilerplate by making Session a data class, but in order to do that we have to have all the properties initialised in the constructor, and that defensive `java.util.List.copyOf` is presenting that at the moment. Checking all the callers of the constructor we find that none of them mutate the presenters having passed them in, so we can move the property into the constructor and we have another data class.
 
-// begin-insert: tags/r9:src/main/java/colloquiumatic/Session.kt
+// begin-insert: tags/r2.3:src/main/java/colloquiumatic/Session.kt
 [source,kotlin]
 [%autofit]
 ----
@@ -195,7 +195,7 @@ data class Session( /// |
 
 None of the Java users of Session have had to change so far - let's look at the tests for example.
 
-// begin-insert: tags/r9:src/test/java/colloquiumatic/SessionTests.java
+// begin-insert: tags/r2.3:src/test/java/colloquiumatic/SessionTests.java
 [source,java]
 [%autofit]
 ----
@@ -231,7 +231,7 @@ public class SessionTests {
 
 Converting the tests to Kotlin with IntelliJ we get
 
-// begin-insert: tags/r10:src/test/java/colloquiumatic/SessionTests.kt
+// begin-insert: tags/r2.4:src/test/java/colloquiumatic/SessionTests.kt
 [source,kotlin]
 [%autofit]
 ----
@@ -277,7 +277,7 @@ The `java.util.List.of` also stands out, and in fact IntelliJ offers to convert 
 
 Once we're done the tests now look like this
 
-// begin-insert: tags/r11:src/test/java/colloquiumatic/SessionTests.kt
+// begin-insert: tags/r2.5:src/test/java/colloquiumatic/SessionTests.kt
 [source,kotlin]
 [%autofit]
 ----
@@ -319,7 +319,7 @@ class SessionTests {
 
 We have one more data class trick up our sleeve. Returning to Session
 
-// begin-insert: tags/r11:src/main/java/colloquiumatic/Session.kt
+// begin-insert: tags/r2.5:src/main/java/colloquiumatic/Session.kt
 [source,kotlin]
 [%autofit]
 ----
@@ -342,7 +342,7 @@ data class Session( /// |
 
 we can make use of Kotlin's named parameters (Alt-Enter inside the brackets)
 
-// begin-insert: tags/r12:src/main/java/colloquiumatic/Session.kt#foo
+// begin-insert: tags/r2.6:src/main/java/colloquiumatic/Session.kt#foo
 [source,kotlin]
 [%autofit]
 ----
@@ -358,7 +358,7 @@ we can make use of Kotlin's named parameters (Alt-Enter inside the brackets)
 
 and then replace the constructor invocations with the special copy method
 
-// begin-insert: tags/r13:src/main/java/colloquiumatic/Session.kt#foo
+// begin-insert: tags/r2.7:src/main/java/colloquiumatic/Session.kt#foo
 [source,kotlin]
 [%autofit]
 ----
@@ -374,7 +374,7 @@ and then replace the constructor invocations with the special copy method
 
 Now remove the redundant arguments
 
-// begin-insert: tags/r14:src/main/java/colloquiumatic/Session.kt#foo
+// begin-insert: tags/r2.8:src/main/java/colloquiumatic/Session.kt#foo
 [source,kotlin]
 [%autofit]
 ----
@@ -390,7 +390,7 @@ Now remove the redundant arguments
 
 Where a Kotlin function body consists of a single expression you can Alt-Enter on the brace to convert it to a shorter form.
 
-// begin-insert: tags/r15:src/main/java/colloquiumatic/Session.kt#foo
+// begin-insert: tags/r2.9:src/main/java/colloquiumatic/Session.kt#foo
 [source,kotlin]
 [%autofit]
 ----
@@ -402,7 +402,7 @@ Where a Kotlin function body consists of a single expression you can Alt-Enter o
 
 All the time that there are Java uses of `withPresenters` and `withTitle` that is as far as we can go, but once the all callers have been converted to Kotlin, we can inline the methods
 
-// begin-insert: tags/r16:src/test/java/colloquiumatic/SessionTests.kt#foo
+// begin-insert: tags/r2.10:src/test/java/colloquiumatic/SessionTests.kt#foo
 [source,kotlin]
 [%autofit]
 ----
@@ -428,7 +428,7 @@ All the time that there are Java uses of `withPresenters` and `withTitle` that i
 ----
 // end-insert
 
-// begin-insert: tags/r17:src/test/java/colloquiumatic/SessionTests.kt#foo
+// begin-insert: tags/r2.11:src/test/java/colloquiumatic/SessionTests.kt#foo
 [source,kotlin]
 [%autofit]
 ----
@@ -456,7 +456,7 @@ All the time that there are Java uses of `withPresenters` and `withTitle` that i
 
 at which point the test is now just checking the compiler, so we can delete it, leaving just the Session class.
 
-// begin-insert: tags/r17:src/main/java/colloquiumatic/Session.kt
+// begin-insert: tags/r2.11:src/main/java/colloquiumatic/Session.kt
 [source,kotlin]
 [%autofit]
 ----
