@@ -16,11 +16,6 @@ git log --format=oneline | awk '
     /[0-9a-f]{32} r([0-9|.]+) :/ {
       linerev = substr($2,2) + 0 # force a numeric comparison
       if (linerev != rev) {
-         if (rev != "" && linerev >= rev) {
-           print "revision out of order:",$0 > "/dev/stderr"
-           exit 1
-         }
-
          rev = linerev
          print $2, $1
       }
