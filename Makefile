@@ -1,5 +1,5 @@
 
-formats=html pdf
+formats=pdf html
 
 src:=$(wildcard text/src/*.ad) $(wildcard text/src/diagrams/*.plantuml)
 srcroot = text/src/book.ad
