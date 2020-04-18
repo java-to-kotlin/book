@@ -5,9 +5,16 @@ if [ "$1" = "--fast" ]
 then
   shift
 else
+  if [ "$1" = "clean" ]
+  then
+    clean=clean
+  else
+    clean=""
+  fi
+
   # test the code
-  ./gradlew code:test
-  (cd ../refactoring-to-kotlin-code && ./gradlew test)
+  ./gradlew $clean code:test
+  (cd ../refactoring-to-kotlin-code && ./gradlew $clean test)
 
   # include the code in the Asciidoc
   ./gradlew build
