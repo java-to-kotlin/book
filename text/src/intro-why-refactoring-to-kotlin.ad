@@ -1,6 +1,6 @@
 = Why _Refactoring_ to Kotlin?
 
-We never had the luxury of time dedicated solely to converting our Java codebase to idiomatic Kotlin.  We had to port parts of our code to Kotlin as we continued to add features to the system, maintaining a mixed Java/Kotlin codebase as we did so.  We managed the risk by working in small increments, each change easy to understand, and cheap to discard if we found out it broke something.
+We never had the luxury of being able to concentrate only on converting our Java codebase to idiomatic Kotlin.  We had to port parts of our code to Kotlin as we continued to add features to the system, maintaining a mixed Java/Kotlin codebase as we did so.  We managed the risk by working in small changes, making each easy to understand, and cheap to discard if we found out it broke something.  We first converted our Java code to Kotlin, giving us a Java-esque design in Kotlin syntax.  We then incrementally applied Kotlin language features to make the code increasingly easier to understand, more type safe, more concise, and with a more compositional structure that is easier to change without unpleasant surprises.
 
 [TIP]
 .A Rule of Thumb: Commit for Git Bisect
@@ -8,4 +8,9 @@ We never had the luxury of time dedicated solely to converting our Java codebase
 Imagine if you do, by accident, break something that is not caught by your test suite.  You'll want to find the commit that introduced the fault and fix it as quick as you can.  Git Bisect is a tool that finds the faulty commit: you write a test that demonstrates the error and Git Bisect does a binary search of the history to find the first commit that makes that test fail.  But if the commits in your history each contain multiple changes, Git Bisect cannot tell you which change within a commit introduced the error.  And if commits combine refactoring _and_ changes to behaviour, reverting a bad commit will break _other_ behaviour in the system.  Small, focused commits make it easy to understand what changed and fix the change if it was erroneous.
 ====
 
-We first converted our Java code to Kotlin syntax.  We then incrementally applied Kotlin language features to make the code increasingly easier to understand, more type safe, more concise, and give it a more compositional structure that is easier to change without unpleasant surprises.  The way JetBrains have designed the Kotlin language, it's mapping to the JVM platform, and the IDE and build tools, allowed us to _refactor_ our Java code to idomatic Kotlin.  We soon saw enough productivity benefits from Kotlin that the effort paid for itself.
+Small, safe, reversible changes that improved the design: we _refactored_ our Java code to idomatic Kotlin.
+
+It’s not unusual to refactor between languages. These days most projects are multilingual.  A "Java" web app, for example, will involve code written in Java, HTML, CSS, JavaScript, maybe JSX if you're using React, at least one templating language, maybe more if you have templating on the server and in the browser, and one or more query languages (SQL, JPQL, Cypher, etc).  It’s common to refactor logic between these languages: persistence logic from Java into a query language or vice versa, browser-side presentation between Javascript code and CSS rules or HTML elements as browsers evolve, or between JavaScript code manipulating the DOM and browser-side templating; server-side presentation between the template language and functions or objects in the host language; and so on.
+
+What makes the relationship between Java and Kotlin so interesting is how easy this refactoring is, thanks to the design of Kotlin language, it's mapping to the JVM platform, and JetBrains' investment in developer tooling.
+
