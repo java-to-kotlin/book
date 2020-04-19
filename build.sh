@@ -13,11 +13,11 @@ else
   fi
 
   # test the code
-  ./gradlew $clean code:test
-  (cd ../refactoring-to-kotlin-code && ./gradlew $clean test)
+  ./gradlew --warning-mode=all $clean code:test
+  (cd ../refactoring-to-kotlin-code && ./gradlew --warning-mode=all $clean test)
 
   # include the code in the Asciidoc
-  ./gradlew build
+  ./gradlew  --warning-mode=all build
 fi
 
 # build the book
