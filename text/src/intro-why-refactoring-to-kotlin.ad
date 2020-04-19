@@ -1,7 +1,11 @@
 = Why _Refactoring_ to Kotlin?
 
-You probably won't be able to dedicate time solely to porting your Java code to idiomatic Kotlin. You’ll have to work incrementally, porting parts of your codebase to Kotlin as you continue to add features to the system, maintaining a mixed Java/Kotlin codebase as you do so. Luckily Kotlin’s tooling supports this exceptionally well, and our experience is that you soon see enough productivity benefits from Kotlin that the effort pays for itself.
+We never had the luxury of time dedicated solely to converting our Java codebase to idiomatic Kotlin.  We had to port parts of our code to Kotlin as we continued to add features to the system, maintaining a mixed Java/Kotlin codebase as we did so.  We managed the risk by working in small increments, each change easy to understand, and cheap to discard if we found out it broke something.
 
-TODO: more on refactoring to _idiomatic_ Kotlin style.
+[TIP]
+.A Rule of Thumb: Commit for Git Bisect
+====
+Imagine if you do, by accident, break something that is not caught by your test suite.  You'll want to find the commit that introduced the fault and fix it as quick as you can.  Git Bisect is a tool that finds the faulty commit: you write a test that demonstrates the error and Git Bisect does a binary search of the history to find the first commit that makes that test fail.  But if the commits in your history each contain multiple changes, Git Bisect cannot tell you which change within a commit introduced the error.  And if commits combine refactoring _and_ changes to behaviour, reverting a bad commit will break _other_ behaviour in the system.  Small, focused commits make it easy to understand what changed and fix the change if it was erroneous.
+====
 
-That leaves the question of where to start the conversion effort.
+We first converted our Java code to Kotlin syntax.  We then incrementally applied Kotlin language features to make the code increasingly easier to understand, more type safe, more concise, and give it a more compositional structure that is easier to change without unpleasant surprises.  The way JetBrains have designed the Kotlin language, it's mapping to the JVM platform, and the IDE and build tools, allowed us to _refactor_ our Java code to idomatic Kotlin.  We soon saw enough productivity benefits from Kotlin that the effort paid for itself.
