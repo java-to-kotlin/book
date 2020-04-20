@@ -5,12 +5,15 @@ We never had the luxury of being able to concentrate only on converting our Java
 Small, safe, reversible changes that improved the design: we _refactored_ our Java code to idomatic Kotlin.
 
 [TIP]
-.A Rule of Thumb: Commit for Git Bisect
+.Commit for Git Bisect
 ====
 Imagine that you do, by accident, break something that is not caught by your test suite.  You'll want to find the commit that introduced the fault and fix it as quick as you can.  Git Bisect is a tool that finds the faulty commit: you write a test that demonstrates the error and Git Bisect does a binary search of the history to find the first commit that makes that test fail.  But if the commits in your history are a mish-mash of loosely related changes, Git Bisect cannot help as well: it can't tell you which of the changes within a commit introduced the error.  If commits mix refactoring _and_ changes to behaviour, reverting a bad refactoring step can break _other_ behaviour in the system.  Small, focused commits that separate refactorings from each other, and from changes to behaviour, make it easy to understand what changed and fix any erroneous change.
 ====
 
 It’s not unusual to refactor between languages. These days most projects are multilingual.  A "Java" web app, for example, will involve code written in Java, HTML, CSS, JavaScript, maybe JSX if you're using React, at least one templating language, maybe more if you have templating on the server and in the browser, and one or more query languages (SQL, JPQL, Cypher, etc).  It’s common to refactor logic between these languages: persistence logic from Java into a query language or vice versa, browser-side presentation between Javascript code and CSS rules or HTML elements as browsers evolve, or between JavaScript code manipulating the DOM and browser-side templating; server-side presentation between the template language and functions or objects in the host language; and so on.
 
-What makes the relationship between Java and Kotlin so interesting is how easy this refactoring is, thanks to the design of Kotlin language, it's mapping to the JVM platform, and JetBrains' investment in developer tooling.
+Refactoring between languages is usually harder than refactoring within a single language because refactoring tools do not work well across the boundaries between the languages, if they work at all.  Porting logic from one language to another must be done manually, which takes longer and introduces more risk.  Once multiple languages are in use, the language boundary impedes refactoring because when you refactoring code in one language, the IDE does not update dependent code written in other languages to be compatible.
 
+What makes the combination of Java and Kotlin so unique is how seamless is the boundary between the two languages.  Thanks to the design of the Kotlin language, the way it is mapped to the JVM platform, and JetBrains' investment in developer tooling, refactoring Java to Kotlin and refactoring a combined Java/Kotlin codebase is as easy as refactoring in a single codebase.
+
+Our experience has been that we can refactor Java to Kotlin without impacting productivity, and that as more of the codebase is converted to Kotlin, productivity accelerates.
