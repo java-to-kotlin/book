@@ -1,15 +1,16 @@
-= Topics to cover
+# Topics to cover
 
-== Small details...
+## Small details...
 
 * The "grain" of Kotlin:
 ** Immutable data
 ** Functions rather than classes
 ** Deliberate polymorphism
 ** Explicit control flow
+
 * Kotlin supports "beans" style Java well, but you don't get a lot of the benefits at larger scales.  Modern Java lends itself well to conversion to idiomatic Kotlin that takes advantage of Kotlin's default immutability, better type system and the safety that provides.
 
-* Adding a Kotlin build to a Java project
+* ~~Adding a Kotlin build to a Java project~~
 
 * Option<T> -> nullable T? -- showing how to Java and Kotlin handle null differently
 ** The problem with null in Java
@@ -19,7 +20,7 @@
 
 * Properties vs fields/get/set
 
-* value classes vs data class
+* ~~value classes vs data class~~
 
 * Collections and compiler magic
 ** Read-only vs Read/write interfaces
@@ -49,7 +50,7 @@
 * Refactoring into a DSL rather than designing one from scratch
 
 
-== Larger scale gubbins
+## Larger scale gubbins
 
 Later chapters will build on this core - they will be about more high-level refactorings.
 
@@ -70,5 +71,7 @@ Later chapters will build on this core - they will be about more high-level refa
 ** Functional Design (refactoring from the procedural style common in enterprise Java systems to a functional style)
 ** Functional core, imperative shell
 ** Referential transparency
-** Compositionality
-** Data driven design [???]
+
+* Compositionality
+
+* Data driven design [???]
