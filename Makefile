@@ -17,7 +17,7 @@ asciidoctor_opts=\
 	--attribute imagesoutdir="$(imagesoutdir)" \
 	$(asciidoctor_opts_$(outtype))
 
-asciidoctor_opts_pdf=--require=asciidoctor-pdf --attribute imagesdir="$(imagesoutdir)"
+asciidoctor_opts_pdf=--require=asciidoctor-pdf
 asciidoctor_opts_html=--attribute imagesdir=images
 
 all: $(formats)
