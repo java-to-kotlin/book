@@ -1,8 +1,8 @@
 
 formats=pdf html
 
-src:=$(wildcard text/src/*.ad) $(wildcard text/src/diagrams/*.plantuml)
 srcroot = text/src/book.ad
+src:=$(shell find $(dir $(srcroot)) -not -path '*/.*' -print)
 
 outdir=$(abspath $(dir $@))
 imagesoutdir=$(outdir)/images
