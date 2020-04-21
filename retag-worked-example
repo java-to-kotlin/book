@@ -4,9 +4,11 @@ set -e
 if [ "$1" = "--for-real" ]
 then
  echo "for real" 1>&2
+ mode=for_real
  gitcmd="git"
 else
  echo "dry run" 1>&2
+ mode=dryrun
  gitcmd="echo git"
 fi
 
@@ -22,3 +24,8 @@ git log --format=oneline | awk '
       }
     }
 ' | xargs -n 2 $gitcmd tag -a -m "tag generated automatically by retag-worked-example script" -f
+
+if [ "$mode" == "for_real" ]
+then
+    git tag --list 'r[0-9]*' | sort -V
+fi
