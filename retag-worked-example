@@ -4,14 +4,15 @@ set -e
 if [ "$1" = "--for-real" ]
 then
  echo "for real" 1>&2
- cmd="git"
+ gitcmd="git"
 else
  echo "dry run" 1>&2
- cmd="echo git"
+ gitcmd="echo git"
 fi
 
 cd ../refactoring-to-kotlin-code
 
+git tag -l 'r[0-9]*' | xargs $gitcmd tag -d
 git log --format=oneline | awk '
     /[0-9a-f]{32} r([0-9|.]+) :/ {
       linerev = substr($2,2) + 0 # force a numeric comparison
@@ -20,4 +21,4 @@ git log --format=oneline | awk '
          print $2, $1
       }
     }
-' | xargs -n 2 $cmd tag -a -m "tag generated automatically by retag-worked-example script" -f
+' | xargs -n 2 $gitcmd tag -a -m "tag generated automatically by retag-worked-example script" -f
