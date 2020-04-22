@@ -1,5 +1,13 @@
 # Topics to cover
 
+## Book structure
+
+* Part 1: intro
+* Part 2: worked example "in the small"
+* Part 3: Strategies for working with Kotlin and Java in a team and with a production codebase (testing, etc.)
+* Part 4: evolving the architecture to better take advantage of Kotlin (compositional, immutability, OO shell / functional core)
+
+
 ## Small details...
 
 * The "grain" of Kotlin:
