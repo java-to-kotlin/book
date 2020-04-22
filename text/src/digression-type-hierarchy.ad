@@ -1,17 +1,23 @@
 [role="digression"]
 = The Kotlin Type Hierarchy
 
-What are _types_? And how do they relate to _classes_?
+What are _types_?
+And how do they relate to _classes_?
 
 Both types and classes define a set of values and the operations that can be performed upon those values.
-The key difference is that types relate to the _syntax of expressions_.  Classes relate to the runtime values referred to by the expressions. A (over-)simplification: types exist in the compiler, classes in the VM.
+The key difference is that types relate to the _syntax of expressions_.
+Classes relate to the runtime values referred to by the expressions.
+A (over-)simplification: types exist in the compiler, classes in the VM.
 
 image::diagrams/types-vs-classes.svg[Types in the compiler and classes in the VM]
 
 Whenever you define a class that will exist at runtime, you also declare a type for that class.
-However (and this is a theme that will come up from time to time throughout the book), the relationships between types and those between classes are sometimes different.  That won’t affect your code, unless you use reflection, and (another theme that will come up throughout the book) you need reflection far less in Kotlin than in Java.
+One thing to beware of, however: the subtype/supertype relationships between types and subclass/superclass relationships between classes are sometimes different.
+That won’t affect your code, unless you use reflection.
+Happily (and this is a theme that will come up from time to time throughout the book) you need to use reflection far less in Kotlin than in Java.
 
-The compiler's type checker ensures that code is self-consistent by analysing the syntax alone, without running the code.  By writing our code to work with the type checker, we need write fewer tests.
+The compiler's type checker ensures that code is self-consistent by analysing the syntax alone, without running the code.
+By writing our code to work with the type checker, we need write fewer tests.
 And it's not only by catching errors at compile time that types help us write correct code.
 They let the IDE point out mistakes as we type, so we can correct errors before we compile, autosuggest and autocomplete code to save us time, and ensure refactorings transform the code correctly.
 
@@ -24,6 +30,8 @@ It has very few rules to learn, and those rules combine consistently and predict
 
 Kotlin organises all types of object into a hierarchy of supertype/subtype relationships.
 The classes and interfaces you define will be part of that hierarchy, even if you don't explicitly use inheritance.
+Subtype relationships are introduced by subclassing or implementing interfaces, but also, less obviously, by nullability and generics, as we will see later.
+
 Unlike Java, Kotlin does not draw a distinction between "primitive" types, that are intrinsic to the language, and user-defined types -- they are all part of the same type hierarchy.
 Nor does Kotlin draw a distinction between functions that return a value and those do not -- there is no "void" type in Kotlin.
 
@@ -51,7 +59,8 @@ They do not rely on special cases that you must memorise, or ad-hoc checks in th
 
 == Starting from the Top
 
-The "top" of the class hierarchy is the class `Any`.
+The "top" of the class hierarchy is the class `kotlin.Any`.
+
 For example, the types String and Int are both subtypes of `Any`.
 
 plantuml::diagrams/any-intrinsics.plantuml[]
@@ -100,71 +109,15 @@ class Tomato(ripeness: Double):
 
 plantuml::diagrams/interfaces.plantuml[]
 
-`Any` is the equivalent of Java’s `Object` class.
-On the JVM, the Kotlin compiler maps references to Any to `java.lang.Object` across the interop boundary (TODO: more detail about this).
+This is one of those situations where the subtype/supertype relationships are different from the subclass/superclass relationships exposed by reflection.
+If you reflect on an interface that is not derived from another interface,, it's superclass is reported as `null`, not `Any`.
 
-== Nullable Types
-
-Unlike Java, Kotlin distinguishes between "non-null" and "nullable" types.
-The types we’ve seen so far are all "non-null".
-Kotlin does not allow `null` to be used as a value of these types.
-You’re guaranteed that dereferencing a reference to a value of a "non-null" type will never throw a `NullPointerException`.
-
-The type checker rejects code that tries to use null or a nullable type where a non-null type is expected.
-
-For example:
-
-[source,kotlin]
-----
-var s : String = null
-// Error: Null can not be a value of a non-null type String
-----
-
-If you want a value to maybe be null, you need to use the nullable equivalent of the value type, denoted by the suffix `?`.
-For example, the type `String?` is the nullable equivalent `String`, and so allows all String values plus null.
-
-[source,kotlin]
-----
-var s : String? = null
-s = "foo"
-s = null
-s = "bar"
-----
-
-The type checker ensures that you never use a nullable value without having first tested that it is not null.
-Kotlin provides operators to make working with nullable types more convenient.
-See the
-https://kotlinlang.org/docs/reference/null-safety.html[Null Safety
-section of the Kotlin language reference] for examples.
-
-When non-null types are related by subtyping, their nullable equivalents are also related in the same way.
-For example, because `String` is a subtype of `Any`, `String?` is a subtype of `Any?`, and because `Banana`
-is a subtype of `Fruit`, `Banana?` is a subtype of `Fruit?`.
-
-Just as `Any` is the root of the non-null type hierarchy, `Any?` is the root of the nullable type hierarchy.
-Because `Any?` is the supertype of
-`Any`, `Any?` is the very top of Kotlin’s type hierarchy.
-
-plantuml::diagrams/parallel-nullable-and-non-nullable-hierarchies.plantuml[]
-
-A non-null type is a subtype of its nullable equivalent.
-For example,
-`String`, as well as being a subtype of `Any`, is also a subtype of
-`String?`.
-
-plantuml::diagrams/nullable-string.plantuml[]
-
-This is why you can store a non-null String value into a nullable String? variable, but you cannot store a nullable String? value into a non-null String variable.
-Kotlin’s null safety is not enforced by special rules, but is an outcome of the same subtype/supertype rules that apply between non-null types.
-
-This applies to user-defined type hierarchies as well.
-
-plantuml::diagrams/nullable-hierarchy.plantuml[]
+`kotlin.Any` is the equivalent of `java.lang.Object` in Java.
+The Kotlin compiler maps references to Any to `java.lang.Object` to simplify interop with Java code (TODO: more detail about this).
 
 == Unit
 
 Kotlin is an expression oriented language.
-All control flow statements (apart from variable assignment, unusually) are expressions.
 Kotlin does not have void functions, like Java and C. Functions always return a value.
 Functions that don’t actually calculate anything – being called for their side effect, for example – return `Unit`, a type that has a single value, also called `Unit`.
 
@@ -219,7 +172,8 @@ Those that perform control flow.
 For example, the `throw` keyword interrupts the calculation of an expression and throws an exception out of the enclosing function.
 A throw is therefore an expression of type Nothing.
 
-By having Nothing as a subtype of every other type, the type system allows any expression in the program to actually fail to calculate a value.
+Because Nothing is a subtype of every other type, the type system allows any expression in the program to fail to calculate a value.
+There's no way to specify that an expression will never fail.
 This models real world eventualities, such as the JVM running out of memory while calculating an expression, or someone pulling out the computer’s power plug.
 It also means that we can throw exceptions from within any expression.
 
@@ -237,9 +191,11 @@ Return is a control flow statement that immediately returns a value from the enc
 
 [source,kotlin]
 ----
-fun formatCellRounded(value: Double): String =
-    val rounded: Long = if (value.isNaN()) return "#ERROR" else Math.round(value)
-    rounded.toString()
+
+ fun formatCellRounded(value: Double): String {
+    val rounded: Long = if (value.isNaN()) return "#ERROR" else value.roundToLong()
+    return rounded.toString()
+}
 ----
 
 A function that enters an infinite loop or kills the current process has a result type of Nothing.
@@ -266,7 +222,7 @@ fun example() {
 }
 ----
 
-Like null safety, unreachable code analysis is not implemented by ad-hoc, special-case checks in the IDE and compiler, as it has to be in Java.
+Like null safety, Kotlin does not implement unreachable code analysis with ad-hoc, special-case checks in the IDE and compiler, as it has to be in Java.
 It’s a function of the type system.
 
 == Nullable Nothing?
@@ -279,6 +235,13 @@ In fact,
 `Nothing?` is the ultimate subtype of all nullable types, which lets the value `null` be used as a value of any nullable type.
 
 plantuml::diagrams/nullable-nothing.plantuml[]
+
+== Nullable Unit?
+
+The consistency of Kotlin's type system creates an odd wrinkle: the type `Unit?`.
+It has only two members: the Unit value and null.
+
+I’ve never found a need to use it explicitly. The fact that there is no special case for “void” in the type system makes it possible to pass any type of functions to higher order functions like `map`, `filter` and `fold`.  However, there are usually better alternatives for functions that return `Unit`.  For example, passing a function that returns `Unit` to `map` will create an unnecessary collection containing multiple references to the `Unit` value.  The `forEach` function is more efficient.
 
 == In summary
 
