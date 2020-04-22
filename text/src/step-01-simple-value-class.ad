@@ -127,12 +127,10 @@ public class Presenter {
 ----
 // end-insert
 
-The primary constructor syntax is convenient, but it does interfere with the "scannability" of the class.  Java classes that follow the standard coding conventions always define their features in the same order: class name, superclass, interfaces, then within the class body, fields, constructors, and methods.  This makes it easy to skim-read the class and quickly locate the features you're interested in.  It's not quite so easy in Kotlin: a class definition is organised thus: class name, primary constructor (which can contain parameters and/or property definitions), superclass (which may also be the call to the superclass' constructor), interfaces, then within the class body, more properties, more constructors, methods, and companion objects (we'll come to those later).  Coming from Java, I definitely found it harder to read classes at first, and although I got used to it eventually, I still find it hard at times to neatly format classes that have a primary constructor, a superclass, several interfaces, and properties that are defined outside the primary constructor, and I diverge from the standard Kotlin coding conventions to add more blank lines between the primary constructor and the rest of the class definition.
+The primary constructor syntax is convenient, but it does interfere with the "scannability" of the class.  Java classes that follow the standard coding conventions always define their elements in the same order: class name, superclass, interfaces, then within the class body, fields, constructors, and methods.  This makes it easy to skim-read the class and quickly locate the features you're interested in.  It's not quite so easy in Kotlin: a class definition is organised thus: class name, primary constructor (which can contain parameters and/or property definitions), superclass (which may also be the call to the superclass' constructor), interfaces, then within the class body, more properties, more constructors, methods, and companion objects (we'll come to those later).  Coming from Java, I definitely found it harder to read classes at first, and although I got used to it eventually, I still find it hard at times to neatly format classes that have a primary constructor, a superclass, several interfaces, and properties that are defined outside the primary constructor. I'll happily diverge from the standard Kotlin coding conventions to add more blank lines between the primary constructor and the rest of the class definition if it makes it easier to distinguish different elements of the class.
 
 
-TODO: look at properties in more detail...  The get/set methods are no longer there... Pull the discussion up to here before introducing data classes...
-
-`val` is short for 'value' and marks a property that you cannot change once set - the equivalent of Java's `final`. We could (but almost always wouldn't) have used `var` for `variable`, in which case the property could be modified and a Java setter would be generated.
+`Val` is short for 'value' and marks a property that you cannot change once set - the equivalent of Java's `final`. We could (but almost always wouldn't) have used `var` for `variable`, in which case the property could be modified and a Java setter would be generated.
 
 TODO: something on name.equals v name ==
 
@@ -238,7 +236,7 @@ TODO - internal
 The first thing that we spot is that the Java fields, `nat` and `duncan` are declared as `val` properties but we haven't had to repeat their type - `Presenter nat = new Presenter(...);`. Kotlin would allow us to say `val nat: Presenter = Presenter(...)` but does not require it here.
 
 ====
-Properties can be declared with `val` if they don't change, and `var` if they do. Even though the fields were not declared as `final` in the Java; in this case the conversion has been clever enough to see that they are not changed and to convert them to `val`.
+Properties can be declared with `val` if they don't change, and `var` if they do. Even though we had not declared the fields as `final` in Java, the translator has been clever enough to see that they are not changed and to convert them to `val`.
 ====
 
 Looking at the properties, we see that there is no `new` keyword to construct instances of classes - 'invoking' the class name as a function calls the relevant constructor.
@@ -255,7 +253,7 @@ There is quite a bit of subtlety to properties. We will keep on returning to thi
 
 One irritation is that for us the static import of `org.junit.jupiter.api.Assertions.*` has been lost in the conversion. The converter is a work in progress and that may have changed by the time that you read this. A couple of quick Alt-Enters will fix it up in any case.
 
-Stepping away from the Java, and comparing with our previous Kotlin class, Presenter, we see that in the tests the class properties are not declared in the primary constructor.  JUnit requires a default (no argument) constructor, and where properties are not initialised through a constructor (like `nat` and `duncan` here) they are not declared in the primary constructor but rather inside the class body.
+Stepping away from the Java, and comparing with our previous Kotlin class, Presenter, we see that in test class does not declare its properties in the primary constructor.  JUnit requires a default (no argument) constructor, and where a class does not initialise properties through a constructor (as with `nat` and `duncan` here) they are not declared in the primary constructor but rather inside the class body.
 
 Stepping even further back, we can look at these tests and say that, as we have no logic in our Presenter, we have no need for the tests. If we delete them we have reduced 64 lines of Java code and tests to 1 line of Kotlin.
 
