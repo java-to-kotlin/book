@@ -2,21 +2,26 @@
 
 package digression.gotchas
 
+/// begin: null-ambiguity
 import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.fasterxml.jackson.databind.node.ObjectNode
+import com.fasterxml.jackson.databind.node.JsonNodeFactory.instance as json
 
 
-private val factory = JsonNodeFactory.instance
-
-fun objectOf(vararg properties: Pair<String, JsonNode>) =
-    factory.objectNode().apply { setAll<ObjectNode>(properties.toMap()) }
+fun objectOf(vararg properties: Pair<String, JsonNode>): ObjectNode =
+    json.objectNode().apply { setAll(properties.toMap()) }
 
 infix fun String.of(propertyValue: Int?) =
-    Pair(this, factory.numberNode(propertyValue))
+    Pair(this, json.numberNode(propertyValue))
 
 infix fun String.of(propertyValue: String?) =
-    Pair(this, factory.textNode(propertyValue))
+    Pair(this, json.textNode(propertyValue))
+/// end: null-ambiguity
+
+/// begin: fix-null-ambiguity
+infix fun String.of(propertyValue: Nothing?) =
+    Pair(this, json.nullNode())
+/// end: fix-null-ambiguity
 
 
 
@@ -29,7 +34,7 @@ infix fun String.of(propertyValue: String?) =
 
 fun example2() {
 infix fun String.of(propertyValue: Nothing?) =
-    Pair(this, factory.nullNode())
+    Pair(this, json.nullNode())
 
 val someJson = objectOf(
     "x" of 10,
