@@ -72,7 +72,7 @@ Like Presenter, Session is immutable and has tedious code to manage value identi
 <1> One of the fields is a collection: a session has a list of presenters.
 
 <2> Because Java collections are mutable, the constructor makes a defensive copy of the list to avoid https://martinfowler.com/bliki/AliasingBug.html[_aliasing errors_].
-// TODO: should the  getPresenters method also wrap the list in Collections.unmodifiableList?
+// TODO: Q: should the  getPresenters method also wrap the list in Collections.unmodifiableList? A: yes, it's currently on the small-fixed branch
 
 <3> There are some convenience methods that return a copy of the session with modified properties to make it easier to write purely functional business logic.
 
@@ -171,7 +171,7 @@ class Session(
 
 `java.util.List` may have caught your attention. The other Lists here are Kotlin's own types, which are read-only views of the Java type. You'll find they are often interchangeable, and we'll cover them in detail in later chapters. Here you can see that we can assign a `java.util.List` to a Kotlin list.
 
-We would like to be able to remove all that value object boilerplate by making Session a data class, but in order to do that we have to have all the properties initialised in the constructor, and that defensive `java.util.List.copyOf` is presenting that at the moment. Checking all the callers of the constructor we find that none of them mutate the presenters having passed them in, so we can move the property into the constructor and we have another data class.
+We would like to be able to remove all that value object boilerplate by making Session a data class, but in order to do that we have to have all the properties initialised in the constructor, and those defensive calls to `List.copyOf` and `Collections.unmodifiableList` are preventing that at the moment. Checking all the callers of the constructor we find that none of them mutate the presenters having passed them in, so we can move the property into the constructor and we have another data class.
 
 // begin-insert: tags/r2.3:src/main/java/colloquiumatic/Session.kt
 [source,kotlin]
@@ -401,7 +401,7 @@ Where a Kotlin function body consists of a single expression you can Alt-Enter o
 ----
 // end-insert
 
-All the time that there are Java uses of `withPresenters` and `withTitle` that is as far as we can go, but once the all callers have been converted to Kotlin, we can inline the methods
+While there are still Java uses of `withPresenters` and `withTitle` that is as far as we can go, but once the all callers have been converted to Kotlin, we can inline the methods
 
 // begin-insert: tags/r2.10:src/test/java/colloquiumatic/SessionTests.kt#foo
 [source,kotlin]
