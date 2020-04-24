@@ -62,7 +62,7 @@ public class SessionsTests {
 ----
 // end-insert
 
-Let's see what we can do to make things better in Kotlin. Convert to Kotlin on Sessions.java gives us this
+Let's see what we can do to make things better in Kotlin. Converting Sessions.java to Kotlin gives us this
 
 // begin-insert: tags/r3.1:src/main/java/colloquiumatic/Sessions.kt
 [source,kotlin]
@@ -87,7 +87,7 @@ Take a couple of minutes to note the differences and see what they tell you abou
 
 First we have an object rather than a class declaration. Objects are Kotlin's way of creating a static namespace - as all the methods in the Java class were static the converter has placed them in an object.
 
-The method is marked with an `@JVMStatic` annotations. Annotations aren't used as much in Kotlin as they are in Java, but this one tells the compiler that there are Java usages of the method and so it had better mark the method as static in the bytecode for interoperability.
+The method is marked with an `@JvmStatic` annotations. Annotations aren't used as much in Kotlin as they are in Java, but this one tells the compiler that there are Java usages of the method and so it had better mark the method as static in the bytecode for interoperability.
 
 The method parameters are as we would expect, with Kotlin `List<Session>` transparently accepting a `java.util.List`. You'll find that Kotlin code seems to flow better with more vertical breaks than Java, hence the 1 parameter to a line style. `Alt-Enter` in the parameter list will give you the option of swapping between one and multi-line style.
 
@@ -263,7 +263,7 @@ Now <Alt-Enter> on the thing parameter and select 'Convert parameter to receiver
 ----
 // end-insert
 
-We have just created our first extension function. In the JVM this is just a static function with the session as its first (well only) parameter, but in Kotlin we can invoke it postfix with a dot, as if it was a method. It isn't a method though, so that receiver (the `this`) can be null - hence the `?` in `Session?.optional()`. This turns out to be a very powerful technique to help break code down and help it read better. To see the effect, we'll rename `optional` to `toOptional` and then simplify all the things.
+We have just created our first extension function. In the JVM this is just a static function with the session as its first (well only) parameter, but in Kotlin we can invoke it postfix with a dot, as if it was a method. It isn't a method though, so that receiver (the `this`) can be null - hence the `?` in `Session?.optional()`. This turns out to be a very powerful technique to help break code down and read better. To see the effect, we'll rename `optional` to `toOptional` and then simplify all the things.
 
 // begin-insert: tags/r3.12:src/main/java/colloquiumatic/Sessions.kt
 [source,kotlin]
