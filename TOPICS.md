@@ -83,3 +83,8 @@ Later chapters will build on this core - they will be about more high-level refa
 * Compositionality
 
 * Data driven design [???]
+
+## Other Random Things
+
+fun <T> hole(): T = TODO()
+Type-driven design
