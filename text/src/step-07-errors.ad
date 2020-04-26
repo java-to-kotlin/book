@@ -1,0 +1,240 @@
+= We Refactor Error Handling Code
+
+TODO - Intro
+
+There is an HTTP endpoint in Colloquiumatic that allows the client to register an attendee.
+It populates our Attendees
+
+// begin-insert: tags/r7.0:src/main/java/colloquiumatic/Attendees.java
+[source,java]
+[%autofit]
+----
+public interface Attendees {
+
+    Attendee add(String name, String email) throws DuplicateException;
+
+    Optional<Attendee> find(String id);
+}
+----
+// end-insert
+
+Registration marshals to and from Strings
+
+// begin-insert: tags/r7.0:src/main/java/colloquiumatic/handlers/Registration.java
+[source,java]
+[%autofit]
+----
+public class Registration implements IRegister {
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final Attendees attendees;
+
+    public Registration(Attendees attendees) {
+        this.attendees = attendees;
+    }
+
+    @Override
+    public String register(String postData)
+        throws JsonProcessingException, DuplicateException {
+
+        RegistrationData data = objectMapper.readValue(postData, RegistrationData.class);
+        if (data.name == null || data.email == null)
+            throw new IllegalArgumentException("Malformed json input");
+        Attendee result = attendees.add(data.name, data.email);
+        return objectMapper.writeValueAsString(result);
+    }
+}
+
+class RegistrationData {
+    public String name;
+    public String email;
+}
+
+----
+// end-insert
+
+and the actual HTTP interface is provided by RegistrationHandler
+
+// begin-insert: tags/r7.0:src/main/java/colloquiumatic/handlers/RegistrationHandler.java
+[source,java]
+[%autofit]
+----
+public class RegistrationHandler {
+
+    private final IRegister registration;
+
+    public RegistrationHandler(IRegister registration) {
+        this.registration = registration;
+    }
+
+    public Response handle(Request request) {
+        try {
+            String json = registration.register(request.getBody());
+            return new Response(201, json);
+        } catch (JsonProcessingException x) {
+            return new Response(400);
+        } catch (DuplicateException x) {
+            return new Response(409);
+        } catch (Exception x) {
+            return new Response(500);
+        }
+    }
+}
+
+----
+// end-insert
+
+.HTTP
+****
+We'd rather not tie our example code to a particular Java HTTP framework,
+so we have abstracted all that behind a simple function that takes a Request and returns a Response.
+****
+
+Finally Attendee is another value type - let's not sacrifice a tree but rather show you the version after conversion to Kotlin.
+
+// begin-insert: tags/r7.0:src/main/java/colloquiumatic/Attendee.kt
+File not found for VersionedFile(file=/Users/duncan/Documents/Projects/refactoring-to-kotlin-book/refactoring-to-kotlin-code/src/main/java/colloquiumatic/Attendee.kt, version=tags/r7.0) (fatal: Path 'src/main/java/colloquiumatic/Attendee.kt' exists on disk, but not in 'tags/r7.0'.
+)
+// end-insert
+
+In our experience this is typical Java code. It expresses the things that might reasonably go wrong as checked exceptions (JsonProcessingException, DuplicateException), and these are all caught at in the top level `handle` where they are reported to the caller, in this case as HTTP status codes. There is a blip in the `IllegalArgumentException` in Registration, which is going to result in a 500 rather than the 400 that we might want, but we haven't noticed that in production where our client code is always sending the correct properties.
+
+If we convert Attendees to Kotlin we get
+
+// begin-insert: tags/r7.1:src/main/java/colloquiumatic/Attendees.kt
+[source,kotlin]
+[%autofit]
+----
+interface Attendees {
+    @Throws(DuplicateException::class) // <1>
+    fun add(name: String?, email: String?): Attendee?
+    fun find(id: String?): Optional<Attendee?>?
+}
+----
+// end-insert
+
+1. Kotlin doesn't have checked exceptions, but the `@Throws` annotation allows interoperation. Without it, a Java implementation of Attendees cannot override the method (assuming that it does actually throw DuplicateException).
+
+TODO - why does Kotlin not have checked exceptions.
+
+Before we go further, conversion to Kotlin has failed to infer the nullability of the parameters and results in Attendees, lets fix that.
+
+// begin-insert: tags/r7.2:src/main/java/colloquiumatic/Attendees.kt
+[source,kotlin]
+[%autofit]
+----
+interface Attendees {
+    @Throws(DuplicateException::class)
+    fun add(name: String, email: String): Attendee /// |
+    fun find(id: String): Optional<Attendee> /// |
+}
+----
+// end-insert
+
+Our default choice for error handling in Kotlin is an Either type. // TODO
+In this project we'll use Result4k because, well, Nat wrote it.
+
+What we're going to do for now is to add to our interface a version of add that instead of throwing, returns `Result<Attendee, DuplicateException>`. If we were starting from scratch we would probably not use an exception as our error type, but here it let's us interoperate with Java easily.
+
+First we add result4k to our build.
+// begin-insert: tags/r7.3:build.gradle#result4k
+[source,groovy]
+[%autofit]
+----
+dependencies {
+     ... 
+    implementation "com.natpryce:result4k:2.0.0"
+     ... 
+}
+----
+// end-insert
+
+and then we can add a default method to thunk from the exception case to the result.
+
+// begin-insert: tags/r7.3:src/main/java/colloquiumatic/Attendees.kt#result4k
+[source,kotlin]
+[%autofit]
+----
+    @Throws(DuplicateException::class)
+    fun add(name: String, email: String): Attendee
+
+    fun addToo(name:String, email:String)
+        : Result<Attendee, DuplicateException> =
+        try {
+            Success(add(name, email))
+        } catch (x: DuplicateException) {
+            Failure(x)
+        }
+----
+// end-insert
+
+Now we are have both exception and result version of the method, we can migrate the callers of the exception version. While we can use result4k from Java, it's a lot more convenient from Kotlin, so let's take our Java Registration
+
+// begin-insert: tags/r7.3:src/main/java/colloquiumatic/handlers/Registration.java
+[source,java]
+[%autofit]
+----
+public class Registration implements IRegister {
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final Attendees attendees;
+
+    public Registration(Attendees attendees) {
+        this.attendees = attendees;
+    }
+
+    @Override
+    public String register(String postData)
+        throws JsonProcessingException, DuplicateException {
+
+        RegistrationData data = objectMapper.readValue(postData, RegistrationData.class);
+        if (data.name == null || data.email == null)
+            throw new IllegalArgumentException("Malformed json input");
+        Attendee result = attendees.add(data.name, data.email);
+        return objectMapper.writeValueAsString(result);
+    }
+}
+
+class RegistrationData {
+    public String name;
+    public String email;
+}
+
+----
+// end-insert
+
+and convert it to Kotlin
+
+// begin-insert: tags/r7.4:src/main/java/colloquiumatic/handlers/Registration.kt
+[source,kotlin]
+[%autofit]
+----
+class Registration(private val attendees: Attendees) : IRegister {
+    private val objectMapper = ObjectMapper()
+
+    @Throws(JsonProcessingException::class, DuplicateException::class)
+    override fun register(postData: String?): String {
+        val data = objectMapper.readValue(postData, RegistrationData::class.java)
+        require(!(data.name == null || data.email == null)) { "Malformed json input" } // <1>
+        val result = attendees.add(data.name!!, data.email!!) // <2>
+        return objectMapper.writeValueAsString(result)
+    }
+
+}
+
+internal class RegistrationData {
+    var name: String? = null
+    var email: String? = null
+}
+----
+// end-insert
+
+1. Note that the conversion has converted IllegalState checks into a `require`.
+2. But that has led to nullability issues later
+
+
+
+
+
+
+
