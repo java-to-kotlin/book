@@ -13,37 +13,38 @@
 * The "grain" of Kotlin:
   - Immutable data
   - Functions rather than classes
-  - Deliberate polymorphism
+  - Deliberate polymorphism (e.g. choose where classes are polymorphic)
   - Explicit control flow
 
-* Kotlin supports "beans" style Java well, but you don't get a lot of the benefits at larger scales.  Modern Java lends itself well to conversion to idiomatic Kotlin that takes advantage of Kotlin's default immutability, better type system and the safety that provides.
+* Interop
+** Kotlin supports "beans" style Java well, but you don't get a lot of the benefits at larger scales.  Modern Java lends itself well to conversion to idiomatic Kotlin that takes advantage of Kotlin's default immutability, better type system and the safety that provides.
 
 * ~~Adding a Kotlin build to a Java project~~
 
 * Option<T> -> nullable T? -- showing how to Java and Kotlin handle null differently
   - The problem with null in Java
   - Nullable annotations and their limitations (digression or sidebar?)
-  - Optional
+  - Optional -- doesn't actually protect against NPEs because the Optional itself can be null -- but never is in practice.
   - ~~Null is part of Kotlin's type system: type safety is null safety~~
 
-* Properties vs fields/get/set
+* ~~Properties vs fields/get/set~~
 
 * ~~value classes vs data class~~
 
-* Collections and compiler magic
+* Collections and compiler magic (need more about the compiler magic)
 ** Read-only vs Read/write interfaces
 
 * Java v Kotlin Classes in more detail...
   - Constructors, Properties, Methods
   - Java style (classes with methods) vs Kotlin style (classes, freestanding functions or extension methods, class methods for polymorphism)
 
-* Statics vs companion objects, and annotating Kotlin code to play well with existing Java (@JvmStatic)
+* Statics vs companion objects, and annotating Kotlin code to play well with existing Java (@JvmStatic, @JvmName, @JvmField, etc)
 
 * Extension methods
   - Extension functions on core library types
   - how they play nicely with null
   - define them for different domains in the app
-  - Extension functions on nullable types
+** ~~Extension functions on nullable types~~
 
 * Scope management functions (let, apply etc)
 
@@ -61,6 +62,10 @@
 ## Larger scale gubbins
 
 Later chapters will build on this core - they will be about more high-level refactorings.
+
+* Extension functions
+** API design by adding extension functions rather than defining new types (I think this is a big enough topic to be either a long digression or its own chapter).
+** define them for different domains in the app
 
 * Error handling - checked exceptions to result monad
   - The background of error handling facilities inherited from Java: exceptions.
