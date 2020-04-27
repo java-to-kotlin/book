@@ -61,11 +61,22 @@
 
 ## Larger scale gubbins
 
-Later chapters will build on this core - they will be about more high-level refactorings.
+Later chapters will build on this core - they will be about more high-level refactorings, or architectural styles that inform the direction of continual refactoring.
 
 * Extension functions
-** API design by adding extension functions rather than defining new types (I think this is a big enough topic to be either a long digression or its own chapter).
-** define them for different domains in the app
+  - API design by adding extension functions rather than defining new types (I think this is a big enough topic to be either a long digression or its own chapter).
+  - Define extension functions for different domains in the app
+
+* DSLs: (build upon extension functions chapter(s))
+  - refactor to DSLs, don't design up front
+  - Small notations that can easily be combined in preference to large DSLs that can be unwieldy  
+  - Compositional (immutable data, functions, function application & composition) vs builder-style DSLs (extension methods on mutable objects)
+    + prefer the former until the latter is unavoidable
+  - Refactoring Java approaches to DSL-like code into Kotlin
+    + statics class members in Java to top-level declarations, extension functions, infix functions, etc.
+    + use `apply` instead of builders
+    + separating mutable and read-only interfaces of mutable classes
+  - Introduce extension blocks and syntactic sugar in wrappers to build DSLs
 
 * Error handling - checked exceptions to result monad
   - The background of error handling facilities inherited from Java: exceptions.
