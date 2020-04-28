@@ -93,7 +93,6 @@ data class FileSnippet(val versionedFile: VersionedFile, val fragment: String?) 
     private fun filter(lines: List<String>) =
         lines
             .snipped(fragment)
-            .withoutPreamble()
             .also {
                 if (it.isEmpty()) {
                     error("$versionedFile is empty after filtering with $fragment")

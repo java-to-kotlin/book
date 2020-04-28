@@ -28,6 +28,13 @@ sealed class Line {
 
 val Ellipsis.replacementLine get() = prefix + ellipsis
 
+fun Text.isBlank() = text.isBlank()
+
+private fun Text.isPackageStatement() = text.startsWith("package")
+
+private fun Text.isImportStatement() = text.startsWith("import")
+
+
 private val negateTagOperator = "!"
 
 private val tagSpec = """$negateTagOperator?[a-zA-Z0-9_]+""".toRegex()
@@ -76,7 +83,6 @@ private fun parseDirective(parts: MatchGroupCollection) =
     parts["directive"]?.value ?: error("no snippet directive")
 
 
-
 private fun parseTags(parts: MatchGroupCollection): TagCriteria {
     return when (val tagsStr = parts["tags"]?.value) {
         null -> { _ -> true }
@@ -100,29 +106,39 @@ private fun parseTags(parts: MatchGroupCollection): TagCriteria {
 
 fun Iterable<String>.snipped(tagName: String?): List<String> {
     val result = mutableListOf<String>()
-    var output = tagName == null
-    this.forEach { line ->
-        when (val parsed = parseLine(line)) {
+
+    var currentRegionIsSelected = tagName == null
+    var inPreamble = true
+
+    fun shouldSkip(line: Text): Boolean {
+        return line.isPackageStatement()
+            || line.isImportStatement() && tagName == null
+            || line.isBlank() && inPreamble
+    }
+
+    map(::parseLine).forEach { line ->
+        when (line) {
             is Text ->
-                if (output) {
-                    result.add(parsed.text.withHighlight(tagName))
+                if (currentRegionIsSelected && !shouldSkip(line)) {
+                    result.add(line.highlightedText(tagName))
+                    inPreamble = false
                 }
             is Begin ->
-                if (parsed.appliesToTag(tagName)) {
-                    output = true
+                if (line.appliesToTag(tagName)) {
+                    currentRegionIsSelected = true
                 }
             is End ->
-                if (parsed.appliesToTag(tagName)) {
-                    output = false
+                if (line.appliesToTag(tagName)) {
+                    currentRegionIsSelected = false
                 }
             is Ellipsis ->
-                if (parsed.appliesToTag(tagName)) {
-                    result.add(parsed.replacementLine)
-                    if (parsed.mute) output = false
+                if (line.appliesToTag(tagName)) {
+                    result.add(line.replacementLine)
+                    if (line.mute) currentRegionIsSelected = false
                 }
             is Resume ->
-                if (parsed.appliesToTag(tagName)) {
-                    output = true
+                if (line.appliesToTag(tagName)) {
+                    currentRegionIsSelected = true
                 }
         }
     }
@@ -131,8 +147,8 @@ fun Iterable<String>.snipped(tagName: String?): List<String> {
 }
 
 
-private fun String.withHighlight(tagName: String?) =
-    annotationPattern.replace(this) { matchResult ->
+private fun Text.highlightedText(tagName: String?) =
+    annotationPattern.replace(text) { matchResult ->
         val directive = matchResult.groups["directive"]?.value
         val replacement = matchResult.groups["replacement"]?.value ?: ""
         val appliesToTag = parseTags(matchResult.groups)
