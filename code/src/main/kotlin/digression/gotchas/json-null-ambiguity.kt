@@ -9,7 +9,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory.instance as json
 
 
 fun objectOf(vararg properties: Pair<String, JsonNode>): ObjectNode =
-    json.objectNode().apply { setAll(properties.toMap()) }
+    ObjectNode(json, properties.toMap())
 
 infix fun String.of(propertyValue: Int?) =
     Pair(this, json.numberNode(propertyValue))
