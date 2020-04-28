@@ -14,10 +14,12 @@ fi
 
 cd ../refactoring-to-kotlin-code
 
-git tag -l 'r[0-9]*' | xargs $gitcmd tag -d
+tagfmt='*.[0-9]*'
+
+git tag -l "$tagfmt" | xargs $gitcmd tag -d
 git log --format=oneline | awk '
-    /[0-9a-f]{32} r([0-9|.]+) :/ {
-      linerev = substr($2,2) + 0 # force a numeric comparison
+    /[0-9a-f]{32} (r[0-9]+|[a-z_]+)([.][0-9]+)+ :/ {
+      linerev = $2
       if (linerev != rev) {
          rev = linerev
          print $2, $1
@@ -27,5 +29,7 @@ git log --format=oneline | awk '
 
 if [ "$mode" = "for_real" ]
 then
-    git tag --list 'r[0-9]*' | sort -V
+    echo
+    echo Current tags:
+    git tag --list "$tagfmt" | sort -V
 fi
