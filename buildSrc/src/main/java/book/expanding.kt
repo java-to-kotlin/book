@@ -41,7 +41,7 @@ private fun lookupWithRoot(sourceRoots: SourceRoots) =
     fun(key: String): String {
         val (versionedFile, tag) = key.parse(sourceRoots)
         if (!versionedFile.exists()) {
-            val message = "File not found for $versionedFile (${versionedFile._lines.recover { it.message }})"
+            val message = "File not found for $versionedFile (${versionedFile.linesOrError.recover { it.message }})"
             if (abortOnFailure) {
                 error(message)
             } else {
@@ -54,11 +54,12 @@ private fun lookupWithRoot(sourceRoots: SourceRoots) =
 private fun String.parse(sourceRoots: SourceRoots): Pair<VersionedFile, String?> {
     val (file, fragment) = this.trim().split("#").let { parts -> parts[0] to parts.getOrNull(1) }
     val (path, version) = file.split(":").let { parts -> parts.last() to parts.first().takeIf { parts.size == 2 } }
-
     val versionedFile = VersionedFile(
-        file = sourceRoots.sourceRootFor(version).resolve(path).canonicalFile,
+        sourceRoot = sourceRoots.sourceRootFor(version),
+        relativePath = path,
         version = version
     )
+
     return versionedFile to fragment
 }
 
@@ -100,28 +101,32 @@ data class FileSnippet(val versionedFile: VersionedFile, val fragment: String?) 
             }
 }
 
-private fun Iterable<String>.withoutPreamble(): List<String> = this
-    .filter { !it.startsWith("import") && !it.startsWith("package") }
-    .dropWhile { it.isEmpty() }
-
 data class VersionedFile(
-    val file: File,
+    val sourceRoot: File,
+    val relativePath: String,
     val version: String?
 ) {
+    val file = sourceRoot.resolve(relativePath)
 
-    val _lines: Result<List<String>, Exception> by lazy {
+    val linesOrError: Result<List<String>, Exception> by lazy {
         when (version) {
-            null -> resultOf { file.readLines() }
-            else -> readVersioned(file, version)
+            null -> readUnversioned()
+            else -> readVersioned()
         }
     }
 
-    val lines: List<String> get() = _lines.recover { throw it }
+    val lines: List<String> get() =
+        linesOrError.recover { throw it }
 
-    private fun readVersioned(file: File, version: String): Result<List<String>, Exception> =
-        "git show $version:./${file.name}".runCommand(workingDir = file.parentFile).map { it.lines() }
+    private fun readUnversioned() =
+        resultOf { file.readLines() }
 
-    fun exists(): Boolean = _lines is Success
+    private fun readVersioned() =
+        "git show $version:./${relativePath}"
+            .runCommand(workingDir = sourceRoot)
+            .map { it.lines() }
+
+    fun exists(): Boolean = linesOrError is Success
 }
 
 fun String.runCommand(
