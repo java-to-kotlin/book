@@ -4,12 +4,13 @@ tasks {
     create("build") {
         doFirst {
             processFiles(
-                dir =
+                textRoot =
                     project.projectDir,
                 workedExampleSrcRoot =
                     project.rootProject.projectDir.resolve("../refactoring-to-kotlin-code").canonicalFile,
                 digressionSrcRoot =
-                    project.rootProject.projectDir.resolve("code").canonicalFile
+                    project.rootProject.projectDir.resolve("code").canonicalFile,
+                abortOnFailure = true
             )
         }
     }

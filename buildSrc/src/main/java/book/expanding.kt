@@ -6,8 +6,6 @@ import java.util.concurrent.TimeUnit
 import kotlin.text.RegexOption.DOT_MATCHES_ALL
 import kotlin.text.RegexOption.MULTILINE
 
-private const val abortOnFailure = false
-
 private data class SourceRoots(
     val workedExample: File,
     val digressionCode: File
@@ -20,24 +18,34 @@ private fun SourceRoots.sourceRootFor(version: String?): File {
     }
 }
 
-fun processFiles(dir: File, workedExampleSrcRoot: File, digressionSrcRoot: File) {
-    processFiles(dir, SourceRoots(workedExampleSrcRoot, digressionSrcRoot))
+fun processFiles(
+    textRoot: File,
+    workedExampleSrcRoot: File,
+    digressionSrcRoot: File,
+    abortOnFailure: Boolean
+) {
+    processFiles(textRoot, SourceRoots(workedExampleSrcRoot, digressionSrcRoot), abortOnFailure)
 }
 
-private fun processFiles(dir: File, sourceRoots: SourceRoots) {
-    dir.walkTopDown().filter { it.name.endsWith(".ad") }.forEach { file ->
-        processFile(file, file, sourceRoots)
+private fun processFiles(textRoot: File, sourceRoots: SourceRoots, abortOnFailure: Boolean) {
+    textRoot.walkTopDown().filter { it.name.endsWith(".ad") }.forEach { file ->
+        processFile(file, file, sourceRoots, abortOnFailure)
     }
 }
 
-private fun processFile(src: File, dest: File, srcRoot: SourceRoots) {
+private fun processFile(
+    src: File,
+    dest: File,
+    srcRoot: SourceRoots,
+    abortOnFailure: Boolean
+) {
     val text = src.readText()
-    val newText = expandCodeBlocks(text, lookupWithRoot(srcRoot))
+    val newText = expandCodeBlocks(text, lookupWithRoot(srcRoot, abortOnFailure))
     if (newText != text)
         dest.writeText(newText)
 }
 
-private fun lookupWithRoot(sourceRoots: SourceRoots) =
+private fun lookupWithRoot(sourceRoots: SourceRoots, abortOnFailure: Boolean) =
     fun(key: String): String {
         val (versionedFile, tag) = key.parse(sourceRoots)
         if (!versionedFile.exists()) {
