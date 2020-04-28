@@ -1,0 +1,78 @@
+= We can make a Java API for building JSON trees less "noisy" with Kotlin
+
+Our application contains a little bit of code that we use in tests to build examples of JSON data. This allows us to write self contained tests that are not split between Java code and JSON resource files, and is more convenient than building JSON examples by string concatenation.
+
+Here's what code that builds a JSON tree looks like:
+
+// begin-insert: tags/jsondsl.0:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.java#json_dsl_usage
+[source,java]
+[%autofit]
+----
+import static colloquiumatic.json.Json.obj;
+import static colloquiumatic.json.Json.prop;
+...
+        JsonNode commandAsJson = obj(
+            prop("userId", exampleUserId),
+            prop("scheduledSessionId", exampleSessionId),
+            prop("wouldRecommend", 1),
+            prop("appreciation", "Helpful tips and strategies for refactoring Java to Kotlin."),
+            prop("suggestions", "Would like information about what to do with code that uses Lombok.")
+        );
+----
+// end-insert
+
+The `Json` class contains static functions that return objects from Jackson library:
+
+// begin-insert: tags/jsondsl.0:src/test/java/colloquiumatic/json/Json.java#json_dsl
+[source,java]
+[%autofit]
+----
+public class Json {
+    private static final JsonNodeFactory nodes = JsonNodeFactory.instance;
+
+    @SafeVarargs
+    public static ObjectNode obj(Map.Entry<String, JsonNode>... props) {
+        return obj(asList(props));
+    }
+
+    public static ObjectNode obj(List<Map.Entry<String, JsonNode>> props) {
+        return new ObjectNode(
+            nodes,
+            props.stream().collect(toMap(Map.Entry::getKey, Map.Entry::getValue)));
+    }
+
+    public static Map.Entry<String, JsonNode> prop(String name, JsonNode value) {
+        return new AbstractMap.SimpleImmutableEntry<>(name, value);
+    }
+
+    public static Map.Entry<String, JsonNode> prop(String name, String textValue) {
+        return prop(name, new TextNode(textValue));
+    }
+
+    public static Map.Entry<String, JsonNode> prop(String name, int intValue) {
+        return prop(name, new IntNode(intValue));
+    }
+
+    ... similarly for the other primitive JSON types
+
+    public static ArrayNode array(Iterable<JsonNode> elements) {
+        ArrayNode array = new ArrayNode(nodes);
+        elements.forEach(array::add);
+        return array;
+    }
+
+    public static <T> ArrayNode array(List<T> elements, Function<T, JsonNode> fn) {
+        return array(elements.stream().map(fn).collect(toList()));
+    }
+
+    ... and other syntactic sugar
+}
+----
+// end-insert
+
+The Jackson library does most of the heavy lifting required, and our `Json` class just tries to make Java source code that builds JSON data as close to JSON syntax as possible.  That's not very close, to be fair, but closer than you can get by using the Jackson library directly.
+
+Where should we start converting our code?  The tests, or the `Json` class?
+
+
+... TBD
