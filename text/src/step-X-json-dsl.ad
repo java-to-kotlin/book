@@ -138,3 +138,61 @@ object Json {
 }
 ----
 // end-insert
+
+... replace use of Map.Entry with pair...
+
+There's no automatic way of doing this refactoring in one go.  However, thanks to Kotlin type inference and our use of single-expression functions, Map.Entry is only referred to in three places: as parameters of the `obj` functions and in the implementation of `prop(String,JsonNode)`.  Code that _uses_ our syntactic sugar does not refer to the Map.Entry type at all.   So, it's easy enough to change these by hand.
+
+However, with a bit of refactoring-fu we can perform the transformation as a series of safe additions of temporary code and automated transformation steps without ever introducing a compilation error:
+
+1. Alt-Enter on the "Entry" in Map.Entry, and select "add import for 'kotlin.collections.Map.Entry'".  Now all references in the file to the `Map.Entry` type are via the unqualified name "Entry".
+2. Add a typealias below the imports, aliasing Entry and SimpleImmutableEntry to Pair:
+
+   ----
+   typealias Entry<K,V> = Pair<K,V>
+   typealias SimpleImmutableEntry<K,V> = Pair<K,V>
+   ----
+
+3. Delete the imports of kotlin.collections.Map.Entry and java.util.AbstractMap.SimpleImmutableEntry.  All uses of Entry in the file are now referring to `kotlin.Pair`.
+4. Define two temporary extension properties on Pair to match those on Map.Entry:
+
+   ----
+   val <K,V> Pair<K,V>.key get() = first
+   val <K,V> Pair<K,V>.value get() = second
+   ----
+
+5. Inline the typealiases.
+6. Inline the temporary extension properties we created in step 4.
+7. Tidy up by removing unnecessary explicit type parameters that IntelliJ left in the `prop` function that creates Pairs.
+
+That leaves the code looking like:
+
+// begin-insert tags/jsondsl.7:src/test/java/colloquiumatic/json/Json.kt#tidy_implementation
+// end-insert
+****
+Was that worth it for this small class?  Maybe not.  But when transformations have to touch lots of places across the code, it's easier and less risky to perform the refactoring as a sequence of small steps in which the IDE automatically changes dependent code.  So I like to practice working in that way whenever I get the opportunity.
+****
+
+
+... make `prop` an infix function.
+
+It's not idiomatic Kotlin to create pairs by calling the constructor.
+Alt-Enter on the call to the Pair constructor in the `prop` function, and choose the option "convert to 'to'".
+
+The `to` operator for constructing Pairs is not a language feature.  It's an _infix_ function defined in the standard library.  An infix function is a method or extension function that takes one parameter and is marked with the `infix` modifier.  It can be called with operator-like syntax: you don't need to use a dot to reference the method or enclose the parameter in parentheses.
+
+That gives us a clue as to how to improve the notation now we are working in Kotlin.  Wouldn't it be nice if object properties did not have to be wrapped in a call to `prop`, but used an infix notation instead. We can't call our JSON infix operator "to"; that's been taken for Pairs.  But we can use a similarly short word.  How about "of"?  That would make code that builds JSON look like:
+
+TODO: refer to the final state here
+
+How do we turn a function into an infix function?  We need to first introduce an extension method, and then mark it as infix.  IntelliJ can automatically do the first step: Alt-Enter on the first parameter of each `prop` function and select "Convert parameter to receiver".  We must mark it as infix manually.  Now our JSON-building code looks like this:
+
+TODO: refer to wrong direction state here
+
+But how do we make the call sites use infix syntax?  At the time of writing, IntelliJ automates that for an individual call site via the Alt-Enter menu, but doesn't have a way to do it in bulk for _all_ uses of an infix function in the codebase.  Too tedious!
+
+Let's roll back and take another run at it: we'll try using the _Add-code-and-inline_ trick we used to swap out the Map.Entry type for Pair.
+
+
+... make top level ...
+
