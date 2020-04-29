@@ -17,7 +17,7 @@ cd ../refactoring-to-kotlin-code
 tagfmt='*.[0-9]*'
 
 git tag -l "$tagfmt" | xargs $gitcmd tag -d
-git log --branches --format=oneline | awk '
+git log --branches --topo-order --format=oneline | awk '
     /[0-9a-f]{32} (r[0-9]+|[a-z_]+)([.][0-9]+)+ :/ {
       linerev = $2
       if (linerev != rev) {
