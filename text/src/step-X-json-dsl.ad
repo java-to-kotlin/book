@@ -66,7 +66,7 @@ Instead, let's convert the code that depends on the `Json` class to Kotlin first
 
 Unfortunately, IntelliJ does not know that the purpose of the Json class is to define syntactic sugar and it doesn't carry the static imports across into Kotlin. It translates `obj` and `prop` to `Json.obj` and `Json.prop`, and messes up our carefully crafted notation.  We can fix this by hitting Alt-Enter on the first call to each method in the file we translated and choose to import the method directly.
 
-When all the dependent code is converted to Kotlin, we can convert the Json class itself.  The Java class of static methods is translated into a top level Kotlin object, also called `Json`.
+When we have converted all the dependent code to Kotlin, we can convert the Json class itself.  The Java class of static methods becomes a top-level Kotlin object, also called `Json`.
 
 At the time of writing, the translator doesn't get the conversion quite right.  It marks more types as nullable than we would want, and doesn't infer the nullability correctly, so the resulting code doesn't compile.
 
@@ -111,8 +111,6 @@ We can fix it by removing the nullability modifiers.
 // end-insert
 
 Now everything is working again, we can start applying Kotlin features to simplify the implementation of our syntactic sugar, and make it less "noisy".
-
-DRAFT BELOW...
 
 Tidy up the construction of JSON objects using Kotlin stdlib instead of JDK APIs and SAMs, and single-expression functions instead of block functions.
 
@@ -167,8 +165,29 @@ However, with a bit of refactoring-fu we can perform the transformation as a ser
 
 That leaves the code looking like:
 
-// begin-insert tags/jsondsl.7:src/test/java/colloquiumatic/json/Json.kt#tidy_implementation
+// begin-insert: tags/jsondsl.7:src/test/java/colloquiumatic/json/Json.kt#json_dsl
+[source,kotlin]
+[%autofit]
+----
+object Json {
+    private val nodes = JsonNodeFactory.instance
+
+    fun obj(vararg props: Pair<String, JsonNode>) = obj(props.asList())
+
+    fun obj(props: Iterable<Pair<String, JsonNode>>): ObjectNode =
+        nodes.objectNode().apply {
+            props.forEach { p -> set<ObjectNode>(p.first, p.second) }
+        }
+
+    fun prop(name: String, value: JsonNode) = Pair(name, value)
+    fun prop(name: String, textValue: String) = prop(name, TextNode(textValue))
+    fun prop(name: String, intValue: Int) = prop(name, IntNode(intValue))
+
+    // and the rest of the syntactic sugar...
+}
+----
 // end-insert
+
 ****
 Was that worth it for this small class?  Maybe not.  But when transformations have to touch lots of places across the code, it's easier and less risky to perform the refactoring as a sequence of small steps in which the IDE automatically changes dependent code.  So I like to practice working in that way whenever I get the opportunity.
 ****
@@ -176,23 +195,94 @@ Was that worth it for this small class?  Maybe not.  But when transformations ha
 
 ... make `prop` an infix function.
 
-It's not idiomatic Kotlin to create pairs by calling the constructor.
+It's not idiomatic Kotlin to create pairs by calling the Pair constructor.
 Alt-Enter on the call to the Pair constructor in the `prop` function, and choose the option "convert to 'to'".
 
 The `to` operator for constructing Pairs is not a language feature.  It's an _infix_ function defined in the standard library.  An infix function is a method or extension function that takes one parameter and is marked with the `infix` modifier.  It can be called with operator-like syntax: you don't need to use a dot to reference the method or enclose the parameter in parentheses.
 
 That gives us a clue as to how to improve the notation now we are working in Kotlin.  Wouldn't it be nice if object properties did not have to be wrapped in a call to `prop`, but used an infix notation instead. We can't call our JSON infix operator "to"; that's been taken for Pairs.  But we can use a similarly short word.  How about "of"?  That would make code that builds JSON look like:
 
-TODO: refer to the final state here
+// begin-insert: tags/jsondsl.11:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_usage
+[source,kotlin]
+[%autofit]
+----
+import colloquiumatic.json.Json.obj
+import colloquiumatic.json.Json.of
+...
+        val commandAsJson: JsonNode = obj(
+            "userId" of exampleUserId,
+            "scheduledSessionId" of exampleSessionId,
+            "wouldRecommend" of 1,
+            "appreciation" of "Helpful tips and strategies for refactoring Java to Kotlin.",
+            "suggestions" of "Would like information about what to do with code that uses Lombok."
+        )
+----
+// end-insert
 
 How do we turn a function into an infix function?  We need to first introduce an extension method, and then mark it as infix.  IntelliJ can automatically do the first step: Alt-Enter on the first parameter of each `prop` function and select "Convert parameter to receiver".  We must mark it as infix manually.  Now our JSON-building code looks like this:
 
-TODO: refer to wrong direction state here
+// begin-insert: tags/jsondsl.9:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_usage
+[source,kotlin]
+[%autofit]
+----
+        val commandAsJson: JsonNode = obj(
+            "userId".prop(exampleUserId),
+            "scheduledSessionId".prop(exampleSessionId),
+            "wouldRecommend".prop(1),
+            "appreciation".prop("Helpful tips and strategies for refactoring Java to Kotlin."),
+            "suggestions".prop("Would like information about what to do with code that uses Lombok.")
+        )
+----
+// end-insert
 
 But how do we make the call sites use infix syntax?  At the time of writing, IntelliJ automates that for an individual call site via the Alt-Enter menu, but doesn't have a way to do it in bulk for _all_ uses of an infix function in the codebase.  Too tedious!
 
-Let's roll back and take another run at it: we'll try using the _Add-code-and-inline_ trick we used to swap out the Map.Entry type for Pair.
+Let's roll back and take another run at it: we'll try using the _add-code-and-inline_ trick we used to swap out the Map.Entry type for Pair.  This time, we'll add new, infix functions called "of" and make the "prop" functions delegate to them.
+
+// begin-insert: tags/jsondsl.10:src/test/java/colloquiumatic/json/Json.kt#temporary_delegation_to_infix_of_function
+[source,kotlin]
+[%autofit]
+----
+    fun prop(name: String, value: JsonNode) = name of value
+    fun prop(name: String, textValue: String) = name of textValue
+    fun prop(name: String, intValue: Int) = name of intValue
+
+    infix fun String.of(value: JsonNode) = this to value
+    infix fun String.of(textValue: String) = this of TextNode(textValue)
+    infix fun String.of(intValue: Int) = this of IntNode(intValue)
+----
+// end-insert
+
+Now we can inline the prop functions, and we're done.
+
+// begin-insert: tags/jsondsl.11:src/test/java/colloquiumatic/json/Json.kt
+[source,kotlin]
+[%autofit]
+----
+object Json {
+    private val nodes = JsonNodeFactory.instance
+
+    fun obj(vararg props: Pair<String, JsonNode>) = obj(props.asList())
+
+    fun obj(props: Iterable<Pair<String, JsonNode>>): ObjectNode =
+        nodes.objectNode().apply {
+            props.forEach { p -> set<ObjectNode>(p.first, p.second) }
+        }
+
+    infix fun String.of(value: JsonNode) = this to value
+    infix fun String.of(textValue: String) = this of TextNode(textValue)
+    infix fun String.of(intValue: Int) = this of IntNode(intValue)
+}
 
 
-... make top level ...
+----
+// end-insert
+
+
+... still not entirely idiomatic Kotlin.  We're not using the Json object as an object.  It's merely a namespace to hold the functions and a reference to the object mapper.  We might as well define them at the top level of the file.  However, IntelliJ cannot (at the time of writing) automatically move  declarations from an object to the top level.  We'd have to do it by hand, either by deleting the first line and final brace and then "leaning on the compiler" to fix up dependent code, or by using the _add-code-and-inline_ move again.  Is it worth it?  I'll leave that up to you, the reader, if you're following along at home.
+
+
+== Discussion: syntactic sugar, domain specific embedded languages, Java vs Kotlin
+
+... TBD...
 
