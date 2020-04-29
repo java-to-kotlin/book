@@ -1,22 +1,21 @@
 #!/bin/sh
 set -e
 
-if [ "$1" = "--for-real" ]
+if [ "$1" = "--dry-run" ]
 then
- echo "for real" 1>&2
- mode=for_real
- gitcmd="git"
-else
  echo "dry run" 1>&2
  mode=dryrun
  gitcmd="echo git"
+else
+ mode=for_real
+ gitcmd="git"
 fi
 
 cd ../refactoring-to-kotlin-code
 
 tagfmt='*.[0-9]*'
 
-git tag -l "$tagfmt" | xargs $gitcmd tag -d
+git tag -l "$tagfmt" | xargs $gitcmd tag -d >/dev/null
 git log --branches --topo-order --format=oneline | awk '
     /[0-9a-f]{32} (r[0-9]+|[a-z_]+)([.][0-9]+)+ :/ {
       linerev = $2
@@ -26,10 +25,3 @@ git log --branches --topo-order --format=oneline | awk '
       }
     }
 ' | xargs -n 2 $gitcmd tag -f
-
-if [ "$mode" = "for_real" ]
-then
-    echo
-    echo Current tags:
-    git tag --list "$tagfmt" | sort -V
-fi
