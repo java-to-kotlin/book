@@ -1,4 +1,4 @@
-= We can make a Java API for building JSON trees less "noisy" with Kotlin
+= We refactor a "domain-specific embedded language" for building JSON data
 
 Our application contains a little bit of code that we use in tests to build examples of JSON data. This allows us to write self contained tests that are not split between Java code and JSON resource files, and is more convenient than building JSON examples by string concatenation.
 
@@ -21,7 +21,10 @@ import static colloquiumatic.json.Json.prop;
 ----
 // end-insert
 
-The `Json` class contains static functions that return objects from Jackson library:
+The `Json` class contains static functions that delegate to the Jackson library.
+Jackson does all the work of representing JSON data and serialising/deserialising JSON to and from strings and streams.
+Our `Json` class tries to make Java code that builds JSON data look as close to JSON syntax as possible.
+That's not very close, to be fair, but closer than you can get by using the Jackson library directly.
 
 // begin-insert: tags/jsondsl.0:src/test/java/colloquiumatic/json/Json.java#json_dsl
 [source,java]
@@ -58,13 +61,29 @@ public class Json {
 ----
 // end-insert
 
-The Jackson library does most of the heavy lifting required, and our `Json` class just tries to make Java source code that builds JSON data as close to JSON syntax as possible.  That's not very close, to be fair, but closer than you can get by using the Jackson library directly.
 
 To convert this into Kotlin, it doesn't make sense to start with the `Json` class: it's job is to provide syntactic sugar for our Java code.  At best, converting it to Kotlin will leave the Java code unchanged, and so not be worth the effort.  At worst, the conversion will make it _worse_ as a convenient notation, and we'll have to annotate the Kotlin API to get it back to where we started.
 
 Instead, let's convert the code that depends on the `Json` class to Kotlin first.  When that's done, we can convert the `Json` class to Kotlin, and then apply Kotlin language features to make a better notation than is possible in Java.
 
-Unfortunately, IntelliJ does not know that the purpose of the Json class is to define syntactic sugar and it doesn't carry the static imports across into Kotlin. It translates `obj` and `prop` to `Json.obj` and `Json.prop`, and messes up our carefully crafted notation.  We can fix this by hitting Alt-Enter on the first call to each method in the file we translated and choose to import the method directly.
+Unfortunately, IntelliJ does not know that the purpose of the Json class is to define syntactic sugar and it doesn't carry the static imports across into Kotlin. It translates `obj` and `prop` to `Json.obj` and `Json.prop`, and messes up our carefully crafted notation.
+
+// begin-insert: tags/jsondsl.1:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_usage
+[source,kotlin]
+[%autofit]
+----
+...
+        val commandAsJson: JsonNode = Json.obj(
+            Json.prop("userId", exampleUserId),
+            Json.prop("scheduledSessionId", exampleSessionId),
+            Json.prop("wouldRecommend", 1),
+            Json.prop("appreciation", "Helpful tips and strategies for refactoring Java to Kotlin."),
+            Json.prop("suggestions", "Would like information about what to do with code that uses Lombok.")
+        )
+----
+// end-insert
+
+We can fix this by hitting Alt-Enter on the first call to each method in the file we translated and choose to import the method directly.
 
 When we have converted all the dependent code to Kotlin, we can convert the Json class itself.  The Java class of static methods becomes a top-level Kotlin object, also called `Json`.
 
