@@ -35,10 +35,10 @@ public class Json {
         return obj(asList(props));
     }
 
-    public static ObjectNode obj(List<Map.Entry<String, JsonNode>> props) {
-        return new ObjectNode(
-            nodes,
-            props.stream().collect(toMap(Map.Entry::getKey, Map.Entry::getValue)));
+    public static ObjectNode obj(Iterable<Map.Entry<String, JsonNode>> props) {
+        ObjectNode node = nodes.objectNode();
+        props.forEach(p -> node.set(p.getKey(), p.getValue()));
+        return node;
     }
 
     public static Map.Entry<String, JsonNode> prop(String name, JsonNode value) {
@@ -53,26 +53,88 @@ public class Json {
         return prop(name, new IntNode(intValue));
     }
 
-    ... similarly for the other primitive JSON types
-
-    public static ArrayNode array(Iterable<JsonNode> elements) {
-        ArrayNode array = new ArrayNode(nodes);
-        elements.forEach(array::add);
-        return array;
-    }
-
-    public static <T> ArrayNode array(List<T> elements, Function<T, JsonNode> fn) {
-        return array(elements.stream().map(fn).collect(toList()));
-    }
-
-    ... and other syntactic sugar
+    // and similar syntactic sugar for other primitive JSON types, and JSON arrays
 }
 ----
 // end-insert
 
 The Jackson library does most of the heavy lifting required, and our `Json` class just tries to make Java source code that builds JSON data as close to JSON syntax as possible.  That's not very close, to be fair, but closer than you can get by using the Jackson library directly.
 
-Where should we start converting our code?  The tests, or the `Json` class?
+To convert this into Kotlin, it doesn't make sense to start with the `Json` class: it's job is to provide syntactic sugar for our Java code.  At best, converting it to Kotlin will leave the Java code unchanged, and so not be worth the effort.  At worst, the conversion will make it _worse_ as a convenient notation, and we'll have to annotate the Kotlin API to get it back to where we started.
 
+Instead, let's convert the code that depends on the `Json` class to Kotlin first.  When that's done, we can convert the `Json` class to Kotlin, and then apply Kotlin language features to make a better notation than is possible in Java.
 
-... TBD
+Unfortunately, IntelliJ does not know that the purpose of the Json class is to define syntactic sugar and it doesn't carry the static imports across into Kotlin. It translates `obj` and `prop` to `Json.obj` and `Json.prop`, and messes up our carefully crafted notation.  We can fix this by hitting Alt-Enter on the first call to each method in the file we translated and choose to import the method directly.
+
+When all the dependent code is converted to Kotlin, we can convert the Json class itself.  The Java class of static methods is translated into a top level Kotlin object, also called `Json`.
+
+At the time of writing, the translator doesn't get the conversion quite right.  It marks more types as nullable than we would want, and doesn't infer the nullability correctly, so the resulting code doesn't compile.
+
+// begin-insert: tags/jsondsl.3:src/test/java/colloquiumatic/json/Json.kt#incorrect_translation
+[source,kotlin]
+[%autofit]
+----
+    @SafeVarargs
+    fun obj(vararg props: Map.Entry<String?, JsonNode?>?): ObjectNode {
+        return obj(Arrays.asList(*props)) /// note: Type mismatch.
+    }
+
+    fun obj(props: Iterable<Map.Entry<String?, JsonNode?>>): ObjectNode {
+        val node = nodes.objectNode()
+        props.forEach(Consumer { p: Map.Entry<String?, JsonNode?> ->
+            node.set<JsonNode>(p.key, p.value)
+        })
+        return node
+    }
+----
+// end-insert
+
+We can fix it by removing the nullability modifiers.
+
+// begin-insert: tags/jsondsl.4:src/test/java/colloquiumatic/json/Json.kt#correction
+[source,kotlin]
+[%autofit]
+----
+    @SafeVarargs
+    fun obj(vararg props: Map.Entry<String, JsonNode>): ObjectNode {
+        return obj(Arrays.asList(*props)) /// note: Type mismatch.
+    }
+
+    fun obj(props: Iterable<Map.Entry<String, JsonNode>>): ObjectNode {
+        val node = nodes.objectNode()
+        props.forEach(Consumer { p: Map.Entry<String, JsonNode> ->
+            node.set<ObjectNode>(p.key, p.value)
+        })
+        return node
+    }
+----
+// end-insert
+
+Now everything is working again, we can start applying Kotlin features to simplify the implementation of our syntactic sugar, and make it less "noisy".
+
+DRAFT BELOW...
+
+Tidy up the construction of JSON objects using Kotlin stdlib instead of JDK APIs and SAMs, and single-expression functions instead of block functions.
+
+// begin-insert: tags/jsondsl.5:src/test/java/colloquiumatic/json/Json.kt#tidy_implementation
+[source,kotlin]
+[%autofit]
+----
+object Json {
+    private val nodes = JsonNodeFactory.instance
+
+    fun obj(vararg props: Map.Entry<String, JsonNode>) = obj(props.asList())
+
+    fun obj(props: Iterable<Map.Entry<String, JsonNode>>): ObjectNode =
+        nodes.objectNode().apply {
+            props.forEach { p -> set<ObjectNode>(p.key, p.value) }
+        }
+
+    fun prop(name: String, value: JsonNode) = SimpleImmutableEntry(name, value)
+    fun prop(name: String, textValue: String) = prop(name, TextNode(textValue))
+    fun prop(name: String, intValue: Int) = prop(name, IntNode(intValue))
+
+    // and the rest of the syntactic sugar...
+}
+----
+// end-insert
