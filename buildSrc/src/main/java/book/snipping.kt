@@ -13,16 +13,22 @@ sealed class Line {
     sealed class Marker : Line() {
         abstract val appliesToTag: TagCriteria
 
-        data class Begin(override val appliesToTag: TagCriteria) : Marker()
-        data class End(override val appliesToTag: TagCriteria) : Marker()
+        data class Begin(
+            override val appliesToTag: TagCriteria,
+            val indent: String
+        ) : Marker()
+        data class End(
+            override val appliesToTag: TagCriteria
+        ) : Marker()
         data class Ellipsis(
             override val appliesToTag: TagCriteria,
             val mute: Boolean,
             val prefix: String,
             val ellipsis: String
         ) : Marker()
-
-        data class Resume(override val appliesToTag: TagCriteria) : Marker()
+        data class Resume(
+            override val appliesToTag: TagCriteria
+        ) : Marker()
     }
 }
 
@@ -70,14 +76,20 @@ fun parseMarkedLine(m: MatchResult): Line.Marker {
     val tags = parseTags(parts)
 
     return when (val directive = parseDirective(parts)) {
-        "begin" -> Begin(tags)
+        "begin" -> Begin(tags, parts.indent())
         "end" -> End(tags)
-        "mute" -> Ellipsis(tags, true, parts["indent"]?.value ?: "", parts["replacement"]?.value ?: "...")
-        "note" -> Ellipsis(tags, false, parts["indent"]?.value ?: "", parts["replacement"]?.value ?: "...")
+        "mute" -> Ellipsis(tags, true, parts.indent(), parts.replacement())
+        "note" -> Ellipsis(tags, false, parts.indent(), parts.replacement())
         "resume" -> Resume(tags)
         else -> error("unsupported directive: $directive")
     }
 }
+
+private fun MatchGroupCollection.replacement() =
+    get("replacement")?.value ?: "..."
+
+private fun MatchGroupCollection.indent() =
+    get("indent")?.value ?: ""
 
 private fun parseDirective(parts: MatchGroupCollection) =
     parts["directive"]?.value ?: error("no snippet directive")
@@ -109,6 +121,7 @@ fun Iterable<String>.snipped(tagName: String?): List<String> {
 
     var currentRegionIsSelected = tagName == null
     var inPreamble = true
+    var exdent = ""
 
     fun shouldSkip(line: Text): Boolean {
         return line.isPackageStatement()
@@ -120,16 +133,18 @@ fun Iterable<String>.snipped(tagName: String?): List<String> {
         when (line) {
             is Text ->
                 if (currentRegionIsSelected && !shouldSkip(line)) {
-                    result.add(line.highlightedText(tagName))
+                    result.add(line.highlightedText(tagName).removePrefix(exdent))
                     inPreamble = false
                 }
             is Begin ->
                 if (line.appliesToTag(tagName)) {
                     currentRegionIsSelected = true
+                    exdent = line.indent
                 }
             is End ->
                 if (line.appliesToTag(tagName)) {
                     currentRegionIsSelected = false
+                    exdent = ""
                 }
             is Ellipsis ->
                 if (line.appliesToTag(tagName)) {

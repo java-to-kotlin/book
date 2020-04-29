@@ -150,7 +150,7 @@ object Sessions {
 [source,kotlin]
 [%autofit]
 ----
-        val thing: Session? = sessions.firstOrNull { it.title == title } /// |
+val thing: Session? = sessions.firstOrNull { it.title == title } /// |
 ----
 // end-insert
 
@@ -162,11 +162,11 @@ Well, spelling it out
 [source,kotlin]
 [%autofit]
 ----
-        val thing: Session? = sessions.firstOrNull { it.title == title }
-        if (thing != null)              /// |
-            return Optional.of(thing)   /// |
-        else                            /// |
-            return Optional.empty()     /// |
+val thing: Session? = sessions.firstOrNull { it.title == title }
+if (thing != null)              /// |
+    return Optional.of(thing)   /// |
+else                            /// |
+    return Optional.empty()     /// |
 ----
 // end-insert
 
@@ -176,11 +176,11 @@ If you're playing along at home you may see that IntelliJ is a little unhappy wi
 [source,kotlin]
 [%autofit]
 ----
-        val thing: Session? = sessions.firstOrNull { it.title == title }
-        return if (thing != null) /// |
-            Optional.of(thing)    /// |
-        else                      /// |
-            Optional.empty()      /// |
+val thing: Session? = sessions.firstOrNull { it.title == title }
+return if (thing != null) /// |
+    Optional.of(thing)    /// |
+else                      /// |
+    Optional.empty()      /// |
 ----
 // end-insert
 
@@ -192,8 +192,8 @@ After this promising intervention, unfortuately IntelliJ seems to have lost its 
 [source,kotlin]
 [%autofit]
 ----
-        val thing: Session? = sessions.firstOrNull { it.title == title }
-        return Optional.ofNullable(thing) /// |
+val thing: Session? = sessions.firstOrNull { it.title == title }
+return Optional.ofNullable(thing) /// |
 ----
 // end-insert
 
@@ -220,8 +220,8 @@ Most developers would stop there, but you didn't buy this book to be in that gro
 [source,kotlin]
 [%autofit]
 ----
-        val thing: Session? = sessions.firstOrNull { it.title == title }
-        return Optional.ofNullable(thing) 
+val thing: Session? = sessions.firstOrNull { it.title == title }
+return Optional.ofNullable(thing) 
 ----
 // end-insert
 
@@ -231,16 +231,16 @@ then select the `Optional.ofNullable(thing)` and extract method
 [source,kotlin]
 [%autofit]
 ----
-    @JvmStatic
-    fun findSessionWithTitle(
-        sessions: List<Session>,
-        title: String
-    ): Optional<Session> {
-        val thing: Session? = sessions.firstOrNull { it.title == title }
-        return optional(thing) /// |
-    }
+@JvmStatic
+fun findSessionWithTitle(
+    sessions: List<Session>,
+    title: String
+): Optional<Session> {
+    val thing: Session? = sessions.firstOrNull { it.title == title }
+    return optional(thing) /// |
+}
 
-    private fun optional(thing: Session?) = Optional.ofNullable(thing) /// +
+private fun optional(thing: Session?) = Optional.ofNullable(thing) /// +
 ----
 // end-insert
 
@@ -250,16 +250,16 @@ Now <Alt-Enter> on the thing parameter and select 'Convert parameter to receiver
 [source,kotlin]
 [%autofit]
 ----
-    @JvmStatic
-    fun findSessionWithTitle(
-        sessions: List<Session>,
-        title: String
-    ): Optional<Session> {
-        val thing: Session? = sessions.firstOrNull { it.title == title }
-        return thing.optional() /// |
-    }
+@JvmStatic
+fun findSessionWithTitle(
+    sessions: List<Session>,
+    title: String
+): Optional<Session> {
+    val thing: Session? = sessions.firstOrNull { it.title == title }
+    return thing.optional() /// |
+}
 
-    private fun Session?.optional() = Optional.ofNullable(this) /// |
+private fun Session?.optional() = Optional.ofNullable(this) /// |
 ----
 // end-insert
 
@@ -434,13 +434,13 @@ We can fix that by giving the compiler a hint.
 [source,kotlin]
 [%autofit]
 ----
-    @Test
-    fun find_in_no_sessions() {
-        Assertions.assertEquals(
-            Optional.empty<Any>(),
-            emptyList<Session>().findWithTitle("No such") /// |
-        )
-    }
+@Test
+fun find_in_no_sessions() {
+    Assertions.assertEquals(
+        Optional.empty<Any>(),
+        emptyList<Session>().findWithTitle("No such") /// |
+    )
+}
 ----
 // end-insert
 
@@ -452,13 +452,13 @@ First `find_session_with_title`.
 [source,kotlin]
 [%autofit]
 ----
-    @Test
-    fun find_session_with_title() {
-        Assertions.assertEquals(
-            Optional.of(sessions[1]),
-            sessions.findWithTitle("Title Too") 
-        )
-    }
+@Test
+fun find_session_with_title() {
+    Assertions.assertEquals(
+        Optional.of(sessions[1]),
+        sessions.findWithTitle("Title Too") 
+    )
+}
 ----
 // end-insert
 
@@ -470,9 +470,9 @@ That code is currently
 [source,kotlin]
 [%autofit]
 ----
-    @JvmStatic
-    fun List<Session>.findWithTitle(title: String) =  
-        firstOrNull { it.title == title }.toOptional()
+@JvmStatic
+fun List<Session>.findWithTitle(title: String) =  
+    firstOrNull { it.title == title }.toOptional()
 ----
 // end-insert
 
@@ -482,14 +482,14 @@ We can have both by extracting a method from `firstOrNull { it.title == title }`
 [source,kotlin]
 [%autofit]
 ----
-    @JvmStatic
-    fun List<Session>.findWithTitle(title: String) =
-        firstWithTitle(title).toOptional() /// |
+@JvmStatic
+fun List<Session>.findWithTitle(title: String) =
+    firstWithTitle(title).toOptional() /// |
 
-    fun List<Session>.firstWithTitle(title: String) = /// +
-        firstOrNull { it.title == title }             /// +
+fun List<Session>.firstWithTitle(title: String) = /// +
+    firstOrNull { it.title == title }             /// +
 
-    fun Session?.toOptional() = Optional.ofNullable(this) /// |
+fun Session?.toOptional() = Optional.ofNullable(this) /// |
 ----
 // end-insert
 
@@ -499,13 +499,13 @@ Now we can inline individual invocations of `findWithTitle`. Ie from
 [source,kotlin]
 [%autofit]
 ----
-    @Test
-    fun find_session_with_title() {
-        Assertions.assertEquals(
-            Optional.of(sessions[1]),
-            sessions.findWithTitle("Title Too") /// |
-        )
-    }
+@Test
+fun find_session_with_title() {
+    Assertions.assertEquals(
+        Optional.of(sessions[1]),
+        sessions.findWithTitle("Title Too") /// |
+    )
+}
 ----
 // end-insert
 
@@ -515,13 +515,13 @@ to
 [source,kotlin]
 [%autofit]
 ----
-    @Test
-    fun find_session_with_title() {
-        Assertions.assertEquals(
-            Optional.of(sessions[1]),
-            sessions.firstWithTitle("Title Too").toOptional() /// |
-        )
-    }
+@Test
+fun find_session_with_title() {
+    Assertions.assertEquals(
+        Optional.of(sessions[1]),
+        sessions.firstWithTitle("Title Too").toOptional() /// |
+    )
+}
 ----
 // end-insert
 
@@ -531,13 +531,13 @@ and unwrap the expected and actual from the Optional
 [source,kotlin]
 [%autofit]
 ----
-    @Test
-    fun find_session_with_title() {
-        Assertions.assertEquals(
-            sessions[1],                         /// |
-            sessions.firstWithTitle("Title Too") /// |
-        )
-    }
+@Test
+fun find_session_with_title() {
+    Assertions.assertEquals(
+        sessions[1],                         /// |
+        sessions.firstWithTitle("Title Too") /// |
+    )
+}
 ----
 // end-insert
 
@@ -547,13 +547,13 @@ Meanwhile other uses, and in fact Java invocations, can still use the old method
 [source,kotlin]
 [%autofit]
 ----
-    @Test
-    fun find_no_session_with_title() {
-        Assertions.assertEquals(
-            Optional.empty<Any>(),
-            sessions.findWithTitle("No such")
-        )
-    }
+@Test
+fun find_no_session_with_title() {
+    Assertions.assertEquals(
+        Optional.empty<Any>(),
+        sessions.findWithTitle("No such")
+    )
+}
 ----
 // end-insert
 
@@ -561,13 +561,13 @@ Meanwhile other uses, and in fact Java invocations, can still use the old method
 [source,java]
 [%autofit]
 ----
-    @Test
-    public void find_in_no_sessions() {
-        assertEquals(
-            Optional.empty(),
-            findSessionWithTitle(emptyList(), "No such")
-        );
-    }
+@Test
+public void find_in_no_sessions() {
+    assertEquals(
+        Optional.empty(),
+        findSessionWithTitle(emptyList(), "No such")
+    );
+}
 ----
 // end-insert
 
@@ -624,23 +624,23 @@ Now at this point we might discuss whether or not `firstWithTitle` is actually p
 [source,kotlin]
 [%autofit]
 ----
-    @Test
-    fun `find session with title`() {
-        assertEquals(
-            sessions[1],
-            sessions.firstOrNull { it.title == "Title Too" } /// |
-        )
-    }
+@Test
+fun `find session with title`() {
+    assertEquals(
+        sessions[1],
+        sessions.firstOrNull { it.title == "Title Too" } /// |
+    )
+}
 
-    @Test
-    fun `find no session with title`() {
-        assertNull(sessions.firstOrNull { it.title == "No such" }) /// |
-    }
+@Test
+fun `find no session with title`() {
+    assertNull(sessions.firstOrNull { it.title == "No such" }) /// |
+}
 
-    @Test
-    fun `find in no sessions`() {
-        assertNull(emptyList<Session>().firstOrNull { it.title == "No such" }) /// |
-    }
+@Test
+fun `find in no sessions`() {
+    assertNull(emptyList<Session>().firstOrNull { it.title == "No such" }) /// |
+}
 ----
 // end-insert
 

@@ -347,13 +347,13 @@ we can make use of Kotlin's named parameters (Alt-Enter inside the brackets)
 [source,kotlin]
 [%autofit]
 ----
-    fun withPresenters(newLineUp: List<Presenter>): Session {
-        return Session(id = id, title = title, presenters = newLineUp) /// |
-    }
+fun withPresenters(newLineUp: List<Presenter>): Session {
+    return Session(id = id, title = title, presenters = newLineUp) /// |
+}
 
-    fun withTitle(newTitle: String): Session {
-        return Session(id = id, title = newTitle, presenters = presenters) /// |
-    }
+fun withTitle(newTitle: String): Session {
+    return Session(id = id, title = newTitle, presenters = presenters) /// |
+}
 ----
 // end-insert
 
@@ -363,13 +363,13 @@ and then replace the constructor invocations with the special copy method
 [source,kotlin]
 [%autofit]
 ----
-    fun withPresenters(newLineUp: List<Presenter>): Session {
-        return copy(id = id, title = title, presenters = newLineUp) /// |
-    }
+fun withPresenters(newLineUp: List<Presenter>): Session {
+    return copy(id = id, title = title, presenters = newLineUp) /// |
+}
 
-    fun withTitle(newTitle: String): Session {
-        return copy(id = id, title = newTitle, presenters = presenters) /// |
-    }
+fun withTitle(newTitle: String): Session {
+    return copy(id = id, title = newTitle, presenters = presenters) /// |
+}
 ----
 // end-insert
 
@@ -379,13 +379,13 @@ Now remove the redundant arguments
 [source,kotlin]
 [%autofit]
 ----
-    fun withPresenters(newLineUp: List<Presenter>): Session {
-        return copy(presenters = newLineUp) /// |
-    }
+fun withPresenters(newLineUp: List<Presenter>): Session {
+    return copy(presenters = newLineUp) /// |
+}
 
-    fun withTitle(newTitle: String): Session {
-        return copy(title = newTitle) /// |
-    }
+fun withTitle(newTitle: String): Session {
+    return copy(title = newTitle) /// |
+}
 ----
 // end-insert
 
@@ -395,9 +395,9 @@ Where a Kotlin function body consists of a single expression you can Alt-Enter o
 [source,kotlin]
 [%autofit]
 ----
-    fun withPresenters(newLineUp: List<Presenter>) = copy(presenters = newLineUp) /// |
+fun withPresenters(newLineUp: List<Presenter>) = copy(presenters = newLineUp) /// |
 
-    fun withTitle(newTitle: String) = copy(title = newTitle) /// |
+fun withTitle(newTitle: String) = copy(title = newTitle) /// |
 ----
 // end-insert
 
@@ -407,25 +407,25 @@ While there are still Java uses of `withPresenters` and `withTitle` that is as f
 [source,kotlin]
 [%autofit]
 ----
-    @Test
-    fun `can change title`() {
-        Assertions.assertEquals(
-            Session(
-                "s1",
-                "Another Title",
-                listOf(bob, alice)
-            ),
-            aSession.withTitle("Another Title") /// |
-        )
-    }
+@Test
+fun `can change title`() {
+    Assertions.assertEquals(
+        Session(
+            "s1",
+            "Another Title",
+            listOf(bob, alice)
+        ),
+        aSession.withTitle("Another Title") /// |
+    )
+}
 
-    @Test
-    fun `can change presenters`() {
-        Assertions.assertEquals(
-            Session("s1", "The Title", noPresenters),
-            aSession.withPresenters(noPresenters) /// |
-        )
-    }
+@Test
+fun `can change presenters`() {
+    Assertions.assertEquals(
+        Session("s1", "The Title", noPresenters),
+        aSession.withPresenters(noPresenters) /// |
+    )
+}
 ----
 // end-insert
 
@@ -433,25 +433,25 @@ While there are still Java uses of `withPresenters` and `withTitle` that is as f
 [source,kotlin]
 [%autofit]
 ----
-    @Test
-    fun `can change title`() {
-        Assertions.assertEquals(
-            Session(
-                "s1",
-                "Another Title",
-                listOf(bob, alice)
-            ),
-            aSession.copy(title = "Another Title") /// |
-        )
-    }
+@Test
+fun `can change title`() {
+    Assertions.assertEquals(
+        Session(
+            "s1",
+            "Another Title",
+            listOf(bob, alice)
+        ),
+        aSession.copy(title = "Another Title") /// |
+    )
+}
 
-    @Test
-    fun `can change presenters`() {
-        Assertions.assertEquals(
-            Session("s1", "The Title", noPresenters),
-            aSession.copy(presenters = noPresenters) /// |
-        )
-    }
+@Test
+fun `can change presenters`() {
+    Assertions.assertEquals(
+        Session("s1", "The Title", noPresenters),
+        aSession.copy(presenters = noPresenters) /// |
+    )
+}
 ----
 // end-insert
 

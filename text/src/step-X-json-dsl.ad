@@ -74,18 +74,18 @@ At the time of writing, the translator doesn't get the conversion quite right.  
 [source,kotlin]
 [%autofit]
 ----
-    @SafeVarargs
-    fun obj(vararg props: Map.Entry<String?, JsonNode?>?): ObjectNode {
-        return obj(Arrays.asList(*props)) /// note: Type mismatch.
-    }
+@SafeVarargs
+fun obj(vararg props: Map.Entry<String?, JsonNode?>?): ObjectNode {
+    return obj(Arrays.asList(*props)) /// note: Type mismatch.
+}
 
-    fun obj(props: Iterable<Map.Entry<String?, JsonNode?>>): ObjectNode {
-        val node = nodes.objectNode()
-        props.forEach(Consumer { p: Map.Entry<String?, JsonNode?> ->
-            node.set<JsonNode>(p.key, p.value)
-        })
-        return node
-    }
+fun obj(props: Iterable<Map.Entry<String?, JsonNode?>>): ObjectNode {
+    val node = nodes.objectNode()
+    props.forEach(Consumer { p: Map.Entry<String?, JsonNode?> ->
+        node.set<JsonNode>(p.key, p.value)
+    })
+    return node
+}
 ----
 // end-insert
 
@@ -95,18 +95,18 @@ We can fix it by removing the nullability modifiers.
 [source,kotlin]
 [%autofit]
 ----
-    @SafeVarargs
-    fun obj(vararg props: Map.Entry<String, JsonNode>): ObjectNode {
-        return obj(Arrays.asList(*props)) /// note: Type mismatch.
-    }
+@SafeVarargs
+fun obj(vararg props: Map.Entry<String, JsonNode>): ObjectNode {
+    return obj(Arrays.asList(*props)) /// note: Type mismatch.
+}
 
-    fun obj(props: Iterable<Map.Entry<String, JsonNode>>): ObjectNode {
-        val node = nodes.objectNode()
-        props.forEach(Consumer { p: Map.Entry<String, JsonNode> ->
-            node.set<ObjectNode>(p.key, p.value)
-        })
-        return node
-    }
+fun obj(props: Iterable<Map.Entry<String, JsonNode>>): ObjectNode {
+    val node = nodes.objectNode()
+    props.forEach(Consumer { p: Map.Entry<String, JsonNode> ->
+        node.set<ObjectNode>(p.key, p.value)
+    })
+    return node
+}
 ----
 // end-insert
 
@@ -225,13 +225,13 @@ How do we turn a function into an infix function?  We need to first introduce an
 [source,kotlin]
 [%autofit]
 ----
-        val commandAsJson: JsonNode = obj(
-            "userId".prop(exampleUserId),
-            "scheduledSessionId".prop(exampleSessionId),
-            "wouldRecommend".prop(1),
-            "appreciation".prop("Helpful tips and strategies for refactoring Java to Kotlin."),
-            "suggestions".prop("Would like information about what to do with code that uses Lombok.")
-        )
+val commandAsJson: JsonNode = obj(
+    "userId".prop(exampleUserId),
+    "scheduledSessionId".prop(exampleSessionId),
+    "wouldRecommend".prop(1),
+    "appreciation".prop("Helpful tips and strategies for refactoring Java to Kotlin."),
+    "suggestions".prop("Would like information about what to do with code that uses Lombok.")
+)
 ----
 // end-insert
 
@@ -243,13 +243,13 @@ Let's roll back and take another run at it: we'll try using the _add-code-and-in
 [source,kotlin]
 [%autofit]
 ----
-    fun prop(name: String, value: JsonNode) = name of value
-    fun prop(name: String, textValue: String) = name of textValue
-    fun prop(name: String, intValue: Int) = name of intValue
+fun prop(name: String, value: JsonNode) = name of value
+fun prop(name: String, textValue: String) = name of textValue
+fun prop(name: String, intValue: Int) = name of intValue
 
-    infix fun String.of(value: JsonNode) = this to value
-    infix fun String.of(textValue: String) = this of TextNode(textValue)
-    infix fun String.of(intValue: Int) = this of IntNode(intValue)
+infix fun String.of(value: JsonNode) = this to value
+infix fun String.of(textValue: String) = this of TextNode(textValue)
+infix fun String.of(intValue: Int) = this of IntNode(intValue)
 ----
 // end-insert
 
