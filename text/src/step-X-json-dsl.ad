@@ -3,27 +3,35 @@
 Our application contains a utility class of static methods that we use in tests to build examples of JSON data.
 This allows us to write self-contained tests that are not split between Java code and JSON resource files without having to build JSON examples by string concatenation.
 
-Here's what some test code that builds a JSON tree looks like:
+To build a JSON tree, we statically import syntactic sugar methods from the Json class:
 
-// begin-insert: tags/jsondsl.0:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.java#json_dsl_usage
+// begin-insert: tags/jsondsl.0:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.java#json_dsl_import
 [source,java]
 [%autofit]
 ----
 import static colloquiumatic.json.Json.obj;
 import static colloquiumatic.json.Json.prop;
-...
-        JsonNode commandAsJson = obj(
-            prop("userId", exampleUserId),
-            prop("scheduledSessionId", exampleSessionId),
-            prop("wouldRecommend", 1),
-            prop("appreciation", "Helpful tips and strategies for refactoring Java to Kotlin."),
-            prop("suggestions", "Would like information about what to do with code that uses Lombok.")
-        );
+----
+// end-insert
+
+Code that constructs JSON data then looks like this:
+
+// begin-insert: tags/jsondsl.0:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.java#json_dsl_usage
+[source,java]s
+[%autofit]
+----
+JsonNode commandAsJson = obj(
+    prop("userId", exampleUserId),
+    prop("scheduledSessionId", exampleSessionId),
+    prop("wouldRecommend", 1),
+    prop("appreciation", "Helpful tips and strategies for refactoring Java to Kotlin."),
+    prop("suggestions", "Would like information about what to do with code that uses Lombok.")
+);
 ----
 // end-insert
 
 Our Json class acts as an _embedded domain specific language_.
-It wraps the Jackson library, which does all the work of representing JSON data and serialising/deserialising JSON to and from strings and stream, and tries to make Java code that builds JSON data look as close to JSON syntax as possible.
+It wraps the Jackson library, which does all the work of representing JSON data and serialising/deserialising JSON to and from strings and streams, and tries to make Java code that builds JSON data look as close to JSON syntax as possible.
 That's not _very_ close, to be fair, but its closer than is possible by using the Jackson library directly.
 
 // begin-insert: tags/jsondsl.0:src/test/java/colloquiumatic/json/Json.java#json_dsl
@@ -71,25 +79,24 @@ And even then we won't be able to apply Kotlin-specific features, such as infix 
 
 If we start by converting the code using the Json class, we'll end up with a notation in the Kotlin code that is no worse than our existing Java, and that we can improve when we convert the Json class to Kotlin.
 
-Let's convert that test to Kotlin:
+When we convert a test to Kotlin, we end up with is code like this:
 
 // begin-insert: tags/jsondsl.1:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_usage
 [source,kotlin]
 [%autofit]
 ----
-...
-        val commandAsJson: JsonNode = Json.obj(
-            Json.prop("userId", exampleUserId),
-            Json.prop("scheduledSessionId", exampleSessionId),
-            Json.prop("wouldRecommend", 1),
-            Json.prop("appreciation", "Helpful tips and strategies for refactoring Java to Kotlin."),
-            Json.prop("suggestions", "Would like information about what to do with code that uses Lombok.")
-        )
+val commandAsJson: JsonNode = Json.obj(
+    Json.prop("userId", exampleUserId),
+    Json.prop("scheduledSessionId", exampleSessionId),
+    Json.prop("wouldRecommend", 1),
+    Json.prop("appreciation", "Helpful tips and strategies for refactoring Java to Kotlin."),
+    Json.prop("suggestions", "Would like information about what to do with code that uses Lombok.")
+)
 ----
 // end-insert
 
 Unfortunately, IntelliJ didn't carry the static imports across into Kotlin.
-It translated `obj` and `prop` to `Json.obj` and `Json.prop`, and messed up our carefully crafted notation.
+It imported the Json class and translated `obj` and `prop` to `Json.obj` and `Json.prop`, messing up our carefully crafted notation.
 It did not know that the Json class exists to define syntactic sugar, and that the way that the Java imported its functions was significant.
 
 We can fix this by hitting Alt-Enter on the first call to each method in the file we translated and choose to import the method directly.
