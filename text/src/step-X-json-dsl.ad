@@ -22,7 +22,7 @@ import static colloquiumatic.json.Json.prop;
 ----
 // end-insert
 
-Our `Json` class acts as an _embedded domain specific language_.
+Our Json class acts as an _embedded domain specific language_.
 It wraps the Jackson library, which does all the work of representing JSON data and serialising/deserialising JSON to and from strings and stream, and tries to make Java code that builds JSON data look as close to JSON syntax as possible.
 That's not _very_ close, to be fair, but its closer than is possible by using the Jackson library directly.
 
@@ -61,14 +61,14 @@ public class Json {
 ----
 // end-insert
 
-Now we need to decide what we convert first: the `Json` class or the code that depends on it.
+Now we need to decide what we convert first: the Json class or the code that depends on it.
 Up to now, we've preferred starting with classes that are leaves in the dependency tree, and pushing the Kotlin boundary outwards, creating an expanding region of code in which we take full advantage Kotlin's type safety and standard library.
-But this case is different: the `Json` class provides syntactic sugar to our Java code and has almost no logic itself.
+But this case is different: the Json class provides syntactic sugar to our Java code and has almost no logic itself.
 At best, converting it to Kotlin will leave the Java code unchanged, and so not be worth the effort.
 The conversion could make it _worse_ as a convenient notation in Java, and we'll have to annotate the Kotlin API to get it back to where we started.
 And even then we won't be able to apply Kotlin-specific features, such as infix or inline functions, to improve the DSL because what works well as a notation in Kotlin will not carry over to the Java code and definitely make it worse.
 
-If we start by converting the code using the `Json` class, we'll end up with a notation in the Kotlin code that is no worse than our existing Java, and that we can improve when we convert the `Json` class to Kotlin.
+If we start by converting the code using the Json class, we'll end up with a notation in the Kotlin code that is no worse than our existing Java, and that we can improve when we convert the Json class to Kotlin.
 
 Let's convert that test to Kotlin:
 
@@ -139,8 +139,9 @@ fun obj(props: Iterable<Map.Entry<String, JsonNode>>): ObjectNode {
 ----
 // end-insert
 
-Now everything is working again, we can start applying Kotlin features to simplify the implementation of our syntactic sugar, and make it less "noisy".
+Now everything is working again, we can start applying Kotlin features to simplify the implementation of our syntactic sugar and improve the notation in code that uses it.
 
+// TODO - write this paragraph!
 Tidy up the construction of JSON objects using Kotlin stdlib instead of JDK APIs and SAMs, and single-expression functions instead of block functions.
 
 // begin-insert: tags/jsondsl.5:src/test/java/colloquiumatic/json/Json.kt#tidy_implementation
@@ -166,34 +167,49 @@ object Json {
 ----
 // end-insert
 
-... replace use of Map.Entry with pair...
-There's no automatic way of doing this refactoring in one go.
-However, thanks to Kotlin type inference and our use of single-expression functions, Map.Entry is only referred to in three places: as parameters of the `obj` functions and in the implementation of `prop(String,JsonNode)`.
-Code that _uses_ our syntactic sugar does not refer to the Map.Entry type at all.
-So, it's easy enough to change these by hand.
+The use of Map.Entry and AbstractMap.SimpleImmutableEntry now stand out.
+We used them to hold key/value pairs, because Java doesn't have a value type for pairs.
+Kotlin does: kotlin.Pair.
+Let's use it.
 
+There's no automatic refactoring that can replace Map.Entry and AbstractMap.SimpleImmutableEntry with Pair in one go.
+However, thanks to Kotlin type inference and our use of single-expression functions, Map.Entry is only referred to in three places: as parameters of the `obj` functions and in the implementation of `prop(String,JsonNode)`.
+The code that _uses_ our syntactic sugar does not refer to the Map.Entry type at all.
+So, it's easy enough to change these by hand.
 However, with a bit of refactoring-fu we can perform the transformation as a series of safe additions of temporary code and automated transformation steps without ever introducing a compilation error:
 
-1. Alt-Enter on the "Entry" in Map.Entry, and select "add import for 'kotlin.collections.Map.Entry'".
-Now all references in the file to the `Map.Entry` type are via the unqualified name "Entry".
-2. Add a typealias below the imports, aliasing Entry and SimpleImmutableEntry to Pair:
+First, we Alt-Enter on the "Entry" in Map.Entry, and select "add import for 'kotlin.collections.Map.Entry'". Now all references in the file to the `Map.Entry` type are via the unqualified name "Entry".
 
-   ----
-   private typealias Entry<K,V> = Pair<K,V>
-   private typealias SimpleImmutableEntry<K,V> = Pair<K,V>
-   ----
+Secondly, we add a typealias below the imports, aliasing Entry and SimpleImmutableEntry to Pair:
 
-3. Define two extension properties on Pair to match those on Map.Entry:
+// begin-insert: tags/jsondsl.6:src/test/java/colloquiumatic/json/Json.kt#type_aliases
+[source,kotlin]
+[%autofit]
+----
+typealias Entry<K,V> = Pair<K,V>
+typealias SimpleImmutableEntry<K,V> = Pair<K,V>
+----
+// end-insert
 
-   ----
-   private val <K,V> Pair<K,V>.key get() = first
-   private val <K,V> Pair<K,V>.value get() = second
-   ----
+IntelliJ will highlight them as unused, because the imports of Entry and SimpleImmutableEntry take precedence over the typealiases in the file.  But hold on, those imports are going to disappear shortly.
 
-4. Delete the imports of kotlin.collections.Map.Entry and java.util.AbstractMap.SimpleImmutableEntry.
-All uses of Entry in the file are now referring to `kotlin.Pair`.
-5. Inline the typealiases and the temporary extension properties.
-6. Tidy up by removing unnecessary explicit type parameters that IntelliJ left in the `prop` function that creates Pairs.
+Now we define two extension properties on Pair to match the properties of Map.Entry:
+
+// begin-insert: tags/jsondsl.6:src/test/java/colloquiumatic/json/Json.kt#temporary_extension_properties
+[source,kotlin]
+[%autofit]
+----
+val <K,V> Pair<K,V>.key get() = first
+val <K,V> Pair<K,V>.value get() = second
+----
+// end-insert
+
+Again, IntelliJ will highlight them as unused, but they will become used as soon as the imports disappear.
+
+Now we delete the imports of kotlin.collections.Map.Entry and java.util.AbstractMap.SimpleImmutableEntry.
+All uses of Entry in the file are now referring to kotlin.Pair.  IntelliJ no longer highlights the typealiases and extension properties as unused.
+
+Finally we clean up by inlining the typealiases and the temporary extension properties, so that the Pair type is used directly, and removing unnecessary type parameters that the inline refactoring left in call to the Pair constructor.
 
 That leaves the code looking like:
 
@@ -223,13 +239,22 @@ object Json {
 ****
 Was that worth it for this small class?
 Maybe not.
-But when transformations have to touch lots of places across the code, it's easier and less risky to perform the refactoring as a sequence of small steps in which the IDE automatically changes dependent code.
-So I like to practice working in that way whenever I get the opportunity.
+But when transformations have to touch lots of places across the code, it's easier and less risky to perform the refactoring as a sequence of small steps in which the IDE automatically applies changes to dependent code.
+Think of this as a demonstration of the technique in the small, so we can use it for larger changes later.
 ****
 
-... make `prop` an infix function.
-It's not idiomatic Kotlin to create pairs by calling the Pair constructor.
-Alt-Enter on the call to the Pair constructor in the `prop` function, and choose the option "convert to 'to'".
+The definition of the first prop function now looks a bit iffy.
+In Kotlin we don't usually create pairs by calling the Pair constructor.
+Alt-Enter on the call to `Pair` in the prop function, and choose the option "convert to 'to'".
+It now looks like:
+
+// begin-insert: tags/jsondsl.8:src/test/java/colloquiumatic/json/Json.kt#use_to
+[source,kotlin]
+[%autofit]
+----
+fun prop(name: String, value: JsonNode) = name to value
+----
+// end-insert
 
 The `to` operator for constructing Pairs is not a language feature.
 It's an _infix_ function defined in the standard library.
@@ -237,7 +262,7 @@ An infix function is a method or extension function that takes one parameter and
 It can be called with operator-like syntax: you don't need to use a dot to reference the method or enclose the parameter in parentheses.
 
 That gives us a clue as to how to improve the notation now we are working in Kotlin.
-Wouldn't it be nice if object properties did not have to be wrapped in a call to `prop`, but used an infix notation instead.
+Wouldn't it be nice if object properties did not have to be wrapped in a call to `prop`, but used infix notation instead.
 We can't call our JSON infix operator "to"; that's been taken for Pairs.
 But we can use a similarly short word.
 How about "of"?
@@ -261,9 +286,8 @@ import colloquiumatic.json.Json.of
 // end-insert
 
 How do we turn a function into an infix function?
-We need to first introduce an extension method, and then mark it as infix.
+We need to first make it an extension method, and then mark it as infix.
 IntelliJ can automatically do the first step: Alt-Enter on the first parameter of each `prop` function and select "Convert parameter to receiver".
-We must mark it as infix manually.
 Now our JSON-building code looks like this:
 
 // begin-insert: tags/jsondsl.9:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_usage
@@ -280,7 +304,7 @@ val commandAsJson: JsonNode = obj(
 ----
 // end-insert
 
-But how do we make the call sites use infix syntax?
+We must apply the infix modifier by hand, so how do we make the call sites use infix syntax?
 At the time of writing, IntelliJ automates that for an individual call site via the Alt-Enter menu, but doesn't have a way to do it in bulk for _all_ uses of an infix function in the codebase.
 Too tedious!
 
