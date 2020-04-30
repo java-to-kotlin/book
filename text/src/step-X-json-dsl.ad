@@ -70,7 +70,7 @@ public class Json {
 // end-insert
 
 Now we need to decide what we convert first: the Json class or the code that depends on it.
-Up to now, we've preferred starting with classes that are leaves in the dependency tree, and pushing the Kotlin boundary outwards, creating an expanding region of code in which we take full advantage Kotlin's type safety and standard library.
+Up to now, we've preferred to start with classes that are leaves in the dependency tree, and pushing the Kotlin boundary outwards, creating an expanding region of code in which we take full advantage Kotlin's type safety and convenience features.
 
 But this case is different: the Json class provides syntactic sugar to our Java code and has almost no logic itself.
 At best, converting it to Kotlin will leave the Java code unchanged, and so not be worth the effort.
@@ -310,16 +310,13 @@ That would make code that builds JSON look like:
 [source,kotlin]
 [%autofit]
 ----
-import colloquiumatic.json.Json.obj
-import colloquiumatic.json.Json.of
-...
-        val commandAsJson: JsonNode = obj(
-            "userId" of exampleUserId,
-            "scheduledSessionId" of exampleSessionId,
-            "wouldRecommend" of 1,
-            "appreciation" of "Helpful tips and strategies for refactoring Java to Kotlin.",
-            "suggestions" of "Would like information about what to do with code that uses Lombok."
-        )
+val commandAsJson: JsonNode = obj(
+    "userId" of exampleUserId,
+    "scheduledSessionId" of exampleSessionId,
+    "wouldRecommend" of 1,
+    "appreciation" of "Helpful tips and strategies for refactoring Java to Kotlin.",
+    "suggestions" of "Would like information about what to do with code that uses Lombok."
+)
 ----
 // end-insert
 
@@ -383,8 +380,6 @@ object Json {
     infix fun String.of(textValue: String) = this of TextNode(textValue)
     infix fun String.of(intValue: Int) = this of IntNode(intValue)
 }
-
-
 ----
 // end-insert
 
