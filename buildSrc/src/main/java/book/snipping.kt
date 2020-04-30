@@ -158,7 +158,7 @@ fun Iterable<String>.snipped(tagName: String?): List<String> {
         }
     }
 
-    return result
+    return result.dropLastWhile { it.isBlank() }
 }
 
 
