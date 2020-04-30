@@ -63,6 +63,7 @@ public class Json {
 
 Now we need to decide what we convert first: the Json class or the code that depends on it.
 Up to now, we've preferred starting with classes that are leaves in the dependency tree, and pushing the Kotlin boundary outwards, creating an expanding region of code in which we take full advantage Kotlin's type safety and standard library.
+
 But this case is different: the Json class provides syntactic sugar to our Java code and has almost no logic itself.
 At best, converting it to Kotlin will leave the Java code unchanged, and so not be worth the effort.
 The conversion could make it _worse_ as a convenient notation in Java, and we'll have to annotate the Kotlin API to get it back to where we started.
@@ -96,30 +97,51 @@ We can fix this by hitting Alt-Enter on the first call to each method in the fil
 Once we have converted all the dependent code to Kotlin, we can convert the Json class itself.
 The Java class of static methods becomes a top-level Kotlin object, also called `Json`.
 
-At the time of writing, the translator doesn't get the conversion quite right.
-It marks more types as nullable than we would want, and doesn't infer the nullability correctly, so the resulting code doesn't compile.
-
-// begin-insert: tags/jsondsl.3:src/test/java/colloquiumatic/json/Json.kt#incorrect_translation
+// TODO: add callouts
+// begin-insert: tags/jsondsl.3:src/test/java/colloquiumatic/json/Json.kt#json_dsl
 [source,kotlin]
 [%autofit]
 ----
-@SafeVarargs
-fun obj(vararg props: Map.Entry<String?, JsonNode?>?): ObjectNode {
-    return obj(Arrays.asList(*props)) /// note: Type mismatch.
-}
+object Json {
+    private val nodes = JsonNodeFactory.instance
 
-fun obj(props: Iterable<Map.Entry<String?, JsonNode?>>): ObjectNode {
-    val node = nodes.objectNode()
-    props.forEach(Consumer { p: Map.Entry<String?, JsonNode?> ->
-        node.set<JsonNode>(p.key, p.value)
-    })
-    return node
+    @SafeVarargs
+    fun obj(vararg props: Map.Entry<String?, JsonNode?>?): ObjectNode {
+        return obj(Arrays.asList(*props)) /// note: Type mismatch.
+    }
+
+    fun obj(props: Iterable<Map.Entry<String?, JsonNode?>>): ObjectNode {
+        val node = nodes.objectNode()
+        props.forEach(Consumer { p: Map.Entry<String?, JsonNode?> ->
+            node.set<JsonNode>(p.key, p.value)
+        })
+        return node
+    }
+
+    fun prop(name: String, value: JsonNode): Map.Entry<String, JsonNode> {
+        return SimpleImmutableEntry(name, value)
+    }
+
+    fun prop(name: String, textValue: String?): Map.Entry<String, JsonNode> {
+        return prop(name, TextNode(textValue))
+    }
+
+    fun prop(name: String, intValue: Int): Map.Entry<String, JsonNode> {
+        return prop(name, IntNode(intValue))
+    }
+
+    // and similar syntactic sugar for other primitive JSON types, and JSON arrays
 }
 ----
 // end-insert
 
+At the time of writing, the translator doesn't get the conversion quite right.
+It marks more types as nullable than we would want, and doesn't infer the nullability correctly, so the resulting code doesn't compile.
+
 We can fix it by removing the nullability modifiers.
 
+// TODO: fix this code example to remove the note.
+// TODO: add a callout about the set<ObjectNode> wierdness
 // begin-insert: tags/jsondsl.4:src/test/java/colloquiumatic/json/Json.kt#correction
 [source,kotlin]
 [%autofit]
@@ -139,10 +161,15 @@ fun obj(props: Iterable<Map.Entry<String, JsonNode>>): ObjectNode {
 ----
 // end-insert
 
-Now everything is working again, we can start applying Kotlin features to simplify the implementation of our syntactic sugar and improve the notation in code that uses it.
+Now everything is working again, we can remove Java-isms and apply Kotlin features to simplify implementation of the Json class and improve the notation it provides.
 
-// TODO - write this paragraph!
-Tidy up the construction of JSON objects using Kotlin stdlib instead of JDK APIs and SAMs, and single-expression functions instead of block functions.
+Easy changes first.
+We can remove the SafeVarargs annotation: it's not needed in Kotlin.
+We can remove the reference to Java's Consumer functional interface and use a plain lambda.
+We can make functions that are a single-expression use single-expression function syntax.
+And we can use Kotlin's `apply` function to turn the `obj` function into a single-expression function.
+
+This removes a lot of boilerplate from the class:
 
 // begin-insert: tags/jsondsl.5:src/test/java/colloquiumatic/json/Json.kt#tidy_implementation
 [source,kotlin]
@@ -167,18 +194,20 @@ object Json {
 ----
 // end-insert
 
-The use of Map.Entry and AbstractMap.SimpleImmutableEntry now stand out.
-We used them to hold key/value pairs, because Java doesn't have a value type for pairs.
-Kotlin does: kotlin.Pair.
+What stands out now is our use of Map.Entry and AbstractMap.SimpleImmutableEntry.
+In our Java code, we used them to hold key/value pairs, because Java doesn't have pair type.
+Kotlin does.
 Let's use it.
 
 There's no automatic refactoring that can replace Map.Entry and AbstractMap.SimpleImmutableEntry with Pair in one go.
 However, thanks to Kotlin type inference and our use of single-expression functions, Map.Entry is only referred to in three places: as parameters of the `obj` functions and in the implementation of `prop(String,JsonNode)`.
 The code that _uses_ our syntactic sugar does not refer to the Map.Entry type at all.
-So, it's easy enough to change these by hand.
-However, with a bit of refactoring-fu we can perform the transformation as a series of safe additions of temporary code and automated transformation steps without ever introducing a compilation error:
+So, it's easy enough to change these by text editing.
+However, with a bit of refactoring-fu we can perform the transformation as a series of safe additions of temporary code and automated transformation steps without ever introducing a compilation error.
+I call this the _add-code-and-inline_ refactoring move.
 
-First, we Alt-Enter on the "Entry" in Map.Entry, and select "add import for 'kotlin.collections.Map.Entry'". Now all references in the file to the `Map.Entry` type are via the unqualified name "Entry".
+First, we Alt-Enter on the "Entry" in `Map.Entry`, and select "add import for 'kotlin.collections.Map.Entry'".
+Now all references in the file to the Map.Entry type are via the unqualified name "Entry".
 
 Secondly, we add a typealias below the imports, aliasing Entry and SimpleImmutableEntry to Pair:
 
@@ -191,7 +220,8 @@ typealias SimpleImmutableEntry<K,V> = Pair<K,V>
 ----
 // end-insert
 
-IntelliJ will highlight them as unused, because the imports of Entry and SimpleImmutableEntry take precedence over the typealiases in the file.  But hold on, those imports are going to disappear shortly.
+IntelliJ will highlight them as unused, because the imports of Entry and SimpleImmutableEntry take precedence over the typealiases in the file.
+But hold on, those imports are going to disappear shortly.
 
 Now we define two extension properties on Pair to match the properties of Map.Entry:
 
@@ -207,9 +237,10 @@ val <K,V> Pair<K,V>.value get() = second
 Again, IntelliJ will highlight them as unused, but they will become used as soon as the imports disappear.
 
 Now we delete the imports of kotlin.collections.Map.Entry and java.util.AbstractMap.SimpleImmutableEntry.
-All uses of Entry in the file are now referring to kotlin.Pair.  IntelliJ no longer highlights the typealiases and extension properties as unused.
+All uses of Entry in the file are now referring to kotlin.Pair.
+IntelliJ no longer highlights the typealiases and extension properties as unused.
 
-Finally we clean up by inlining the typealiases and the temporary extension properties, so that the Pair type is used directly, and removing unnecessary type parameters that the inline refactoring left in call to the Pair constructor.
+Finally, we clean up by inlining the typealiases and the temporary extension properties, so that the code refers to the Pair class directly, and removing unnecessary type parameters that the inline refactoring left in call to the Pair constructor.
 
 That leaves the code looking like:
 
@@ -239,6 +270,7 @@ object Json {
 ****
 Was that worth it for this small class?
 Maybe not.
+In practice I'd have probably done that by text editing, because the change only touched three lines in the file and did not affect any other code.
 But when transformations have to touch lots of places across the code, it's easier and less risky to perform the refactoring as a sequence of small steps in which the IDE automatically applies changes to dependent code.
 Think of this as a demonstration of the technique in the small, so we can use it for larger changes later.
 ****
@@ -263,8 +295,7 @@ It can be called with operator-like syntax: you don't need to use a dot to refer
 
 That gives us a clue as to how to improve the notation now we are working in Kotlin.
 Wouldn't it be nice if object properties did not have to be wrapped in a call to `prop`, but used infix notation instead.
-We can't call our JSON infix operator "to"; that's been taken for Pairs.
-But we can use a similarly short word.
+We can't call our JSON infix operator "to" -- that's been taken for Pairs -- but we can use a similarly short word.
 How about "of"?
 That would make code that builds JSON look like:
 
@@ -352,6 +383,8 @@ object Json {
 
 
 ... still not entirely idiomatic Kotlin.  We're not using the Json object as an object.  It's merely a namespace to hold the functions and a reference to the object mapper.  We might as well define them at the top level of the file.  However, IntelliJ cannot (at the time of writing) automatically move declarations from an object to the top level.  We'd have to do it by hand, either by deleting the first line and final brace and then "leaning on the compiler" to fix up dependent code, or by using the _add-code-and-inline_ move again.  Is it worth it?  I'll leave that up to you, the reader, if you're following along at home.
+
+
 == Discussion: syntactic sugar, domain specific embedded languages, Java vs Kotlin
 
 ... TBD...
