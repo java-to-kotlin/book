@@ -4,14 +4,20 @@
 
 In the code repo
 
-* Create a "fixing" branch from the commit you want to modify
-* Commit the change onto the fixing branch, prefixing the commit with the same tag name as the commit you want to change eg `r0 : Retrospectively add id to Session and make fields private`
-* "Checkout and rebase onto current" on the branch you want to change - ignore IntelliJ's warning (git rebase HEAD <branch-being-fixed>)
-* Rerun the retag-worked-example script
+* For safety, tag the tip of the branch you want to modify to preserve it.
+  E.g.  "git tag <my-branch>-preserved <my-branch>"
+* Create a "fixing" branch from the commit you want to modify.
+  E.g. "git branch <my-branch>-fixing <commit-or-tag>"
+* Make your changes and commit them onto the fixing branch, prefixing the commit message with the same tag name as the commit you want to change.
+* Check out the branch you want to fix.
+* In IntelliJ's Git log panel, select the fixing branch and invoke "Rebase Current onto Selected" via the context menu (ignore IntelliJ's warning if there is one)
+* Rerun the retag-worked-example script.  Double check that the tags are pointing at the right commits
+* Test that the entire history of the worked example is still valid: run the ./test-worked-example script.
 * Rerun the book build and check everything looks OK
-* Force push the rebased branch to master (git push --force)
-* Delete the fixup branch (git branch -d fixing)
-
+* Delete the fixup branch so that the retagging script doesn't get confused. (Don't worry! if anything goes wrong we can recreate it from the tag we created in the first step).
+  E.g. git branch -d fixing
+* Force push the rebased branch to origin (git push --force)
+* Delete the
 
 == To create a new completely empty branch
 
