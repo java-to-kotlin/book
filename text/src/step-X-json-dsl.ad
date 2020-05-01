@@ -79,7 +79,7 @@ And even then we won't be able to apply Kotlin-specific features, such as infix 
 
 If we start by converting the code using the Json class, we'll end up with a notation in the Kotlin code that is no worse than our existing Java, and that we can improve when we convert the Json class to Kotlin.
 
-When we convert a test to Kotlin, we end up with is code like this:
+When we convert a test to Kotlin, we end up with code like this:
 
 // begin-insert: tags/jsondsl.1:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_usage
 [source,kotlin]
@@ -99,9 +99,24 @@ Unfortunately, IntelliJ didn't carry the static imports across into Kotlin.
 It imported the Json class and translated `obj` and `prop` to `Json.obj` and `Json.prop`, messing up our carefully crafted notation.
 It did not know that the Json class exists to define syntactic sugar, and that the way that the Java imported its functions was significant.
 
-We can fix this by hitting Alt-Enter on the first call to each method in the file we translated and choose to import the method directly.
+We can get IntelliJ to add these imports automatically by hitting Alt-Enter on the first call to each method in the file we translated and choosing to import the method directly.
 
-Once we have converted all the dependent code to Kotlin, we can convert the Json class itself.
+// begin-insert: tags/jsondsl.2:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_import
+[source,kotlin]
+[%autofit]
+----
+import colloquiumatic.json.Json.obj
+import colloquiumatic.json.Json.prop
+----
+// end-insert
+
+And we're back to the notation we want.
+
+****
+Unlike Java, Kotlin does not distinguish between imports and "static imports".  The Kotlin import statement can import top-level declarations from other packages, static members of Java classes, and members of top-level objects.
+****
+
+Once all the code that uses the Json class is Kotlin, we can convert the Json class itself.
 The Java class of static methods becomes a top-level Kotlin object, also called `Json`.
 
 // TODO: add callouts
@@ -201,7 +216,7 @@ object Json {
 ----
 // end-insert
 
-What stands out now is our use of Map.Entry and AbstractMap.SimpleImmutableEntry.
+What stands out now is the use of Map.Entry and AbstractMap.SimpleImmutableEntry.
 In our Java code, we used them to hold key/value pairs, because Java doesn't have pair type.
 Kotlin does.
 Let's use it.
@@ -277,8 +292,8 @@ object Json {
 ****
 Was that worth it for this small class?
 Maybe not.
-In practice I'd have probably done that by text editing, because the change only touched three lines in the file and did not affect any other code.
-But when transformations have to touch lots of places across the code, it's easier and less risky to perform the refactoring as a sequence of small steps in which the IDE automatically applies changes to dependent code.
+In practice, I'd have probably done that by text editing because the change only touched three lines in a single file and did not affect any other code.
+When transformations affect lots of places across the code, it's easier and less risky to perform the refactoring as a sequence of small steps in which the IDE automatically applies changes to dependent code.
 Think of this as a demonstration of the technique in the small, so we can use it for larger changes later.
 ****
 
@@ -339,12 +354,14 @@ val commandAsJson: JsonNode = obj(
 ----
 // end-insert
 
-We must apply the infix modifier by hand, so how do we make the call sites use infix syntax?
-At the time of writing, IntelliJ automates that for an individual call site via the Alt-Enter menu, but doesn't have a way to do it in bulk for _all_ uses of an infix function in the codebase.
-Too tedious!
+We must add the infix modifier to the prop function by hand.
+How do we now make all the call sites use infix syntax?
+At the time of writing, IntelliJ can automatically refactor between infix and dotted method call syntax for an single call site, but doesn't have a way to do automate the refactoring in bulk for _all_ uses of an infix function in the codebase.
+Going through every call site and refactoring them one by one sounds too tedious!
 
 Let's roll back and take another run at it: we'll try using the _add-code-and-inline_ trick we used to swap out the Map.Entry type for Pair.
-This time, we'll add new, infix functions called "of" and make the "prop" functions delegate to them.
+
+We'll add new, infix functions called "of" and make the "prop" functions delegate to them.
 
 // begin-insert: tags/jsondsl.10:src/test/java/colloquiumatic/json/Json.kt#temporary_delegation_to_infix_of_function
 [source,kotlin]
@@ -391,7 +408,7 @@ In Kotlin, we can declare those at the top level of the file.
 However, IntelliJ cannot (at the time of writing) automatically move declarations from an object to the top level.
 We'd have to do it by hand, either by deleting the first line and final brace and then "leaning on the compiler" to fix up dependent code, or by using the _add-code-and-inline_ move again.
 Is it worth it?
-I'll leave that up to you, the reader, if you're following along at home.
+I'll leave that up to you, the reader, to decide if you're following along at home.
 
 == Discussion
 
