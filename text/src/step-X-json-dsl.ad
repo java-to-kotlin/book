@@ -24,8 +24,8 @@ JsonNode commandAsJson = obj(
     prop("userId", exampleUserId),
     prop("scheduledSessionId", exampleSessionId),
     prop("wouldRecommend", 1),
-    prop("appreciation", "Helpful tips and strategies for refactoring Java to Kotlin."),
-    prop("suggestions", "Would like information about what to do with code that uses Lombok.")
+    prop("appreciation", "things the user liked"),
+    prop("suggestions", "suggestions for improvements")
 );
 ----
 // end-insert
@@ -57,11 +57,11 @@ public class Json {
     }
 
     public static Map.Entry<String, JsonNode> prop(String name, String textValue) {
-        return prop(name, new TextNode(textValue));
+        return prop(name, nodes.textNode(textValue));
     }
 
-    public static Map.Entry<String, JsonNode> prop(String name, int intValue) {
-        return prop(name, new IntNode(intValue));
+    public static Map.Entry<String, JsonNode> prop(String name, Integer intValue) {
+        return prop(name, nodes.numberNode(intValue));
     }
 
     // and similar syntactic sugar for other primitive JSON types, and JSON arrays
@@ -89,8 +89,8 @@ val commandAsJson: JsonNode = Json.obj(
     Json.prop("userId", exampleUserId),
     Json.prop("scheduledSessionId", exampleSessionId),
     Json.prop("wouldRecommend", 1),
-    Json.prop("appreciation", "Helpful tips and strategies for refactoring Java to Kotlin."),
-    Json.prop("suggestions", "Would like information about what to do with code that uses Lombok.")
+    Json.prop("appreciation", "things the user liked"),
+    Json.prop("suggestions", "suggestions for improvements")
 )
 ----
 // end-insert
@@ -145,11 +145,11 @@ object Json {
     }
 
     fun prop(name: String, textValue: String?): Map.Entry<String, JsonNode> {
-        return prop(name, TextNode(textValue))
+        return prop(name, nodes.textNode(textValue))
     }
 
-    fun prop(name: String, intValue: Int): Map.Entry<String, JsonNode> {
-        return prop(name, IntNode(intValue))
+    fun prop(name: String, intValue: Int?): Map.Entry<String, JsonNode> {
+        return prop(name, nodes.numberNode(intValue))
     }
 
     // and similar syntactic sugar for other primitive JSON types, and JSON arrays
@@ -208,8 +208,8 @@ object Json {
         }
 
     fun prop(name: String, value: JsonNode) = SimpleImmutableEntry(name, value)
-    fun prop(name: String, textValue: String) = prop(name, TextNode(textValue))
-    fun prop(name: String, intValue: Int) = prop(name, IntNode(intValue))
+    fun prop(name: String, textValue: String?) = prop(name, nodes.textNode(textValue))
+    fun prop(name: String, intValue: Int?) = prop(name, nodes.numberNode(intValue))
 
     // and the rest of the syntactic sugar...
 }
@@ -281,8 +281,8 @@ object Json {
         }
 
     fun prop(name: String, value: JsonNode) = Pair(name, value)
-    fun prop(name: String, textValue: String) = prop(name, TextNode(textValue))
-    fun prop(name: String, intValue: Int) = prop(name, IntNode(intValue))
+    fun prop(name: String, textValue: String?) = prop(name, nodes.textNode(textValue))
+    fun prop(name: String, intValue: Int?) = prop(name, nodes.numberNode(intValue))
 
     // and the rest of the syntactic sugar...
 }
@@ -329,8 +329,8 @@ val commandAsJson: JsonNode = obj(
     "userId" of exampleUserId,
     "scheduledSessionId" of exampleSessionId,
     "wouldRecommend" of 1,
-    "appreciation" of "Helpful tips and strategies for refactoring Java to Kotlin.",
-    "suggestions" of "Would like information about what to do with code that uses Lombok."
+    "appreciation" of "things the user liked",
+    "suggestions" of "suggestions for improvements"
 )
 ----
 // end-insert
@@ -348,8 +348,8 @@ val commandAsJson: JsonNode = obj(
     "userId".prop(exampleUserId),
     "scheduledSessionId".prop(exampleSessionId),
     "wouldRecommend".prop(1),
-    "appreciation".prop("Helpful tips and strategies for refactoring Java to Kotlin."),
-    "suggestions".prop("Would like information about what to do with code that uses Lombok.")
+    "appreciation".prop("things the user liked"),
+    "suggestions".prop("suggestions for improvements")
 )
 ----
 // end-insert
@@ -368,12 +368,12 @@ We'll add new, infix functions called "of" and make the "prop" functions delegat
 [%autofit]
 ----
 fun prop(name: String, value: JsonNode) = name of value
-fun prop(name: String, textValue: String) = name of textValue
-fun prop(name: String, intValue: Int) = name of intValue
+fun prop(name: String, textValue: String?) = name of textValue
+fun prop(name: String, intValue: Int?) = name of intValue
 
 infix fun String.of(value: JsonNode) = this to value
-infix fun String.of(textValue: String) = this of TextNode(textValue)
-infix fun String.of(intValue: Int) = this of IntNode(intValue)
+infix fun String.of(textValue: String?) = this of nodes.textNode(textValue)
+infix fun String.of(intValue: Int?) = this of nodes.numberNode(intValue)
 ----
 // end-insert
 
@@ -394,8 +394,8 @@ object Json {
         }
 
     infix fun String.of(value: JsonNode) = this to value
-    infix fun String.of(textValue: String) = this of TextNode(textValue)
-    infix fun String.of(intValue: Int) = this of IntNode(intValue)
+    infix fun String.of(textValue: String?) = this of nodes.textNode(textValue)
+    infix fun String.of(intValue: Int?) = this of nodes.numberNode(intValue)
 }
 ----
 // end-insert
