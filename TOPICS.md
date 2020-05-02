@@ -8,6 +8,11 @@
   - Why Kotlin? (concision, consistency, convenience, null safety) \[can we think of another "c" word that covers null safety?\]
   - How does Kotlin support Java programming style? (opinionated history)
   - Kotlin's affordances (aka the "grain" of the language)
+    - Immutable data
+    - Functions rather than classes
+    - Deliberate polymorphism (e.g. choose where classes are polymorphic)
+    - Explicit over implicit (e.g. explicit control flow, explicit coercion)
+    - Type safe composition over reflection 
   - An overview of the worked example(s)
   - Where should we start refactoring to Kotlin?
 * Part 2: worked examples "in the small"
@@ -32,11 +37,6 @@
 
 ## Small details...
 
-* The "grain" of Kotlin:
-  - Immutable data
-  - Functions rather than classes
-  - Deliberate polymorphism (e.g. choose where classes are polymorphic)
-  - Explicit control flow
 
 * Interop
 ** Kotlin supports "beans" style Java well, but you don't get a lot of the benefits at larger scales.  Modern Java lends itself well to conversion to idiomatic Kotlin that takes advantage of Kotlin's default immutability, better type system and the safety that provides.
