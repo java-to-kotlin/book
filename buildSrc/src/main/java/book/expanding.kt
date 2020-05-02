@@ -2,7 +2,6 @@ package book
 
 import com.natpryce.*
 import java.io.File
-import java.util.concurrent.TimeUnit
 import kotlin.text.RegexOption.DOT_MATCHES_ALL
 import kotlin.text.RegexOption.MULTILINE
 
@@ -130,27 +129,11 @@ data class VersionedFile(
         resultOf { file.readLines() }
 
     private fun readVersioned() =
-        "git show $version:./${relativePath}"
+        "git show $version:${relativePath}"
             .runCommand(workingDir = sourceRoot)
             .map { it.lines() }
 
     fun exists(): Boolean = linesOrError is Success
-}
-
-fun String.runCommand(
-    workingDir: File = File("."),
-    timeoutAmount: Long = 2,
-    timeoutUnit: TimeUnit = TimeUnit.SECONDS
-): Result<String, Exception> = resultOf {
-    val completedProcess = ProcessBuilder(split("\\s".toRegex()))
-        .directory(workingDir)
-        .redirectOutput(ProcessBuilder.Redirect.PIPE)
-        .redirectError(ProcessBuilder.Redirect.PIPE)
-        .start().apply { waitFor(timeoutAmount, timeoutUnit) }
-    if (completedProcess.exitValue() == 0)
-        completedProcess.inputStream.bufferedReader().readText()
-    else
-        error(completedProcess.errorStream.bufferedReader().readText())
 }
 
 fun <R> resultOf(f: () -> R): Result<R, Exception> =
