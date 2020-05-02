@@ -18,36 +18,31 @@ public interface Attendees {
 ----
 // end-insert
 
-Registration marshals to and from Strings
+Registration contains some business logic around blacklisting
 
-// begin-insert: tags/errors.0:src/main/java/colloquiumatic/handlers/Registration.java
+// begin-insert: tags/errors.0:src/main/java/colloquiumatic/Registration.java
 [source,java]
 [%autofit]
 ----
 public class Registration implements IRegister {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final Blacklist blacklist;
     private final Attendees attendees;
 
-    public Registration(Attendees attendees) {
+    public Registration(
+        Attendees attendees,
+        Blacklist blacklist
+    ) {
+        this.blacklist = blacklist;
         this.attendees = attendees;
     }
 
-    @Override
-    public String register(String postData)
-        throws JsonProcessingException, DuplicateException {
-
-        RegistrationData data = objectMapper.readValue(postData, RegistrationData.class);
-        if (data.name == null || data.email == null)
-            throw new IllegalArgumentException("Malformed json input");
-        Attendee result = attendees.add(data.name, data.email);
-        return objectMapper.writeValueAsString(result);
+    public Attendee register(RegistrationData data)
+        throws BlacklistedException, DuplicateException {
+        if (blacklist.isAcceptable(data))
+            return attendees.add(data.name, data.email);
+        else throw new BlacklistedException();
     }
-}
-
-class RegistrationData {
-    public String name;
-    public String email;
 }
 ----
 // end-insert
@@ -61,6 +56,7 @@ and the actual HTTP interface is provided by RegistrationHandler
 public class RegistrationHandler {
 
     private final IRegister registration;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public RegistrationHandler(IRegister registration) {
         this.registration = registration;
@@ -68,8 +64,12 @@ public class RegistrationHandler {
 
     public Response handle(Request request) {
         try {
-            String json = registration.register(request.getBody());
-            return new Response(201, json);
+            RegistrationData data = objectMapper.readValue(
+                request.getBody(),
+                RegistrationData.class
+            );
+            Attendee attendee = registration.register(data);
+            return new Response(201, objectMapper.writeValueAsString(attendee));
         } catch (JsonProcessingException x) {
             return new Response(400);
         } catch (DuplicateException x) {
@@ -88,7 +88,8 @@ We'd rather not tie our example code to a particular Java HTTP framework,
 so we have abstracted all that behind a simple function that takes a Request and returns a Response.
 ****
 
-Finally Attendee is another value type - let's not sacrifice a tree but rather show you the version after conversion to Kotlin.
+Finally Attendee is another value type -
+let's not sacrifice a tree but rather show you the version after conversion to Kotlin.
 
 // begin-insert: tags/errors.1:src/main/java/colloquiumatic/Attendee.kt
 [source,kotlin]
@@ -102,11 +103,14 @@ data class Attendee(
 ----
 // end-insert
 
-In our experience this is typical Java code. It expresses the things that might reasonably go wrong as checked exceptions (JsonProcessingException, DuplicateException), and these are all caught at in the top level `handle` where they are reported to the caller, in this case as HTTP status codes. There is a blip in the `IllegalArgumentException` in Registration, which is going to result in a 500 rather than the 400 that we might want, but we haven't noticed that in production where our client code is always sending the correct properties.
+In our experience this is typical Java code.
+It expresses the things that might reasonably go wrong as checked exceptions (BlacklistedException, DuplicateException),
+and these are all caught at in the top level `handle` where they are reported to the caller,
+in this case as HTTP status codes.
 
 If we convert Attendees to Kotlin we get
 
-// begin-insert: tags/errors.1:src/main/java/colloquiumatic/Attendees.kt
+// begin-insert: tags/errors.2:src/main/java/colloquiumatic/Attendees.kt
 [source,kotlin]
 [%autofit]
 ----
@@ -118,13 +122,16 @@ interface Attendees {
 ----
 // end-insert
 
-1. Kotlin doesn't have checked exceptions, but the `@Throws` annotation allows interoperation. Without it, a Java implementation of Attendees cannot override the method (assuming that it does actually throw DuplicateException).
+1. Kotlin doesn't have checked exceptions, but the `@Throws` annotation allows interoperation.
+Without it, a Java implementation of Attendees cannot override the method
+(assuming that it does actually throw DuplicateException).
 
 TODO - why does Kotlin not have checked exceptions.
 
-Before we go further, conversion to Kotlin has failed to infer the nullability of the parameters and results in Attendees, lets fix that.
+Before we go further, conversion to Kotlin has failed to infer the nullability of the parameters and results in Attendees,
+lets fix that.
 
-// begin-insert: tags/errors.2:src/main/java/colloquiumatic/Attendees.kt
+// begin-insert: tags/errors.3:src/main/java/colloquiumatic/Attendees.kt
 [source,kotlin]
 [%autofit]
 ----
@@ -139,10 +146,14 @@ interface Attendees {
 Our default choice for error handling in Kotlin is an Either type. // TODO
 In this project we'll use Result4k because, well, Nat wrote it.
 
-What we're going to do for now is to add to our interface a version of add that instead of throwing, returns `Result<Attendee, DuplicateException>`. If we were starting from scratch we would probably not use an exception as our error type, but here it let's us interoperate with Java easily.
+What we're going to do for now is to add to our interface a version of `Attendees.add` that instead of throwing,
+returns `Result<Attendee, DuplicateException>`.
+If we were starting from scratch we would probably not use an exception as our error type,
+but here it let's us interoperate with Java easily.
 
 First we add result4k to our build.
-// begin-insert: tags/errors.3:build.gradle#result4k
+
+// begin-insert: tags/errors.4:build.gradle#result4k
 [source,groovy]
 [%autofit]
 ----
@@ -151,94 +162,215 @@ dependencies {
     implementation "com.natpryce:result4k:2.0.0"
      ... 
 }
+
+compileKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+
+compileTestKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
+test {
+    useJUnitPlatform {
+        includeEngines "junit-jupiter"
+    }
+    testLogging {
+        events "skipped", "failed"
+    }
+}
 ----
 // end-insert
 
 and then we can add a default method to thunk from the exception case to the result.
+We can't call it `add` too, as both have the same parameters, so we call it `addToo` for now.
 
-// begin-insert: tags/errors.3:src/main/java/colloquiumatic/Attendees.kt#result4k
+// begin-insert: tags/errors.5:src/main/java/colloquiumatic/Attendees.kt
 [source,kotlin]
 [%autofit]
 ----
-@Throws(DuplicateException::class)
-fun add(name: String, email: String): Attendee
+interface Attendees {
+    @Throws(DuplicateException::class)
+    fun add(name: String, email: String): Attendee
 
-fun addToo(name:String, email:String)
-    : Result<Attendee, DuplicateException> =
-    try {
-        Success(add(name, email))
-    } catch (x: DuplicateException) {
-        Failure(x)
-    }
+    @JvmDefault // <1>
+    fun addToo(name:String, email:String)
+        : Result<Attendee, DuplicateException> =
+        try {
+            Success(add(name, email))
+        } catch (x: DuplicateException) {
+            Failure(x)
+        }
+
+    fun find(id: String): Optional<Attendee>
+}
 ----
 // end-insert
 
-Now we are have both exception and result version of the method, we can migrate the callers of the exception version. While we can use result4k from Java, it's a lot more convenient from Kotlin, so let's take our Java Registration
+<1> This annotation tells the compiler to generate Java-compatible default methods.
+You have to tell the compiler how to implement it - see [TODO].
 
-// begin-insert: tags/errors.3:src/main/java/colloquiumatic/handlers/Registration.java
+TODO - sidebar on naming - if you can't pick a good name, pick a bad one,
+because that way you'll be forced to make it better later.
+
+Now we are have both exception and result version of the method,
+we can migrate the callers of the exception version.
+While we can use result4k from Java, it's a lot more convenient from Kotlin,
+so let's take our Java Registration
+
+// begin-insert: tags/errors.5:src/main/java/colloquiumatic/Registration.java
 [source,java]
 [%autofit]
 ----
 public class Registration implements IRegister {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final Blacklist blacklist;
     private final Attendees attendees;
 
-    public Registration(Attendees attendees) {
+    public Registration(
+        Attendees attendees,
+        Blacklist blacklist
+    ) {
+        this.blacklist = blacklist;
         this.attendees = attendees;
     }
 
-    @Override
-    public String register(String postData)
-        throws JsonProcessingException, DuplicateException {
-
-        RegistrationData data = objectMapper.readValue(postData, RegistrationData.class);
-        if (data.name == null || data.email == null)
-            throw new IllegalArgumentException("Malformed json input");
-        Attendee result = attendees.add(data.name, data.email);
-        return objectMapper.writeValueAsString(result);
+    public Attendee register(RegistrationData data)
+        throws BlacklistedException, DuplicateException {
+        if (blacklist.isAcceptable(data))
+            return attendees.add(data.name, data.email);
+        else throw new BlacklistedException();
     }
-}
-
-class RegistrationData {
-    public String name;
-    public String email;
 }
 ----
 // end-insert
 
 and convert it to Kotlin
 
-// begin-insert: tags/errors.4:src/main/java/colloquiumatic/handlers/Registration.kt
+// begin-insert: tags/errors.6:src/main/java/colloquiumatic/Registration.kt
 [source,kotlin]
 [%autofit]
 ----
-class Registration(private val attendees: Attendees) : IRegister {
-    private val objectMapper = ObjectMapper()
+class Registration(
+    private val attendees: Attendees,
+    private val blacklist: Blacklist
+) : IRegister {
 
-    @Throws(JsonProcessingException::class, DuplicateException::class)
-    override fun register(postData: String?): String {
-        val data = objectMapper.readValue(postData, RegistrationData::class.java)
-        require(!(data.name == null || data.email == null)) { "Malformed json input" } // <1>
-        val result = attendees.add(data.name!!, data.email!!) // <2>
-        return objectMapper.writeValueAsString(result)
+    @Throws(BlacklistedException::class, DuplicateException::class)
+    override fun register(data: RegistrationData): Attendee {
+        return if (blacklist.isAcceptable(data))
+            attendees.add(data.name, data.email)
+        else throw BlacklistedException()
     }
-
-}
-
-internal class RegistrationData {
-    var name: String? = null
-    var email: String? = null
 }
 ----
 // end-insert
 
-1. Note that the conversion has converted IllegalState checks into a `require`.
-2. But that has led to nullability issues later
+That `attendees.add` expression is the one that can throw DuplicateException.
+We're going to want to look at its result, so we invert the if
 
+// begin-insert: tags/errors.7:src/main/java/colloquiumatic/Registration.kt#invert
+[source,kotlin]
+[%autofit]
+----
+@Throws(BlacklistedException::class, DuplicateException::class)
+override fun register(data: RegistrationData): Attendee {
+    return if (!blacklist.isAcceptable(data)) throw BlacklistedException()
+    else
+        attendees.add(data.name, data.email)
+}
+----
+// end-insert
 
+move the return
 
+// begin-insert: tags/errors.8:src/main/java/colloquiumatic/Registration.kt#invert
+[source,kotlin]
+[%autofit]
+----
+@Throws(BlacklistedException::class, DuplicateException::class)
+override fun register(data: RegistrationData): Attendee {
+    if (!blacklist.isAcceptable(data))
+        throw BlacklistedException()
+    return attendees.add(data.name, data.email)
+}
+----
+// end-insert
 
+and then extract the result as a local
 
+// begin-insert: tags/errors.9:src/main/java/colloquiumatic/Registration.kt#invert
+[source,kotlin]
+[%autofit]
+----
+@Throws(BlacklistedException::class, DuplicateException::class)
+override fun register(data: RegistrationData): Attendee {
+    if (!blacklist.isAcceptable(data))
+        throw BlacklistedException()
+    val result: Attendee = attendees.add(data.name, data.email)
+    return result
+}
+----
+// end-insert
+
+Now if we call `addToo` instead it will no longer throw, but the exception will be returned in the Result. This won't compile yet
+
+// begin-insert: tags/errors.10:src/main/java/colloquiumatic/Registration.kt#invert
+[source,kotlin]
+[%autofit]
+----
+@Throws(BlacklistedException::class, DuplicateException::class)
+override fun register(data: RegistrationData): Attendee {
+    if (!blacklist.isAcceptable(data))
+        throw BlacklistedException()
+    val result: Result<Attendee, DuplicateException> =
+        attendees.addToo(data.name, data.email)
+    return result // <1>
+}
+----
+// end-insert
+
+<1> Type mismatch. Required: Attendee Found: Result<Attendee, DuplicateException>
+
+Now to throw the exception in the result (in order to keep the current behaviour of `register`)
+we can use `result.recover` which will give us the exception back to throw
+
+// begin-insert: tags/errors.11:src/main/java/colloquiumatic/Registration.kt#invert
+[source,kotlin]
+[%autofit]
+----
+@Throws(BlacklistedException::class, DuplicateException::class)
+override fun register(data: RegistrationData): Attendee {
+    if (!blacklist.isAcceptable(data))
+        throw BlacklistedException()
+    val result: Result<Attendee, DuplicateException> =
+        attendees.addToo(data.name, data.email)
+    return result.recover { x -> throw x }
+}
+----
+// end-insert
+
+and now we can inline to get back to a shorter form
+
+// begin-insert: tags/errors.12:src/main/java/colloquiumatic/Registration.kt#invert
+[source,kotlin]
+[%autofit]
+----
+@Throws(BlacklistedException::class, DuplicateException::class)
+override fun register(data: RegistrationData): Attendee {
+    if (!blacklist.isAcceptable(data))
+        throw BlacklistedException()
+    return attendees.addToo(data.name, data.email)
+        .recover { throw it }
+}
+----
+// end-insert
+
+That is a good place for a rest, having learned to replace one use of exceptions with a result type.
 
 
