@@ -2,11 +2,33 @@
 
 ## Book structure
 
-* Part 1: intro
-* Part 2: worked example "in the small"
-* Part 3: Strategies for working with Kotlin and Java in a team and with a production codebase (testing, etc.)
-* Part 4: evolving the architecture to better take advantage of Kotlin (compositional, immutability, OO shell / functional core)
+* Introduction
+  - Who are we?
+  - Who do we think *you* are?
+  - Why Kotlin? (concision, consistency, convenience, null safety) \[can we think of another "c" word that covers null safety?\]
+  - How does Kotlin support Java programming style? (opinionated history)
+  - Kotlin's affordances (aka the "grain" of the language)
+  - An overview of the worked example(s)
+  - Where should we start refactoring to Kotlin?
+* Part 2: worked examples "in the small"
+  - Value classes
+  - Nullability
+  - Collections and Kotlin's compiler magic
+  - For loops and mutation to collection pipelines.
+  - Streams vs Kotlin Iterables and sequences: extension functions to abstract multiple processing steps 
+  - Modules and visibility modifiers
+  - ???
+* Part 3: evolving architecture to better take advantage of Kotlin's affordances
+ - Extension functions: platonic ideal and extension functions in different "domains"
+ - Mutability to immutability
+ - Reflection to type safe composition
+ - "DSLs"
+ - error handling
+ - Move effects to the edge: OO shell / functional core
 
+
+
+# Uncategorised so far...
 
 ## Small details...
 
@@ -38,7 +60,9 @@
   - Constructors, Properties, Methods
   - Java style (classes with methods) vs Kotlin style (classes, freestanding functions or extension methods, class methods for polymorphism)
 
-* Statics vs companion objects, and annotating Kotlin code to play well with existing Java (@JvmStatic, @JvmName, @JvmField, etc)
+* Statics vs companion objects
+
+* Annotating Kotlin code to play well with existing Java (@JvmStatic, @JvmName, @JvmField, etc)
 
 * Extension methods
   - Extension functions on core library types
