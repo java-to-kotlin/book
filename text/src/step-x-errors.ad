@@ -373,4 +373,166 @@ override fun register(data: RegistrationData): Attendee {
 
 That is a good place for a rest, having learned to replace one use of exceptions with a result type.
 
+OK, ready to go again? Good.
+
+We now have to choose whether to proceed depth or breadth first.
+Depth first would address the caller of `Registration.register`,
+breadth first would first fix up other callers of `Attendees.add`.
+As it happens our example code has no other callers of `add`,
+and breadth first will allow us to remove our irritating `addToo`,
+so lets go that way.
+
+While there is no other caller of `Attendees.add`, there is of course at least one implementation.
+Let's look at the (not thread-safe) test version.
+
+// begin-insert: tags/errors.12:src/test/java/colloquiumatic/InMemoryAttendees.java
+[source,java]
+[%autofit]
+----
+public class InMemoryAttendees implements Attendees {
+
+    private final List<Attendee> list = new ArrayList<>();
+    private int id = 0;
+
+    @Override
+    public Attendee add(String name, String email) throws DuplicateException {
+        if (list.stream().anyMatch( item -> item.getEmail().equals(email)))
+            throw new DuplicateException("attendee with email " + email + " already exists");
+        int newId = id++;
+        Attendee result = new Attendee(Integer.toString(newId), name, email);
+        list.add(result);
+        return result;
+    }
+
+    @Override
+    public Optional<Attendee> find(String id) {
+        return list.stream().filter(attendee -> attendee.getId().equals(id)).findFirst();
+    }
+
+    // for test
+    public void add(Attendee attendee) {
+        list.add(attendee);
+    }
+
+    public int size() {
+        return list.size();
+    }
+}
+----
+// end-insert
+
+The easiest way to implement `addToo` here is probably just to duplicate `add` and fix it up
+
+// begin-insert: tags/errors.13:src/test/java/colloquiumatic/InMemoryAttendees.java#foo
+[source,java]
+[%autofit]
+----
+@Override
+public Attendee add(String name, String email) throws DuplicateException {
+    if (list.stream().anyMatch( item -> item.getEmail().equals(email)))
+        throw new DuplicateException("attendee with email " + email + " already exists");
+    int newId = id++;
+    Attendee result = new Attendee(Integer.toString(newId), name, email);
+    list.add(result);
+    return result;
+}
+
+@SuppressWarnings("unchecked")
+@Override
+public Result<Attendee, DuplicateException> addToo(String name, String email) {
+    if (list.stream().anyMatch( item -> item.getEmail().equals(email)))
+        return new Failure<DuplicateException>(new DuplicateException("attendee with email " + email + " already exists"));
+    int newId = id++;
+    Attendee result = new Attendee(Integer.toString(newId), name, email);
+    list.add(result);
+    return new Success<Attendee>(result);
+}
+----
+// end-insert
+
+Were we still to have any uses of `add` we could implement it in terms of our new method,
+but we don't, so we can just remove it from here and the interface, and then rename `addToo` to `add`, leaving us with
+
+// begin-insert: tags/errors.14:src/main/java/colloquiumatic/Attendees.kt
+[source,kotlin]
+[%autofit]
+----
+interface Attendees {
+
+    fun add(name:String, email:String): Result<Attendee, DuplicateException>
+
+    fun find(id: String): Optional<Attendee>
+}
+----
+// end-insert
+
+and
+
+// begin-insert: tags/errors.14:src/main/java/colloquiumatic/Registration.kt
+[source,kotlin]
+[%autofit]
+----
+class Registration(
+    private val attendees: Attendees,
+    private val blacklist: Blacklist
+) : IRegister {
+
+    @Throws(BlacklistedException::class, DuplicateException::class)
+    override fun register(data: RegistrationData): Attendee {
+        if (!blacklist.isAcceptable(data))
+            throw BlacklistedException()
+        return attendees.add(data.name, data.email)
+            .recover { throw it }
+    }
+}
+----
+// end-insert
+
+We left InMemoryAttendees as Java really just to demonstrate that we could return result4k types from our old code,
+but I can't resist the conversion, as it has a number of warnings of the type `Not annotated [X] overrides @NotNull [X]`.
+
+// begin-insert: tags/errors.15:src/test/java/colloquiumatic/InMemoryAttendees.kt
+[source,kotlin]
+[%autofit]
+----
+class InMemoryAttendees : Attendees {
+
+    private val list = mutableListOf<Attendee>()
+    private var id = 0
+
+    override fun add(name: String, email: String): Result<Attendee, DuplicateException> =
+        when {
+            list.any { it.email == email } ->
+                Failure(DuplicateException("attendee with email $email already exists"))
+            else -> {
+                val result = Attendee(id++.toString(), name, email)
+                list.add(result)
+                Success(result)
+            }
+        }
+
+    override fun find(id: String): Optional<Attendee> =
+        list.firstOrNull { it.id == id }.toOptional()
+
+    // for test
+    fun add(attendee: Attendee) {
+        list.add(attendee)
+    }
+
+    fun size() = list.size
+}
+----
+// end-insert
+
+
+
+
+
+
+
+
+
+
+
+
 
