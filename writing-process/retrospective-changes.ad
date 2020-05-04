@@ -10,14 +10,18 @@ In the code repo
   E.g. "git branch <my-branch>-fixing <commit-or-tag>"
 * Make your changes and commit them onto the fixing branch, prefixing the commit message with the same tag name as the commit you want to change.
 * Check out the branch you want to fix.
-* In IntelliJ's Git log panel, select the fixing branch and invoke "Rebase Current onto Selected" via the context menu (ignore IntelliJ's warning if there is one)
+* In IntelliJ's Git log panel, select the fixing branch and invoke "Rebase Current onto Selected" via the context menu
+  - IntelliJ will run an interactive rebase to let you merge your changes into commits forward in the history.
+  - If you are adding callouts or snippet tags that **only** apply to the version you're changing.  In that case, in the first dialog, accept all the changes from the left and discard changes from the right.  That will complete the rebase.
 * Rerun the retag-worked-example script.  Double check that the tags are pointing at the right commits
 * Test that the entire history of the worked example is still valid: run the ./test-worked-example script.
 * Rerun the book build and check everything looks OK
 * Delete the fixup branch so that the retagging script doesn't get confused. (Don't worry! if anything goes wrong we can recreate it from the tag we created in the first step).
-  E.g. git branch -d fixing
+  E.g. git branch -d <my-branch>-fixing
 * Force push the rebased branch to origin (git push --force)
-* Delete the
+* Delete the <my-branch>-fixing branch
+* When you feel confident that everything is working tickety-boo, delete the <my-branch>-preserved tag.
+
 
 == To create a new completely empty branch
 
