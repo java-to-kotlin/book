@@ -179,17 +179,3 @@ private fun Text.highlightedText(tagName: String?) =
         } else ""
     }
 
-
-/*
-/// begin: foo
-/// note: foo [here is an example]
-fun foo(): Int {
-    val a = 10
-    /// mute: foo [// it doesn't matter what happens in the rest of the function...]
-    println("you should not see this")
-    /// resume: foo
-    return a
-}
-/// end: foo
-
-*/
