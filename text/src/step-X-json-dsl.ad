@@ -5,7 +5,7 @@ This allows us to write self-contained tests that are not split between Java cod
 
 To build a JSON tree, we statically import syntactic sugar methods from the Json class:
 
-// begin-insert: tags/jsondsl.0:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.java#json_dsl_import
+// begin-insert: tags/jsondsl_mixed.0:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.java#json_dsl_import
 [source,java]
 [%autofit]
 ----
@@ -16,7 +16,7 @@ import static colloquiumatic.json.Json.prop;
 
 Code that constructs JSON data then looks like this:
 
-// begin-insert: tags/jsondsl.0:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.java#json_dsl_usage
+// begin-insert: tags/jsondsl_mixed.0:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.java#json_dsl_usage
 [source,java]
 [%autofit]
 ----
@@ -24,17 +24,17 @@ JsonNode commandAsJson = obj(
     prop("userId", exampleUserId),
     prop("scheduledSessionId", exampleSessionId),
     prop("wouldRecommend", 1),
-    prop("appreciation", "things the user liked"),
+    prop("highlights", "things the user liked"),
     prop("suggestions", "suggestions for improvements")
 );
 ----
 // end-insert
 
-Our Json class acts as an _embedded domain specific language_.
+Our Json class acts as an _Embedded Domain-Specific Language_.
 It wraps the Jackson library, which does all the work of representing JSON data and serialising/deserialising JSON to and from strings and streams, and tries to make Java code that builds JSON data look as close to JSON syntax as possible.
 That's not _very_ close, to be fair, but its closer than is possible by using the Jackson library directly.
 
-// begin-insert: tags/jsondsl.0:src/test/java/colloquiumatic/json/Json.java#json_dsl
+// begin-insert: tags/jsondsl_mixed.0:src/test/java/colloquiumatic/json/Json.java#json_dsl
 [source,java]
 [%autofit]
 ----
@@ -70,18 +70,24 @@ public class Json {
 // end-insert
 
 Now we need to decide what we convert first: the Json class or the code that depends on it.
-Up to now, we've preferred to start with classes that are leaves in the dependency tree, and pushing the Kotlin boundary outwards, creating an expanding region of code in which we take full advantage Kotlin's type safety and convenience features.
+Until now, we've preferred to start with classes that are leaves in the dependency tree, pushing the Kotlin boundary outwards to create an expanding region of code within which we take full advantage Kotlin's type safety and convenience features.
 
 But this case is different: the Json class provides syntactic sugar to our Java code and has almost no logic itself.
 At best, converting it to Kotlin will leave the Java code unchanged, and so not be worth the effort.
 The conversion could make it _worse_ as a convenient notation in Java, and we'll have to annotate the Kotlin API to get it back to where we started.
-And even then we won't be able to apply Kotlin-specific features, such as infix or inline functions, to improve the DSL because what works well as a notation in Kotlin will not carry over to the Java code and definitely make it worse.
+And even then we won't be able to apply Kotlin-specific features to improve the DSL because what works well as a notation in Kotlin will not carry over to the Java code.
 
-If we start by converting the code using the Json class, we'll end up with a notation in the Kotlin code that is no worse than our existing Java, and that we can improve when we convert the Json class to Kotlin.
+If we start from the other direction, by converting the code that uses the Json class, we'll end up with a notation in the Kotlin code that is no worse than our existing Java, and that we can improve when we convert the Json class to Kotlin.
 
-When we convert a test to Kotlin, we end up with code like this:
+We can decide when to convert the Json class to Kotlin as we go.
+At some point, we'll have enough Kotlin code using our Json notation that it's worth converting to Kotlin and annotating it to support Java code.
+From there we can introduce features for the benefit of Kotlin code.
+Eventually we'll convert the last bit of Java code, and we can delete anything that remains in the Json class solely for the benefit of Java.
 
-// begin-insert: tags/jsondsl.1:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_usage
+Let's get started by converting a Java test that uses the Json class.
+The converter leaves us with code like this:
+
+// begin-insert: tags/jsondsl_mixed.1:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_usage
 [source,kotlin]
 [%autofit]
 ----
@@ -89,7 +95,7 @@ val commandAsJson: JsonNode = Json.obj(
     Json.prop("userId", exampleUserId),
     Json.prop("scheduledSessionId", exampleSessionId),
     Json.prop("wouldRecommend", 1),
-    Json.prop("appreciation", "things the user liked"),
+    Json.prop("highlights", "things the user liked"),
     Json.prop("suggestions", "suggestions for improvements")
 )
 ----
@@ -99,7 +105,7 @@ Unfortunately, IntelliJ didn't carry the static imports across into Kotlin.
 It imported the Json class and translated `obj` and `prop` to `Json.obj` and `Json.prop`, messing up our carefully crafted notation.
 It did not know that the Json class exists to define syntactic sugar, and that the way that the Java imported its functions was significant.
 
-We can get IntelliJ to add these imports automatically by hitting Alt-Enter on the first call to each method in the file we translated and choosing to import the method directly.
+We can get IntelliJ to add these imports automatically by hitting kbd:[Alt-Enter] on the first call to each method in the file we translated and choosing to import the method directly.
 
 // begin-insert: tags/jsondsl.2:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_import
 [source,kotlin]
@@ -110,17 +116,34 @@ import colloquiumatic.json.Json.prop
 ----
 // end-insert
 
-And we're back to the notation we want.
+And we're back to the notation we want:
+
+// begin-insert: tags/jsondsl.2:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_usage
+[source,kotlin]
+[%autofit]
+----
+val commandAsJson: JsonNode = obj(
+    prop("userId", exampleUserId),
+    prop("scheduledSessionId", exampleSessionId),
+    prop("wouldRecommend", 1),
+    prop("appreciation", "things the user liked"),
+    prop("suggestions", "suggestions for improvements")
+)
+----
+// end-insert
 
 ****
-Unlike Java, Kotlin does not distinguish between imports and "static imports".  The Kotlin import statement can import top-level declarations from other packages, static members of Java classes, and members of top-level objects.
+Unlike Java, Kotlin does not distinguish between imports and "static imports".
+The Kotlin import statement can import top-level declarations from other packages, static members of Java classes, and members from object declarations.
 ****
 
-Once all the code that uses the Json class is Kotlin, we can convert the Json class itself.
-The Java class of static methods becomes a top-level Kotlin object, also called `Json`.
+Eventually enough of the code that uses the Json class is Kotlin that it's worth converting the Json class itself.
+The converter translates the Java class of static methods into a top-level Kotlin object.
+Because we still have Java code calling those static methods, the converter annotates them with @JvmStatic.
+The compiler will generate static methods in the Java bytecode, leaving the Java code unaffected.
 
 // TODO: add callouts
-// begin-insert: tags/jsondsl.3:src/test/java/colloquiumatic/json/Json.kt#json_dsl
+// begin-insert: tags/jsondsl_mixed.3:src/test/java/colloquiumatic/json/Json.kt#json_dsl
 [source,kotlin]
 [%autofit]
 ----
@@ -129,9 +152,10 @@ object Json {
 
     @SafeVarargs
     fun obj(vararg props: Map.Entry<String?, JsonNode?>?): ObjectNode {
-        return obj(Arrays.asList(*props)) /// note: Type mismatch.
+        return obj(Arrays.asList(*props))
     }
 
+    @JvmStatic
     fun obj(props: Iterable<Map.Entry<String?, JsonNode?>>): ObjectNode {
         val node = nodes.objectNode()
         props.forEach(Consumer { p: Map.Entry<String?, JsonNode?> ->
@@ -148,6 +172,7 @@ object Json {
         return prop(name, nodes.textNode(textValue))
     }
 
+    @JvmStatic
     fun prop(name: String, intValue: Int?): Map.Entry<String, JsonNode> {
         return prop(name, nodes.numberNode(intValue))
     }
@@ -157,59 +182,118 @@ object Json {
 ----
 // end-insert
 
-At the time of writing, the translator doesn't get the conversion quite right.
-It marks more types as nullable than we would want, and doesn't infer the nullability correctly, so the resulting code doesn't compile.
+At the time of writing, the converter doesn't get the conversion quite right.
+It marks more types as nullable than we would want, and doesn't infer the nullability correctly, so the converted code doesn't compile.
+And it doesn't annotate all the overloads of the methods with @JvmStatic, so Java code that depends on the Json object doesn't compile either.
 
-We can fix it by removing the nullability modifiers.
+Happily it's easy to fix: we can remove the spurious nullability modifiers and add the required @JvmStatic annotations:
 
-// TODO: fix this code example to remove the note.
-// TODO: add a callout about the set<ObjectNode> wierdness
-// begin-insert: tags/jsondsl.4:src/test/java/colloquiumatic/json/Json.kt#correction
-[source,kotlin]
-[%autofit]
-----
-@SafeVarargs
-fun obj(vararg props: Map.Entry<String, JsonNode>): ObjectNode {
-    return obj(Arrays.asList(*props)) /// note: Type mismatch.
-}
-
-fun obj(props: Iterable<Map.Entry<String, JsonNode>>): ObjectNode {
-    val node = nodes.objectNode()
-    props.forEach(Consumer { p: Map.Entry<String, JsonNode> ->
-        node.set<ObjectNode>(p.key, p.value)
-    })
-    return node
-}
-----
-// end-insert
-
-Now everything is working again, we can remove Java-isms and apply Kotlin features to simplify implementation of the Json class and improve the notation it provides.
-
-Easy changes first.
-We can remove the SafeVarargs annotation: it's not needed in Kotlin.
-We can remove the reference to Java's Consumer functional interface and use a plain lambda.
-We can make functions that are a single-expression use single-expression function syntax.
-And we can use Kotlin's `apply` function to turn the `obj` function into a single-expression function.
-
-This removes a lot of boilerplate from the class:
-
-// begin-insert: tags/jsondsl.5:src/test/java/colloquiumatic/json/Json.kt#tidy_implementation
+//TODO add callouts
+// begin-insert: tags/jsondsl_mixed.4:src/test/java/colloquiumatic/json/Json.kt#json_dsl
 [source,kotlin]
 [%autofit]
 ----
 object Json {
     private val nodes = JsonNodeFactory.instance
 
+    @JvmStatic
+    @SafeVarargs
+    fun obj(vararg props: Map.Entry<String, JsonNode>): ObjectNode {
+        return obj(Arrays.asList(*props))
+    }
+
+    @JvmStatic
+    fun obj(props: Iterable<Map.Entry<String, JsonNode>>): ObjectNode {
+        val node = nodes.objectNode()
+        props.forEach(Consumer { p: Map.Entry<String, JsonNode> ->
+            node.set<JsonNode>(p.key, p.value)
+        })
+        return node
+    }
+
+    @JvmStatic
+    fun prop(name: String, value: JsonNode): Map.Entry<String, JsonNode> {
+        return SimpleImmutableEntry(name, value)
+    }
+
+    @JvmStatic
+    fun prop(name: String, textValue: String?): Map.Entry<String, JsonNode> {
+        return prop(name, nodes.textNode(textValue))
+    }
+
+    @JvmStatic
+    fun prop(name: String, intValue: Int?): Map.Entry<String, JsonNode> {
+        return prop(name, nodes.numberNode(intValue))
+    }
+
+    // and similar syntactic sugar for other primitive JSON types, and JSON arrays
+}
+----
+// end-insert
+
+TODO: explain nullability w.r.t.
+Jackson's API, and the +node.set<JsonNode>+ weirdness.
+
+Now everything is working again, let's simplify the implementation of the Json class and improve the notation it provides to Kotlin code, while ensuring any remaining Java code that uses it is unaffected.
+
+Let's pick off some quick, easy changes first.
+We can remove the SafeVarargs annotation: it's not needed in Kotlin code.
+We can remove the reference to Java's Consumer functional interface and use a plain lambda.
+We can make functions that are a single-expression use single-expression function syntax.
+And we can use Kotlin's `apply` function to turn the `obj` function into a single-expression function.
+
+This removes a lot of boilerplate from the class:
+
+// begin-insert: tags/jsondsl_mixed.5:src/test/java/colloquiumatic/json/Json.kt#tidy_implementation
+[source,kotlin]
+[%autofit]
+----
+object Json {
+    private val nodes = JsonNodeFactory.instance
+
+    @JvmStatic
     fun obj(vararg props: Map.Entry<String, JsonNode>) = obj(props.asList())
 
+    @JvmStatic
     fun obj(props: Iterable<Map.Entry<String, JsonNode>>): ObjectNode =
         nodes.objectNode().apply {
             props.forEach { p -> set<ObjectNode>(p.key, p.value) }
         }
 
-    fun prop(name: String, value: JsonNode) = SimpleImmutableEntry(name, value)
-    fun prop(name: String, textValue: String?) = prop(name, nodes.textNode(textValue))
-    fun prop(name: String, intValue: Int?) = prop(name, nodes.numberNode(intValue))
+    @JvmStatic fun prop(name: String, value: JsonNode) = SimpleImmutableEntry(name, value)
+    @JvmStatic fun prop(name: String, textValue: String?) = prop(name, nodes.textNode(textValue))
+    @JvmStatic fun prop(name: String, intValue: Int?) = prop(name, nodes.numberNode(intValue))
+
+    // and the rest of the syntactic sugar...
+}
+----
+// end-insert
+
+The `nodes` val at the top of the object declaration is only there to give a concise name to Jackson's global JsonNodeFactory instance.
+In Kotlin we can do that in import statement.
+Recall that Kotlin can import static members from Java classes.
+It can also import a feature under a different name within the importing file.
+
+// begin-insert: tags/jsondsl_mixed.6:src/test/java/colloquiumatic/json/Json.kt#import_nodes
+[source,kotlin]
+[%autofit]
+----
+// ... the rest of our imports
+import com.fasterxml.jackson.databind.node.JsonNodeFactory.instance as nodes
+
+object Json {
+    @JvmStatic
+    fun obj(vararg props: Map.Entry<String, JsonNode>) = obj(props.asList())
+
+    @JvmStatic
+    fun obj(props: Iterable<Map.Entry<String, JsonNode>>): ObjectNode =
+        nodes.objectNode().apply {
+            props.forEach { p -> set<ObjectNode>(p.key, p.value) }
+        }
+
+    @JvmStatic fun prop(name: String, value: JsonNode) = SimpleImmutableEntry(name, value)
+    @JvmStatic fun prop(name: String, textValue: String?) = prop(name, nodes.textNode(textValue))
+    @JvmStatic fun prop(name: String, intValue: Int?) = prop(name, nodes.numberNode(intValue))
 
     // and the rest of the syntactic sugar...
 }
@@ -233,26 +317,26 @@ Now all references in the file to the Map.Entry type are via the unqualified nam
 
 Secondly, we add a typealias below the imports, aliasing Entry and SimpleImmutableEntry to Pair:
 
-// begin-insert: tags/jsondsl.6:src/test/java/colloquiumatic/json/Json.kt#type_aliases
+// begin-insert: tags/jsondsl_mixed.7:src/test/java/colloquiumatic/json/Json.kt#type_aliases
 [source,kotlin]
 [%autofit]
 ----
-typealias Entry<K,V> = Pair<K,V>
-typealias SimpleImmutableEntry<K,V> = Pair<K,V>
+private typealias Entry<K,V> = Pair<K,V>
+private typealias SimpleImmutableEntry<K,V> = Pair<K,V>
 ----
 // end-insert
 
 IntelliJ will highlight them as unused, because the imports of Entry and SimpleImmutableEntry take precedence over the typealiases in the file.
-But hold on, those imports are going to disappear shortly.
+But hold on: those imports are going to disappear shortly.
 
-Now we define two extension properties on Pair to match the properties of Map.Entry:
+Next we define two extension properties on Pair to match the properties of Map.Entry:
 
-// begin-insert: tags/jsondsl.6:src/test/java/colloquiumatic/json/Json.kt#temporary_extension_properties
+// begin-insert: tags/jsondsl_mixed.7:src/test/java/colloquiumatic/json/Json.kt#temporary_extension_properties
 [source,kotlin]
 [%autofit]
 ----
-val <K,V> Pair<K,V>.key get() = first
-val <K,V> Pair<K,V>.value get() = second
+private val <K,V> Pair<K,V>.key get() = first
+private val <K,V> Pair<K,V>.value get() = second
 ----
 // end-insert
 
@@ -266,25 +350,25 @@ Finally, we clean up by inlining the typealiases and the temporary extension pro
 
 That leaves the code looking like:
 
-// begin-insert: tags/jsondsl.7:src/test/java/colloquiumatic/json/Json.kt#json_dsl
+// begin-insert: tags/jsondsl_mixed.8:src/test/java/colloquiumatic/json/Json.kt#json_dsl
 [source,kotlin]
 [%autofit]
 ----
 object Json {
-    private val nodes = JsonNodeFactory.instance
-
+    @JvmStatic
     fun obj(vararg props: Pair<String, JsonNode>) = obj(props.asList())
 
+    @JvmStatic
     fun obj(props: Iterable<Pair<String, JsonNode>>): ObjectNode =
         nodes.objectNode().apply {
             props.forEach { p -> set<ObjectNode>(p.first, p.second) }
         }
 
-    fun prop(name: String, value: JsonNode) = Pair(name, value)
-    fun prop(name: String, textValue: String?) = prop(name, nodes.textNode(textValue))
-    fun prop(name: String, intValue: Int?) = prop(name, nodes.numberNode(intValue))
+    @JvmStatic fun prop(name: String, value: JsonNode) = Pair<String, JsonNode>(name, value)
+    @JvmStatic fun prop(name: String, textValue: String?) = prop(name, nodes.textNode(textValue))
+    @JvmStatic fun prop(name: String, intValue: Int?) = prop(name, nodes.numberNode(intValue))
 
-    // and the rest of the syntactic sugar...
+    // ... and the rest of the syntactic sugar
 }
 ----
 // end-insert
@@ -302,11 +386,11 @@ In Kotlin we don't usually create pairs by calling the Pair constructor.
 Alt-Enter on the call to `Pair` in the prop function, and choose the option "convert to 'to'".
 It now looks like:
 
-// begin-insert: tags/jsondsl.8:src/test/java/colloquiumatic/json/Json.kt#use_to
+// begin-insert: tags/jsondsl_mixed.9:src/test/java/colloquiumatic/json/Json.kt#use_to
 [source,kotlin]
 [%autofit]
 ----
-fun prop(name: String, value: JsonNode) = name to value
+@JvmStatic fun prop(name: String, value: JsonNode) = name to value
 ----
 // end-insert
 
@@ -319,7 +403,9 @@ That gives us a clue as to how to improve the notation now we are working in Kot
 Wouldn't it be nice if object properties did not have to be wrapped in a call to `prop`, but used infix notation instead.
 We can't call our JSON infix operator "to" -- that's been taken for Pairs -- but we can use a similarly short word.
 How about "of"?
-That would make code that builds JSON look like:
+That would make Kotlin code that builds JSON look like:
+
+TBD: rewrite from her for the mixed Java/Kotlin scenario
 
 // begin-insert: tags/jsondsl.11:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_usage
 [source,kotlin]
@@ -399,7 +485,6 @@ object Json {
 }
 ----
 // end-insert
-
 
 This is still not entirely idiomatic Kotlin.
 We're not using the Json object as an object.
