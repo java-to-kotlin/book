@@ -107,7 +107,7 @@ It did not know that the Json class exists to define syntactic sugar, and that t
 
 We can get IntelliJ to add these imports automatically by hitting kbd:[Alt-Enter] on the first call to each method in the file we translated and choosing to import the method directly.
 
-// begin-insert: tags/jsondsl.2:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_import
+// begin-insert: tags/jsondsl_mixed.2:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_import
 [source,kotlin]
 [%autofit]
 ----
@@ -118,7 +118,7 @@ import colloquiumatic.json.Json.prop
 
 And we're back to the notation we want:
 
-// begin-insert: tags/jsondsl.2:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_usage
+// begin-insert: tags/jsondsl_mixed.2:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_usage
 [source,kotlin]
 [%autofit]
 ----
@@ -126,7 +126,7 @@ val commandAsJson: JsonNode = obj(
     prop("userId", exampleUserId),
     prop("scheduledSessionId", exampleSessionId),
     prop("wouldRecommend", 1),
-    prop("appreciation", "things the user liked"),
+    prop("highlights", "things the user liked"),
     prop("suggestions", "suggestions for improvements")
 )
 ----
@@ -182,9 +182,9 @@ object Json {
 ----
 // end-insert
 
-At the time of writing, the converter doesn't get the conversion quite right.
-It marks more types as nullable than we would want, and doesn't infer the nullability correctly, so the converted code doesn't compile.
-And it doesn't annotate all the overloads of the methods with @JvmStatic, so Java code that depends on the Json object doesn't compile either.
+At the time of writing, IntelliJ doesn't get the conversion quite right.
+It marks more types as nullable than we would want, and doesn't infer the nullability correctly, so the converted code doesn't compile,
+and it doesn't annotate all the overloads of the methods with @JvmStatic, so Java code that depends on the Json object doesn't compile either.
 
 Happily it's easy to fix: we can remove the spurious nullability modifiers and add the required @JvmStatic annotations:
 
@@ -399,7 +399,7 @@ That would make Kotlin code that builds JSON look like:
 
 TBD: rewrite from here for the mixed Java/Kotlin scenario
 
-// begin-insert: tags/jsondsl.11:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_usage
+// begin-insert: tags/jsondsl_mixed.12:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_usage
 [source,kotlin]
 [%autofit]
 ----
@@ -407,19 +407,19 @@ val commandAsJson: JsonNode = obj(
     "userId" of exampleUserId,
     "scheduledSessionId" of exampleSessionId,
     "wouldRecommend" of 1,
-    "appreciation" of "things the user liked",
+    "highlights" of "things the user liked",
     "suggestions" of "suggestions for improvements"
 )
 ----
 // end-insert
 
-How do we turn a function into an infix function?  What do we do about Java code that doesn't have the concept of inline functions?
+How do we turn a function into an infix function?  What do we do about the code in Java, which doesn't have the concept of infix functions?
 
 To make a function inline we must first make it an extension method, and then mark it as infix.
-IntelliJ can automatically do the first step: Alt-Enter on the first parameter of each `prop` function and select "Convert parameter to receiver".
-Now our JSON-building code looks like this:
+IntelliJ can automatically do the first step: kbd:[Alt-Enter] on the first parameter of each `prop` function and select "Convert parameter to receiver".
+Our JSON-building code then looks like this:
 
-// begin-insert: tags/jsondsl.9:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_usage
+// begin-insert: tags/jsondsl_mixed.10:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_usage
 [source,kotlin]
 [%autofit]
 ----
@@ -427,66 +427,80 @@ val commandAsJson: JsonNode = obj(
     "userId".prop(exampleUserId),
     "scheduledSessionId".prop(exampleSessionId),
     "wouldRecommend".prop(1),
-    "appreciation".prop("things the user liked"),
+    "highlights".prop("things the user liked"),
     "suggestions".prop("suggestions for improvements")
 )
 ----
 // end-insert
 
+At the time of writing, IntelliJ cannot automatically refactor an extension function into an infix function.
 We must add the infix modifier to the prop function by hand.
-How do we now make all the call sites use infix syntax?
-At the time of writing, IntelliJ can automatically refactor between infix and dotted method call syntax for an single call site, but doesn't have a way to do automate the refactoring in bulk for _all_ uses of an infix function in the codebase.
+IntelliJ will then be able to refactor between infix and dotted method call syntax for a single call site, but doesn't automate the refactoring in bulk for _all_ uses of an infix function across the codebase.
 Going through every call site and refactoring them one by one sounds too tedious!
 
-Let's roll back and take another run at it: we'll try using the _add-code-and-inline_ trick we used to swap out the Map.Entry type for Pair.
+Let's roll back and take another run at it: we'll try using the _add-code-and-inline_ trick we used to swap out the Map.Entry type for Pair.  We'll add new, infix functions called "of" and make the "prop" functions delegate to them.
 
-We'll add new, infix functions called "of" and make the "prop" functions delegate to them.
+While we're adding new functions, let's also take the opportunity to start moving the implementation of our DSL out of the Json object.
+The Json object is not idiomatic Kotlin.
+We're not using it as an object -- we never pass around a reference to the Json object.
+It's merely a namespace to hold the functions that define our mini domain-specific language.
+In Kotlin, we can declare those at the top level of the file.
+There's no need for a Json object at all.
 
-// begin-insert: tags/jsondsl.10:src/test/java/colloquiumatic/json/Json.kt#temporary_delegation_to_infix_of_function
-[source,kotlin]
-[%autofit]
-----
-fun prop(name: String, value: JsonNode) = name of value
-fun prop(name: String, textValue: String?) = name of textValue
-fun prop(name: String, intValue: Int?) = name of intValue
+So, we'll stop adding mure stuff to the Json object and declare our infix "of" functions at the top level. We'll delegate to them from the existing prop function in the Json object.  The "prop" functions will still be used by Java code, but the infix "of" functions will be for use by Kotlin code.
 
-infix fun String.of(value: JsonNode) = this to value
-infix fun String.of(textValue: String?) = this of nodes.textNode(textValue)
-infix fun String.of(intValue: Int?) = this of nodes.numberNode(intValue)
-----
-// end-insert
-
-Now we can inline the prop functions, and we're done.
-
-// begin-insert: tags/jsondsl.11:src/test/java/colloquiumatic/json/Json.kt
+// begin-insert: tags/jsondsl_mixed.11:src/test/java/colloquiumatic/json/Json.kt#prepare_for_inline
 [source,kotlin]
 [%autofit]
 ----
 object Json {
-    private val nodes = JsonNodeFactory.instance
-
-    fun obj(vararg props: Pair<String, JsonNode>) = obj(props.asList())
-
-    fun obj(props: Iterable<Pair<String, JsonNode>>): ObjectNode =
-        nodes.objectNode().apply {
-            props.forEach { p -> set<ObjectNode>(p.first, p.second) }
-        }
-
-    infix fun String.of(value: JsonNode) = this to value
-    infix fun String.of(textValue: String?) = this of nodes.textNode(textValue)
-    infix fun String.of(intValue: Int?) = this of nodes.numberNode(intValue)
+    // ...
+    @JvmStatic fun prop(name: String, value: JsonNode) = name of value
+    @JvmStatic fun prop(name: String, textValue: String?) = name of textValue
+    @JvmStatic fun prop(name: String, intValue: Int?) = name of intValue
+    // ... and the rest of the syntactic sugar for Java
 }
+
+infix fun String.of(value: JsonNode) = this to value
+infix fun String.of(textValue: String?) = this of nodes.textNode(textValue)
+infix fun String.of(intValue: Int?) = this of nodes.numberNode(intValue)
+// ... and the rest of the syntactic sugar for Kotlin
 ----
 // end-insert
 
-This is still not entirely idiomatic Kotlin.
-We're not using the Json object as an object.
-It's merely a namespace to hold the functions and a reference to the object mapper.
-In Kotlin, we can declare those at the top level of the file.
-However, IntelliJ cannot (at the time of writing) automatically move declarations from an object to the top level.
-We'd have to do it by hand, either by deleting the first line and final brace and then "leaning on the compiler" to fix up dependent code, or by using the _add-code-and-inline_ move again.
-Is it worth it?
-I'll leave that up to you, the reader, to decide if you're following along at home.
+Now we can inline the prop functions.  IntelliJ reports that it was unable to inline all the uses of prop.  That's just what we want!  We can't inline Kotlin code into Java, so IntelliJ has left the Json object unchanged. All our Kotlin code is now using our infix notation:
+
+// begin-insert: tags/jsondsl_mixed.12:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_usage
+[source,kotlin]
+[%autofit]
+----
+val commandAsJson: JsonNode = obj(
+    "userId" of exampleUserId,
+    "scheduledSessionId" of exampleSessionId,
+    "wouldRecommend" of 1,
+    "highlights" of "things the user liked",
+    "suggestions" of "suggestions for improvements"
+)
+----
+// end-insert
+
+But the Java code is still calling prop:
+
+// begin-insert: tags/jsondsl_mixed.12:src/test/java/colloquiumatic/signup/SessionSignUpCommandParserTest.java#json_dsl_usage
+[source,java]
+[%autofit]
+----
+JsonNode commandAsJson = obj(
+    prop("userId", exampleUserId),
+    prop("scheduledSessionId", exampleSessionId),
+    prop("additionalRequirements", "example requirements")
+);
+----
+// end-insert
+
+Now all that remains to get to conventional Kotlin is to move the declarations to the top-level and delete the unnecessary Json object.
+
+... TBD ...
 
 == Discussion
 
