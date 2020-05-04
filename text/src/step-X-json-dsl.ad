@@ -231,8 +231,7 @@ object Json {
 ----
 // end-insert
 
-TODO: explain nullability w.r.t.
-Jackson's API, and the +node.set<JsonNode>+ weirdness.
+TODO: explain nullability & Jackson's API, the +node.set<JsonNode>+ weirdness, and keeping the @SafeVarargs for Java.
 
 Now everything is working again, let's simplify the implementation of the Json class and improve the notation it provides to Kotlin code, while ensuring any remaining Java code that uses it is unaffected.
 
@@ -252,6 +251,7 @@ object Json {
     private val nodes = JsonNodeFactory.instance
 
     @JvmStatic
+    @SafeVarargs
     fun obj(vararg props: Map.Entry<String, JsonNode>) = obj(props.asList())
 
     @JvmStatic
@@ -283,19 +283,10 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory.instance as nodes
 
 object Json {
     @JvmStatic
+    @SafeVarargs
     fun obj(vararg props: Map.Entry<String, JsonNode>) = obj(props.asList())
 
-    @JvmStatic
-    fun obj(props: Iterable<Map.Entry<String, JsonNode>>): ObjectNode =
-        nodes.objectNode().apply {
-            props.forEach { p -> set<ObjectNode>(p.key, p.value) }
-        }
-
-    @JvmStatic fun prop(name: String, value: JsonNode) = SimpleImmutableEntry(name, value)
-    @JvmStatic fun prop(name: String, textValue: String?) = prop(name, nodes.textNode(textValue))
-    @JvmStatic fun prop(name: String, intValue: Int?) = prop(name, nodes.numberNode(intValue))
-
-    // and the rest of the syntactic sugar...
+    // ...
 }
 ----
 // end-insert
@@ -356,6 +347,7 @@ That leaves the code looking like:
 ----
 object Json {
     @JvmStatic
+    @SafeVarargs
     fun obj(vararg props: Pair<String, JsonNode>) = obj(props.asList())
 
     @JvmStatic
