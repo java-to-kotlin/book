@@ -8,7 +8,7 @@ It’s not unusual to refactor between languages. These days most projects are m
 
 Refactoring between languages is usually harder than refactoring within a single language because refactoring tools do not work well across the boundaries between the languages, if they work at all.  Porting logic from one language to another must be done manually, which takes longer and introduces more risk.  Once multiple languages are in use, the language boundary impedes refactoring because when you refactoring code in one language, the IDE does not update dependent code written in other languages to be compatible.
 
-What makes the combination of Java and Kotlin so unique is how seamless is the boundary between the two languages.  Thanks to the design of the Kotlin language, the way it is mapped to the JVM platform, and JetBrains' investment in developer tooling, refactoring Java to Kotlin and refactoring a combined Java/Kotlin codebase is as easy as refactoring in a single codebase.
+What makes the combination of Java and Kotlin so unique is how seamless is the boundary between the two languages.  Thanks to the design of the Kotlin language, the way it is mapped to the JVM platform, and JetBrains' investment in developer tooling, refactoring Java to Kotlin and refactoring a combined Java/Kotlin codebase is almost as easy as refactoring in a single codebase.
 
 Our experience has been that we can refactor Java to Kotlin without impacting productivity, and that as more of the codebase is converted to Kotlin, productivity accelerates.
 
@@ -17,3 +17,11 @@ Our experience has been that we can refactor Java to Kotlin without impacting pr
 ====
 Imagine that you do, by accident, break something that is not caught by your test suite.  You'll want to find the commit that introduced the fault and fix it as quick as you can.  Git Bisect is a tool that finds the faulty commit: you write a test that demonstrates the error and Git Bisect does a binary search of the history to find the first commit that makes that test fail.  But if the commits in your history are a mish-mash of loosely related changes, Git Bisect cannot help as well: it can't tell you which of the changes within a commit introduced the error.  If commits mix refactoring _and_ changes to behaviour, reverting a bad refactoring step can break _other_ behaviour in the system.  Small, focused commits that separate refactorings from each other, and from changes to behaviour, make it easy to understand what changed and fix any erroneous change.
 ====
+
+
+== Refactoring Combos
+
+We use the IDE's automatic refactoring whenever we can.  However, many of the larger scale transformations we need to perform are not made available as a distinct action in the user interface. We have to perform them as a sequence of more granular automated refactorings and, where the IDE does not automate a transformation we need, text edits.  We call these sequences of transformations and edits _Refactoring Combo's_.footnote:["Combo", short for "combination", is a term we've borrowed from from link:https://en.wikipedia.org/wiki/One-two_combo[boxing], where it refers to a combination of strikes performed in quick succession.]
+
+It's tedious and error prone to refactor by editing text.  To reduce the risk, and our boredom, we try to limit the amount of text editing we do.  If we _have_ to edit text, we prefer the text edit to involve no more than a single expression.  We'll use automatic refactorings to make that possible, edit the expression, and then use automatic refactoring steps to tidy back up to the final state we're aiming for.  That is itself a refactoring combo -- a meta-combo, if you will -- that we'll call _refactor-to-edit-a-single-expression_.
+
