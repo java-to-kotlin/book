@@ -9,12 +9,11 @@ else
   then
     clean=clean
   else
-    clean=""
+    clean=
   fi
 
   # test the code
   ./gradlew --warning-mode=all $clean code:test
-  (cd ../refactoring-to-kotlin-code && ./gradlew --warning-mode=all $clean test)
 
   # include the code in the Asciidoc
   ./retag-worked-example
@@ -22,4 +21,4 @@ else
 fi
 
 # build the book
-docker run --rm --tty -v "$PWD"/:/documents/ asciidoctor/docker-asciidoctor make "$@"
+docker run --rm --tty -v "$PWD"/:/documents/ asciidoctor/docker-asciidoctor make $clean "$@"
