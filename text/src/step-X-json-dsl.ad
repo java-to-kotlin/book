@@ -504,9 +504,189 @@ JsonNode commandAsJson = obj(
 ----
 // end-insert
 
-Now all that remains to get to conventional Kotlin is to move the declarations to the top-level and delete the unnecessary Json object.
+Now all that remains to get to 100% conventional Kotlin is to move the declarations to the top-level and delete the Json object, all without disrupting the Java code that depends on it.
 
-... TBD ...
+We can move the implementations of the `obj` functions to the top level in three steps.
+
+First, we extracting the bodies of obj as new functions.
+We'll call our extracted functions 'jsonObject' instead of 'obj' to avoid name clash.
+We can rename them back to our terse notation when we finish.
+
+Then we move them to the top level of the file via the kbd:[Alt-Enter] menu:
+
+// begin-insert: tags/jsondsl_mixed.13:src/test/java/colloquiumatic/json/Json.kt#json_dsl
+[source,kotlin]
+[%autofit]
+----
+object Json {
+    @JvmStatic
+    @SafeVarargs
+    fun obj(vararg props: Pair<String, JsonNode>) = jsonObject(*props)
+
+    @JvmStatic
+    fun obj(props: Iterable<Pair<String, JsonNode>>) = jsonObject(props)
+
+    @JvmStatic fun prop(name: String, value: JsonNode) = name of value
+    @JvmStatic fun prop(name: String, textValue: String?) = name of textValue
+    @JvmStatic fun prop(name: String, intValue: Int?) = name of intValue
+    // ... and the rest of the syntactic sugar for Java
+}
+
+fun jsonObject(vararg props: Pair<String, JsonNode>) =
+    jsonObject(props.asList())
+
+fun jsonObject(props: Iterable<Pair<String, JsonNode>>): ObjectNode =
+    nodes.objectNode().apply {
+        props.forEach { p -> set<ObjectNode>(p.first, p.second) }
+    }
+
+infix fun String.of(value: JsonNode) = this to value
+infix fun String.of(textValue: String?) = this of nodes.textNode(textValue)
+infix fun String.of(intValue: Int?) = this of nodes.numberNode(intValue)
+// ... and the rest of the syntactic sugar for Kotlin
+----
+// end-insert
+
+At this point, our Kotlin code is still calling the obj methods of the Json object.
+So we inline the obj methods, to make the Kotlin code call the top-level jsonObject functions.
+(Recall that inlining a Kotlin function called from Java will leave the Java code unaffected).
+
+// begin-insert: tags/jsondsl_mixed.14:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_usage
+[source,kotlin]
+[%autofit]
+----
+val commandAsJson: JsonNode = jsonObject(
+    "userId" of exampleUserId,
+    "scheduledSessionId" of exampleSessionId,
+    "wouldRecommend" of 1,
+    "highlights" of "things the user liked",
+    "suggestions" of "suggestions for improvements"
+)
+----
+// end-insert
+
+Now to make the Java code call the top-level functions.
+We'll annotate the DSL implementation to make the Kotlin compiler translate the idiomatic Kotlin code into bytecode compatible with the remaining Java code.
+Then we'll switch out the Json object, leaving only the idiomatic Kotlin.
+
+First, we annotate the top-level methods with @JvmName so that they are compiled to the same name as those that the Java code calls on the Json object:
+
+// begin-insert: tags/jsondsl_mixed.15:src/test/java/colloquiumatic/json/Json.kt#json_dsl
+[source,kotlin]
+[%autofit]
+----
+object Json {
+    @JvmStatic
+    @SafeVarargs
+    fun obj(vararg props: Pair<String, JsonNode>) = jsonObject(*props)
+
+    @JvmStatic
+    fun obj(props: Iterable<Pair<String, JsonNode>>) = jsonObject(props)
+
+    @JvmStatic fun prop(name: String, value: JsonNode) = name of value
+    @JvmStatic fun prop(name: String, textValue: String?) = name of textValue
+    @JvmStatic fun prop(name: String, intValue: Int?) = name of intValue
+    // ... and the rest of the syntactic sugar for Java
+}
+
+@SafeVarargs
+@JvmName("obj")
+fun jsonObject(vararg props: Pair<String, JsonNode>) =
+    jsonObject(props.asList())
+
+@JvmName("obj")
+fun jsonObject(props: Iterable<Pair<String, JsonNode>>): ObjectNode =
+    nodes.objectNode().apply {
+        props.forEach { p -> set<ObjectNode>(p.first, p.second) }
+    }
+
+@JvmName("prop") infix fun String.of(value: JsonNode) = this to value
+@JvmName("prop") infix fun String.of(textValue: String?) = this of nodes.textNode(textValue)
+@JvmName("prop") infix fun String.of(intValue: Int?) = this of nodes.numberNode(intValue)
+// ... and the rest of the syntactic sugar for Kotlin
+----
+// end-insert
+
+Then we annotate the source file with @JvmName to compile it to a Java classfile named "Json" and delete the entire Json object.
+
+// begin-insert: tags/jsondsl_mixed.16:src/test/java/colloquiumatic/json/Json.kt#json_dsl
+[source,kotlin]
+[%autofit]
+----
+@file:JvmName("Json")
+// ... package declaration and imports ...
+
+@SafeVarargs
+@JvmName("obj")
+fun jsonObject(vararg props: Pair<String, JsonNode>) =
+    jsonObject(props.asList())
+
+@JvmName("obj")
+fun jsonObject(props: Iterable<Pair<String, JsonNode>>): ObjectNode =
+    nodes.objectNode().apply {
+        props.forEach { p -> set<ObjectNode>(p.first, p.second) }
+    }
+
+@JvmName("prop") infix fun String.of(value: JsonNode) = this to value
+@JvmName("prop") infix fun String.of(textValue: String?) = this of nodes.textNode(textValue)
+@JvmName("prop") infix fun String.of(intValue: Int?) = this of nodes.numberNode(intValue)
+// ... and the rest of the syntactic sugar
+----
+// end-insert
+
+****
+A kotlin file called Json.kt that contains top-level declarations is compiled to a JVM class called JsonKt.
+The top-level functions in the file are compiled to static methods of the JVM class.
+An object named Json in that file is compiled to a JVM class called Json that implements the [.pattern]_Singleton_ pattern, and any methods annotated with @JvmStatic are compiled to static methods.
+The annotations we applied to the top-level declarations made the compiler generate the JsonKt and Json classes with static methods that had the same names and signatures, allowing us to replace one with the other without touching the Java code.
+****
+
+As a final clean-up, we can rename the javaObject functions back to "obj" and delete their now unnecessary @JvmName annotations:
+
+// begin-insert: tags/jsondsl_mixed.17:src/test/java/colloquiumatic/json/Json.kt#json_dsl
+[source,kotlin]
+[%autofit]
+----
+@file:JvmName("Json")
+// ... package declaration and imports ...
+
+@SafeVarargs
+fun obj(vararg props: Pair<String, JsonNode>) =
+    obj(props.asList())
+
+fun obj(props: Iterable<Pair<String, JsonNode>>): ObjectNode =
+    nodes.objectNode().apply {
+        props.forEach { p -> set<ObjectNode>(p.first, p.second) }
+    }
+
+@JvmName("prop") infix fun String.of(value: JsonNode) = this to value
+@JvmName("prop") infix fun String.of(textValue: String?) = this of nodes.textNode(textValue)
+@JvmName("prop") infix fun String.of(intValue: Int?) = this of nodes.numberNode(intValue)
+// ... and the rest of the syntactic sugar
+----
+// end-insert
+
+Eventually we will convert the last Java code using our JSON notation to Kotlin.
+We can remove the annotations from our Kotlin code, leaving the implementation about as minimal as it can be:
+
+// begin-insert: tags/jsondsl_mixed.20:src/test/java/colloquiumatic/json/Json.kt#json_dsl
+[source,kotlin]
+[%autofit]
+----
+fun obj(vararg props: Pair<String, JsonNode>) =
+    obj(props.asList())
+
+fun obj(props: Iterable<Pair<String, JsonNode>>): ObjectNode =
+    nodes.objectNode().apply {
+        props.forEach { p -> set<ObjectNode>(p.first, p.second) }
+    }
+
+infix fun String.of(value: JsonNode) = this to value
+infix fun String.of(textValue: String?) = this of nodes.textNode(textValue)
+infix fun String.of(intValue: Int?) = this of nodes.numberNode(intValue)
+// ... and the rest of the syntactic sugar
+----
+// end-insert
 
 == Discussion
 
@@ -514,5 +694,7 @@ Now all that remains to get to conventional Kotlin is to move the declarations t
 * compositional vs builder style
 * options in Java vs Kotlin
 * maintaining a DSL for a mixed Java/Kotlin codebase
-
+* distinct syntactic sugar for each language.
+Separate syntax from implementation.
+* using annotations to reduce impact of Kotlin style on existing Java code
 
