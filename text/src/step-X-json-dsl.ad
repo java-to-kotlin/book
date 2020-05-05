@@ -183,8 +183,7 @@ object Json {
 // end-insert
 
 At the time of writing, IntelliJ doesn't get the conversion quite right.
-It marks more types as nullable than we would want, and doesn't infer the nullability correctly, so the converted code doesn't compile,
-and it doesn't annotate all the overloads of the methods with @JvmStatic, so Java code that depends on the Json object doesn't compile either.
+It marks more types as nullable than we would want, and doesn't infer the nullability correctly, so the converted code doesn't compile, and it doesn't annotate all the overloads of the methods with @JvmStatic, so Java code that depends on the Json object doesn't compile either.
 
 Happily it's easy to fix: we can remove the spurious nullability modifiers and add the required @JvmStatic annotations:
 
@@ -413,7 +412,8 @@ val commandAsJson: JsonNode = obj(
 ----
 // end-insert
 
-How do we turn a function into an infix function?  What do we do about the code in Java, which doesn't have the concept of infix functions?
+How do we turn a function into an infix function?
+What do we do about the code in Java, which doesn't have the concept of infix functions?
 
 To make a function inline we must first make it an extension method, and then mark it as infix.
 IntelliJ can automatically do the first step: kbd:[Alt-Enter] on the first parameter of each `prop` function and select "Convert parameter to receiver".
@@ -438,16 +438,18 @@ We must add the infix modifier to the prop function by hand.
 IntelliJ will then be able to refactor between infix and dotted method call syntax for a single call site, but doesn't automate the refactoring in bulk for _all_ uses of an infix function across the codebase.
 Going through every call site and refactoring them one by one sounds too tedious!
 
-Let's roll back and take another run at it: we'll try using the _add-code-delegate-and-inline_ combo we used to swap out the Map.Entry type for Pair.  We'll add new, infix functions called "of" and make the "prop" functions delegate to them.
+Let's roll back and take another run at it: we'll try using the [.combo]_Add Code, Delegate and Inline_ combo we used to swap out the Map.Entry type for Pair.
+We'll add new, infix functions called "of" and make the "prop" functions delegate to them.
 
 While we're adding new functions, let's also take the opportunity to start moving the implementation of our DSL out of the Json object.
 The Json object is not idiomatic Kotlin.
-We're not using it as an object -- we never pass around a reference to the Json object.
-It's merely a namespace to hold the functions that define our mini domain-specific language.
+We're not using it as an object -- we never pass around a reference to it.
+It's merely a namespace to hold the functions that define our little domain-specific language.
 In Kotlin, we can declare those at the top level of the file.
-There's no need for a Json object at all.
 
-So, we'll stop adding mure stuff to the Json object and declare our infix "of" functions at the top level. We'll delegate to them from the existing prop function in the Json object.  The "prop" functions will still be used by Java code, but the infix "of" functions will be for use by Kotlin code.
+So, we'll stop adding more stuff to the Json object and declare our infix "of" functions at the top level.
+We'll delegate to them from the existing prop function in the Json object.
+The "prop" functions will still be used by Java code, but the infix "of" functions will be for use by Kotlin code.
 
 // begin-insert: tags/jsondsl_mixed.11:src/test/java/colloquiumatic/json/Json.kt#prepare_for_inline
 [source,kotlin]
@@ -468,7 +470,11 @@ infix fun String.of(intValue: Int?) = this of nodes.numberNode(intValue)
 ----
 // end-insert
 
-Now we can inline the prop functions.  IntelliJ reports that it was unable to inline all the uses of prop.  That's just what we want!  We can't inline Kotlin code into Java, so IntelliJ has left the Json object unchanged. All our Kotlin code is now using our infix notation:
+Now we can inline the prop functions.
+IntelliJ reports that it was unable to inline all the uses of prop.
+That's just what we want!
+We can't inline Kotlin code into Java, so IntelliJ has left the Json object unchanged.
+All our Kotlin code is now using our infix notation:
 
 // begin-insert: tags/jsondsl_mixed.12:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_usage
 [source,kotlin]
