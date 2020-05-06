@@ -69,7 +69,9 @@ public class Json {
 ----
 // end-insert
 
-Now we need to decide what we convert first: the Json class or the code that depends on it.
+There's only so much we can do to create a domain-specific language in Java.  They always end up looking a bit LISP-ish or involve a lot of boilerplate code to implement the [.pattern]_Builder_ pattern.  Kotlin offers more options for expressive syntax. As more of our codebase is in Kotlin, it becomes more beneficial to take advantage of Kotlin's features and make the Kotlin code using our domain-specific language easier to read.
+
+We need to decide what we convert first: the Json class, or the code that depends on it.
 Until now, we've preferred to start with classes that are leaves in the dependency tree, pushing the Kotlin boundary outwards to create an expanding region of code within which we take full advantage Kotlin's type safety and convenience features.
 
 But this case is different: the Json class provides syntactic sugar to our Java code and has almost no logic itself.
@@ -369,7 +371,7 @@ Was that worth it for this small class?
 Maybe not.
 In practice, I'd have probably done that by text editing because the change only touched three lines in a single file and did not affect any other code.
 When transformations affect lots of places across the code, it's easier and less risky to perform the refactoring as a sequence of small steps in which the IDE automatically applies changes to dependent code.
-Think of this as a demonstration of the technique in the small, so we can use it for larger changes later.
+Think of this as a warm-up, using the technique in the small, so we can use it for larger changes later.
 ****
 
 The definition of the first prop function now looks a bit iffy.
