@@ -69,13 +69,15 @@ public class RegistrationHandler {
                 RegistrationData.class
             );
             Attendee attendee = registration.register(data);
-            return new Response(201, objectMapper.writeValueAsString(attendee));
+            return new Response(HTTP_CREATED, objectMapper.writeValueAsString(attendee));
         } catch (JsonProcessingException x) {
-            return new Response(400);
+            return new Response(HTTP_BAD_REQUEST);
+        } catch (BlacklistedException x) {
+            return new Response(HTTP_FORBIDDEN);
         } catch (DuplicateException x) {
-            return new Response(409);
+            return new Response(HTTP_CONFLICT);
         } catch (Exception x) {
-            return new Response(500);
+            return new Response(HTTP_INTERNAL_ERROR);
         }
     }
 }
@@ -524,7 +526,565 @@ class InMemoryAttendees : Attendees {
 ----
 // end-insert
 
+Lets recap where we are now. Attendees is now Kotlin, and `add` returns a result instead of throwing DuplicateException
 
+// begin-insert: tags/errors.15:src/main/java/colloquiumatic/Attendees.kt
+[source,kotlin]
+[%autofit]
+----
+interface Attendees {
+
+    fun add(name:String, email:String): Result<Attendee, DuplicateException>
+
+    fun find(id: String): Optional<Attendee>
+}
+----
+// end-insert
+
+IRegister is still Java, and still throws 2 types of exception.
+// begin-insert: tags/errors.15:src/main/java/colloquiumatic/IRegister.java
+[source,java]
+[%autofit]
+----
+public interface IRegister {
+    Attendee register(RegistrationData data)
+        throws BlacklistedException, DuplicateException;
+}
+----
+// end-insert
+
+Registration is now Kotlin, and is the place where we now thunk between error and exception
+
+// begin-insert: tags/errors.15:src/main/java/colloquiumatic/Registration.kt
+[source,kotlin]
+[%autofit]
+----
+class Registration(
+    private val attendees: Attendees,
+    private val blacklist: Blacklist
+) : IRegister {
+
+    @Throws(BlacklistedException::class, DuplicateException::class)
+    override fun register(data: RegistrationData): Attendee {
+        if (!blacklist.isAcceptable(data))
+            throw BlacklistedException()
+        return attendees.add(data.name, data.email)
+            .recover { throw it }
+    }
+}
+----
+// end-insert
+
+If we are to follow the same pattern with IRegister as we did with Attendees -
+provide a default implementation of an adapter between exception-throwing and error-returning -
+we are going to have to address the issue of how to express
+`Result<Attendee, Either<BlacklistedException, DuplicateException>>`.
+
+We could reach for a generic Either type, but that only gets us so far as a strategy.
+For a start, it will mean that `Either<BlacklistedException, DuplicateException>` is not the same thing as `Either<DuplicateException, BlacklistedException>`,
+which is at best confusing,
+and gets worse when we expand to `OneOf<BlacklistedException, DuplicateException, SomeOtherProblem>`.
+Instead our best bet here is not to try to express the error in terms of existing types
+but to map to a new type.
+
+// begin-insert: tags/errors.16:src/main/java/colloquiumatic/IRegister.kt
+[source,kotlin]
+[%autofit]
+----
+interface IRegister {
+
+    @Throws(BlacklistedException::class, DuplicateException::class)
+    fun register(data: RegistrationData): Attendee
+
+    fun registerToo(data: RegistrationData): Result<Attendee, RegistrationProblem> =
+        try {
+            Success(register(data))
+        } catch (x: BlacklistedException) {
+            Failure(BlackListed)
+        } catch (x: DuplicateException) {
+            Failure(Duplicate(x.message))
+        }
+}
+
+sealed class RegistrationProblem
+
+object BlackListed : RegistrationProblem()
+
+data class Duplicate(
+    val message: String?
+) : RegistrationProblem()
+----
+// end-insert
+
+As exception and error are all overloaded terms,
+we've chosen RegistrationProblem,
+with subtypes of Blacklisted,
+which carries no additional information and so can be an object,
+and Duplicate,
+which carries any data from the original exception.
+
+Now we can go and migrate callers of `register` to `registerToo`. Starting with RegistrationHandler, which we convert to Kotlin first.
+
+// begin-insert: tags/errors.17:src/main/java/colloquiumatic/handlers/RegistrationHandler.kt
+[source,kotlin]
+[%autofit]
+----
+class RegistrationHandler(
+    private val registration: IRegister
+) {
+    private val objectMapper = ObjectMapper()
+
+    fun handle(request: Request): Response {
+        return try {
+            val data = objectMapper.readValue(
+                request.body,
+                RegistrationData::class.java
+            )
+            val attendee = registration.register(data)
+            Response(
+                HTTP_CREATED,
+                objectMapper.writeValueAsString(attendee)
+            )
+        } catch (x: JsonProcessingException) {
+            Response(HTTP_BAD_REQUEST)
+        } catch (x: BlacklistedException) {
+            Response(HTTP_FORBIDDEN)
+        } catch (x: DuplicateException) {
+            Response(HTTP_CONFLICT)
+        } catch (x: Exception) {
+            Response(HTTP_INTERNAL_ERROR)
+        }
+    }
+}
+----
+// end-insert
+
+Now call the adapter method and act on the return type
+
+// begin-insert: tags/errors.18:src/main/java/colloquiumatic/handlers/RegistrationHandler.kt
+[source,kotlin]
+[%autofit]
+----
+class RegistrationHandler(
+    private val registration: IRegister
+) {
+    private val objectMapper = ObjectMapper()
+
+    fun handle(request: Request): Response {
+        return try {
+            val data = objectMapper.readValue(
+                request.body,
+                RegistrationData::class.java
+            )
+            val attendee: Result<Attendee, RegistrationProblem> =
+                registration.registerToo(data)
+            when (attendee) {
+                is Success -> Response(HTTP_CREATED, objectMapper.writeValueAsString(attendee.value))
+                is Failure -> attendee.reason.toResponse()
+            }
+        } catch (x: JsonProcessingException) {
+            Response(HTTP_BAD_REQUEST)
+        } catch (x: BlacklistedException) {
+            Response(HTTP_FORBIDDEN)
+        } catch (x: DuplicateException) {
+            Response(HTTP_CONFLICT)
+        } catch (x: Exception) {
+            Response(HTTP_INTERNAL_ERROR)
+        }
+    }
+}
+
+private fun RegistrationProblem.toResponse() = when (this) {
+    is Duplicate -> Response(HTTP_CONFLICT)
+    is BlackListed -> Response(HTTP_FORBIDDEN)
+}
+----
+// end-insert
+
+before removing the unnecessary exception cases and simplifying the error case
+
+// begin-insert: tags/errors.19:src/main/java/colloquiumatic/handlers/RegistrationHandler.kt#foo
+[source,kotlin]
+[%autofit]
+----
+fun handle(request: Request): Response = try {
+    val data = objectMapper.readValue(
+        request.body,
+        RegistrationData::class.java
+    )
+    registration.registerToo(data)
+        .map {
+            Response(HTTP_CREATED, objectMapper.writeValueAsString(it))
+        }
+        .recover { error ->
+            error.toResponse()
+        }
+} catch (x: JsonProcessingException) {
+    Response(HTTP_BAD_REQUEST)
+} catch (x: Exception) {
+    Response(HTTP_INTERNAL_ERROR)
+}
+----
+// end-insert
+
+Note that this code is not exception-free.
+Firstly the ObjectMapper can still throw.
+That is the reality of Java (and frankly most Kotlin) APIs,
+but the code is safe and communicates well as the throwing and catching are in the same method.
+Secondly we still have to consider other runtime exceptions that could be thrown from anywhere (NullPointerException etc).
+These can could have crossed function boundaries and leaked up to here, where the buck stops -
+at the top-level catch-all.
+The reality is that we still have unexpected exceptions,
+but the expected failure cases are now expressed by Results and communicated in our code.
+
+
+Now we can confess that the RegistrationHandlerTests got broken a few steps ago.
+Ordinarily we would have fixed them straight away,
+but that would have interrupted our explanation.
+
+The problem is that the tests are mock tests which expect calls to `IRegister.register`,
+but we are now calling `registerToo`. For example
+
+// begin-insert: tags/errors.20:src/test/java/colloquiumatic/handlers/RegistrationHandlerTests.java#foo
+[source,java]
+[%autofit]
+----
+public class RegistrationHandlerTests {
+
+    @RegisterExtension
+    final Mockery mockery = new JUnit5ClassMockery();
+
+    final IRegister registration = mockery.mock(IRegister.class);
+    final RegistrationHandler handler = new RegistrationHandler(registration);
+
+    final String fredBody = toJson("{ 'name' : 'fred', 'email' : 'fred@bedrock.com' }");
+    final RegistrationData fredData = new RegistrationData("fred", "fred@bedrock.com");
+
+    @Test
+    public void returns_Created_with_body_on_success()
+        throws DuplicateException, BlacklistedException {
+
+        mockery.checking(new Expectations() {{
+            oneOf(registration).register(fredData);
+            will(returnValue(new Attendee("0", fredData.name, fredData.email)));
+        }});
+
+        String expectedBody = toJson(
+            "{'id':'0','name':'fred','email':'fred@bedrock.com'}"
+        );
+        assertEquals(
+            new Response(HTTP_CREATED, expectedBody),
+            handler.handle(new Request(fredBody))
+        );
+    }
+
+    @Test
+    public void returns_Conflict_for_duplicate()
+        throws DuplicateException, BlacklistedException {
+
+        mockery.checking(new Expectations() {{
+            oneOf(registration).register(fredData);
+            will(throwException(new DuplicateException("deliberate")));
+        }});
+
+        assertEquals(
+            new Response(HTTP_CONFLICT),
+            handler.handle(new Request(fredBody))
+        );
+    }
+    ...
+    private String toJson(String jsonIsh) {
+        return jsonIsh.replace('\'', '"');
+    }
+}
+----
+// end-insert
+
+We can fix the wrong expectation and the return type in one edit.
+Note that returning a error type has simplified our mock tests -
+we can dispense with a special `throwException` action in favour of returning
+`Success` or `Failure`.
+
+// begin-insert: tags/errors.21:src/test/java/colloquiumatic/handlers/RegistrationHandlerTests.java#foo
+[source,java]
+[%autofit]
+----
+@Test
+public void returns_Created_with_body_on_success() {
+    mockery.checking(new Expectations() {{
+        oneOf(registration).registerToo(fredData);  /// |
+        will(returnValue(                           /// |
+            new Success<>(                          /// |
+                new Attendee("0", fredData.name, fredData.email) /// |
+            )));                                    /// |
+    }});
+
+    String expectedBody = toJson(
+        "{'id':'0','name':'fred','email':'fred@bedrock.com'}"
+    );
+    assertEquals(
+        new Response(HTTP_CREATED, expectedBody),
+        handler.handle(new Request(fredBody))
+    );
+}
+
+@Test
+public void returns_Conflict_for_duplicate() {
+    mockery.checking(new Expectations() {{
+        oneOf(registration).registerToo(fredData);  /// |
+        will(returnValue(                           /// |
+            new Failure<>(                          /// |
+                new Duplicate("deliberate")         /// |
+            )));                                    /// |
+    }});
+
+    assertEquals(
+        new Response(HTTP_CONFLICT),
+        handler.handle(new Request(fredBody))
+    );
+}
+----
+// end-insert
+
+At this point we can now return to Registration
+and implement `registerToo` directly.
+In lieu of any cleverer idea we do this by duplicating the `register` method
+and fettling the error handling,
+using `Result.mapFailure` to convert DuplicateException to Duplicate.
+
+// begin-insert: tags/errors.22:src/main/java/colloquiumatic/Registration.kt
+[source,kotlin]
+[%autofit]
+----
+class Registration(
+    private val attendees: Attendees,
+    private val blacklist: Blacklist
+) : IRegister {
+
+    @Throws(BlacklistedException::class, DuplicateException::class)
+    override fun register(data: RegistrationData): Attendee {
+        if (!blacklist.isAcceptable(data))
+            throw BlacklistedException()
+        return attendees.add(data.name, data.email)
+            .recover { throw it }
+    }
+
+    override fun registerToo(data: RegistrationData): Result<Attendee, RegistrationProblem> {
+        if (!blacklist.isAcceptable(data))
+            return Failure(BlackListed)
+        return attendees.add(data.name, data.email)
+            .mapFailure { exception: DuplicateException ->
+                Duplicate(exception.message)
+            }
+    }
+}
+----
+// end-insert
+
+There are two problems with this.
+Firstly, `register` now has no test code,
+and secondly, we have the duplicate logic caused by our just duplicating the code.
+We can fix both by implementing `registerToo` in terms of `register` -
+the opposite of what we did in IRegister.
+
+// begin-insert: tags/errors.23:src/main/java/colloquiumatic/Registration.kt
+[source,kotlin]
+[%autofit]
+----
+class Registration(
+    private val attendees: Attendees,
+    private val blacklist: Blacklist
+) : IRegister {
+
+    @Throws(BlacklistedException::class, DuplicateException::class)
+    override fun register(data: RegistrationData): Attendee =
+        registerToo(data).recover { error ->
+            when (error) {
+                is BlackListed -> throw BlacklistedException()
+                is Duplicate -> throw DuplicateException(error.message)
+            }
+        }
+
+    override fun registerToo(data: RegistrationData): Result<Attendee, RegistrationProblem> =
+        if (blacklist.isAcceptable(data)) {
+            attendees.add(data.name, data.email)
+                .mapFailure { exception: DuplicateException ->
+                    Duplicate(exception.message)
+                }
+        } else Failure(BlackListed)
+}
+----
+// end-insert
+
+Now our RegistrationTests, which work in terms of `register`, will be testing `registerToo` for us.
+
+// begin-insert: tags/errors.23:src/test/java/colloquiumatic/RegistrationTests.java
+[source,java]
+[%autofit]
+----
+public class RegistrationTests {
+
+    InMemoryAttendees attendees = new InMemoryAttendees();
+    Map<String, Boolean> blacklist = Map.of(
+        "fred@bedrock.com", true,
+        "cruella@hellhall.co.uk", false
+    );
+    Registration registration = new Registration(attendees,
+        (registrationData) -> blacklist.get(registrationData.email)
+    );
+
+    @Test
+    public void adds_an_attendee_when_not_blacklisted()
+        throws DuplicateException, BlacklistedException {
+        assertEquals(Optional.empty(), attendees.find("0"));
+
+        Attendee added = registration.register(
+            new RegistrationData("fred flintstone", "fred@bedrock.com")
+        );
+        assertEquals(
+            new Attendee("0", "fred flintstone", "fred@bedrock.com"),
+            added
+        );
+        assertEquals(added, attendees.find("0").orElseThrow());
+    }
+
+    @Test
+    public void throws_duplicate_when_email_address_exists() {
+        attendees.add(new Attendee("0", "fred flintstone", "fred@bedrock.com"));
+        assertEquals(1, attendees.size());
+
+        assertThrows(DuplicateException.class,
+            () -> registration.register(
+                new RegistrationData("fred flintstone", "fred@bedrock.com")
+            )
+        );
+        assertEquals(1, attendees.size());
+    }
+
+    @Test
+    public void throws_blacklisted_when_blacklisted() {
+        assertThrows(BlacklistedException.class,
+            () -> registration.register(
+                new RegistrationData("cruella de vil", "cruella@hellhall.co.uk")
+            )
+        );
+        assertEquals(0, attendees.size());
+    }
+}
+----
+// end-insert
+
+Of course, we are currently trying to get rid of `register`,
+and these tests are it's last bastion.
+We could take the time to show how to use result4k in Java,
+but I for one am pretty tired of this refactoring now,
+so we'll convert the tests to Kotlin and
+then to register with the immortal words,
+"here's one I made earlier".
+
+// begin-insert: tags/errors.24:src/test/java/colloquiumatic/RegistrationTests.kt
+[source,kotlin]
+[%autofit]
+----
+class RegistrationTests {
+
+    var attendees = InMemoryAttendees()
+    var blacklist = mapOf(
+        "fred@bedrock.com" to true,
+        "cruella@hellhall.co.uk" to false
+    )
+    var registration = Registration(
+        attendees,
+        Blacklist { registrationData ->
+            blacklist.getOrDefault(registrationData.email, false)
+        }
+    )
+
+    @Test
+    fun `adds an attendee when not blacklisted`() {
+        assertEquals(Optional.empty<Any>(), attendees.find("0"))
+
+        val added = registration.registerToo(
+            RegistrationData("fred flintstone", "fred@bedrock.com")
+        ).valueOrNull()
+        assertEquals(
+            Attendee("0", "fred flintstone", "fred@bedrock.com"),
+            added
+        )
+        assertEquals(added, attendees.find("0").orElseThrow())
+    }
+
+    @Test
+    fun `returns duplicate when email address exists`() {
+        attendees.add(Attendee("0", "fred flintstone", "fred@bedrock.com"))
+        assertEquals(1, attendees.size())
+
+        val failure = registration.registerToo(
+            RegistrationData("fred flintstone", "fred@bedrock.com")
+        ).failureOrNull()
+        assertEquals(
+            Duplicate("attendee with email fred@bedrock.com already exists"),
+            failure
+        )
+        assertEquals(1, attendees.size())
+    }
+
+    @Test
+    fun throws_blacklisted_when_blacklisted() {
+        val failure = registration.registerToo(
+            RegistrationData("cruella de vil", "cruella@hellhall.co.uk")
+        ).failureOrNull()
+        assertEquals(
+            BlackListed,
+            failure
+        )
+        assertEquals(0, attendees.size())
+    }
+}
+----
+// end-insert
+
+Now we have no callers of `register`,
+we can finally remove it and rename `registerToo` to `register`,
+ending up with (almost) exception-free Kotlin.
+
+// begin-insert: tags/errors.25:src/main/java/colloquiumatic/IRegister.kt
+[source,kotlin]
+[%autofit]
+----
+interface IRegister {
+    fun register(data: RegistrationData): Result<Attendee, RegistrationProblem>
+}
+
+sealed class RegistrationProblem
+
+object BlackListed : RegistrationProblem()
+
+data class Duplicate(
+    val message: String?
+) : RegistrationProblem()
+----
+// end-insert
+
+// begin-insert: tags/errors.25:src/main/java/colloquiumatic/Attendees.kt
+[source,kotlin]
+[%autofit]
+----
+interface Attendees {
+
+    fun add(name:String, email:String): Result<Attendee, DuplicateException>
+
+    fun find(id: String): Optional<Attendee>
+}
+----
+// end-insert
+
+Hmm, not quite exception-free because of that DuplicateException,
+which is not thrown from anywhere anymore, just created and
+put into a Failure.
+It's an easy fix to rename the class to DuplicateProblem
+and stop extending Exception -
+you can trust us to do it without bothering you.
 
 
 
