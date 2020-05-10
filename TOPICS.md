@@ -1,4 +1,9 @@
-# Topics to cover
+# Book Topics
+
+Less “Java language is like this, kotlin is like this…” but “here’s how you would design this kind of thing in Java, here’s how you’d approach the same kind of thing in Kotlin, and here’s how to go from one to the other”.
+
+Evolving design and architecture to better take advantage of Kotlin's affordances.
+
 
 ## Book structure
 
@@ -12,119 +17,60 @@
     - Functions rather than classes
     - Deliberate polymorphism (e.g. choose where classes are polymorphic)
     - Explicit over implicit (e.g. explicit control flow, explicit coercion)
-    - Type safe composition over reflection 
-  - An overview of the worked example(s)
+    - Type safe composition over reflection
+    - Compiler magic to support Java styles and standard APIs 
+  - An overview of the application from which we have taken the worked examples
+  - Making the application multilingual
   - Where should we start refactoring to Kotlin?
-* Part 2: worked examples "in the small"
+
+* Part: Values and optionality
   - Value classes
   - Nullability
+    - The problem with null in Java
+    - Nullable annotations and their limitations (digression or sidebar?)
+    - Optional -- doesn't actually protect against NPEs because the Optional itself can be null -- but never is in practice.  (show static warnings?)
+
+* Part: Data Pipelines
   - Collections and Kotlin's compiler magic
   - For loops and mutation to collection pipelines.
-  - Streams vs Kotlin Iterables and sequences: extension functions to abstract multiple processing steps 
-  - Modules and visibility modifiers
-  - ???
-* Part 3: evolving architecture to better take advantage of Kotlin's affordances
- - Extension functions: platonic ideal and extension functions in different "domains"
- - Mutability to immutability
- - Reflection to type safe composition
- - "DSLs"
- - error handling
- - Move effects to the edge: OO shell / functional core
-
-
-
-# Uncategorised so far...
-
-## Small details...
-
-
-* Interop
-** Kotlin supports "beans" style Java well, but you don't get a lot of the benefits at larger scales.  Modern Java lends itself well to conversion to idiomatic Kotlin that takes advantage of Kotlin's default immutability, better type system and the safety that provides.
-
-* ~~Adding a Kotlin build to a Java project~~
-
-* Option<T> -> nullable T? -- showing how to Java and Kotlin handle null differently
-  - The problem with null in Java
-  - Nullable annotations and their limitations (digression or sidebar?)
-  - Optional -- doesn't actually protect against NPEs because the Optional itself can be null -- but never is in practice.
-  - ~~Null is part of Kotlin's type system: type safety is null safety~~
-
-* ~~Properties vs fields/get/set~~
-
-* ~~value classes vs data class~~
-
-* Collections and compiler magic (need more about the compiler magic)
-** Read-only vs Read/write interfaces
-
-* Java v Kotlin Classes in more detail...
-  - Constructors, Properties, Methods
-  - Java style (classes with methods) vs Kotlin style (classes, freestanding functions or extension methods, class methods for polymorphism)
-
-* Statics vs companion objects
-
-* Annotating Kotlin code to play well with existing Java (@JvmStatic, @JvmName, @JvmField, etc)
-
-* Extension methods
-  - Extension functions on core library types
-  - how they play nicely with null
-  - define them for different domains in the app
-** ~~Extension functions on nullable types~~
-
-* Scope management functions (let, apply etc)
-
-* Calling Java from Kotlin and vice versa
-
-* Compilation units, visibility modifiers, free-standing definitions
-
-* Lambdas, destructuring
-
-* Typealiases
-
-* Refactoring into a DSL rather than designing one from scratch
-
-
-## Larger scale gubbins
-
-Later chapters will build on this core - they will be about more high-level refactorings, or architectural styles that inform the direction of continual refactoring.
-
-* Extension functions
-  - API design by adding extension functions rather than defining new types (I think this is a big enough topic to be either a long digression or its own chapter).
-  - Define extension functions for different domains in the app
-
-* DSLs: (build upon extension functions chapter(s))
-  - refactor to DSLs, don't design up front
-  - Small notations that can easily be combined in preference to large DSLs that can be unwieldy  
-  - Compositional (immutable data, functions, function application & composition) vs builder-style DSLs (extension methods on mutable objects)
-    + prefer the former until the latter is unavoidable
-  - Refactoring Java approaches to DSL-like code into Kotlin
-    + statics class members in Java to top-level declarations, extension functions, infix functions, etc.
-    + use `apply` instead of builders
-    + separating mutable and read-only interfaces of mutable classes
-  - Introduce extension blocks and syntactic sugar in wrappers to build DSLs
-
-* Error handling - checked exceptions to result monad
-  - The background of error handling facilities inherited from Java: exceptions.
-  - Options/nulls
-  - monadic error handling
-
-* Data Pipelines
+  - Streams vs Kotlin Iterables and sequences: extension functions to abstract multiple processing steps
   - Composing algorithms from sequence of primitive transformations
   - Iterable Collections vs Sequences vs Streams
   - Limitations of Streams API -- it doesn't let you abstract transformations of entire streams in the same way as transformations of values within a stream. E.g. you cannot add new, higher-level methods to Streams
   - Using Kotlin extension methods to refactor pipeline stages: transformations of streams and of values can be treated in the same way, leading to much more readable pipelines.
 
-* Input and Output
+* Part: Extension functions? What else are they good for?
+  - Kotlin style: deliberate polymorphism (e.g. classes and functions are final by default)
+  - Extending third-party types
+  - Scope management functions (let, apply etc) (**A SIDE BAR MAYBE?**)
+  - API design by adding extension functions for existing types rather than defining new types (I think this is a big enough topic to be either a long digression or its own chapter).
+  - extension functions play well with nullability
+  - separating the "platonics" from "pragmatics" - extension functions cross the domains of the application
+  - relation to hexagon architecture: extension functions in adapter domains
+
+* Part: From Builders to EDSLs
+  - Compositional DSL from Java to Kltoin
+  - Why so many builders in Java? 
+  - The alternatives in Kotlin:
+    - Data classes and copy
+    - Vars and distinct mutable & immutable interfaces
+    - Factory function passes mutable interface to extension lambda
+  - Translating builder style to Kotlin
+  - Refactoring to small DSLs that compose well -- avoid designing a big, inflexible language up front.
+
+* Part: Error handling
+  - Why are exceptions unchecked in Kotlin?  What problems does that cause?
+  - Error handling options -- exceptions, null, monads (don't use the "M" word!) -- and when they make sense
+  - Refactoring from exceptions to monads
+
+* Part: I/O
   - The problem with IO
+  - Kotlin is not a pure FP language... but we can get much of the benefit anyway
+  - separating total functions from partial and impure functions
   - Moving IO to the edge of our software
-  - Functional Design (refactoring from the procedural style common in enterprise Java systems to a functional style)
-  - Functional core, imperative shell
-  - Referential transparency
+  - Functional core / imperative shell (the "inverted shit sandwich" pattern)
 
-* Compositionality
+* Part: constructing the system
+  - Compilation units, visibility modifiers, free-standing definitions
+  - Reflection magic to compositionality guided by types (what is "compositionality" compared to "composition"?)
 
-* Data driven design [???]
-
-## Other Random Things
-
-fun <T> hole(): T = TODO()
-Type-driven design
