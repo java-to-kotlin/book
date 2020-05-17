@@ -12,28 +12,38 @@ fi
 
 cd "$working_dir"
 
+result=0
+
 for tag in $(git tag -l '*.[0-9]*' | sort -V); do
   msg=$(git show --no-patch --format="%s" "$tag")
   echo "testing $msg"
 
-  git checkout --detach $tag > /dev/null 2>&1
+  git checkout --detach "$tag" > /dev/null 2>&1
 
   if ./gradlew clean test >"$tag.log" 2>&1
   then
     echo "Ok"
   else
     # Delete the last two lines of Gradle output because they are not stable between runs
-    tail -r "$tag.log" | sed -e '1,2d' | tail -r > "$tag.log.tmp"
+    tail -r "$tag.log" | sed -e '1,2d' | sed -Ee 's/ ((FROM-CACHE)|(NO-SOURCE)|(UP-TO-DATE))$//' | tail -r > "$tag.log.tmp"
     mv "$tag.log.tmp" "$tag.log"
 
     if diff "$tag.log" "$known_failures_dir/$tag.log"
     then
       echo "Known failure"
     else
-      echo "to record as a known failure: cp $(realpath "$tag.log") $known_failures_dir"
-      exit 1
+      echo "To record as a known failure:"
+      echo "    cp $(realpath "$tag.log") $known_failures_dir"
+      result=1
     fi
   fi
 
   rm "$tag.log"
 done
+
+if [ $result != 0 ]
+then
+  echo '*** FAILED ***'
+fi
+
+exit $result
