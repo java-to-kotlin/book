@@ -1,53 +1,8 @@
 = We Refactor Error Handling Code
 
-TODO - Intro
+== Existing Code
 
 There is an HTTP endpoint in Colloquiumatic that allows the client to register an attendee.
-It populates our Attendees
-
-// begin-insert: tags/errors.0:src/main/java/colloquiumatic/Attendees.java
-[source,java]
-[%autofit]
-----
-public interface Attendees {
-
-    Attendee add(String name, String email) throws DuplicateException;
-
-    Optional<Attendee> find(String id);
-}
-----
-// end-insert
-
-Registration contains some business logic around blacklisting
-
-// begin-insert: tags/errors.0:src/main/java/colloquiumatic/Registration.java
-[source,java]
-[%autofit]
-----
-public class Registration implements IRegister {
-
-    private final Blacklist blacklist;
-    private final Attendees attendees;
-
-    public Registration(
-        Attendees attendees,
-        Blacklist blacklist
-    ) {
-        this.blacklist = blacklist;
-        this.attendees = attendees;
-    }
-
-    public Attendee register(RegistrationData data)
-        throws BlacklistedException, DuplicateException {
-        if (blacklist.isAcceptable(data))
-            return attendees.add(data.name, data.email);
-        else throw new BlacklistedException();
-    }
-}
-----
-// end-insert
-
-and the actual HTTP interface is provided by RegistrationHandler
 
 // begin-insert: tags/errors.0:src/main/java/colloquiumatic/handlers/RegistrationHandler.java
 [source,java]
@@ -84,14 +39,69 @@ public class RegistrationHandler {
 ----
 // end-insert
 
+
+RegistrationHandler's job is to extract data from the request body,
+pass it to a `registration` for processing,
+and return a response with either a JSON representation of an Attendee
+or a suitable error status.
+
 .HTTP
 ****
 We'd rather not tie our example code to a particular Java HTTP framework,
 so we have abstracted all that behind a simple function that takes a Request and returns a Response.
+
+TODO - Something about sending the correct status' being import in order to maintain correct HTTP systems
 ****
 
-Finally Attendee is another value type -
-let's not sacrifice a tree but rather show you the version after conversion to Kotlin.
+Registration implements the business rules,
+which is that potential attendees should be vetted against a blacklist.
+
+// begin-insert: tags/errors.0:src/main/java/colloquiumatic/Registration.java
+[source,java]
+[%autofit]
+----
+public class Registration implements IRegister {
+
+    private final Blacklist blacklist;
+    private final Attendees attendees;
+
+    public Registration(
+        Attendees attendees,
+        Blacklist blacklist
+    ) {
+        this.blacklist = blacklist;
+        this.attendees = attendees;
+    }
+
+    public Attendee register(RegistrationData data)
+        throws BlacklistedException, DuplicateException {
+        if (blacklist.isAcceptable(data))
+            return attendees.add(data.name, data.email);
+        else throw new BlacklistedException();
+    }
+}
+----
+// end-insert
+
+Note that as well as failing because of blacklisting,
+`register` can fail because `attendees.add` can fail with a DuplicateException.
+Here is the Attendees interface.
+
+// begin-insert: tags/errors.0:src/main/java/colloquiumatic/Attendees.java
+[source,java]
+[%autofit]
+----
+public interface Attendees {
+
+    Attendee add(String name, String email) throws DuplicateException;
+
+    Optional<Attendee> find(String id);
+}
+----
+// end-insert
+
+Finally Attendee is another value type.
+Here it is after after conversion to Kotlin.
 
 // begin-insert: tags/errors.1:src/main/java/colloquiumatic/Attendee.kt
 [source,kotlin]
@@ -106,9 +116,47 @@ data class Attendee(
 // end-insert
 
 In our experience this is typical Java code.
-It expresses the things that might reasonably go wrong as checked exceptions (BlacklistedException, DuplicateException),
-and these are all caught at in the top level `handle` where they are reported to the caller,
+It expresses the things that might reasonably go wrong as checked exceptions
+(BlacklistedException, DuplicateException),
+and these are all caught at in the top-level `handle` where they are reported to the caller,
 in this case as HTTP status codes.
+
+In addition to the checked exceptions,
+every method can raise or pass on runtime exceptions.
+In this case we might expect that failures to persist an Attendee,
+perhaps because of database communications issues,
+would be raised as a runtime exception.
+
+.Checked and Unchecked Exceptions
+****
+TODO
+****
+
+.Why Kotlin does not have checked exceptions
+****
+TODO
+****
+
+== Our Conversion Strategy
+
+If we are to convert this code to Kotlin,
+we are going to loose the advantages of checked exceptions to tell us
+what could go wrong and show where we are handling those problems.
+That might be a reason _not_ to convert,
+but in reality most Java codebases have declared exception bankrupsy in any case.
+We'll plough ahead and see whether we can at least not make things worse than the Java,
+and maybe even improve things.
+
+In this example we'll start by removing reliance on exceptions at the lowest level
+and working our way up,
+keeping higher levels working,
+until the predicatable error cases,
+those that would have been expressed as checked exceptions,
+no longer use exceptions.
+At the same time we have to be mindful that pretty much any instruction in the JVM can fail,
+so we need to defend against these cases.
+
+== Starting at the Bottom
 
 If we convert Attendees to Kotlin we get
 
@@ -124,11 +172,21 @@ interface Attendees {
 ----
 // end-insert
 
-1. Kotlin doesn't have checked exceptions, but the `@Throws` annotation allows interoperation.
+1. Kotlin doesn't have checked exceptions, but the `@Throws` annotation allows interoperation with Java code.
 Without it, a Java implementation of Attendees cannot override the method
 (assuming that it does actually throw DuplicateException).
+Worse, it can't catch the exception
+or declare that it is passed on,
+as it is a compile error for Java code to handle a checked exception
+that the compiler cannot see is possible.
 
-TODO - why does Kotlin not have checked exceptions.
+.Checked Exceptions and the JVM
+****
+Something about checked exceptions only existing in the Java compiler,
+and not at the JVM level,
+so Kotlin can throw exceptions that Java considers to be checked
+but doesn’t have to treat them as checked itself.
+****
 
 Before we go further, conversion to Kotlin has failed to infer the nullability of the parameters and results in Attendees,
 lets fix that.
@@ -145,13 +203,24 @@ interface Attendees {
 ----
 // end-insert
 
-Our default choice for error handling in Kotlin is an Either type. // TODO
+Our default choice for error handling in Kotlin is an Either type.
 In this project we'll use Result4k because, well, Nat wrote it.
+Other error types are available,
+but they tend to have some heavyweight dependencies,
+or require a wholesale rethinking of your programming model.
 
-What we're going to do for now is to add to our interface a version of `Attendees.add` that instead of throwing,
+.Either Types
+****
+TODO
+****
+
+What we're going to do for now is to add to our interface a version of `Attendees.add` that instead of throwing an exception,
 returns `Result<Attendee, DuplicateException>`.
 If we were starting from scratch we would probably not use an exception as our error type,
-but here it let's us interoperate with Java easily.
+but here it lets us interoperate with Java easily.
+We'll keep the old throwy version around for now so that we don't break existing callers,
+convert those callers to use the result version,
+then remove the old version when we can.
 
 First we add result4k to our build.
 
@@ -163,28 +232,6 @@ dependencies {
      ... 
     implementation "com.natpryce:result4k:2.0.0"
      ... 
-}
-
-compileKotlin {
-    kotlinOptions.jvmTarget = "1.8"
-}
-
-compileTestKotlin {
-    kotlinOptions.jvmTarget = "1.8"
-}
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
-}
-
-test {
-    useJUnitPlatform {
-        includeEngines "junit-jupiter"
-    }
-    testLogging {
-        events "skipped", "failed"
-    }
 }
 ----
 // end-insert
@@ -215,15 +262,41 @@ interface Attendees {
 // end-insert
 
 <1> This annotation tells the compiler to generate Java-compatible default methods.
-You have to tell the compiler how to implement it - see [TODO].
+We wouldn't have had to do this had we left Attendees in Java -
+we live and learn.
+You have to tell the compiler how to implement `@JVMDefault` with a compiler switch.
 
-TODO - sidebar on naming - if you can't pick a good name, pick a bad one,
-because that way you'll be forced to make it better later.
+// begin-insert: tags/errors.5:build.gradle#foo
+[source,groovy]
+[%autofit]
+----
+compileKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+    kotlinOptions.freeCompilerArgs = ['-Xjvm-default=compatibility']
+}
+----
+// end-insert
 
-Now we are have both exception and result version of the method,
+.Naming
+****
+It's a bit irritating that we can't name the new method `add` as well,
+but the JVM won't allow methods that differ only on return type to have the same name.
+
+If we can't think of a good name in these or other situations,
+we err on the side of using a bad one.
+In all likelihood we'll come up with a better name later,
+and the bad name will reduce the risk that we settle for not-good-enough.
+
+In this case it really shouldn't matter,
+because we know that by the end of this refactor we will have replaced the original method,
+and can steal its name.
+****
+
+Now we have both exception and result version of the method,
 we can migrate the callers of the exception version.
-While we can use result4k from Java, it's a lot more convenient from Kotlin,
-so let's take our Java Registration
+While we can use result4k from Java,
+it's a lot more convenient from Kotlin.
+So let's take Registration (the caller of `add`)
 
 // begin-insert: tags/errors.5:src/main/java/colloquiumatic/Registration.java
 [source,java]
@@ -274,7 +347,8 @@ class Registration(
 // end-insert
 
 That `attendees.add` expression is the one that can throw DuplicateException.
-We're going to want to look at its result, so we invert the if
+We're going to want to look at its result,
+so we invert the if
 
 // begin-insert: tags/errors.7:src/main/java/colloquiumatic/Registration.kt#invert
 [source,kotlin]
@@ -320,7 +394,9 @@ override fun register(data: RegistrationData): Attendee {
 ----
 // end-insert
 
-Now if we call `addToo` instead it will no longer throw, but the exception will be returned in the Result. This won't compile yet
+Now if we call `addToo` instead it will no longer throw,
+but the exception will be returned in the Result.
+This won't compile yet
 
 // begin-insert: tags/errors.10:src/main/java/colloquiumatic/Registration.kt#invert
 [source,kotlin]
@@ -339,7 +415,8 @@ override fun register(data: RegistrationData): Attendee {
 
 <1> Type mismatch. Required: Attendee Found: Result<Attendee, DuplicateException>
 
-Now to throw the exception in the result (in order to keep the current behaviour of `register`)
+Now to throw the exception in the result
+(in order to keep the current behaviour of `register`)
 we can use `result.recover` which will give us the exception back to throw
 
 // begin-insert: tags/errors.11:src/main/java/colloquiumatic/Registration.kt#invert
@@ -373,7 +450,10 @@ override fun register(data: RegistrationData): Attendee {
 ----
 // end-insert
 
-That is a good place for a rest, having learned to replace one use of exceptions with a result type.
+That is a good place for a rest,
+having learned to replace one use of exceptions with a result type.
+
+== Moving Up a Level
 
 OK, ready to go again? Good.
 
