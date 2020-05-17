@@ -16,26 +16,27 @@ result=0
 
 for tag in $(git tag -l '*.[0-9]*' | sort -V); do
   msg=$(git show --no-patch --format="%s" "$tag")
-  echo "testing $msg"
+  printf "testing %s ... " "$msg"
 
   git checkout --detach "$tag" > /dev/null 2>&1
 
-  if ./gradlew clean test >"$tag.log" 2>&1
+  if ./gradlew clean test --no-parallel>"$tag.log" 2>&1
   then
     if [ -e "$known_failures_dir/$tag.log" ]
     then
       echo "Expected failure, but it succeeded"
       result=1
     else
-      echo "Ok"
+      echo "OK"
       rm "$tag.log"
     fi
   else
     # Delete the last two lines of Gradle output because they are not stable between runs
     tail -r "$tag.log" | \
       sed -e '1,2d' | \
-      sed -Ee 's/ ((FROM-CACHE)|(NO-SOURCE)|(UP-TO-DATE))$//' | \
+      sed -Ee 's/ ((FROM-CACHE)|(NO-SOURCE)|(UP-TO-DATE)|((FAILED)))$//' | \
       sed -Ee "s|$working_dir/||" | \
+      sort | uniq | \
       tail -r > "$tag.log.tmp"
     mv "$tag.log.tmp" "$tag.log"
 
