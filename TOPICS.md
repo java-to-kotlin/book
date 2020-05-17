@@ -44,6 +44,7 @@ Evolving design and architecture to better take advantage of Kotlin's affordance
   - Extending third-party types
   - Scope management functions (let, apply etc) (**A SIDE BAR MAYBE?**)
   - API design by adding extension functions for existing types rather than defining new types (I think this is a big enough topic to be either a long digression or its own chapter).
+    - e.g. the "curried object" pattern is less necessary
   - extension functions play well with nullability
   - separating the "platonics" from "pragmatics" - extension functions cross the domains of the application
   - relation to hexagon architecture: extension functions in adapter domains
