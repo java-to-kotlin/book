@@ -1,4 +1,5 @@
 [[builders]]
+
 = Builders
 
 Java programmers use the [.pattern]_Builder_ pattern for several purposes:
@@ -11,9 +12,11 @@ Despite all the repetitive boiler plate code they involve, Java programmers do f
 In this chapter, we'll look at how Kotlin makes many of these uses of builders unnecessary. Later we'll look at how to leverage Kotlin language features to simplify writing builders and embedded domain-specific languages.
 
 
-The following code shows a Proposal class.  Our system has a web application for people to propose conference sessions during the CFP period.
+== Builders instead of Big Constructors
 
-// begin-insert: tags/builders.0:src/main/java/colloquiumatic/proposal/Proposal.java
+The following code shows class representing session proposals.  Our system has a web application for people to propose conference sessions during the CFP period.
+
+// begin-insert: tags/builders.0:src/main/java/colloquiumatic/proposal/Proposal.java#built_object
 [source,java]
 [%autofit]
 ----
@@ -26,7 +29,7 @@ public class Proposal {
     private final String detailsForReviewers;
     private final String extraRequirements;
 
-    public Proposal(
+    public Proposal( // <1>
         SessionType type,
         String title,
         List<PresenterDetails> presenters,
@@ -44,7 +47,7 @@ public class Proposal {
         this.extraRequirements = extraRequirements;
     }
 
-    public static ProposalBuilder builder() {
+    public static ProposalBuilder builder() { // <2>
         return new ProposalBuilder();
     }
 
@@ -56,105 +59,65 @@ public class Proposal {
         return title;
     }
 
-    public List<PresenterDetails> getPresenters() {
-        return List.copyOf(presenters);
-    }
-
-    public int getDurationInSlots() {
-        return durationInSlots;
-    }
-
-    public String getBlurb() {
-        return blurb;
-    }
-
-    public String getDetailsForReviewers() {
-        return detailsForReviewers;
-    }
-
-    public String getExtraRequirements() {
-        return extraRequirements;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Proposal proposal = (Proposal) o;
-        return durationInSlots == proposal.durationInSlots &&
-            type == proposal.type &&
-            title.equals(proposal.title) &&
-            presenters.equals(proposal.presenters) &&
-            blurb.equals(proposal.blurb) &&
-            detailsForReviewers.equals(proposal.detailsForReviewers) &&
-            extraRequirements.equals(proposal.extraRequirements);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(type, title, presenters, durationInSlots, blurb, detailsForReviewers, extraRequirements);
-    }
-
-    @Override
-    public String toString() {
-        return "Proposal{" +
-            "type=" + type +
-            ", title='" + title + '\'' +
-            ", presenters=" + presenters +
-            ", durationInSlots=" + durationInSlots +
-            ", blurb='" + blurb + '\'' +
-            ", detailsForReviewers='" + detailsForReviewers + '\'' +
-            ", extraRequirements='" + extraRequirements + '\'' +
-            '}';
-    }
+    // ... the rest of the accessors, equals, hashCode, and toString
 }
 ----
 // end-insert
 
-The Proposal constructor has a lot of parameters, because Proposals have a lot of fields and sub-objects. Calling the constructor directly is error prone. It's easy to pass the parameters in the wrong order, and end up with an presenter's email address where their name should be, or details for reviewers where the blurb for the audience should be, and it's difficult to spot those errors when reading the code.
+The Proposal constructor has a lot of parameters, because Proposals have a lot of fields and sub-objects.  This makes calling the constructor directly error-prone. It's easy to pass the parameters in the wrong order, and end up with an presenter's email address where their name should be, or details for reviewers where the blurb for the audience should be, and it's difficult to spot those errors when reading the code.
 
-To address these problems, we've used the [.pattern]_Builder_ pattern.  Here's the class that parses a posted form into a Proposal:
+To address these problems, we use the [.pattern]_Builder_ pattern.  Here's the method that parses a Proposal from a form posted by a web browser:
 
-// begin-insert: tags/builders.0:src/main/java/colloquiumatic/proposal/ProposalFormParser.java
+// begin-insert: tags/builders.0:src/main/java/colloquiumatic/proposal/ProposalFormParser.java#use_builder
 [source,java]
 [%autofit]
 ----
-public class ProposalFormParser {
-    // deliberate simplification
-    private final Map<String, String> form;
+public Proposal parseProposalForm(Form form) throws FormParseException {
+    ProposalBuilder proposal = Proposal.builder()
+        .setType(form.field("type", SessionType.class))
+        .setTitle(form.field("title"))
+        .setBlurb(form.field("blurb"))
+        .setDetailsForReviewers(form.field("details"))
+        .setExtraRequirements(form.field("extra_requirements"))
+        .setDurationInSlots(form.field("slots", Integer.class, Integer::parseInt));
 
-    public ProposalFormParser(Map<String, String> form) {
-        this.form = form;
+    int i = 1;
+    while (form.hasField("presenter_" + i + "_name")) {
+        proposal.addPresenter(
+            PresenterDetails.builder()
+                .setName(form.field("presenter_" + i + "_name"))
+                .setCountryISO2(form.field("presenter_" + i + "_country_iso2"))
+                .setEmailAddress(form.field("presenter_" + i + "_email"))
+                .build());
+        i = i + 1;
     }
 
-    public Proposal parse() {
-        ProposalBuilder proposal = Proposal.builder()
-            // deliberate simplification -- should parse the enum more robustly
-            .setType(SessionType.valueOf(field("type")))
-            .setTitle(field("title"))
-            .setBlurb(field("blurb"))
-            .setDetailsForReviewers(field("details"))
-            .setExtraRequirements(field("extra_requirements"))
-            .setDurationInSlots(Integer.parseInt(field("slots")));
-
-        IntStream.iterate(1, i -> i + 1)
-            .takeWhile(i -> form.containsKey("presenter_" + i + "_name"))
-            .mapToObj(i ->
-                PresenterDetails.builder()
-                    .setName(field("presenter_" + i + "_name"))
-                    .setCountryISO2(field("presenter_" + i + "_country_iso2"))
-                    .setEmailAddress(field("presenter_" + i + "_email"))
-                    .build())
-            .forEach(p -> proposal.addPresenter(p));
-
-        return proposal.build();
-    }
-
-    private String field(String fieldName) {
-        return Objects.requireNonNull(form.get(fieldName),
-            () -> fieldName + " field missing");
-    }
+    return proposal.build();
 }
 ----
 // end-insert
+
+The builder makes clear which properties the code is setting, which helps us avoid setting the wrong properties when we are writing the code, and makes it much easier to understand the code when we read it later.
+
+TODO: in Kotlin, use named parameters.  The loop can be replaced by a collection pipeline.
+
+In new Kotlin code, write it like this....
+
+
+To refactor your way there, do this ....
+
+
+== Test Data Builders
+
+Our tests that create Proposal objects also use builders, but for a slightly different reason.
+
+Here's a test...
+
+...
+
+And here's the code that creates the builder.
+
+...
+
+In Kotlin, we can use constants instead of builders, as long as the objects we want to create are data objects.
 
