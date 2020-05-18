@@ -1,2 +1,160 @@
+[[builders]]
 = Builders
+
+Java programmers use the [.pattern]_Builder_ pattern for several purposes:
+to make it easier to instantiate classes that have many constructor parameters;
+to construct immutable objects in imperative code;
+to allow tests to specify only the properties relevant to a test scenario and use safe defaults for all others;
+to act as the grammar of an embedded domain-specific language expressed with chained method calls, known as a [.pattern]_Fluent API_.
+Despite all the repetitive boiler plate code they involve, Java programmers do find builders are worth the effort and address real challenges that they face using the language.
+
+In this chapter, we'll look at how Kotlin makes many of these uses of builders unnecessary. Later we'll look at how to leverage Kotlin language features to simplify writing builders and embedded domain-specific languages.
+
+
+The following code shows a Proposal class.  Our system has a web application for people to propose conference sessions during the CFP period.
+
+// begin-insert: tags/builders.0:src/main/java/colloquiumatic/proposal/Proposal.java
+[source,java]
+[%autofit]
+----
+public class Proposal {
+    private final SessionType type;
+    private final String title;
+    private final List<PresenterDetails> presenters;
+    private final int durationInSlots;
+    private final String blurb;
+    private final String detailsForReviewers;
+    private final String extraRequirements;
+
+    public Proposal(
+        SessionType type,
+        String title,
+        List<PresenterDetails> presenters,
+        int durationInSlots,
+        String blurb,
+        String detailsForReviewers,
+        String extraRequirements
+    ) {
+        this.type = type;
+        this.title = title;
+        this.presenters = List.copyOf(presenters);
+        this.durationInSlots = durationInSlots;
+        this.blurb = blurb;
+        this.detailsForReviewers = detailsForReviewers;
+        this.extraRequirements = extraRequirements;
+    }
+
+    public static ProposalBuilder builder() {
+        return new ProposalBuilder();
+    }
+
+    public SessionType getType() {
+        return type;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public List<PresenterDetails> getPresenters() {
+        return List.copyOf(presenters);
+    }
+
+    public int getDurationInSlots() {
+        return durationInSlots;
+    }
+
+    public String getBlurb() {
+        return blurb;
+    }
+
+    public String getDetailsForReviewers() {
+        return detailsForReviewers;
+    }
+
+    public String getExtraRequirements() {
+        return extraRequirements;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Proposal proposal = (Proposal) o;
+        return durationInSlots == proposal.durationInSlots &&
+            type == proposal.type &&
+            title.equals(proposal.title) &&
+            presenters.equals(proposal.presenters) &&
+            blurb.equals(proposal.blurb) &&
+            detailsForReviewers.equals(proposal.detailsForReviewers) &&
+            extraRequirements.equals(proposal.extraRequirements);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(type, title, presenters, durationInSlots, blurb, detailsForReviewers, extraRequirements);
+    }
+
+    @Override
+    public String toString() {
+        return "Proposal{" +
+            "type=" + type +
+            ", title='" + title + '\'' +
+            ", presenters=" + presenters +
+            ", durationInSlots=" + durationInSlots +
+            ", blurb='" + blurb + '\'' +
+            ", detailsForReviewers='" + detailsForReviewers + '\'' +
+            ", extraRequirements='" + extraRequirements + '\'' +
+            '}';
+    }
+}
+----
+// end-insert
+
+The Proposal constructor has a lot of parameters, because Proposals have a lot of fields and sub-objects. Calling the constructor directly is error prone. It's easy to pass the parameters in the wrong order, and end up with an presenter's email address where their name should be, or details for reviewers where the blurb for the audience should be, and it's difficult to spot those errors when reading the code.
+
+To address these problems, we've used the [.pattern]_Builder_ pattern.  Here's the class that parses a posted form into a Proposal:
+
+// begin-insert: tags/builders.0:src/main/java/colloquiumatic/proposal/ProposalFormParser.java
+[source,java]
+[%autofit]
+----
+public class ProposalFormParser {
+    // deliberate simplification
+    private final Map<String, String> form;
+
+    public ProposalFormParser(Map<String, String> form) {
+        this.form = form;
+    }
+
+    public Proposal parse() {
+        ProposalBuilder proposal = Proposal.builder()
+            // deliberate simplification -- should parse the enum more robustly
+            .setType(SessionType.valueOf(field("type")))
+            .setTitle(field("title"))
+            .setBlurb(field("blurb"))
+            .setDetailsForReviewers(field("details"))
+            .setExtraRequirements(field("extra_requirements"))
+            .setDurationInSlots(Integer.parseInt(field("slots")));
+
+        IntStream.iterate(1, i -> i + 1)
+            .takeWhile(i -> form.containsKey("presenter_" + i + "_name"))
+            .mapToObj(i ->
+                PresenterDetails.builder()
+                    .setName(field("presenter_" + i + "_name"))
+                    .setCountryISO2(field("presenter_" + i + "_country_iso2"))
+                    .setEmailAddress(field("presenter_" + i + "_email"))
+                    .build())
+            .forEach(p -> proposal.addPresenter(p));
+
+        return proposal.build();
+    }
+
+    private String field(String fieldName) {
+        return Objects.requireNonNull(form.get(fieldName),
+            () -> fieldName + " field missing");
+    }
+}
+----
+// end-insert
 
