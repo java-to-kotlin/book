@@ -1,7 +1,7 @@
 [[applicative-dsl]]
 = We refactor an "Embedded Domain-Specific Language"
 
-Our application contains a utility class of static methods that we use in tests to build examples of JSON data.
+Our application contains a utility class of static methods that we use to build examples of JSON data in tests.
 This allows us to write self-contained tests that are not split between Java code and JSON resource files without having to build JSON examples by string concatenation.
 
 To build a JSON tree, we statically import syntactic sugar methods from the Json class:
@@ -31,9 +31,11 @@ JsonNode commandAsJson = obj(
 ----
 // end-insert
 
-Our Json class acts as an _Embedded Domain-Specific Language_.
+Our Json class acts as an _Embedded Domain-Specific Language_ (DSL).
 It wraps the Jackson library, which does all the work of representing JSON data and serialising/deserialising JSON to and from strings and streams, and tries to make Java code that builds JSON data look as close to JSON syntax as possible.
 That's not _very_ close, to be fair, but its closer than is possible by using the Jackson library directly.
+
+Here is the implementation of the JSON DSL:
 
 // begin-insert: tags/jsondsl_mixed.0:src/test/java/colloquiumatic/json/Json.java#json_dsl
 [source,java]
@@ -70,12 +72,12 @@ public class Json {
 ----
 // end-insert
 
-There's only so much we can do to create a domain-specific language in Java.  They always end up looking a bit LISP-ish or involve a lot of boilerplate code to implement the [.pattern]_Builder_ pattern.  Kotlin offers more options for expressive syntax. As more of our codebase is in Kotlin, it becomes more beneficial to take advantage of Kotlin's features and make the Kotlin code using our domain-specific language easier to read.
+There's only so much we can do to create a domain-specific language in Java.  They always end up looking a bit LISP-ish or involve a lot of boilerplate code to implement the [.pattern]_Builder_ pattern.  Kotlin offers more options for expressive syntax. As more of our codebase is migrated, it becomes more beneficial to take advantage of Kotlin's features to make the code using our domain-specific language easier to read.
 
 We need to decide what we convert first: the Json class, or the code that depends on it.
 Until now, we've preferred to start with classes that are leaves in the dependency tree, pushing the Kotlin boundary outwards to create an expanding region of code within which we take full advantage Kotlin's type safety and convenience features.
 
-But this case is different: the Json class provides syntactic sugar to our Java code and has almost no logic itself.
+This case is different: the Json class provides syntactic sugar to our Java code and has almost no logic itself.
 At best, converting it to Kotlin will leave the Java code unchanged, and so not be worth the effort.
 The conversion could make it _worse_ as a convenient notation in Java, and we'll have to annotate the Kotlin API to get it back to where we started.
 And even then we won't be able to apply Kotlin-specific features to improve the DSL because what works well as a notation in Kotlin will not carry over to the Java code.
@@ -85,9 +87,9 @@ If we start from the other direction, by converting the code that uses the Json 
 We can decide when to convert the Json class to Kotlin as we go.
 At some point, we'll have enough Kotlin code using our Json notation that it's worth converting to Kotlin and annotating it to support Java code.
 From there we can introduce features for the benefit of Kotlin code.
-Eventually we'll convert the last bit of Java code, and we can delete anything that remains in the Json class solely for the benefit of Java.
+Eventually we'll convert the last bit of Java code, and can delete anything that remains in the Json class solely for the benefit of Java.
 
-Let's get started by converting a Java test that uses the Json class.
+Let's get started by converting the Java test we saw earlier that uses the Json class.
 The converter leaves us with code like this:
 
 // begin-insert: tags/jsondsl_mixed.1:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_usage
@@ -106,7 +108,7 @@ val commandAsJson: JsonNode = Json.obj(
 
 Unfortunately, IntelliJ didn't carry the static imports across into Kotlin.
 It imported the Json class and translated `obj` and `prop` to `Json.obj` and `Json.prop`, messing up our carefully crafted notation.
-It did not know that the Json class exists to define syntactic sugar, and that the way that the Java imported its functions was significant.
+It didn't know that the Json class exists to define syntactic sugar, and that the way that the Java imported its functions was significant.
 
 We can get IntelliJ to add these imports automatically by hitting kbd:[Alt-Enter] on the first call to each method in the file we translated and choosing to import the method directly.
 
@@ -119,7 +121,7 @@ import colloquiumatic.json.Json.prop
 ----
 // end-insert
 
-And we're back to the notation we want:
+leading us back to the notation we want:
 
 // begin-insert: tags/jsondsl_mixed.2:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_usage
 [source,kotlin]
@@ -141,11 +143,7 @@ The Kotlin import statement can import top-level declarations from other package
 ****
 
 Eventually enough of the code that uses the Json class is Kotlin that it's worth converting the Json class itself.
-The converter translates the Java class of static methods into a top-level Kotlin object.
-Because we still have Java code calling those static methods, the converter annotates them with @JvmStatic.
-The compiler will generate static methods in the Java bytecode, leaving the Java code unaffected.
 
-// TODO: add callouts
 // begin-insert: tags/jsondsl_mixed.3:src/test/java/colloquiumatic/json/Json.kt#json_dsl
 [source,kotlin]
 [%autofit]
@@ -184,6 +182,11 @@ object Json {
 }
 ----
 // end-insert
+
+// TODO: use callouts
+The converter translates the Java class of static methods into a top-level Kotlin object.
+Because we still have Java code calling those static methods, the converter annotates them with @JvmStatic.
+The compiler will generate static methods in the Java bytecode, so that the Java code remains unaffected.
 
 At the time of writing, IntelliJ doesn't get the conversion quite right.
 It marks more types as nullable than we would want, and doesn't infer the nullability correctly, so the converted code doesn't compile, and it doesn't annotate all the overloads of the methods with @JvmStatic, so Java code that depends on the Json object doesn't compile either.
@@ -237,11 +240,11 @@ TODO: explain nullability & Jackson's API, the +node.set<JsonNode>+ weirdness, a
 
 Now everything is working again, let's simplify the implementation of the Json class and improve the notation it provides to Kotlin code, while ensuring any remaining Java code that uses it is unaffected.
 
-Let's pick off some quick, easy changes first.
-We can remove the SafeVarargs annotation: it's not needed in Kotlin code.
-We can remove the reference to Java's Consumer functional interface and use a plain lambda.
+Let's pick off some quick, easy changes.
+First, we can remove the reference to Java's Consumer functional interface and use a plain lambda.
 We can make functions that are a single-expression use single-expression function syntax.
-And we can use Kotlin's `apply` function to turn the `obj` function into a single-expression function.
+We can use Kotlin's `apply` function to turn the `obj` function into a single-expression function.
+Finally, we can replace the call to Java's Arrays.asList with Kotlin's `asList()` extension function.
 
 This removes a lot of boilerplate from the class:
 
@@ -295,8 +298,7 @@ object Json {
 
 What stands out now is the use of Map.Entry and AbstractMap.SimpleImmutableEntry.
 In our Java code, we used them to hold key/value pairs, because Java doesn't have pair type.
-Kotlin does.
-Let's use it.
+Kotlin does -- let's use it.
 
 There's no automatic refactoring that can replace Map.Entry and AbstractMap.SimpleImmutableEntry with Pair in one go.
 However, thanks to Kotlin type inference and our use of single-expression functions, Map.Entry is only referred to in three places: as parameters of the `obj` functions and in the implementation of `prop(String,JsonNode)`.
