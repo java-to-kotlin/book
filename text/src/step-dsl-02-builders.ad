@@ -98,20 +98,61 @@ public Proposal parseProposalForm(Form form) throws FormParseException {
 
 The builder makes clear which properties the code is setting, which helps us avoid setting the wrong properties when we are writing the code, and makes it much easier to understand the code when we read it later.
 
-TODO: in Kotlin, use named parameters.  The loop can be replaced by a collection pipeline.
+However, writing a builder involves a lot of boilerplate code
 
-In new Kotlin code, write it like this....
+// begin-insert: tags/builders.0:src/main/java/colloquiumatic/proposal/ProposalBuilder.java#builder
+[source,java]
+[%autofit]
+----
+public class ProposalBuilder {
+    private SessionType type; // <1>
+    private String title;
+    private List<PresenterDetails> presenters = new ArrayList<>();
+    private int durationInSlots;
+    private String blurb;
+    private String detailsForReviewers;
+    private String extraRequirements;
 
+    public ProposalBuilder setType(SessionType type) { // <2>
+        this.type = type;
+        return this;
+    }
 
-To refactor your way there, do this ....
+    public ProposalBuilder setTitle(String title) {
+        this.title = title;
+        return this;
+    }
 
+    public ProposalBuilder setPresenters(List<PresenterDetails> presenters) {
+        this.presenters = new ArrayList<>(presenters); // <3>
+        return this;
+    }
 
-== Builders of test data
+    public ProposalBuilder addPresenters(List<PresenterDetails> morePresenters) { // <4>
+        this.presenters.addAll(morePresenters);
+        return this;
+    }
 
-Our tests that create Proposal objects also use builders, but for a slightly different reason.
+    public ProposalBuilder addPresenter(PresenterDetails p) { // <4>
+        this.presenters.add(p);
+        return this;
+    }
 
-Here's a test...
+    // ... setters for the rest of the properties
 
+    public Proposal build() { // <5>
+        return new Proposal(
+            Ensure.isSet("type", type),
+            Ensure.isSet("title", title),
+            Ensure.isNotEmpty("presenters", presenters),
+            Ensure.isGreaterThanZero("durationInSlots", durationInSlots),
+            Ensure.isSet("blurb", blurb),
+            Ensure.isSet("detailsForReviewers", detailsForReviewers),
+            Ensure.isSet("extraRequirements", extraRequirements));
+    }
+}
+----
+// end-insert
 ...
 
 And here's the code that creates the builder.
