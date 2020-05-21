@@ -72,7 +72,7 @@ To address these problems, we use the [.pattern]_Builder_ pattern.  Here's the m
 [%autofit]
 ----
 public Proposal parseProposalForm(Form form) throws FormParseException {
-    ProposalBuilder proposal = Proposal.builder()
+    ProposalBuilder pb = Proposal.builder()
         .setType(form.field("type", SessionType.class))
         .setTitle(form.field("title"))
         .setBlurb(form.field("blurb"))
@@ -82,7 +82,7 @@ public Proposal parseProposalForm(Form form) throws FormParseException {
 
     int i = 1;
     while (form.hasField("presenter_" + i + "_name")) {
-        proposal.addPresenter(
+        pb.addPresenter(
             PresenterDetails.builder()
                 .setName(form.field("presenter_" + i + "_name"))
                 .setCountryISO2(form.field("presenter_" + i + "_country_iso2"))
@@ -91,7 +91,7 @@ public Proposal parseProposalForm(Form form) throws FormParseException {
         i = i + 1;
     }
 
-    return proposal.build();
+    return pb.build();
 }
 ----
 // end-insert
