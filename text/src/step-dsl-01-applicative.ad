@@ -301,11 +301,11 @@ In our Java code, we used them to hold key/value pairs, because Java doesn't hav
 Kotlin does -- let's use it.
 
 There's no automatic refactoring that can replace Map.Entry and AbstractMap.SimpleImmutableEntry with Pair in one go.
-However, thanks to Kotlin type inference and our use of single-expression functions, Map.Entry is only referred to in three places: as parameters of the `obj` functions and in the implementation of `prop(String,JsonNode)`.
+It's easy enough to change these by text editing.
+Thanks to Kotlin type inference and our use of single-expression functions, Map.Entry is only referred to in three places: as parameters of the `obj` functions and in the implementation of `prop(String,JsonNode)`.
 The code that _uses_ our syntactic sugar does not refer to the Map.Entry type at all.
-So, it's easy enough to change these by text editing.
 However, with a bit of refactoring-fu we can perform the transformation as a series of safe additions of temporary code and automated transformation steps without ever introducing a compilation error.
-I call this the _add-code-and-inline_ refactoring move.
+I call this the _add-code-and-inline_ refactoring combination.
 
 First, we Alt-Enter on the "Entry" in `Map.Entry`, and select "add import for 'kotlin.collections.Map.Entry'".
 Now all references in the file to the Map.Entry type are via the unqualified name "Entry".
