@@ -2,8 +2,15 @@ import book.processFiles
 import book.runCommand
 
 tasks {
-    create("build") {
-        doFirst {
+    val retagCode = register<Exec>("retagCode") {
+        workingDir(rootProject.rootDir)
+        commandLine("./retag-worked-example")
+    }
+
+    register("build") {
+        dependsOn(retagCode)
+
+        doLast {
             processFiles(
                 textRoot = project.projectDir,
                 workedExampleSrcRoot = project.rootProject.projectDir.resolve("../refactoring-to-kotlin-code"),
