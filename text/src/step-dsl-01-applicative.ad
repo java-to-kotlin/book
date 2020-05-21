@@ -257,7 +257,8 @@ object Json {
 
     @JvmStatic
     @SafeVarargs
-    fun obj(vararg props: Map.Entry<String, JsonNode>) = obj(props.asList())
+    fun obj(vararg props: Map.Entry<String, JsonNode>) =
+        obj(props.asList())
 
     @JvmStatic
     fun obj(props: Iterable<Map.Entry<String, JsonNode>>): ObjectNode =
@@ -265,9 +266,17 @@ object Json {
             props.forEach { p -> set<ObjectNode>(p.key, p.value) }
         }
 
-    @JvmStatic fun prop(name: String, value: JsonNode) = SimpleImmutableEntry(name, value)
-    @JvmStatic fun prop(name: String, textValue: String?) = prop(name, nodes.textNode(textValue))
-    @JvmStatic fun prop(name: String, intValue: Int?) = prop(name, nodes.numberNode(intValue))
+    @JvmStatic
+    fun prop(name: String, value: JsonNode) =
+        SimpleImmutableEntry(name, value)
+
+    @JvmStatic
+    fun prop(name: String, textValue: String?) =
+        prop(name, nodes.textNode(textValue))
+
+    @JvmStatic
+    fun prop(name: String, intValue: Int?) =
+        prop(name, nodes.numberNode(intValue))
 
     // and the rest of the syntactic sugar...
 }
@@ -289,7 +298,8 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory.instance as nodes
 object Json {
     @JvmStatic
     @SafeVarargs
-    fun obj(vararg props: Map.Entry<String, JsonNode>) = obj(props.asList())
+    fun obj(vararg props: Map.Entry<String, JsonNode>) =
+        obj(props.asList())
 
     // ...
 }
@@ -352,7 +362,8 @@ That leaves the code looking like:
 object Json {
     @JvmStatic
     @SafeVarargs
-    fun obj(vararg props: Pair<String, JsonNode>) = obj(props.asList())
+    fun obj(vararg props: Pair<String, JsonNode>) =
+        obj(props.asList())
 
     @JvmStatic
     fun obj(props: Iterable<Pair<String, JsonNode>>): ObjectNode =
@@ -360,9 +371,16 @@ object Json {
             props.forEach { p -> set<ObjectNode>(p.first, p.second) }
         }
 
-    @JvmStatic fun prop(name: String, value: JsonNode) = Pair<String, JsonNode>(name, value)
-    @JvmStatic fun prop(name: String, textValue: String?) = prop(name, nodes.textNode(textValue))
-    @JvmStatic fun prop(name: String, intValue: Int?) = prop(name, nodes.numberNode(intValue))
+    @JvmStatic
+    fun prop(name: String, value: JsonNode) =
+        Pair<String, JsonNode>(name, value)
+
+    @JvmStatic
+    fun prop(name: String, textValue: String?) =
+        prop(name, nodes.textNode(textValue))
+
+    @JvmStatic fun prop(name: String, intValue: Int?) =
+        prop(name, nodes.numberNode(intValue))
 
     // ... and the rest of the syntactic sugar
 }
@@ -386,7 +404,9 @@ It now looks like:
 [source,kotlin]
 [%autofit]
 ----
-@JvmStatic fun prop(name: String, value: JsonNode) = name to value
+@JvmStatic
+fun prop(name: String, value: JsonNode) =
+    name to value
 ----
 // end-insert
 
@@ -460,15 +480,28 @@ The "prop" functions will still be used by Java code, but the infix "of" functio
 ----
 object Json {
     // ...
-    @JvmStatic fun prop(name: String, value: JsonNode) = name of value
-    @JvmStatic fun prop(name: String, textValue: String?) = name of textValue
-    @JvmStatic fun prop(name: String, intValue: Int?) = name of intValue
+    @JvmStatic
+    fun prop(name: String, value: JsonNode) =
+        name of value
+
+    @JvmStatic
+    fun prop(name: String, textValue: String?) =
+        name of textValue
+
+    @JvmStatic
+    fun prop(name: String, intValue: Int?) =
+        name of intValue
     // ... and the rest of the syntactic sugar for Java
 }
 
-infix fun String.of(value: JsonNode) = this to value
-infix fun String.of(textValue: String?) = this of nodes.textNode(textValue)
-infix fun String.of(intValue: Int?) = this of nodes.numberNode(intValue)
+infix fun String.of(value: JsonNode) =
+    this to value
+
+infix fun String.of(textValue: String?) =
+    this of nodes.textNode(textValue)
+
+infix fun String.of(intValue: Int?) =
+    this of nodes.numberNode(intValue)
 // ... and the rest of the syntactic sugar for Kotlin
 ----
 // end-insert
@@ -524,14 +557,23 @@ Then we move them to the top level of the file via the kbd:[Alt-Enter] menu:
 object Json {
     @JvmStatic
     @SafeVarargs
-    fun obj(vararg props: Pair<String, JsonNode>) = jsonObject(*props)
+    fun obj(vararg props: Pair<String, JsonNode>) =
+        jsonObject(*props)
 
     @JvmStatic
     fun obj(props: Iterable<Pair<String, JsonNode>>) = jsonObject(props)
 
-    @JvmStatic fun prop(name: String, value: JsonNode) = name of value
-    @JvmStatic fun prop(name: String, textValue: String?) = name of textValue
-    @JvmStatic fun prop(name: String, intValue: Int?) = name of intValue
+    @JvmStatic
+    fun prop(name: String, value: JsonNode) =
+        name of value
+
+    @JvmStatic
+    fun prop(name: String, textValue: String?) =
+        name of textValue
+
+    @JvmStatic
+    fun prop(name: String, intValue: Int?) =
+        name of intValue
     // ... and the rest of the syntactic sugar for Java
 }
 
@@ -543,9 +585,14 @@ fun jsonObject(props: Iterable<Pair<String, JsonNode>>): ObjectNode =
         props.forEach { p -> set<ObjectNode>(p.first, p.second) }
     }
 
-infix fun String.of(value: JsonNode) = this to value
-infix fun String.of(textValue: String?) = this of nodes.textNode(textValue)
-infix fun String.of(intValue: Int?) = this of nodes.numberNode(intValue)
+infix fun String.of(value: JsonNode) =
+    this to value
+
+infix fun String.of(textValue: String?) =
+    this of nodes.textNode(textValue)
+
+infix fun String.of(intValue: Int?) =
+    this of nodes.numberNode(intValue)
 // ... and the rest of the syntactic sugar for Kotlin
 ----
 // end-insert
@@ -581,14 +628,23 @@ First, we annotate the top-level methods with @JvmName so that they are compiled
 object Json {
     @JvmStatic
     @SafeVarargs
-    fun obj(vararg props: Pair<String, JsonNode>) = jsonObject(*props)
+    fun obj(vararg props: Pair<String, JsonNode>) =
+        jsonObject(*props)
 
     @JvmStatic
     fun obj(props: Iterable<Pair<String, JsonNode>>) = jsonObject(props)
 
-    @JvmStatic fun prop(name: String, value: JsonNode) = name of value
-    @JvmStatic fun prop(name: String, textValue: String?) = name of textValue
-    @JvmStatic fun prop(name: String, intValue: Int?) = name of intValue
+    @JvmStatic
+    fun prop(name: String, value: JsonNode) =
+        name of value
+
+    @JvmStatic
+    fun prop(name: String, textValue: String?) =
+        name of textValue
+
+    @JvmStatic
+    fun prop(name: String, intValue: Int?) =
+        name of intValue
     // ... and the rest of the syntactic sugar for Java
 }
 
@@ -603,9 +659,17 @@ fun jsonObject(props: Iterable<Pair<String, JsonNode>>): ObjectNode =
         props.forEach { p -> set<ObjectNode>(p.first, p.second) }
     }
 
-@JvmName("prop") infix fun String.of(value: JsonNode) = this to value
-@JvmName("prop") infix fun String.of(textValue: String?) = this of nodes.textNode(textValue)
-@JvmName("prop") infix fun String.of(intValue: Int?) = this of nodes.numberNode(intValue)
+@JvmName("prop")
+infix fun String.of(value: JsonNode) =
+    this to value
+
+@JvmName("prop")
+infix fun String.of(textValue: String?) =
+    this of nodes.textNode(textValue)
+
+@JvmName("prop")
+infix fun String.of(intValue: Int?) =
+    this of nodes.numberNode(intValue)
 // ... and the rest of the syntactic sugar for Kotlin
 ----
 // end-insert
@@ -630,9 +694,17 @@ fun jsonObject(props: Iterable<Pair<String, JsonNode>>): ObjectNode =
         props.forEach { p -> set<ObjectNode>(p.first, p.second) }
     }
 
-@JvmName("prop") infix fun String.of(value: JsonNode) = this to value
-@JvmName("prop") infix fun String.of(textValue: String?) = this of nodes.textNode(textValue)
-@JvmName("prop") infix fun String.of(intValue: Int?) = this of nodes.numberNode(intValue)
+@JvmName("prop")
+infix fun String.of(value: JsonNode) =
+    this to value
+
+@JvmName("prop")
+infix fun String.of(textValue: String?) =
+    this of nodes.textNode(textValue)
+
+@JvmName("prop")
+infix fun String.of(intValue: Int?) =
+    this of nodes.numberNode(intValue)
 // ... and the rest of the syntactic sugar
 ----
 // end-insert
@@ -662,9 +734,17 @@ fun obj(props: Iterable<Pair<String, JsonNode>>): ObjectNode =
         props.forEach { p -> set<ObjectNode>(p.first, p.second) }
     }
 
-@JvmName("prop") infix fun String.of(value: JsonNode) = this to value
-@JvmName("prop") infix fun String.of(textValue: String?) = this of nodes.textNode(textValue)
-@JvmName("prop") infix fun String.of(intValue: Int?) = this of nodes.numberNode(intValue)
+@JvmName("prop")
+infix fun String.of(value: JsonNode) =
+    this to value
+
+@JvmName("prop")
+infix fun String.of(textValue: String?) =
+    this of nodes.textNode(textValue)
+
+@JvmName("prop")
+infix fun String.of(intValue: Int?) =
+    this of nodes.numberNode(intValue)
 // ... and the rest of the syntactic sugar
 ----
 // end-insert
@@ -684,9 +764,14 @@ fun obj(props: Iterable<Pair<String, JsonNode>>): ObjectNode =
         props.forEach { p -> set<ObjectNode>(p.first, p.second) }
     }
 
-infix fun String.of(value: JsonNode) = this to value
-infix fun String.of(textValue: String?) = this of nodes.textNode(textValue)
-infix fun String.of(intValue: Int?) = this of nodes.numberNode(intValue)
+infix fun String.of(value: JsonNode) =
+    this to value
+
+infix fun String.of(textValue: String?) =
+    this of nodes.textNode(textValue)
+
+infix fun String.of(intValue: Int?) =
+    this of nodes.numberNode(intValue)
 // ... and the rest of the syntactic sugar
 ----
 // end-insert
