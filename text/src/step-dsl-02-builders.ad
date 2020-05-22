@@ -159,5 +159,21 @@ And here's the code that creates the builder.
 
 ...
 
+This use of builders is not necessary in Kotlin.  The language supports named function (and constructor) parameters, allowing us to write the code above like this instead:
+
+...
+
+Of course, we can't do that in Java, so as we introduce Kotlin into the codebase, we'll have to keep the builders around for the remaining Java code, but can ignore them when writing new Kotlin code.
+
+... currently a circular dependency between the X and XBuilder classes.  When we convert the X class, we'll end up with a companion object holding the builder-factory-function.  It's just syntactic sugar, and not really that necessary.
+The one place we care most about syntactic sugar is in our tests, where we want our code to be more specification-like.
+In that case, we have an additional bit of syntactic sugar that wraps the builder-factory-function anyway.
+So, let's inline the builder-factory-function before we convert the Java code to Kotlin (recall, we cannot inline Kotlin functions into Java, so we'll have to inline before converting).
+
+...
+
+
+== Test Data Builders
+
 In Kotlin, we can use constants instead of builders, as long as the objects we want to create are data objects.
 
