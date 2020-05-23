@@ -16,7 +16,6 @@ else
   ./gradlew --warning-mode=all $clean code:test
 
   # include the code in the Asciidoc
-  ./retag-worked-example
   ./gradlew --warning-mode=all build
 fi
 
