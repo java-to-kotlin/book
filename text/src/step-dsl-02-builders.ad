@@ -153,9 +153,6 @@ public class ProposalBuilder {
 }
 ----
 // end-insert
-...
-
-And here's the code that creates the builder.
 
 ...
 
@@ -163,7 +160,7 @@ This use of builders is not necessary in Kotlin.  The language supports named fu
 
 // TODO: example
 
-Of course, we can't do that in Java. As we introduce Kotlin into the codebase, we'll have to keep the builders around for the remaining Java code, but can call constructors directly when writing new Kotlin code.
+As we introduce Kotlin into the codebase, we'll have to keep the builders around for the remaining Java code, but can call constructors directly when writing new Kotlin code.
 
 Currently the static `builder` method creates a circular dependency between the Proposal and ProposalBuilder classes.
 The static `builder` method is a common convention in Java code.  It's a bit of syntactic sugar that lets us avoid using the "new" keyword. It also makes it easier for programmers to realise they can use a builder to create intances, which makes our codebase more consistent.  The circular dependency isn't a big deal: the class and its builder form a highly cohesive unit.
@@ -174,16 +171,38 @@ We've got a couple of options: convert the class and its builder to Kotlin in on
 
 It's a bit weird to have Kotlin code that is _only_ to be used from Java, and never in Kotlin.
 Looking at the Java logic, the syntactic sugar of the `builder` method does not add much value to production code where we use the builder.
-We care more about syntactic sugar in our tests, where we want our code to be more specification-like.
-In those cases we anyway have a bit more syntactic sugar, that calls the `builder` function and to create a builder and then sets it up with default property values. We'll see what we do about that code in <<test-data-builders>>.
 
-So, on balance, I think the second option is the one to go for: break the circular dependency to keep all references to the builder in Java.  Then we can convert the built class to Kotlin.
+We care more about syntactic sugar in our tests, where we want our code to be read more like a declarative specification.
+However, our tests do not call the `builder` method directly.
+We have a bit more syntactic sugar that creates a builder set up with default property values, so that a test need specify only the property values that are relevant to the test scenario.  For example:
+
+// begin-insert: tags/builders.0:src/test/java/colloquiumatic/proposal/ProposalNotificationsTest.java#use_of_builder
+[source,java]
+[%autofit]
+----
+@Test
+public void test_sends_initial_confirmation_email_to_all_presenters() {
+    Proposal proposalWithTwoPresenters = aProposal()
+        .setPresenters(List.of(
+            aPresenter().setEmailAddress("alice@example.com").build(),
+            aPresenter().setEmailAddress("bob@example.com").build()))
+        .build();
+
+    // ... test that a confirmation email is dispatched to both presenters
+    // ... via the GDPR-compliant messaging logic
+}
+----
+// end-insert
+
+On balance, therefore, the second option looks like our best bet: to break the circular dependency to keep all references to the builder in Java, and then convert the built class to Kotlin.
+
+We'll see what we do about the _Test Data Builders_ in <<test-data-builders>>.
 
 We can break the dependency by inlining the builder function, leaving code that uses a builder looking like:
 
 // TODO: example here ...
 
-We can then convert the Proposal class to a Kotlin data class:
+We can then convert the Proposal class to a Kotlin data class and tidy up the code as we did in <<value-types>>:
 
 // TODO: CODE HERE ...
 
