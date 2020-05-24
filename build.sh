@@ -21,3 +21,4 @@ fi
 
 # build the book
 docker run --rm --tty -v "$PWD"/:/documents/ asciidoctor/docker-asciidoctor make $clean "$@"
+op
