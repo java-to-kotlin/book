@@ -1,0 +1,367 @@
+= Introduction to error handling
+
+You don't have to have tried computer programming for long
+to discover that things go wrong.
+
+In so many different ways.
+
+In this part we'll look at the ways that software can fail.
+We'll see how to write code that is able not only to cope with the failure,
+but also communicate about what failures it is coping with.
+In the worked example we'll refactor Java, exception-based error handling,
+into a more functional Kotlin style.
+
+== Why should we care about error handling?
+
+Early in our careers,
+and often early in a project,
+we tend to gloss-over errors.
+Most systems default to raising exceptions when something goes wrong,
+and catching and logging those exceptions at some outer level.
+A command-line utility will tend to just exit in this case,
+hopefully having given enough information for the user to correct the problem
+and try again.
+A server app,
+or a GUI with an event-loop,
+will default to aborting the current interaction
+and getting on with the next.
+
+Often this is fine,
+but sometimes the error will have led to the corruption of the persistent state of the system,
+so that correcting the initial problem and retrying does not work.
+This is of course the source of the hackneyed advice
+to turn it off and back on again -
+our systems mainly start in a safe,
+uncorrupted state -
+so that after a restart a retry should succeed.
+If not,
+well you've probably been in a situation where the only solution has been to reinstall the operating system -
+the ultimate way of removing corrupted persistent state.
+
+.Rebooting the Internet
+****
+Duncan had a problem where the integration between his Nest thermostat and IfThisThenThat was not working.
+IFTTT was receiving notifications when the Nest entered home mode, but not away mode.
+The great AWS outage of 28th February 2017 mysteriously fixed the problem -
+it turns out that all it required was a reboot of the Internet.
+****
+
+If a system becomes successful,
+diagnosing and fixing corruption due to errors
+can expand to fill all the time available to a team.
+This is not a great place for a software project to be -
+ask us how we know!
+
+== How do programs go wrong?
+
+Programs can go wrong for so many reasons!
+
+****
+Note that when we say _program_ we also mean
+functions, methods, procedures -
+any code that we invoke.
+****
+
+* Sometimes they need to talk to other systems and that fails in some way.
+* Often we don’t give them the correct input that they need to do their job.
+* We have heard of programmers making errors.
+Apparently they read of past the end of arrays,
+or try to get the first item of an empty list.
+* Sometimes the environment that we are running in fails for some reason,
+we might run out of memory,
+or not be able to load a class
+
+There are failures that don’t fit into these categories, but these cover most eventualities.
+
+== Error handling is hard to get right
+
+Empirical studies have found that
+
+* Error signals are frequently lost in large systems between where they are raised and where they can be handled
+* Where error handling code is invoked, it often has defects that have catastrophic effects, but could be caught by simple unit tests.
+
+"Without correct error propagation, any comprehensive failure policy is useless … We find that error handling is occasionally correct. Specifically, we see that low-level errors are sometimes lost as they travel through [...] many layers [...]"
+EIO: Error handling is occasionally correct.
+H. S. Gunawi, et al. In Proc. of the 6th USENIX Conference on File and Storage Technologies, FAST’08, 2008.
+
+"Almost all catastrophic failures (92%) are the result of incorrect handling of non-fatal errors explicitly signaled in software"
+Simple Testing Can Prevent Most Critical Failures: An Analysis of Production Failures in Distributed Data-Intensive Systems.
+Ding Yuan, et al., University of Toronto. In Proceedings of the 11th USENIX Symposium on Operating Systems Design and Implementation, OSDI14, 2014
+
+== Why is error handling hard?
+
+* We often don’t know if and how an operation could fail
+* Knowledge of how to handle an error can be a long way from where the error is detected
+* Error handling is hard to isolate from its surrounding code and therefore hard to test
+* Errors can leave our system in states from which it can’t recover
+
+TODO - expand on these
+
+If something is hard work and error prone, we like the computer to do the drudge work,
+so that we can focus on the creative work
+
+We’ll look at error handling in the context of these problems.
+
+== Pre-exception error handling strategies
+
+Whilst we mostly signal errors these days with exceptions or special error types,
+other techniques have been used,
+and are still applicable in some circumstances.
+
+=== Ignoring errors
+
+We can ignore errors -
+either the failing routine does nothing to bring it to the attention of the caller,
+or the caller doesn't bother to check.
+
+=== Returning a special value
+
+Where possible,
+returning a special value to signify an error can be convenient.
+For example,
+returning -1 instead of an index
+when an item is not found in a list.
+
+This technique can only be used when
+not all of the range of return values are valid results for a function.
+It can also be dangerous,
+because the caller has to know
+(and remember)
+the convention.
+If we try to calculate the distance between two items in a list
+by subtracting their indices,
+when one of them is not found and returns -1,
+our calculation will be incorrect
+unless we explicitly to handle the special case.
+
+A special case of returning a special value is
+returning null on error.
+This is quite dangerous in most languages,
+because if the caller doesn't explicitly check for null,
+then using the result will throw a NullPointerException,
+which may have worse consequences than the initial problem.
+In Kotlin callers are forced to deal with null though,
+so returning null to signal an error is a perfectly cromulent technique.
+
+=== Global flags
+
+One problem with returning special values
+is that they make it hard to signal which of several possible errors occurred.
+In this case we can combine the special value with
+setting a flag that the caller can read to establish what the problem was.
+
+This technique was popular in C,
+but was largely superseded by exception-based error handling.
+
+=== Returning a status code
+
+Another technique from the days before exceptions is
+returning a status code.
+This is possible when a function either returns no value
+(it is entirely side-effect),
+or returns a value in another way,
+often by mutating a value passed as a reference parameter.
+
+=== Invoking a special function
+
+Even when exceptions are available,
+invoking a special function when an error occurs is sometimes a good strategy.
+Usually the function is passed as a parameter to the invoked function -
+if a problem is detected the error function is invoked
+with the issue as a parameter.
+Sometimes the error function is able to signal by its return value
+if the failed operation should be retried or aborted.
+
+== Error handling with exceptions
+
+All the above techniques suffer from the drawback
+that the calling code is able,
+to a greater or lesser extent,
+to ignore that an error occurred.
+
+Exceptions solve this problem -
+the operation is aborted on error -
+and either the caller explicitly handles the exception
+or it propagates further.
+
+=== Java and checked exceptions
+
+Exceptions were relatively new when Java was released,
+and the language designers decided to innovate in this area.
+They made the exceptions that a function could throw part of its signature.
+This way callers could know that,
+for example,
+a method might fail because the network resource that it was reading
+was no longer available.
+If a method declared that it could fail in this way,
+then every caller would either have to deal with the failure
+(by catching it)
+or declare that it, too, was liable to fail with the same exception.
+This ensures that the programmer takes account of all these predictable errors.
+
+Predictable problems are only some of the possible reasons for failure though.
+The language designers identified two other types.
+
+Errors::
+Subclasses of Error are reserved for failures so severe
+that the JVM can no longer guarantee the semantics of the language,
+maybe a class cannot be loaded
+or the system runs out of memory.
+These conditions could happen at any point in the execution of a program,
+and so could cause any function to fail.
+If any function could fail in this way
+there is little point in including such errors in the function signature,
+so they are exempted.
+
+RuntimeExceptions::
+Subclasses of RuntimeException were used to represent other errors.
+These are generally those caused by programmer mistakes,
+often accessing a null reference,
+or trying to read outside the bounds of a collection.
+In both these cases the programmer could have been more careful,
+but again this potentially an issue for practically every piece of code,
+and so these are also exempted from having to be declared
+and handled.
+
+Exceptions that are neither Error nor RuntimeException are known as Checked Exceptions
+and are subject to the default handle-or-declare rule.
+
+In this scheme developers are forced to deal with operations
+that can fail due to IO or other things that are out of their control
+but predictable
+(the checked exceptions).
+This allows defensive programming where it is economical.
+
+If a (capital E) Error occurs the best default approach
+is exit the process as quickly as possible,
+before any more damage can be done to persistent state.
+
+Unchecked exceptions are a middle ground.
+If they were the programmer error type
+then we should probably assume that we have just proved that
+we don't really know what is going on in our programme
+and abort.
+Otherwise we might try to recover,
+especially if our system has been designed to limit the
+damage that can be done by a single unexpected error.
+
+We both really liked checked exceptions,
+but it seems we were in the minority,
+as they fell out of favour in Java
+over the years.
+They were hampered from the start by the odd decision
+to make the unchecked RuntimeException
+a subclass of the checked Exception,
+so that code that wanted to handle all checked Exceptions
+found itself catching all the unchecked ones as well.
+They were also not helped by the fact that the Java APIs used them inconsistently,
+with operations like `Integer.parseInt(String)` throwing the unchecked NumberFormatException.
+
+****
+This is an interesting case,
+and goes to the heart of why error handling is so hard.
+How should `parseInt` fail?
+
+Looking through our strategies,
+it can't return a special integer value,
+because all the ints are spoken for.
+It could return null as a boxed Integer,
+but having to box and unbox for this,
+a really fundemental low-level operation
+that will be used in performance critical code,
+is undesireable,
+especially on the JVMs of the mid-1990s.
+
+Invoking an error function would similarly involve inefficient ceremony,
+so we are left with throwing an exception.
+Should that exception be checked or unchecked?
+
+The language designers decided that
+
+* `parseInt` should throw NumberFormatException
+* NumberFormatException
+should be an IllegalArgumentException,
+which is a RuntimeException and so unchecked.
+
+Those are both reasonable decisions,
+but combined lead to `parseInt` not forcing its callers to consider that
+it might fail by declaring a checked exception.
+
+I suspect that the JVM programmers were very used to
+parsing ints from char* in C,
+where there were no exceptions,
+and `atoi` returned 0 if it didn't work.
+They would have considered not planning for this failure
+to be a programmer error,
+rather than a failure of the function itself.
+
+We will have more to say on the characterisation of errors
+later. TODO - make sure that we do.
+****
+
+Confusion begat confusion,
+and it wasn't long before the default was
+that the only checked exceptions that most Java libraries declared
+were IOExceptions.
+Even then database libraries,
+which were definitely talking over the network
+and definitely subject to IOExceptions,
+would throw only RuntimeExceptions.
+
+Once a good proportion of the code that you call
+just uses unchecked exceptions
+the game is up.
+You can't rely on checked exceptions to warn you about how
+a function might fail.
+Instead you are reduced to some tactical defensive programming
+and the age-old technique of putting it into production,
+seeing what errors you log,
+and adding code to handle those you don't like the look of.
+
+The final nail in the coffin of checked exceptions
+was the introduction of lambdas in Java 8.
+All the Function interfaces designed to work with streams
+did not declare an exception type,
+and so cannot propagate checked exceptions.
+To be fair I would probably have given up there too.
+
+****
+This has been a cathartic rant.
+
+It might be removed by the time you read the book,
+but if it hasn't,
+it is because we feel that it is important to make the point
+that we can aspire to better error handling
+than became the default in Java.
+****
+
+=== Kotlin and exceptions
+
+Kotlin has exceptions,
+because it runs on the JVM,
+and exceptions are built into the ecosystem.
+It does not have checked exceptions,
+because Java had already lost that fight.
+
+****
+You might ask how Kotlin can just disregard checked exceptions.
+The answer is that they are not a feature of the JVM,
+but rather of the Java compiler.
+TODO - how are they marked in class files?
+****
+
+The result is that Kotlin programs are by default
+no better or worse than most Java programs
+when it comes to error handling.
+
+****
+An exception ;-) to this is that,
+as we observed above,
+Kotlin can use null to indicate an error,
+safe in the knowledge that callers will have to write code to handle it.
+****
+
+
+
+
+
