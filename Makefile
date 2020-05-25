@@ -13,6 +13,7 @@ asciidoctor_opts=\
 	--source-dir=book \
 	--destination-dir="$(outdir)" \
 	--require=asciidoctor-diagram \
+	--require=asciidoctor-bibtex \
 	--attribute source-highlighter=rouge \
 	--attribute imagesoutdir="$(imagesoutdir)" \
 	$(asciidoctor_opts_$(outtype))
@@ -23,9 +24,11 @@ asciidoctor_opts_html=--attribute imagesdir=images
 all: $(formats)
 $(foreach f,$(formats),$(eval $f: out/$f/book.$f;))
 
+# The cd $(dir $(srcroot)) gubbins works around Asciidoctor extensoins that do not
+# resolve files relative to the root document correctly
 out/%: backend=$(outtype)
 out/%: $(src) | $(dir $@)/ text/src/style.plantuml
-	asciidoctor $(asciidoctor_opts) --backend=$(backend) $(srcroot)
+	cd $(dir $(srcroot)) && asciidoctor $(asciidoctor_opts) --backend=$(backend) $(notdir $(srcroot))
 
 %/:
 	mkdir -p $@
