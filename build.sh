@@ -17,8 +17,10 @@ else
 
   # include the code in the Asciidoc
   ./gradlew --warning-mode=all build
+
+  # build the book-build book build docker container
+  ./docker/book-build/build.sh
 fi
 
 # build the book
-docker run --rm --tty -v "$PWD"/:/documents/ asciidoctor/docker-asciidoctor make $clean "$@"
-op
+docker run --rm --tty -v "$PWD"/:/documents/ book-build make $clean "$@"
