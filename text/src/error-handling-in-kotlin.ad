@@ -1,7 +1,79 @@
 = Error Handling in Kotlin
 
-Discussion about exceptions,
-either types,
-and errors crossing bounded contexts.
+== How to Signal Errors?
 
-Also maybe logging and operational events.
+Now that we know the error handling options open to us,
+which should we use in our Kotlin projects,
+and how do we migrate our Java code?
+
+It depends of course.
+
+In the small using nullable types to represent failure
+is very effective,
+provided that you don't need to convey any information
+about the reason for failure.
+
+You won't be fired for using exceptions
+as your default strategy.
+But you will find it hard to communicate
+what code is subject to what failure,
+making it hard to code reliable systems.
+And you will lose the benefits of referential transparency,
+which will make it harder to fix and refactor
+your unreliable system.
+
+Our preference is to return an Either type
+from those operations that would have thrown a checked exception in Java,
+either because of IO problems,
+or for partial functions. [TODO - need to discuss partial functions in previous section.]
+Errors (capital E) are still appropriate for unrecoverable program errors -
+they should not be caught and the program should exit,
+with systems outside the JVM responsible for restarting.
+RuntimeExceptions are still good for signalling when
+we have made an error as programmers -
+IndexOutOfBounds and the like.
+If we have carefully designed our system
+it should be able to survive these issues
+and process other inputs that do not throw.
+
+Which Either type should you choose?
+The built-in Kotlin Result type is,
+at the time of writing,
+a frustrating placeholder which just teases
+and gets in the way.
+
+.Kotlin Result
+****
+TODO
+****
+
+There are plenty of others available,
+but for this book we will use Result4k,
+not coincidentally written by Nat.
+It is specialised to representing results
+unlike the more generic Either type
+we introduced earlier,
+and so its operations can be more explicit
+in their names.
+
+.Designing Resilient Systems
+****
+We will have more to say about designing resilient systems later.
+TODO - make sure that we do.
+****
+
+== How to Represent Errors
+
+Discussion on using exceptions v sealed classes as our Right
+
+Discussion on errors crossing bounded contexts.
+
+== Recording Errors
+
+Logging and operational events.
+
+== Designing Resilient Systems
+
+Moving actions to the edge, controlling state changes, keeping state in the call stack.
+
+== Avoiding Errors
