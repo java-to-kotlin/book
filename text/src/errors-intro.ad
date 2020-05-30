@@ -13,26 +13,26 @@ into a more functional Kotlin style.
 
 == Why should we care about error handling?
 
-Early in our careers,
-and often early in a project,
-we tend to gloss-over errors.
+Early in our careers
+Nat and I tended to gloss-over errors.
+We often still do,
+at least early in a project when we don't know how things might fail.
 Most systems default to raising exceptions when something goes wrong,
 and catching and logging those exceptions at some outer level.
-A command-line utility will tend to just exit in this case,
+Most command-line utilities will just exit in this case,
 hopefully having given enough information for the user to correct the problem
 and try again.
 A server app,
 or a GUI with an event-loop,
-will default to aborting the current interaction
-and getting on with the next.
+will usually abort the current interaction
+and get on with the next.
 
 Often this is fine,
-but sometimes the error will have led to the corruption of the persistent state of the system,
+but sometimes the error will have corrupted the persistent state of the system,
 so that correcting the initial problem and retrying does not work.
 This is of course the source of the hackneyed advice
-to turn it off and back on again -
-our systems mainly start in a safe,
-uncorrupted state -
+to turn it off and on again -
+our systems mainly start in a safe state -
 so that after a restart a retry should succeed.
 If not,
 well you've probably been in a situation where the only solution has been to reinstall the operating system -
@@ -65,7 +65,7 @@ any code that we invoke.
 * Sometimes they need to talk to other systems and that fails in some way.
 * Often we don’t give them the correct input that they need to do their job.
 * We have heard of programmers making errors.
-Apparently they read of past the end of arrays,
+Apparently they read past the end of arrays,
 or try to get the first item of an empty list.
 * Sometimes the environment that we are running in fails for some reason,
 we might run out of memory,
@@ -100,6 +100,10 @@ TODO - expand on these
 If something is hard work and error prone, we like the computer to do the drudge work,
 so that we can focus on the creative work
 
+****
+TODO - sidebar on this
+****
+
 We’ll look at error handling in the context of these problems.
 
 == Pre-exception error handling strategies
@@ -118,7 +122,7 @@ or the caller doesn't bother to check.
 
 Where possible,
 returning a special value to signify an error can be convenient.
-For example,
+For example a,
 returning -1 instead of an index
 when an item is not found in a list.
 
@@ -133,22 +137,28 @@ by subtracting their indices,
 when one of them is not found and returns -1,
 our calculation will be incorrect
 unless we explicitly to handle the special case.
+We are not able to lean on the type checker to help us avoid errors.
 
 A special case of returning a special value is
 returning null on error.
 This is quite dangerous in most languages,
 because if the caller doesn't explicitly check for null,
 then using the result will throw a NullPointerException,
-which may have worse consequences than the initial problem.
-In Kotlin callers are forced to deal with null though,
-so returning null to signal an error is a perfectly cromulent technique.
+which be worse than the initial problem.
+In Kotlin though,
+callers are forced to deal with null -
+an example of the type checker helping us to avoid errors -
+so this is a good technique.
 
 === Global flags
 
 One problem with returning special values
 is that they make it hard to signal which of several possible errors occurred.
-In this case we can combine the special value with
-setting a flag that the caller can read to establish what the problem was.
+To solve this we can combine the special value with
+setting a global variable.
+When the special value is detected
+the caller can read eg `errno`
+to establish what the problem was.
 
 This technique was popular in C,
 but was largely superseded by exception-based error handling.
@@ -160,7 +170,7 @@ returning a status code.
 This is possible when a function either returns no value
 (it is entirely side-effect),
 or returns a value in another way,
-often by mutating a value passed as a reference parameter.
+often by mutating a parameter passed by reference.
 
 === Invoking a special function
 
@@ -172,6 +182,16 @@ with the issue as a parameter.
 Sometimes the error function is able to signal by its return value
 if the failed operation should be retried or aborted.
 
+This technique is an example of the strategy pattern
+applied to error handling.
+Even when exceptions are available
+it is a useful tool to have mastered.
+
+=== Continuation Passing Style
+
+TODO - should we mention this?
+It bears comparison with folding over an error type.
+
 == Error handling with exceptions
 
 All the above techniques suffer from the drawback
@@ -180,9 +200,13 @@ to a greater or lesser extent,
 to ignore that an error occurred.
 
 Exceptions solve this problem -
-the operation is aborted on error -
-and either the caller explicitly handles the exception
-or it propagates further.
+the operation is aborted on error. -
+and the caller explicitly handles the exception.
+If the caller does not handle it,
+the exception propagates further up the call stack
+until someone does.
+If no handler is found
+the application exits.
 
 === Java and checked exceptions
 
@@ -197,14 +221,17 @@ If a method declared that it could fail in this way,
 then every caller would either have to deal with the failure
 (by catching it)
 or declare that it, too, was liable to fail with the same exception.
-This ensures that the programmer takes account of all these predictable errors.
+This ensures that the programmer takes account of these errors.
+They are called checked exceptions,
+because the compiler checks that they are handled
+or redeclared.
 
-Predictable problems are only some of the possible reasons for failure though.
+Problems that we anticipate are only some of the possible reasons for failure though.
 The language designers identified two other types.
 
 Errors::
 Subclasses of Error are reserved for failures so severe
-that the JVM can no longer guarantee the semantics of the language,
+that the JVM can no longer guarantee the semantics of the language -
 maybe a class cannot be loaded
 or the system runs out of memory.
 These conditions could happen at any point in the execution of a program,
@@ -214,21 +241,17 @@ there is little point in including such errors in the function signature,
 so they are exempted.
 
 RuntimeExceptions::
-Subclasses of RuntimeException were used to represent other errors.
-These are generally those caused by programmer mistakes,
-often accessing a null reference,
+Subclasses of RuntimeException represent other errors.
+The intention was that these would be reserved for problems caused by programmer mistakes,
+such as accessing a null reference,
 or trying to read outside the bounds of a collection.
 In both these cases the programmer could have been more careful,
 but again this potentially an issue for practically every piece of code,
 and so these are also exempted from having to be declared
 and handled.
 
-Exceptions that are neither Error nor RuntimeException are known as Checked Exceptions
-and are subject to the default handle-or-declare rule.
-
 In this scheme developers are forced to deal with operations
 that can fail due to IO or other things that are out of their control
-but predictable
 (the checked exceptions).
 This allows defensive programming where it is economical.
 
@@ -236,10 +259,10 @@ If a (capital E) Error occurs the best default approach
 is exit the process as quickly as possible,
 before any more damage can be done to persistent state.
 
-Unchecked exceptions are a middle ground.
-If they were the programmer error type
+RuntimeExceptions are a middle ground.
+If programmer error
 then we should probably assume that we have just proved that
-we don't really know what is going on in our programme
+we don't really know what is going on in our program
 and abort.
 Otherwise we might try to recover,
 especially if our system has been designed to limit the
@@ -251,16 +274,18 @@ as they fell out of favour in Java
 over the years.
 They were hampered from the start by the odd decision
 to make the unchecked RuntimeException
-a subclass of the checked Exception,
-so that code that wanted to handle all checked Exceptions
-found itself catching all the unchecked ones as well.
+a subclass of the checked exception,
+so that code that wanted to handle all checked exceptions
+found itself catching unchecked ones as well,
+hiding programming errors.
 They were also not helped by the fact that the Java APIs used them inconsistently,
-with operations like `Integer.parseInt(String)` throwing the unchecked NumberFormatException.
+with operations like `Integer.parseInt(String)` throwing the unchecked NumberFormatException,
+while `URL(String)` throws the checked MalformedURLException.
 
+.How should `parseInt` fail?
 ****
 This is an interesting case,
 and goes to the heart of why error handling is so hard.
-How should `parseInt` fail?
 
 Looking through our strategies,
 it can't return a special integer value,
@@ -303,10 +328,40 @@ Confusion begat confusion,
 and it wasn't long before the default was
 that the only checked exceptions that most Java libraries declared
 were IOExceptions.
-Even then database libraries,
+Even then database libraries such as Hibernate,
 which were definitely talking over the network
 and definitely subject to IOExceptions,
 would throw only RuntimeExceptions.
+
+.What should Hibernate have thrown?
+****
+Where a programmer explicitly invoked a Hibernate method to load an object,
+that method should declare IOException.
+If there are other ways that function could fail -
+maybe failure to parse a query -
+the method might also declare a checked exception to cover these.
+We might expect most Hibernate methods to declare both IOException
+and a checked HibernateException,
+with the latter having different subclasses for different failure modes.
+
+Hibernate is an interesting case though because of lazy loading.
+If you load an object that contains a collection,
+Hibernate could be configured to load the contents of that collection
+only when it was accessed.
+So calling `Person.getContacts().size()` might go to the database.
+But `Collection.size()` doesn't declare that it throws `IOException`,
+so what is Hibernate to do?
+
+It must throw an unchecked exception, but should that be an Error or a RuntimeException?
+Given that the JVM is almost certainly still perfectly serviceable,
+we are left with RuntimeException.
+But in this case this is a RuntimeException that
+is not the result of programmer error,
+in as much as there is no defensive action that could have been take to avoid it.
+
+So perhaps Hibernate should have declared a checked HibernateException
+and an unchecked HibernateRuntimeException.
+****
 
 Once a good proportion of the code that you call
 just uses unchecked exceptions
@@ -347,7 +402,10 @@ because Java had already lost that fight.
 You might ask how Kotlin can just disregard checked exceptions.
 The answer is that they are not a feature of the JVM,
 but rather of the Java compiler.
-TODO - how are they marked in class files?
+The compiler does record in the bytecode
+what checked exceptions are declared by a method
+(in order for the compiler to to be able to check them)
+but the JVM itself does not care.
 ****
 
 The result is that Kotlin programs are by default
