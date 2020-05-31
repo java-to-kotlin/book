@@ -8,13 +8,13 @@ In so many different ways.
 In this part we'll look at the ways that software can fail.
 We'll see how to write code that is able not only to cope with the failure,
 but also communicate about what failures it is coping with.
-In the worked example we'll refactor Java, exception-based error handling,
+In the worked example we'll refactor exception-based error handling in Java
 into a more functional Kotlin style.
 
 == Why should we care about error handling?
 
 Early in our careers
-Nat and I tended to gloss-over errors.
+Nat and I tended to gloss over errors.
 We often still do,
 at least early in a project when we don't know how things might fail.
 Most systems default to raising exceptions when something goes wrong,
@@ -30,11 +30,11 @@ and get on with the next.
 Often this is fine,
 but sometimes the error will have corrupted the persistent state of the system,
 so that correcting the initial problem and retrying does not work.
-This is of course the source of the hackneyed advice
+This is the source of the hackneyed advice
 to turn it off and on again -
 our systems mainly start in a safe state -
 so that after a restart a retry should succeed.
-If not,
+If not;
 well you've probably been in a situation where the only solution has been to reinstall the operating system -
 the ultimate way of removing corrupted persistent state.
 
@@ -62,16 +62,15 @@ functions, methods, procedures -
 any code that we invoke.
 ****
 
-* Sometimes they need to talk to other systems and that fails in some way.
+* Sometimes they need to talk to other systems and that communication fails in some way.
 * Often we don’t give them the correct input that they need to do their job.
 * We have heard of programmers making errors.
-Apparently they read past the end of arrays,
-or try to get the first item of an empty list.
+Apparently they dereference null pointers or read past the ends of collections.
 * Sometimes the environment that we are running in fails for some reason,
 we might run out of memory,
-or not be able to load a class
+or not be able to load a class.
 
-There are failures that don’t fit into these categories, but these cover most eventualities.
+There are failures that don’t fit into these categories, but they cover the most common cases.
 
 == Error handling is hard to get right
 
@@ -81,48 +80,49 @@ Empirical studies have found that
 * Where error handling code is invoked, it often has defects that have catastrophic effects, but could be caught by simple unit tests.
 
 "Without correct error propagation, any comprehensive failure policy is useless … We find that error handling is occasionally correct. Specifically, we see that low-level errors are sometimes lost as they travel through [...] many layers [...]"
-EIO: Error handling is occasionally correct.
-H. S. Gunawi, et al. In Proc. of the 6th USENIX Conference on File and Storage Technologies, FAST’08, 2008.
+
+_EIO: Error handling is occasionally correct.
+H. S. Gunawi, et al. In Proc. of the 6th USENIX Conference on File and Storage Technologies, FAST’08, 2008._
 
 "Almost all catastrophic failures (92%) are the result of incorrect handling of non-fatal errors explicitly signaled in software"
-Simple Testing Can Prevent Most Critical Failures: An Analysis of Production Failures in Distributed Data-Intensive Systems.
-Ding Yuan, et al., University of Toronto. In Proceedings of the 11th USENIX Symposium on Operating Systems Design and Implementation, OSDI14, 2014
+
+_Simple Testing Can Prevent Most Critical Failures: An Analysis of Production Failures in Distributed Data-Intensive Systems.
+Ding Yuan, et al., University of Toronto. In Proceedings of the 11th USENIX Symposium on Operating Systems Design and Implementation, OSDI14, 2014_
 
 == Why is error handling hard?
 
-* We often don’t know if and how an operation could fail
-* Knowledge of how to handle an error can be a long way from where the error is detected
-* Error handling is hard to isolate from its surrounding code and therefore hard to test
-* Errors can leave our system in states from which it can’t recover
+* We often don’t know if and how an operation could fail.
+* Knowledge of how to handle an error can be a long way from where the error is detected.
+* Error handling is hard to isolate from its surrounding code and therefore hard to test.
+* Errors can leave our system in states from which it can’t recover.
 
-TODO - expand on these
+TODO - expand on these?
 
-If something is hard work and error prone, we like the computer to do the drudge work,
-so that we can focus on the creative work
+Hard work _and_ error-prone?
+Weren't computers supposed to free us from tasks like these,
+taking on the drudge work,
+so that we can focus on the fun creative stuff?
+Our focus on error handling
+will be through the lens of how our programming language
+can make things safer and easier for programmers.
 
-****
-TODO - sidebar on this
-****
+== Error Handling Before Exceptions
 
-We’ll look at error handling in the context of these problems.
-
-== Pre-exception error handling strategies
-
-Whilst we mostly signal errors these days with exceptions or special error types,
-other techniques have been used,
+Most error handling these days is based on exceptions,
+but other techniques have been used,
 and are still applicable in some circumstances.
 
 === Ignoring errors
 
 We can ignore errors -
-either the failing routine does nothing to bring it to the attention of the caller,
+either the failing routine does nothing to bring them to the attention of the caller,
 or the caller doesn't bother to check.
 
 === Returning a special value
 
 Where possible,
 returning a special value to signify an error can be convenient.
-For example a,
+For example,
 returning -1 instead of an index
 when an item is not found in a list.
 
@@ -136,7 +136,7 @@ If we try to calculate the distance between two items in a list
 by subtracting their indices,
 when one of them is not found and returns -1,
 our calculation will be incorrect
-unless we explicitly to handle the special case.
+unless we explicitly handle the special case.
 We are not able to lean on the type checker to help us avoid errors.
 
 A special case of returning a special value is
@@ -144,11 +144,11 @@ returning null on error.
 This is quite dangerous in most languages,
 because if the caller doesn't explicitly check for null,
 then using the result will throw a NullPointerException,
-which be worse than the initial problem.
+which may be worse than the initial problem.
 In Kotlin though,
 callers are forced to deal with null -
 an example of the type checker helping us to avoid errors -
-so this is a good technique.
+so this is a safe and effective technique.
 
 === Global flags
 
@@ -184,8 +184,8 @@ if the failed operation should be retried or aborted.
 
 This technique is an example of the strategy pattern
 applied to error handling.
-Even when exceptions are available
-it is a useful tool to have mastered.
+Even when exceptions are available,
+it is a useful tool in speciality situations.
 
 === Continuation Passing Style
 
@@ -221,17 +221,17 @@ If a method declared that it could fail in this way,
 then every caller would either have to deal with the failure
 (by catching it)
 or declare that it, too, was liable to fail with the same exception.
-This ensures that the programmer takes account of these errors.
-They are called checked exceptions,
+This ensures that the programmer takes account of the possibility of these errors.
+Such exceptions are called _checked exceptions_,
 because the compiler checks that they are handled
 or redeclared.
 
-Problems that we anticipate are only some of the possible reasons for failure though.
+Problems that we anticipate like this are only some of the possible reasons for failure though.
 The language designers identified two other types.
 
 Errors::
 Subclasses of Error are reserved for failures so severe
-that the JVM can no longer guarantee the semantics of the language -
+that the JVM can no longer guarantee the correct functioning of the runtime -
 maybe a class cannot be loaded
 or the system runs out of memory.
 These conditions could happen at any point in the execution of a program,
@@ -246,7 +246,7 @@ The intention was that these would be reserved for problems caused by programmer
 such as accessing a null reference,
 or trying to read outside the bounds of a collection.
 In both these cases the programmer could have been more careful,
-but again this potentially an issue for practically every piece of code,
+but again this is potentially an issue for practically every piece of code,
 and so these are also exempted from having to be declared
 and handled.
 
@@ -260,13 +260,14 @@ is exit the process as quickly as possible,
 before any more damage can be done to persistent state.
 
 RuntimeExceptions are a middle ground.
-If programmer error
+If they do represent a programmer error
+(as it appears was the original intention)
 then we should probably assume that we have just proved that
 we don't really know what is going on in our program
 and abort.
 Otherwise we might try to recover,
 especially if our system has been designed to limit the
-damage that can be done by a single unexpected error.
+damage that can be done to persistent state.
 
 We both really liked checked exceptions,
 but it seems we were in the minority,
@@ -278,9 +279,10 @@ a subclass of the checked exception,
 so that code that wanted to handle all checked exceptions
 found itself catching unchecked ones as well,
 hiding programming errors.
-They were also not helped by the fact that the Java APIs used them inconsistently,
-with operations like `Integer.parseInt(String)` throwing the unchecked NumberFormatException,
-while `URL(String)` throws the checked MalformedURLException.
+They were also not helped by the fact that the Java APIs used them inconsistently.
+Take extracting data from a string -
+the URL constructor `URL(String)` throws the _checked_ MalformedURLException;
+while `Integer.parseInt(String)` throws the _unchecked_ NumberFormatException.
 
 .How should `parseInt` fail?
 ****
@@ -292,9 +294,9 @@ it can't return a special integer value,
 because all the ints are spoken for.
 It could return null as a boxed Integer,
 but having to box and unbox for this,
-a really fundemental low-level operation
+a really fundamental low-level operation
 that will be used in performance critical code,
-is undesireable,
+is undesirable,
 especially on the JVMs of the mid-1990s.
 
 Invoking an error function would similarly involve inefficient ceremony,
@@ -320,8 +322,7 @@ They would have considered not planning for this failure
 to be a programmer error,
 rather than a failure of the function itself.
 
-We will have more to say on the characterisation of errors
-later. TODO - make sure that we do.
+We will have more to say on the characterisation of errors later.
 ****
 
 Confusion begat confusion,
@@ -340,7 +341,7 @@ that method should declare IOException.
 If there are other ways that function could fail -
 maybe failure to parse a query -
 the method might also declare a checked exception to cover these.
-We might expect most Hibernate methods to declare both IOException
+So most Hibernate methods should declare both IOException
 and a checked HibernateException,
 with the latter having different subclasses for different failure modes.
 
@@ -357,7 +358,7 @@ Given that the JVM is almost certainly still perfectly serviceable,
 we are left with RuntimeException.
 But in this case this is a RuntimeException that
 is not the result of programmer error,
-in as much as there is no defensive action that could have been take to avoid it.
+in as much as there is no defensive action that could have been taken to avoid it.
 
 So perhaps Hibernate should have declared a checked HibernateException
 and an unchecked HibernateRuntimeException.
@@ -385,7 +386,9 @@ This has been a cathartic rant.
 
 It might be removed by the time you read the book,
 but if it hasn't,
-it is because we feel that it is important to make the point
+it is because it introduces some of the subtleties of error handling
+that we (all) need to address.
+We (Duncan and Nat) also we feel that it is important to make the point
 that we can aspire to better error handling
 than became the default in Java.
 ****
@@ -394,17 +397,19 @@ than became the default in Java.
 
 Kotlin has exceptions,
 because it runs on the JVM,
-and exceptions are built into the ecosystem.
+and exceptions are built into that ecosystem.
 It does not have checked exceptions,
-because Java had already lost that fight.
+because Java had already lost that fight,
+and because they are hard to reconcile with
+the higher-order functions that are now common.
 
+.How Can Kotlin Just Ignore Checked Exceptions?
 ****
-You might ask how Kotlin can just disregard checked exceptions.
 The answer is that they are not a feature of the JVM,
 but rather of the Java compiler.
 The compiler does record in the bytecode
 what checked exceptions are declared by a method
-(in order for the compiler to to be able to check them)
+(in order for the compiler to to be able to check them),
 but the JVM itself does not care.
 ****
 
@@ -417,12 +422,18 @@ An exception ;-) to this is that,
 as we observed above,
 Kotlin can use null to indicate an error,
 safe in the knowledge that callers will have to write code to handle it.
+
+An example of this is the provision of
+`<T> Iterable<T>.firstOrNull(): T?` in the runtime.
+Confusingly though the runtime also defines `first()`,
+which throws NoSuchElementException if the collection is empty.
 ****
 
-=== Functional Error Handling
+== Functional Error Handling
 
 Statically-typed functional programming languages
-often use another error handling technique.
+often reject exceptions
+in favour of another error handling technique.
 
 A distinguishing feature of functional programming is Referential Transparency.
 When this applies we can replace an expression with the result of its evaluation.
@@ -478,7 +489,7 @@ but what if we needed to say which was the first character that wasn't a digit?
 That was information we could convey in an exception,
 but not in an return type of `Int?`.
 
-Can we find a way for our function to return either the `int`,
+Can we find a way for our function to return either the `Int`,
 or the way that it failed?
 
 The answer, as they say, is in the question.
@@ -524,8 +535,6 @@ when (result) {
 }
 ----
 
-which admittedly is pathologically not functional,
-but gives the general idea.
 By returning an Either we force our clients to deal with the fact that we may have failed -
 in effect we have reproduced some of checked exceptions in a functional form.
 To embrace this style you make all functions
@@ -546,8 +555,7 @@ fun doubleString(s: String): Either<String, Int> {
 ----
 
 Whilst using `when` to unwrap an Either is handy,
-it quickly gets old,
-so we write
+this particular pattern occurs so much that we define
 
 [source,kotlin]
 ----
