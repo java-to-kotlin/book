@@ -11,10 +11,39 @@ but also communicate about what failures it is coping with.
 In the worked example we'll refactor exception-based error handling in Java
 into a more functional Kotlin style.
 
+.What should we do about the quotes?
+****
+
+We have some quotes, but I'm finding it hard to weave them in. They are in the source here.
+
+////
+
+Sarah - "
+This would be a good spot for a footnote citing those studies. Then, when you quote them (presumably the same texts?) you can add a shorter footnote, like "Gunawi 2008".
+
+Empirical studies have found that
+
+* Error signals are frequently lost in large systems between where they are raised and where they can be handled
+* Where error handling code is invoked, it often has defects that have catastrophic effects, but could be caught by simple unit tests.
+
+Sarah - "So the rule for quotations is that they don't stand alone-- they need to be situated in the context of what YOU think/say. If a paragraph is a veggie omelet, think of the quotes as the veg and your own writing as the egg. So, here, we could use something like "Error propagation is particularly important; as Gunawi (2008) notes, [quote]." Then we need some 'connective tissue' to take us from the first quote to the second so we know why you're quoting them. And finally, after the quote, we need you to sum up the point in your own words."
+
+"Without correct error propagation, any comprehensive failure policy is useless … We find that error handling is occasionally correct. Specifically, we see that low-level errors are sometimes lost as they travel through [...] many layers [...]"
+
+_EIO: Error handling is occasionally correct.
+H. S. Gunawi, et al. In Proc. of the 6th USENIX Conference on File and Storage Technologies, FAST’08, 2008._
+
+"Almost all catastrophic failures (92%) are the result of incorrect handling of non-fatal errors explicitly signaled in software"
+
+_Simple Testing Can Prevent Most Critical Failures: An Analysis of Production Failures in Distributed Data-Intensive Systems.
+Ding Yuan, et al., University of Toronto. In Proceedings of the 11th USENIX Symposium on Operating Systems Design and Implementation, OSDI14, 2014_
+////
+****
+
 == Why should we care about error handling?
 
-Early in our careers
-Nat and I tended to gloss over errors.
+Early in their careers
+your authors tended to gloss over errors.
 We often still do,
 at least early in a project when we don't know how things might fail.
 Most systems default to raising exceptions when something goes wrong,
@@ -24,14 +53,14 @@ hopefully having given enough information for the user to correct the problem
 and try again.
 A server app,
 or a GUI with an event-loop,
-will usually abort the current interaction
+will usually abort only the current interaction
 and get on with the next.
 
-Often this is fine,
+Often this is just a poor experience for our users,
 but sometimes the error will have corrupted the persistent state of the system,
 so that correcting the initial problem and retrying does not work.
 This is the source of the hackneyed advice
-to turn it off and on again -
+to "turn it off and on again" -
 our systems mainly start in a safe state -
 so that after a restart a retry should succeed.
 If not;
@@ -48,61 +77,61 @@ it turns out that all it required was a reboot of the Internet.
 
 If a system becomes successful,
 diagnosing and fixing corruption due to errors
-can expand to fill all the time available to a team.
+can expand to fill all the team's time.
 This is not a great place for a software project to be -
 ask us how we know!
 
-== How do programs go wrong?
+So we don't want errors because
+they annoy our users
+and may result in corruption that takes a lot of effort to fix,
+if we can fix it at all.
+What sort of errors do we see?
 
-Programs can go wrong for so many reasons!
-
-****
-Note that when we say _program_ we also mean
+Programs can go wrong for so many reasons.
+When we say _program_ we also mean
 functions, methods, procedures -
 any code that we invoke.
-****
+And when we say _go wrong_,
+we mean fail to do the job that we expected them to do.
+
+Reasons for this failure include
 
 * Sometimes they need to talk to other systems and that communication fails in some way.
 * Often we don’t give them the correct input that they need to do their job.
 * We have heard of programmers making errors.
-Apparently they dereference null pointers or read past the ends of collections.
+Apparently they instruct their computers to dereference null pointers
+or read past the ends of collections.
 * Sometimes the environment that we are running in fails for some reason,
 we might run out of memory,
 or not be able to load a class.
 
 There are failures that don’t fit into these categories, but they cover the most common cases.
 
-== Error handling is hard to get right
+That doesn't seem to be too long a list,
+and yet as an industry we don't have a great reputation
+for reliability.
+Error handling just seems to be hard,
+why is that?
 
-Empirical studies have found that
-
-* Error signals are frequently lost in large systems between where they are raised and where they can be handled
-* Where error handling code is invoked, it often has defects that have catastrophic effects, but could be caught by simple unit tests.
-
-"Without correct error propagation, any comprehensive failure policy is useless … We find that error handling is occasionally correct. Specifically, we see that low-level errors are sometimes lost as they travel through [...] many layers [...]"
-
-_EIO: Error handling is occasionally correct.
-H. S. Gunawi, et al. In Proc. of the 6th USENIX Conference on File and Storage Technologies, FAST’08, 2008._
-
-"Almost all catastrophic failures (92%) are the result of incorrect handling of non-fatal errors explicitly signaled in software"
-
-_Simple Testing Can Prevent Most Critical Failures: An Analysis of Production Failures in Distributed Data-Intensive Systems.
-Ding Yuan, et al., University of Toronto. In Proceedings of the 11th USENIX Symposium on Operating Systems Design and Implementation, OSDI14, 2014_
-
-== Why is error handling hard?
-
-* We often don’t know if and how an operation could fail.
-* Knowledge of how to handle an error can be a long way from where the error is detected.
-* Error handling is hard to isolate from its surrounding code and therefore hard to test.
-* Errors can leave our system in states from which it can’t recover.
-
-TODO - expand on these?
+Well for a start we often don't know that an operation could fail,
+and in what ways.
+If we do know whether and how,
+knowledge of what to do about it may be in code a long way
+from where we detect the error.
+The code that detects an error,
+and the code that recovers from it,
+are hard to isolate from the happy path
+and so hard to test.
+Combine these with the tendency for errors to leave our system in unrecoverable states
+and most developers would rather hope for the best
+rather than take on the hard work and still get it wrong.
 
 Hard work _and_ error-prone?
 Weren't computers supposed to free us from tasks like these,
 taking on the drudge work,
 so that we can focus on the fun creative stuff?
-Our focus on error handling
+Yes they were,
+so our focus on error handling
 will be through the lens of how our programming language
 can make things safer and easier for programmers.
 
@@ -111,14 +140,32 @@ can make things safer and easier for programmers.
 Most error handling these days is based on exceptions,
 but other techniques have been used,
 and are still applicable in some circumstances.
+We'll look at the pros and cons of those techniques first.
+The cons will show us why exceptions now dominate,
+the pros may give us options when exceptions aren't appropriate.
 
-=== Ignoring errors
+
+=== Ignore Errors
 
 We can ignore errors -
 either the failing routine does nothing to bring them to the attention of the caller,
 or the caller doesn't bother to check.
 
-=== Returning a special value
+Depending on design of our system this may lead to corruption of persistent data -
+in most cases we need to aim higher.
+
+=== Just Crash
+
+Some programs just exit when an error is detected.
+
+Combined with a supervisor to restart on error
+and careful coding to prevent corruption of persistent state,
+this is a battle-tested strategy that may be appropriate.
+Throwing an exception and aborting an operation
+can be seen as the application of this technique
+to a procedure rather than a whole program.
+
+=== Return a special value
 
 Where possible,
 returning a special value to signify an error can be convenient.
@@ -146,9 +193,8 @@ because if the caller doesn't explicitly check for null,
 then using the result will throw a NullPointerException,
 which may be worse than the initial problem.
 In Kotlin though,
-callers are forced to deal with null -
-an example of the type checker helping us to avoid errors -
-so this is a safe and effective technique.
+the type-checker forces callers to deal with null -
+making this a safe and effective technique.
 
 === Global flags
 
@@ -157,13 +203,14 @@ is that they make it hard to signal which of several possible errors occurred.
 To solve this we can combine the special value with
 setting a global variable.
 When the special value is detected
-the caller can read eg `errno`
+the caller can read `errno` for example
 to establish what the problem was.
 
 This technique was popular in C,
 but was largely superseded by exception-based error handling.
 
-=== Returning a status code
+
+=== Return a status code
 
 Another technique from the days before exceptions is
 returning a status code.
@@ -172,7 +219,7 @@ This is possible when a function either returns no value
 or returns a value in another way,
 often by mutating a parameter passed by reference.
 
-=== Invoking a special function
+=== Invoke a special function
 
 Even when exceptions are available,
 invoking a special function when an error occurs is sometimes a good strategy.
@@ -255,7 +302,7 @@ that can fail due to IO or other things that are out of their control
 (the checked exceptions).
 This allows defensive programming where it is economical.
 
-If a (capital E) Error occurs the best default approach
+If an Error is thrown the best default approach
 is exit the process as quickly as possible,
 before any more damage can be done to persistent state.
 
@@ -269,7 +316,7 @@ Otherwise we might try to recover,
 especially if our system has been designed to limit the
 damage that can be done to persistent state.
 
-We both really liked checked exceptions,
+Your authors both really liked checked exceptions,
 but it seems we were in the minority,
 as they fell out of favour in Java
 over the years.
@@ -310,8 +357,9 @@ The language designers decided that
 should be an IllegalArgumentException,
 which is a RuntimeException and so unchecked.
 
-Those are both reasonable decisions,
-but combined lead to `parseInt` not forcing its callers to consider that
+Those are both reasonable decisions in isolation.
+In combination though
+they lead to `parseInt` not forcing its callers to consider that
 it might fail by declaring a checked exception.
 
 I suspect that the JVM programmers were very used to
@@ -362,6 +410,8 @@ in as much as there is no defensive action that could have been taken to avoid i
 
 So perhaps Hibernate should have declared a checked HibernateException
 and an unchecked HibernateRuntimeException.
+
+TODO - maybe an end-of-chapter piece with our discussion on this.
 ****
 
 Once a good proportion of the code that you call
@@ -474,8 +524,8 @@ Let's return to our `Integer.parseInt(String)` example and see.
 For a given input,
 this will always return the same value,
 so it could be referentially transparent.
-But what for the cases where the String doesn't represent an integer?
-We can't replace the function invocation with an exception,
+But, what for the cases where the String doesn't represent an integer?
+We can't replace the result of the function invocation with an exception,
 because the type of the expression is `int`.
 Exceptions break referential transparency.
 
@@ -506,7 +556,7 @@ data class Left<out L>(val l: L) : Either<L, Nothing>()
 data class Right<out R>(val r: R) : Either<Nothing, R>()
 ----
 
-When used for error handling,
+When Either is used for error handling,
 the convention is that Right is used for a result,
 Left for an error.
 
@@ -554,8 +604,9 @@ fun doubleString(s: String): Either<String, Int> {
 }
 ----
 
-Whilst using `when` to unwrap an Either is handy,
-this particular pattern occurs so much that we define
+Whilst using `when` to unwrap an Either is logical
+it is also verbose,
+and this particular pattern occurs so much that we define
 
 [source,kotlin]
 ----
@@ -620,11 +671,13 @@ or a Right with the final `int` result.
 In this way a chain of map and/or flatMap calls acts like a series of expressions which might throw an exception -
 the first failure aborts the rest of the computation.
 
-If you come from an OO background this style does take some getting used to.
+If you come from an object oriented background this style does take some getting used to.
 No amount of reading helps -
 you just have to knuckle down
 and start writing code this way
-until it becomes less painful.
+until it becomes less strange.
+Luckily we'll go through some of this pain together
+in the worked examples later.
 
 
 

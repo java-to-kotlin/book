@@ -1,5 +1,8 @@
 = We Refactor Error Handling Code
 
+Now that we know the error handling options available to us,
+let's refactor some Java code to give us some practice.
+
 == Existing Code
 
 There is an HTTP endpoint in Colloquiumatic that allows the client to register an attendee.
@@ -100,8 +103,8 @@ public interface Attendees {
 ----
 // end-insert
 
-Finally Attendee is another value type.
-Here it is after after conversion to Kotlin.
+Finally, Attendee is another value type.
+Here it is after conversion to Kotlin.
 
 // begin-insert: tags/errors.1:src/main/java/colloquiumatic/Attendee.kt
 [source,kotlin]
@@ -115,11 +118,16 @@ data class Attendee(
 ----
 // end-insert
 
-In our experience this is typical Java code.
-It expresses the things that might reasonably go wrong as checked exceptions
-(BlacklistedException, DuplicateException),
+This is typical of the Java code that your authors would write.
+It expresses the things that might reasonably go wrong as the checked
+BlacklistedException and DuplicateException,
 and these are all caught at in the top-level `handle` where they are reported to the caller,
 in this case as HTTP status codes.
+Your style might be to use unchecked exceptions,
+in which case this code would be similar
+but without the exceptions
+as part of the method signatures.
+
 
 In addition to the checked exceptions,
 every method can raise or pass on runtime exceptions.
@@ -127,30 +135,18 @@ In this case we might expect that failures to persist an Attendee,
 perhaps because of database communications issues,
 would be raised as a runtime exception.
 
-.Checked and Unchecked Exceptions
-****
-TODO
-****
-
-.Why Kotlin does not have checked exceptions
-****
-TODO
-****
-
 == Our Conversion Strategy
 
-If we are to convert this code to Kotlin,
-we are going to lose the advantages of checked exceptions to tell us
+If we were to just convert this code to Kotlin,
+we would lose the advantages of checked exceptions to tell us
 what could go wrong and show where we are handling those problems.
-That might be a reason _not_ to convert,
-but in reality most Java codebases have declared exception bankrupcy in any case.
-We'll plough ahead and see whether we can at least not make things worse than the Java,
-and maybe even improve things.
+So as we convert we will replace exception-based
+error handling with a functional alternative using result4k.
 
-In this example we'll start by removing reliance on exceptions at the lowest level
-and working our way up,
+In this example we'll start at the lowest level
+and work our way up,
 keeping higher levels working,
-until the predicatable error cases,
+until the predictable error cases,
 those that would have been expressed as checked exceptions,
 no longer use exceptions.
 At the same time we have to be mindful that pretty much any instruction in the JVM can fail,
@@ -172,21 +168,13 @@ interface Attendees {
 ----
 // end-insert
 
-1. Kotlin doesn't have checked exceptions, but the `@Throws` annotation allows interoperation with Java code.
+1. Although Kotlin doesn't have checked exceptions, the `@Throws` annotation allows interoperation with Java code.
 Without it, a Java implementation of Attendees cannot override the method
 (assuming that it does actually throw DuplicateException).
 Worse, it can't catch the exception
 or declare that it is passed on,
 as it is a compile error for Java code to handle a checked exception
 that the compiler cannot see is possible.
-
-.Checked Exceptions and the JVM
-****
-Something about checked exceptions only existing in the Java compiler,
-and not at the JVM level,
-so Kotlin can throw exceptions that Java considers to be checked
-but doesn’t have to treat them as checked itself.
-****
 
 Before we go further, conversion to Kotlin has failed to infer the nullability of the parameters and results in Attendees,
 lets fix that.
@@ -203,19 +191,9 @@ interface Attendees {
 ----
 // end-insert
 
-Our default choice for error handling in Kotlin is an Either type.
-In this project we'll use Result4k because, well, Nat wrote it.
-Other error types are available,
-but they tend to have some heavyweight dependencies,
-or require a wholesale rethinking of your programming model.
-
-.Either Types
-****
-TODO
-****
-
 What we're going to do for now is to add to our interface a version of `Attendees.add` that instead of throwing an exception,
 returns `Result<Attendee, DuplicateException>`.
+
 If we were starting from scratch we would probably not use an exception as our error type,
 but here it lets us interoperate with Java easily.
 We'll keep the old throwy version around for now so that we don't break existing callers,
