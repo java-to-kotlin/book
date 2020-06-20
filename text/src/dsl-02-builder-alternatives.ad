@@ -8,7 +8,7 @@ to allow tests to specify only the properties relevant to a test scenario and us
 to act as the grammar of an embedded domain-specific language expressed with chained method calls, known as a [.pattern]_Fluent API_.
 Despite all the repetitive boiler plate code they involve, Java programmers do find builders are worth the effort and address real challenges that they face using the language.
 
-In this chapter, we'll look at how Kotlin makes many of these uses of builders unnecessary. Later we'll look at how to leverage Kotlin language features to simplify writing builders and embedded domain-specific languages.
+In this chapter, we'll look at Kotlin features that make many of these uses of builders unnecessary, and how to introduce them in a mixed Java/Kotlin codebase.  In later chapters we'll look at how to safely transform ex-Java code that uses builders to idiomatic Kotlin, and how to use Kotlin language features to turn builders into embedded domain-specific languages.
 
 
 == Builders for constructors with many parameters
@@ -73,20 +73,20 @@ To address these problems, we use the [.pattern]_Builder_ pattern.  Here's the m
 ----
 public Proposal parseProposalForm(Form form) throws FormParseException {
     ProposalBuilder pb = Proposal.builder()
-        .setType(form.field("type", SessionType.class))
-        .setTitle(form.field("title"))
-        .setBlurb(form.field("blurb"))
-        .setDetailsForReviewers(form.field("details"))
-        .setExtraRequirements(form.field("extra_requirements"))
-        .setDurationInSlots(form.field("slots", Integer.class, Integer::parseInt));
+        .withType(form.field("type", SessionType.class))
+        .withTitle(form.field("title"))
+        .withBlurb(form.field("blurb"))
+        .withDetailsForReviewers(form.field("details"))
+        .withExtraRequirements(form.field("extra_requirements"))
+        .withDurationInSlots(form.field("slots", Integer.class, Integer::parseInt));
 
     int i = 1;
     while (form.hasField("presenter_" + i + "_name")) {
-        pb.addPresenter(
+        pb.plusPresenter(
             PresenterDetails.builder()
-                .setName(form.field("presenter_" + i + "_name"))
-                .setCountryISO2(form.field("presenter_" + i + "_country_iso2"))
-                .setEmailAddress(form.field("presenter_" + i + "_email"))
+                .withName(form.field("presenter_" + i + "_name"))
+                .withCountryISO2(form.field("presenter_" + i + "_country_iso2"))
+                .withEmailAddress(form.field("presenter_" + i + "_email"))
                 .build());
         i = i + 1;
     }
@@ -96,9 +96,9 @@ public Proposal parseProposalForm(Form form) throws FormParseException {
 ----
 // end-insert
 
-The builder makes clear which properties the code is setting, which helps us avoid setting the wrong properties when we are writing the code, and makes it much easier to understand the code when we read it later.
+The builder makes clear which properties are being set, which helps us avoid setting the wrong properties when we are writing the code, and makes it much easier to understand the code when we read it later.
 
-However, writing a builder involves a lot of boilerplate code
+However, writing a builder involves a lot of boilerplate:
 
 // begin-insert: tags/builders.0:src/main/java/colloquiumatic/proposal/ProposalBuilder.java#builder
 [source,java]
@@ -113,42 +113,49 @@ public class ProposalBuilder {
     private String detailsForReviewers;
     private String extraRequirements;
 
-    public ProposalBuilder setType(SessionType type) { // <2>
+    public ProposalBuilder withType(SessionType type) { // <2>
         this.type = type;
         return this;
     }
 
-    public ProposalBuilder setTitle(String title) {
+    public ProposalBuilder withTitle(String title) {
         this.title = title;
         return this;
     }
 
-    public ProposalBuilder setPresenters(List<PresenterDetails> presenters) {
+    public ProposalBuilder withPresenters(List<PresenterDetails> presenters) {
         this.presenters = new ArrayList<>(presenters); // <3>
         return this;
     }
 
-    public ProposalBuilder addPresenters(List<PresenterDetails> morePresenters) { // <4>
+    public ProposalBuilder plusPresenters(List<PresenterDetails> morePresenters) { // <4>
         this.presenters.addAll(morePresenters);
         return this;
     }
 
-    public ProposalBuilder addPresenter(PresenterDetails p) { // <4>
+    public ProposalBuilder plusPresenter(PresenterDetails p) { // <4>
         this.presenters.add(p);
         return this;
     }
 
     // ... setters for the rest of the properties
-
     public Proposal build() { // <5>
+        assert type != null;
+        assert title != null && !title.isEmpty();
+        assert presenters != null && !presenters.isEmpty();
+        assert durationInSlots > 0;
+        assert blurb != null && !blurb.isEmpty();
+        assert detailsForReviewers != null && !detailsForReviewers.isEmpty();
+        assert extraRequirements != null;
+
         return new Proposal(
-            Ensure.isSet("type", type),
-            Ensure.isSet("title", title),
-            Ensure.isNotEmpty("presenters", presenters),
-            Ensure.isGreaterThanZero("durationInSlots", durationInSlots),
-            Ensure.isSet("blurb", blurb),
-            Ensure.isSet("detailsForReviewers", detailsForReviewers),
-            Ensure.isSet("extraRequirements", extraRequirements));
+            type,
+            title,
+            presenters,
+            durationInSlots,
+            blurb,
+            detailsForReviewers,
+            extraRequirements);
     }
 }
 ----
@@ -158,7 +165,35 @@ public class ProposalBuilder {
 
 This use of builders is not necessary in Kotlin.  The language supports named function (and constructor) parameters, allowing us to write the code above like this instead:
 
-// TODO: example
+// begin-insert: tags/builders.6:src/main/java/colloquiumatic/proposal/ProposalFormParsing.kt
+[source,kotlin]
+[%autofit]
+----
+fun parseProposal(form: Form) =
+    Proposal(
+        type = form.field("type", SessionType::class.java),
+        title = form.field("title"),
+        blurb = form.field("blurb"),
+        detailsForReviewers = form.field("details"),
+        extraRequirements = form.field("extra_requirements"),
+        durationInSlots = form.field("slots", Int::class.java) { s: String -> s.toInt() },
+        presenters = parsePresenters(form)
+    )
+
+private fun parsePresenters(form: Form) =
+    generateSequence(1, { it + 1 })
+        .takeWhile { form.hasField("presenter_" + it + "_name") }
+        .map { parsePresenter(form, it) }
+        .toList()
+
+private fun parsePresenter(form: Form, n: Int) =
+    PresenterDetails(
+        name = form.field("presenter_" + n + "_name"),
+        countryISO2 = form.field("presenter_" + n + "_country_iso2"),
+        emailAddress = form.field("presenter_" + n + "_email")
+    )
+----
+// end-insert
 
 As we introduce Kotlin into the codebase, we'll have to keep the builders around for the remaining Java code, but can call constructors directly when writing new Kotlin code.
 
@@ -183,9 +218,9 @@ We have a bit more syntactic sugar that creates a builder set up with default pr
 @Test
 public void test_sends_initial_confirmation_email_to_all_presenters() {
     Proposal proposalWithTwoPresenters = aProposal()
-        .setPresenters(List.of(
-            aPresenter().setEmailAddress("alice@example.com").build(),
-            aPresenter().setEmailAddress("bob@example.com").build()))
+        .withPresenters(List.of(
+            aPresenter().withEmailAddress("alice@example.com").build(),
+            aPresenter().withEmailAddress("bob@example.com").build()))
         .build();
 
     // ... test that a confirmation email is dispatched to both presenters
