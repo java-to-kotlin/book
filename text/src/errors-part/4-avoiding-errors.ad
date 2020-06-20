@@ -1,26 +1,63 @@
-= Error Handling and Partial Functions
+= Avoiding Errors
 
-In this section we'll think about
+Like a photographer who becomes more interested in cameras
+than taking pictures,
+it is easy to become more engrossed in the techniques of error handling
+than the end result.
+Duncan in particular owns up to having spent way too long
+just not listening to what the pain of trying to code his way
+out of situations was telling him.
 
+The truth is that handling errors is itself tedious
+and error-prone -
+and we could all do with less tedium and fewer errors.
+Exceptions are less tedious in code than other techniques,
+but as they allow us to sweep possible problems under the carpet,
+we either get less reliable code,
+or the tedium of lifting a lot of carpets.
+Result types can be tedious in code,
+but are potentially more reliable.
+Checked exceptions were a valiant effort to get the best of both worlds,
+but in the end must be considered a failed experiment
+that are in any case not available to Kotlin developers.
 
-One of the example we
+Errors are particularly pernicious in code
+because they are transitive.
+If a function relies on code that can fail
+then it either has to have a strategy for succeeding despite the failure of its subordinate,
+or it is itself subject to failure.
+Pretty soon any moderately complex functionality
+has a combinatorial explosion of ways that it can fail.
+We then end up adding code to reason with the possible errors
+just so that a function can fail with an error that makes sense to its callers.
+And that error handling code itself is subject to errors!
 
-Today I'd like to talk about avoiding error handling.
+If we rely on exceptions for our error handling
+then the net effect is that most complex code paths can effectively throw any exception,
+and without checked exceptions we have easy no way to work out which.
+Even if we do work it out,
+then just swapping out one function for another can invalidate the analysis.
+We will look later at using a Result type with sealed classes to represent errors within a bounded context,
+which can restore some of the benefits of checked exceptions,
+but doesn't change the transitive nature of failure.
 
-If I was cleverer than I am, this would have been the first part of this series. But I was seduced by the techniques of error handling and, as is often the case, not listening to what pain was telling me about my situation. It has taken 12 months of reading and thinking to realise what some people (hi Barry) were telling me a year ago. In my defence, I have not seen the advice in this post spelled out so directly, although I may just not have understood it when I saw it. My hope is that even if this is just another blog post saying the same thing as many others, it will increase the chances that people come to this information when they are ready to receive it.
+We can't mitigate this problem completely,
+but it would be good if it applied to less of our codebase.
+Our aim should be to reduce the number of functions that can fail.
+In particular,
+if we can do that for lower-level functions,
+then the higher level functions that call them will also become less subject to failure,
+which in time should significantly reduce the proportion of functions that have to consider error cases at all.
+The boundary of code that is subject to failure will rise up through the layers.
+This seems like a far better outcome than Duncan's previous experience,
+which was that learning better error handling techniques just allowed him to tolerate the pain all over,
+instead of encouraging him to expand the pain-free zones.
 
-So
+## Avoiding Partial Functions
 
-As we've seen from the other posts in this series, handling errors is tedious and itself error-prone - and we could all do with less tedium and fewer errors. Exceptions are less tedious in code than other techniques, but as they allow us to sweep possible problems under the carpet, we either get less reliable code, or the tedium of lifting a lot of carpets. Result types are tedious in code, but potentially more reliable. Checked exceptions were a valiant effort to get the best of both worlds, but in the end foundered on the rock of first-class functions.
+One of the main ways that code can fail is that it may not be able to succeed given its inputs.
 
-Errors are particularly pernicious in code because they are transitive. If a function relies on code that can fail then it either has to have a strategy for succeeding despite the failure of its compatriot, or it is itself subject to failure. Pretty soon any moderately complex functionality has a combinatorial explosion of ways that it can fail. We then end up adding code to reason with the possible errors just so that a function can fail with a error that makes sense to its callers. And that error handling code itself is subject to errors!
-
-If we rely on exceptions for our error handling then the net effect is that most complex code paths can effectively throw any exception, and without checked exceptions we have easy no way to work out which. And even if we do work it out, then just swapping out one function for another can invalidate the analysis. Exactly the same thing is true for a Result type but with more complicated return types and control flow. (Actually there is another approach using sealed classes to represent errors within a bounded context. We'll cover that in another post - it can reduce the types of errors that have to be considered, but doesn't change their transitive nature.)
-
-So what do we do? Mostly we suck it up. We catch exceptions at the top level and log and return an error, and/or we accept that every non-trivial function will return `Either<R, Exception>` and handle *that* at the top level in the same way. At some boundaries we try to deal with errors we know might happen in a sensible way, and then we run our systems and add code to deal with the other problems that we actually see.
-
-I don't think that this can ever change completely, but it would be good if it applied to less of our codebase. Our aim should be to reduce the number of functions that can fail. If in particular we can do that for lower-level functions, then the higher level functions that call them will also become less subject to failure, which in time should significantly reduce the proportion of functions that have to consider error cases at all. The boundary of code that is always subject to failure will rise up through the layers. This seems like a far better outcome than my previous experience, which was that learning better error handling techniques just allowed me to tolerate the pain all over, instead of encouraging me to expand the pain-free zones.
-
+## Avoiding IO Errors
 With the aim of reducing with number of our functions that can fail in mind, what are the reasons that a function can fail?
 
 ## Type of Errors
