@@ -1,0 +1,124 @@
+= We explore the length and breadth of extension methods
+
+NOTE: This is an overview of the material extension functions that I want to refer to later, from DSL chapters.  We'll have to turn this into chapters and refactoring examples.
+
+Extension methods: Additional methods defined on types we don’t own.
+
+The canonical use of extension methods is to add methods to types we don't own and cannot modify ourselves.  It’s the way that the Kotlin stdlib adds Kotliny goodness to java.* classes, for example.
+
+Extension methods mean user extensions to an API appear no different to methods provided by the API.  IntelliJ is very good in this respect – offering extension methods alongside members when autocompleting.
+
+We can lean on this seamless extensibility to make our code more expressive.
+
+What do we mean by expressive?  That the logic our code performs is not full of irrelevant details.  Such as whether a function is defined as a method of a class or as a standalone function.
+
+Compare to Java members vs. static methods. E.g. the Stream API cannot be seamlessly extended in Java, but Sequence API can be extended in Kotlin.
+
+
+
+== Mutual pull between nullability and extension methods
+
+Extension functions are easy to use with nullable types and null safety.  Kotlin's null-safe dereference operator (?.) is used when, well, dereferencing.  Therefore it's easy to use to safely call an extension method, but requires the use of the `let` scoping function to pass a nullable reference to a non-null parameter.
+
+== Mutual pull between type inference, generic functions and extension methods
+
+Compared to methods defined on a class, extension methods can be more betterer w.r.t. type parameters and inference.
+
+E.g. can express a relationship between the type of the invoked object and the type of the result.
+
+
+== Extension methods on our _own_ types
+
+These mutual pulls mean that we get a lot of benefit from defining extension methods on our _own_ types.
+
+Separate the platonic and the pragmatic.
+
+Extension functions allow us to separate application- or technology- specific aspects of our classes from the domain essence of the type.
+
+We lose polymorphism, but can gain it back with sealed class hierarchies and exhaustive `when` expressions.
+
+As a rule of thumb, we add methods to our classes when they need to be polymorphic, but prefer extension functions when they don't.
+
+A good fit with the [.pattern]_Hexagonal Architecture_.  Adapter modules define extensions for types defined in the domain model.
+
+
+== Using Extension Functions Well
+
+Extension functions chain to express the flow of data through a pipeline of transformations.  We've seen that with collections.  The same applies to individual values as well.
+
+Extension functions allow for more concise names.  The context is made clear by the left hand side of the expression.
+
+
+== Extension Functions of Data Classes
+
+Using domain-specific functions reduces chance of errors if the data-type must maintain an invariant between its properties
+
+Avoids coding errors in the use of the `copy` function.
+
+TIP: Use a common naming convention across the code base.
+E.g. "withXxx" replaces, "plusXxx" adds, "minusXxx" removes.
+
+
+
+== Parameterise when extensions lead to duplicative code
+
+It's not all "extension function, extension function, extension function" on our projects!
+
+E.g. property parsing...
+
+Before: the getXxx methods look up a config property,
+report if it's missing, try to parse it, & report if parsing fails. Lots of duplicated code.
+
+After: the get method looks up the property & reports if it is missing, delegates to the parser, and reports if parsing fails. No duplicates code.
+
+
+== You can write extension methods of nullable types (and even the type of null)
+
+You can write code that doesn't need to use the null-safe dereference operator, because null-safety is handled _inside_ the extension method.
+
+"Elvis has left the building!"
+
+But... that can be really confusing.
+
+E.g. calling the Any?.toString() extension by mistake when you want to call the Any.toString() _method_ via a null-safe deference operator.
+
+Avoid unless there's a _really_ good reason to.
+
+
+== You can write extension methods of functions.
+
+[source, kotlin]
+----
+fun <T> ((T)->Boolean).negated() = fun (t: T) = !this(t)
+
+infix fun <A,B,C> ((A)->B).o(that:(B)->C): (A)->C =
+fun (a: A) = that(this(a))
+----
+
+
+== Extension _Lambdas_
+
+E.g. as passed to apply or with
+
+Useful for making a block of code less duplicative.
+
+E.g. an extension lambda of PrintWriter.
+
+
+
+== Local extensions for local logic
+
+Local extension functions within a function can be used instead of explaining variables.  Close over local variables, which therefore do not need to be passed as arguments.
+
+You can write extension methods as _methods_.  Cannot be called from outside a class, but can be called _within_ the class.  So they need to be private.
+
+When we define extension methods within methods it can be difficult to understand what `this` refers to.  Especially when we use extension _lambdas_.  E.g. the block passed to the `apply` function.
+
+Luckily `this` is statically resolved, so we can navigate to the definition of an identifier in the IDE.
+
+You can make nested extension code easier to follow by explicitly identifying which this this is with "@" clauses.  But it's a bit clumsy.
+
+
+Better to refactor extension lambdas into extension functions to make code easier to follow.  (Apply Extract Function to code within the lambda and select an outer scope for the location of the new function.)
+
+
