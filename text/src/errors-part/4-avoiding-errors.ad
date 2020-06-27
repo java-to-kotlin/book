@@ -4,19 +4,19 @@ Like a photographer who becomes more interested in cameras
 than taking pictures,
 it is easy to become more engrossed in the techniques of error handling
 than the end result.
-Duncan in particular owns up to having spent way too long
-just not listening to what the pain of trying to code his way
-out of situations was telling him.
+Duncan in particular has spent way too long
+just not listening to what the pain of trying to cope with errors
+was telling him.
 
 The truth is that handling errors is itself tedious
 and error-prone -
 and we could all do with less tedium and fewer errors.
-Exceptions are less tedious in code than other techniques,
+Exceptions as a strategy are less tiresome than other techniques,
 but as they allow us to sweep possible problems under the carpet,
-we either get less reliable code,
-or the tedium of lifting a lot of carpets.
-Result types can be tedious in code,
-but are potentially more reliable.
+we either get a less reliable system,
+or we have to lift a lot of carpets.
+Result types can be tiresome in code,
+but they help the type checker tell us what can fail and how.
 Checked exceptions were a valiant effort to get the best of both worlds,
 but in the end must be considered a failed experiment
 that are in any case not available to Kotlin developers.
@@ -37,7 +37,8 @@ then the net effect is that most complex code paths can effectively throw any ex
 and without checked exceptions we have easy no way to work out which.
 Even if we do work it out,
 then just swapping out one function for another can invalidate the analysis.
-We will look later at using a Result type with sealed classes to represent errors within a bounded context,
+We will look later at using a Result type with sealed classes to represent errors
+within a bounded context,
 which can restore some of the benefits of checked exceptions,
 but doesn't change the transitive nature of failure.
 
@@ -48,119 +49,259 @@ In particular,
 if we can do that for lower-level functions,
 then the higher level functions that call them will also become less subject to failure,
 which in time should significantly reduce the proportion of functions that have to consider error cases at all.
-The boundary of code that is subject to failure will rise up through the layers.
+The boundary of code that is subject to failure will move out through the layers.
 This seems like a far better outcome than Duncan's previous experience,
 which was that learning better error handling techniques just allowed him to tolerate the pain all over,
 instead of encouraging him to expand the pain-free zones.
 
 ## Avoiding Partial Functions
 
-One of the main ways that code can fail is that it may not be able to succeed given its inputs.
+The most common reason that a function may not be able to return normally
+is that it is only able to give an output for some
+of the possible inputs.
 
-## Avoiding IO Errors
-With the aim of reducing with number of our functions that can fail in mind, what are the reasons that a function can fail?
+We previously looked at
 
-## Type of Errors
-
-Here are some basic categories of errors that can occur in a program.
-
-### General Environmental Failures
-
-These are things that can just happen, but shouldn't if things are not very badly broken. We might run out of memory, or find that a referenced method is not present because required libraries are not linked. All bets are off in these circumstances - they are represented by throwing a subclass of `Error` and we should probably just let the program die.
-
-### External Failures
-
-Generally represented on the JVM by `IOException` - these represent a failure external to our program. Maybe a function tried to read from a file that no longer exists, or write to a network socket that has died.
-
-In practice the prevalence of external errors varies widely even when they can occur in principle. Both reading from an open file and writing to a socket *could* fail, but files on our local filesystem are rarely deleted while we are reading them. In contrast we should assume that any network call will fail at some point. If a function is likely to fail in this way, we need to plan for it. If we need to plan for it, it would be nice if we had been told that it was likely to happen, either by declaring a thrown exception or returning a result type.
-
-Also in practice, functions that can fail with `IOException` are generally 'impure' in a functional programming sense - their result doesn't just depend on the value of their arguments. I'll have to talk about this topic another time, but one way to deal with this impurity is to push such functions to the edges of our systems. If we manage to push it to the top edge, then most of our system layers will not have to deal with any such error, but this is a hard trick to pull off.
-
-For now then let's just assume that many, but by no means all, of our functions will be subject to failure with an `IOException`, either because they read from external systems, or invoke functions that are themselves subject to failure with an `IOException`.
-
-### Partial Functions
-
-The other common reason that a function may not be able to return normally (where abnormally includes returning an `Error` as part of a `Result` type) is that it is only able to give an output for a restricted range of its inputs - a partial function. A good example from previous episodes was
-
-```kotlin
+[source,kotlin]
+----
 fun parseInt(s: String): Int = SOMECODE()
-```
+----
 
-This is only able to return an `Int` for a special subset of all strings that might be passed in. An even more common example is
+This is only able to return an Int for the subset of strings
+that represent valid integers
+(and not actually most of those).
 
-```kotlin
-class Array<T> {
-    operator fun get(index: Int): T = SOMECODE()
-}
-```
+In contrast
 
-Array indexing can only succeed if the index is contained in the array, which (in most but not all languages) cannot be known at compile time.
+[source,kotlin]
+----
+fun length(s: String): Int = SOMECODE()
+----
 
-If a partial function is passed an input for which it is undefined it is polite for it to let us know - generally by throwing an exception, returning `null`, or returning an error code.
+is defined for all strings.
 
-It is partial functions that I'd like to think about today, as in most systems they represent the majority of the errors that can occur.
+We say that `parseInt` is a partial function -
+it is defined only for a restricted range of its inputs.
+`length` is a total function -
+it can yield a result for every input.
 
-## Healing Partial Functions
+Note that any Java method that throws a NullPointerException
+when passed a null argmument
+is by this definition a partial function.
+By introducing nullablity into the typesystem
+Kotlin drastically reduces the proportion of partial functions.
+Looked at through this lens,
+when we use a dynamic-typed language,
+we give up all hope that any function is total.
 
-As this is a Kotlin post, it's worth noting every function that takes a reference and cannot cope with it being null is a partial function. Kotlin allows us to make those functions total by specifying that they cannot be invoked with a null argument.
+Is it a programmer error to call a partial function
+with inputs that would make it fail,
+in which case we should throw a RuntimeException?
+As seen from our previous discussion around `parseInt`
+this is nuanced,
+but exceptions of some kind are the accepted way of signalling
+that out-of-range inputs have been supplied,
+and so the function cannot return a result.
 
-Can we heal partial functions by changing the type of their parameters in other cases?
+One way of making an otherwise partial function total
+is to widen its return type.
+If we define
 
-In [Part 5](failure-is-not-an-option-part-5.html) I looked at various implementations of
+// begin-insert: src/main/kotlin/errors/errors.kt#parseIntResult
+[source,kotlin]
+[%autofit]
+----
+fun parseInt(s: String): Result<Int, String> =
+    try {
+        Success(Integer.parseInt(s))
+    } catch (x: NumberFormatException) {
+        Failure("Could not parse %s as int")
+    }
+----
+// end-insert
 
-```kotlin
-fun addAsInts(s1: String, s2: String, s3: String): Either<Exception, Int> = resultOf {
-    Integer.parseInt(s1) + Integer.parseInt(s2) + Integer.parseInt(s3)
-}
-```
+then `parseInt` can now return a Result for the strings
+that would previously have been out of its range.
+This achieves the desired effect of forcing the caller
+to consider the error case,
+but doesn't make our function not subject to errors.
+I suppose it can reduce the errors in our error handling,
+but it doesn't prevent the transitive error handling expansion
+that we noted earlier.
+So let's not count introducing returning a special value as avoiding errors,
+and for the purposes of this book consider a total function
+one that can return a non-error for all combinations
+of its parameters.
 
+The other way to make an otherwise partial function total
+is to use the typesystem to ensure that it can only be passed
+valid arguments. Let's say that we define
 
-Adding integers represented as strings is a partial function because it is only defined where each of its inputs can be interpreted as an integer. Here it is made a total function by expanding its result type so that we can return a failure result in these cases - but now all callers have to deal with this result rather than a plain old `Int`. As Part 5 showed, that can lead to some pretty cryptic code, especially when we come to combining results from several partial functions.
-
-Now the example was chosen to illustrate how to combine results, but we can also solve the partial function problem by simply changing the signature.
-
-```kotlin
-fun add(i1: Int, i2: Int, i3: Int): Int = i1 + i2 + i3
-```
-
-
-Now the function is total again, and we don't have to pollute our calling code with error handling.
-
-Where the data is naturally a string in the first place (typed by the user perhaps) then we are going to have to convert to `Int` somewhere. We *could* do that just before we need to interpret it, but that makes every function above it in the call stack either partial or subject to the errors in the conversion. So in this case we would almost certainly convert to `Int` as soon as possible, especially as the earlier we convert the more context we have available to report errors. The alternative is trying to recreate this context from an exception or result code propagated from several layers down.
-
-In other cases though it's easy to underestimate how much simpler this makes things and pass down strings that represent `URI`'s, or `File`s or `DateTime`s and hence make the functions that interpret them partial.
-
-With a bit of work many otherwise partial functions can be made total. Integer division, for example, can fail.
-
-```kotlin
-// throws ArithmeticException if count is 0
-fun average(sum: Int, count: Int) = sum / count
-```
-
-We can fix this `average` by introducing a type to represent a `NonZeroInt` and using it as a parameter. This makes the function total - it is now defined for all possible (runtime) values of its parameters.
-
-```kotlin
-data class NonZeroInt(val value: Int) {
+// begin-insert: src/main/kotlin/errors/errors.kt#ShortDigitString
+[source,kotlin]
+[%autofit]
+----
+data class ShortDigitString(
+    val value: String
+) {
     init {
-        require(value != 0)
+        check(
+            value.length < 10 &&
+            value.all { it.isDigit() }
+        )
     }
 }
+----
+// end-insert
 
-fun average(sum: Int, count: NonZeroInt) = sum / count
+Now we could define `parseInt`
 
-// Can't fail because divisor.value can never be 0
-operator fun Int.div(divisor: NonZeroInt) = this / divisor.value
-```
+// begin-insert: src/main/kotlin/errors/errors.kt#parseInt
+[source,kotlin]
+[%autofit]
+----
+fun parseInt(s: ShortDigitString) =
+    Integer.parseInt(s.value)
+----
+// end-insert
 
-Similarly, many List operations can fail on an empty list, but be made total on a non-empty list.
+Here we have used logic to deduce that the base Integer.parseInt
+cannot fail it we only pass it up to 9 characters
+all of which are digits.
+If we are wrong,
+then the consequences are that we leak a RuntimeException,
+which is consistent with our policy that these signal
+when a programmer has made a mistake.
 
-```kotlin
-class NonEmptyList<T>(private val wrapped: List<T>) :
-    List<T> by wrapped {
-    init {
-        require(wrapped.isNotEmpty())
-        wrapped.first()
+By introducing a new type we have narrowed the possible inputs
+to `parseInt` until it is able to succeed for all of them.
+You may see this as just validation.
+It _is_ validation,
+but it isn't _just_ validation,
+as we are propagating the guarantee that validation has been performed
+using the typesystem.
+
+Does this help?
+Well if we just writing up writing
+
+// begin-insert: src/main/kotlin/errors/errors.kt#numberOfMonths
+[source,kotlin]
+[%autofit]
+----
+fun numberOfMonths(years: String) =
+    12 * parseInt(ShortDigitString(years))
+----
+// end-insert
+
+then no,
+as this is as just as susceptible to failing with a NumberFormatException
+as the raw `Integer.parseInt`.
+
+But if we push the parsing out a level
+
+// begin-insert: src/main/kotlin/errors/errors.kt#numberOfMonthsShort
+[source,kotlin]
+[%autofit]
+----
+fun numberOfMonths(years: ShortDigitString) =
+    12 * parseInt(years)
+----
+// end-insert
+
+then yes -
+now we have a function that isn't subject to failure,
+and doesn't taint its callers with the failure too.
+If all its callers still have to create the ShortDigitString
+we haven't bought much,
+but push the creation out through the layers
+and we can begin to turn the tide.
+
+You probably don't do anything this gratuitous.
+Who would pass around strings that mean integers?
+But you might pass around a string that represent a URI
+and subject layers of invocations to the potential failure
+when it is finally parsed.
+You have probably passed a string rather than a File,
+or a File rather than an ExistingFile,
+or an Int rather than a PositiveInt.
+
+Collections of potential parameters are particularly pernicious.
+Take for example an HTTP request object passed through several layers of code
+in order that a customer id can be extracted from the path,
+and a date from the query string.
+Not only are all the intervening layers subject to failure,
+but we loose the opportunity to document the required shape of the data,
+and the tests for each layer have to construct complicated arguments
+rather than passing CustomerId and LocalDateTime.
+
+## How Kotlin Helps
+
+You can avoid partial functions in any language -
+Java isn't particularly at a disadvantage here.
+Kotlin has features that are particularly helpful though.
+
+We've already seen how nullability in Kotlin makes functions
+that would otherwise be partial total,
+because null cannot be passed as an argument.
+Another pertinent feature is data classes,
+because,
+as with the ShortDigitString above,
+they allow us to produce wrapper value classes,
+with validation,
+in very few lines of code,
+reducing the programmer overhead of this technique.
+Unfortunately the runtime overhead remains,
+but in practice you will have trouble detecting it in most code.
+
+.Inline Classes
+****
+Inline classes would seem to be ideal to represent
+validated versions of more general types,
+especially strings,
+as they don't require the creation of a wrapper object.
+
+In practice though they cannot have private constructors,
+or init blocks,
+and so you cannot guarantee that an inline class has validated content.
+****
+
+Sealed classes are also helpful in avoiding partial functions.
+By restricting subtyping they allow the receiver
+of a sealed parameter type to account for all possibilities.
+So, using Result as an example
+
+// begin-insert: src/main/kotlin/errors/errors.kt#errorMessage
+[source,kotlin]
+[%autofit]
+----
+val Result<*, Exception>.errorMessage : String? get() =
+    when (this) {
+        is Success -> null
+        is Failure -> this.reason.message ?: "no message"
     }
-}
-```
+----
+// end-insert
 
+Here the receiver must be considered a parameter to the function.
+Because Result is a sealed class,
+the code knows that Success and Failure are the only possibilities.
+For non-sealed classes it could only invoke methods on the
+base Result type,
+or be partial because another subtype might be passed
+that it could not cope with.
+
+ifdef::todos[]
+
+final by default
+
+delegation (allows non-emptylist for eg)
+
+endif::[]
+
+## Suggested Types
+
+NonZeroInt
+
+NonEmptyList
+
+Map<K, V, PhantomType>
