@@ -54,9 +54,9 @@ This seems like a far better outcome than Duncan's previous experience,
 which was that learning better error handling techniques just allowed him to tolerate the pain all over,
 instead of encouraging him to expand the pain-free zones.
 
-## Avoiding Partial Functions
+== Partial Functions
 
-The most common reason that a function may not be able to return normally
+A common reason that a function may not be able to return normally
 is that it is only able to give an output for some
 of the possible inputs.
 
@@ -83,25 +83,29 @@ is defined for all strings.
 We say that `parseInt` is a partial function -
 it is defined only for a restricted range of its inputs.
 `length` is a total function -
-it can yield a result for every input.
+it has result for every input.
 
 Note that any Java method that throws a NullPointerException
-when passed a null argmument
-is by this definition a partial function.
-By introducing nullablity into the typesystem
-Kotlin drastically reduces the proportion of partial functions.
-Looked at through this lens,
-when we use a dynamic-typed language,
-we give up all hope that any function is total.
+when passed a null argument
+is a partial function.
+Kotlin drastically reduces the proportion of these partial functions
+by introducing nullablity into the typesystem,
+as it will not allow the caller to supply null if the
+parameter is non-nullable.
+In dynamic languages,
+looked at through this lens,
+all functions are partial.
 
 Is it a programmer error to call a partial function
-with inputs that would make it fail,
-in which case we should throw a RuntimeException?
+with inputs that would make it fail?
 As seen from our previous discussion around `parseInt`
 this is nuanced,
 but exceptions of some kind are the accepted way of signalling
 that out-of-range inputs have been supplied,
 and so the function cannot return a result.
+We previously argued functions should fail with a RuntimeException
+in these cases,
+and that is indeed what `parseInt` does.
 
 One way of making an otherwise partial function total
 is to widen its return type.
@@ -135,7 +139,7 @@ of its parameters.
 
 The other way to make an otherwise partial function total
 is to use the typesystem to ensure that it can only be passed
-valid arguments. Let's say that we define
+valid arguments.Let's say that we define
 
 // begin-insert: src/main/kotlin/errors/errors.kt#ShortDigitString
 [source,kotlin]
@@ -143,11 +147,11 @@ valid arguments. Let's say that we define
 ----
 data class ShortDigitString(
     val value: String
-) {
+) : CharSequence by value {
     init {
         check(
-            value.length < 10 &&
-            value.all { it.isDigit() }
+            length in 1..9 &&
+            all { it.isDigit() }
         )
     }
 }
@@ -178,11 +182,10 @@ to `parseInt` until it is able to succeed for all of them.
 You may see this as just validation.
 It _is_ validation,
 but it isn't _just_ validation,
-as we are propagating the guarantee that validation has been performed
-using the typesystem.
+as we are using the typesystem to propagating the guarantee that validation has been performed.
 
 Does this help?
-Well if we just writing up writing
+Well if we just end up writing
 
 // begin-insert: src/main/kotlin/errors/errors.kt#numberOfMonths
 [source,kotlin]
@@ -209,11 +212,10 @@ fun numberOfMonths(years: ShortDigitString) =
 // end-insert
 
 then yes -
-now we have a function that isn't subject to failure,
-and doesn't taint its callers with the failure too.
+now we have a function doesn't taint its callers its possible failure.
 If all its callers still have to create the ShortDigitString
 we haven't bought much,
-but push the creation out through the layers
+but push the creation out through the layers,
 and we can begin to turn the tide.
 
 You probably don't do anything this gratuitous.
@@ -221,37 +223,38 @@ Who would pass around strings that mean integers?
 But you might pass around a string that represent a URI
 and subject layers of invocations to the potential failure
 when it is finally parsed.
-You have probably passed a string rather than a File,
+You have probably passed a String rather than a File,
 or a File rather than an ExistingFile,
 or an Int rather than a PositiveInt.
 
 Collections of potential parameters are particularly pernicious.
-Take for example an HTTP request object passed through several layers of code
+Take for example an HTTP request object,
+passed through several layers of code,
 in order that a customer id can be extracted from the path,
 and a date from the query string.
 Not only are all the intervening layers subject to failure,
 but we loose the opportunity to document the required shape of the data,
-and the tests for each layer have to construct complicated arguments
+and the tests for each layer
+have to construct a complicated request object
 rather than passing CustomerId and LocalDateTime.
 
-## How Kotlin Helps
+== How Kotlin Helps
 
 You can avoid partial functions in any language -
 Java isn't particularly at a disadvantage here.
 Kotlin has features that are particularly helpful though.
 
 We've already seen how nullability in Kotlin makes functions
-that would otherwise be partial total,
+that would otherwise be partial, total,
 because null cannot be passed as an argument.
-Another pertinent feature is data classes,
+Data classes are pertinent,
 because,
 as with the ShortDigitString above,
-they allow us to produce wrapper value classes,
+they allow us easily to produce wrapper value classes
 with validation,
-in very few lines of code,
 reducing the programmer overhead of this technique.
 Unfortunately the runtime overhead remains,
-but in practice you will have trouble detecting it in most code.
+but in practice you will have trouble detecting this.
 
 .Inline Classes
 ****
@@ -263,6 +266,9 @@ as they don't require the creation of a wrapper object.
 In practice though they cannot have private constructors,
 or init blocks,
 and so you cannot guarantee that an inline class has validated content.
+This restriction is required for safe Java interoperation,
+but it is a shame that it cannot be relaxed
+for all-Kotlin codebases.
 ****
 
 Sealed classes are also helpful in avoiding partial functions.
@@ -282,26 +288,25 @@ val Result<*, Exception>.errorMessage : String? get() =
 ----
 // end-insert
 
-Here the receiver must be considered a parameter to the function.
+(Note that the receiver is actually a parameter to extension functions.)
 Because Result is a sealed class,
 the code knows that Success and Failure are the only possibilities.
-For non-sealed classes it could only invoke methods on the
-base Result type,
-or be partial because another subtype might be passed
-that it could not cope with.
+For non-sealed classes the when could not be exhaustive,
+and this function would either have to
+only invoke methods on the base Result type,
+or be partial because it could not give a result for
+as yet unknown subtypes.
 
-ifdef::todos[]
+Final by default
 
-final by default
+Delegation (allows non-emptylist for eg)
 
-delegation (allows non-emptylist for eg)
+== Suggested Types
 
-endif::[]
-
-## Suggested Types
-
-NonZeroInt
+PositiveInt
 
 NonEmptyList
+
+NonEmptyString
 
 Map<K, V, PhantomType>

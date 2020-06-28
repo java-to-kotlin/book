@@ -18,11 +18,11 @@ fun parseInt(s: String): Result<Int, String> =
 /// begin: ShortDigitString
 data class ShortDigitString(
     val value: String
-) {
+) : CharSequence by value {
     init {
         check(
-            value.length < 10 &&
-            value.all { it.isDigit() }
+            length in 1..9 &&
+            all { it.isDigit() }
         )
     }
 }
