@@ -52,4 +52,19 @@ val Result<*, Exception>.errorMessage : String? get() =
     }
 /// end: errorMessage
 
+/// begin: divisibleByTen
+fun divisibleByTen(s: ShortDigitString) =
+    s.length > 1 && s.last() == '0'
+/// end: divisibleByTen
 
+/// begin: NonEmptyString
+data class NonEmptyString(
+    val value: String
+) : CharSequence by value {
+    init {
+        check(
+            length in 1..9
+        )
+    }
+}
+/// end: NonEmptyString

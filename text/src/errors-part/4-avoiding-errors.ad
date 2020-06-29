@@ -297,16 +297,67 @@ only invoke methods on the base Result type,
 or be partial because it could not give a result for
 as yet unknown subtypes.
 
-Final by default
+While we are on the subject of inheritance, final by default and LSP?
 
-Delegation (allows non-emptylist for eg)
+We used another handy Kotlin feature in our definition of ShortDigitString
+- delegation.
 
-== Suggested Types
+// begin-insert: src/main/kotlin/errors/errors.kt#ShortDigitString
+[source,kotlin]
+[%autofit]
+----
+data class ShortDigitString(
+    val value: String
+) : CharSequence by value {
+    init {
+        check(
+            length in 1..9 &&
+            all { it.isDigit() }
+        )
+    }
+}
+----
+// end-insert
 
-PositiveInt
+One problem with creating wrappers to represent validated data
+is that when we need the actual data we have to refer to the
+wrapped value.
+Easy implementation of CharSequence means that we can use
+ShortDigitString directly wherever the interface is required.
 
-NonEmptyList
+// begin-insert: src/main/kotlin/errors/errors.kt#divisibleByTen
+[source,kotlin]
+[%autofit]
+----
+fun divisibleByTen(s: ShortDigitString) =
+    s.length > 1 && s.last() == '0'
+----
+// end-insert
 
-NonEmptyString
+Finally,
+note that Kotlin has support for unsigned integer types from Kotlin 1.3,
+although they are not used to restrict indexing operations,
+which will currently always fail if passed a negative index.
+
+== Restricting Types
+
+Once you start looking at code as partial and total functions,
+and thinking about creating types
+to turn the former into the later,
+you begin to see many ways to restrict existing types.
+
+Positive wrappers for number types
+ameliorate many mathematical issues.
+NonEmptyList and NonEmptyString feel like they should just be part of the Kotlin standard runtime,
+but regrettably are not.
+
+So far we have only looked at functions of with one parameter.
+A function may also be partial because it cannot cope with
+some combinations of multiple arguments.
+In these cases the simple default is to combine all
+the parameters into product type
+and validate that.
+
+TODO Example
 
 Map<K, V, PhantomType>
