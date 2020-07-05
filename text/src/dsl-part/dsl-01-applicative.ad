@@ -73,7 +73,7 @@ public class Json {
 // end-insert
 
 There's only so much we can do to create a domain-specific language in Java.
-They always end up looking a bit LISP-ish or involve a lot of boilerplate code to implement the [.pattern]_Builder_ pattern.
+They always end up looking a bit LISP-ish or involve a lot of boilerplate code to implement the [class="pattern"]_Builder_ pattern.
 Kotlin offers more options for expressive syntax.
 As more and more of our codebase is in Kotlin, we'll get more benefit from using Kotlin's features to make the Kotlin code using our domain-specific language more concise and easier to read.
 
@@ -476,7 +476,7 @@ We must add the infix modifier to the prop function by hand.
 IntelliJ will then be able to refactor between infix and dotted method call syntax for a single call site, but doesn't automate the refactoring in bulk for _all_ uses of an infix function across the codebase.
 Going through every call site and refactoring them one by one sounds too tedious!
 
-Let's roll back and take another run at it: we'll try using the [.combination]_Add Code, Delegate and Inline_ combination we used to swap out the Map.Entry type for Pair.
+Let's roll back and take another run at it: we'll try using the [class="combination"]_Add Code, Delegate and Inline_ combination we used to swap out the Map.Entry type for Pair.
 We'll add new, infix functions called "of" and make the "prop" functions delegate to them.
 
 While we're adding new functions, let's also take the opportunity to start moving the implementation of our DSL out of the Json object.
@@ -729,7 +729,7 @@ infix fun String.of(intValue: Int?) =
 // TODO: reword and/or move this above the preceding code example?
 A Kotlin file called Json.kt that contains top-level declarations is compiled to a JVM class called JsonKt.
 The top-level functions in the file are compiled to static methods of the JVM class.
-An object named Json in that file is compiled to a JVM class called Json that implements the [.pattern]_Singleton_ pattern, and any methods annotated with @JvmStatic are compiled to static methods of that Json class.
+An object named Json in that file is compiled to a JVM class called Json that implements the [class="pattern"]_Singleton_ pattern, and any methods annotated with @JvmStatic are compiled to static methods of that Json class.
 The annotations we applied to the top-level declarations make the compiler generate the JsonKt and Json classes with static methods that had the same names and signatures, allowing us to replace one with the other without touching the Java code.
 
 As a final clean-up, we can rename the javaObject functions back to "obj" and delete their now unnecessary @JvmName annotations:

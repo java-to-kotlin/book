@@ -1,11 +1,11 @@
 [[builders]]
-= We look at alternatives to the [.pattern]_Builder_ pattern
+= We look at alternatives to the [class="pattern"]_Builder_ pattern
 
-Java programmers use the [.pattern]_Builder_ pattern for several purposes:
+Java programmers use the [class="pattern"]_Builder_ pattern for several purposes:
 to make it easier to instantiate classes that have many constructor parameters;
 to construct immutable objects in imperative code;
 to allow tests to specify only the properties relevant to a test scenario and use safe defaults for all others;
-to act as the grammar of an embedded domain-specific language expressed with chained method calls, known as a [.pattern]_Fluent API_.
+to act as the grammar of an embedded domain-specific language expressed with chained method calls, known as a [class="pattern"]_Fluent API_.
 Despite all the repetitive boiler plate code they involve, Java programmers do find builders are worth the effort and address real challenges that they face using the language.
 
 In this chapter, we'll look at Kotlin features that make many of these uses of builders unnecessary, and how to introduce them in a mixed Java/Kotlin codebase.  In later chapters we'll look at how to safely transform ex-Java code that uses builders to idiomatic Kotlin, and how to use Kotlin language features to turn builders into embedded domain-specific languages.
@@ -65,7 +65,7 @@ public class Proposal {
 
 The Proposal constructor has a lot of parameters, because Proposals have a lot of fields and sub-objects.  This makes calling the constructor directly error-prone. It's easy to pass the parameters in the wrong order, and end up with an presenter's email address where their name should be, or details for reviewers where the blurb for the audience should be, and it's difficult to spot those errors when reading the code.
 
-To address these problems, we use the [.pattern]_Builder_ pattern.  Here's the method that parses a Proposal from a form posted by a web browser:
+To address these problems, we use the [class="pattern"]_Builder_ pattern.  Here's the method that parses a Proposal from a form posted by a web browser:
 
 // begin-insert: tags/builders.0:src/main/java/colloquiumatic/proposal/ProposalFormParser.java#use_builder
 [source,java]
@@ -209,7 +209,7 @@ However, it's hard to argue that the syntactic sugar of the `builder` method rea
 
 We care more about syntactic sugar in our tests, where we want our code to be read more like a declarative specification.
 But the tests do not call the `builder` method directly.
-The test module contains a bit _more_ syntactic sugar that creates a [.pattern]_Test Data Builder_ set up with default property values, so that a test need specify only the property values that are relevant to the test scenario.  For example:
+The test module contains a bit _more_ syntactic sugar that creates a [class="pattern"]_Test Data Builder_ set up with default property values, so that a test need specify only the property values that are relevant to the test scenario.  For example:
 
 // begin-insert: tags/builders.0:src/test/java/colloquiumatic/proposal/ProposalNotificationsTest.java#use_of_builder
 [source,java]
@@ -230,7 +230,7 @@ public void test_sends_initial_confirmation_email_to_all_presenters() {
 // end-insert
 
 On balance, therefore, let's break the circular dependency between classes and their builders by removing the `builder` methods and calling `new` directly.
-We'll see what we do about the [.pattern]_Test Data Builders_ in <<test-data-builders>>.
+We'll see what we do about the [class="pattern"]_Test Data Builders_ in <<test-data-builders>>.
 
 We can break the dependency by inlining the builder function, leaving code that uses a builder looking like:
 
