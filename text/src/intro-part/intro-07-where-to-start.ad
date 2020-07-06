@@ -3,12 +3,14 @@
 Now we have the ability to use Kotlin, the question is: where should we start converting our existing Java code to Kotlin?
 
 The first time we were faced with introducing Kotlin to an existing Java codebase was in a small team that included six developers, building a relatively greenfield project.
-We had already deployed some web applications with Kotlin, but the enterprise architects insisted that we writen the new system in Java 8. This was shortly after Kotlin 1.0 had been released but before Google announced that Kotlin was an official language for Android, so it was understandable that the architects would be wary about committing to a language with an uncertain future for a strategic system that they expected to be around for decades.
+We had already deployed some web applications with Kotlin, but the enterprise architects insisted that we write the new system in Java 8. This was shortly after Kotlin 1.0 had been released but before Google announced that Kotlin was an official language for Android, so it was understandable that the architects were wary about committing to a language with an uncertain future for a strategic system that they expected to be around for decades.
 
-Even in Java, we leant towards a functional approach, designing the core application domain model as immutable data types transformed by streams.
-But eventually we found the limitations of Java too irksome: the verbosity required to implement immutable value types, the distinction between primitive and reference types, null references, Streams lacking common FP operations such as zip, .... By this time Google had made their announcement and Kotlin was being adopted at an ever increasing rate across the industry and within the company, We decided to start converting the Java codebase to Kotlin.
+Even in Java, we leaned towards a functional approach, designing the core application domain model as immutable data types transformed by streams.
+However, we kept bumping into Java's limitations: the verbosity required to implement immutable value types, the distinction between primitive and reference types, null references, Streams lacking common higher-order functions.
+By this time Google had made their announcement and Kotlin was being adopted at an ever-increasing rate across the industry and within the company.
+We decided to start converting the Java codebase to Kotlin.
 
-We decided that starting in the core domain model would give us the biggest bang for our buck.
+Our judgement was that starting in the core domain model would give us the biggest bang for our buck.
 Kotlin's data classes shrunk the code significantly, replacing in some cases hundreds of lines of code with a single declaration.
 We started carefully, using IntelliJ to convert a small value class that had no dependencies on other classes beyond those in the standard library, and examined how that affected the rest of our Java codebase.
 It had no effect at all!
@@ -20,12 +22,9 @@ For example, we replaced calls to the Stream API with Kotlin's standard function
 The biggest improvement, was replacing our use of Java's Optional type with nullable references.
 This simplified our code and gave us greater confidence in its null safety.
 
-====
-TODO: another, significantly different, example (Oscar?
-Did Oscar start by turning UtterlyIdle into HTTP4K to get rid of the dependency injection jibber-jabber?)
-====
+Another project in the company adopted Kotlin for a different reason.  They had a mature Java system that was built upon a reflective dependency injection framework.  The developers found that this made the code difficult to understand and navigate around in the IDE.  Kotlin's lightweight syntax for closures offered a way to define the structure of their application and distinguish between object graphs instantiated for the whole application, for each HTTP request, or each database transaction.  They gradually refactored the underpinnings of their system from a framework that obscured the architecture to a compositional style in which the architecture was visible in the code.
 
-As you can see from these different experiences, the choice of starting point depends on a number of factors: why is the team adopting Kotlin, how large is the codebase, how frequent are changes being made to it, how large is the team, … and you probably have reasons aren't in this list.
+As these two examples show, the choice of starting point depends on a number of factors: why is the team adopting Kotlin, how large is the codebase, how frequent are changes being made to it, how large is the team, … and you probably have reasons aren't in this list.
 
 If you are choosing Kotlin for its language features it makes sense to convert the classes you are working in most frequently, as we did in the first example above.
 If you are choosing Kotlin to use a specific library then it makes sense to start writing Kotlin against the API, annotate it to make your Kotlin code convenient to the Java code in the rest of the app, and continue from there.
