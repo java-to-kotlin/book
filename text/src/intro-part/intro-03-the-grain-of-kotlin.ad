@@ -1,30 +1,53 @@
 = The "Grain" of the Kotlin Language
 
-Kotlin offers significant improvements over Java, allows Java programmers to make use of functional programming constructs more easily, but does not require Java programmers to _entirely_ change the way they think about design and software architecture. Kotlin is a step beyond Java, while being more conservative than the other two most popular post-Java JVM languages, Scala and Clojure. Above all – and despite the way this sounds, I think this is actually its most innovative attribute –  Kotlin is a deliberately _boring_ language. It's practical. It's designers understand the value of good tool support. They understand the value of interoperating with existing code. Kotlin is a dependable tool for getting things done, especially when you have already done a lot of things in Java and you want to keep using them.
+Kotlin offers significant improvements over Java, allows Java programmers to make use of functional programming constructs more easily, but does not require Java programmers to _entirely_ change the way they think about design and software architecture.
+Kotlin is a step beyond Java, while being more conservative than the other two most popular post-Java JVM languages, Scala and Clojure.
+Above all –- and despite the way this sounds, I think this is actually its most innovative attribute -- Kotlin is a deliberately _boring_ language.
+It's practical.
+It's designers understand the value of good tool support.
+They understand the value of interoperating with existing code.
+Kotlin is a dependable tool for getting things done, especially when you have already done a lot of things in Java and you want to keep using them.
 
-TODO: Explain the "grain" metaphor?  Going "against the grain" makes things harder, and you miss out on the benefits of working "with the grain".  Relate to the concept of "affordance"?
+TODO: Explain the "grain" metaphor?
+Going "against the grain" makes things harder, and you miss out on the benefits of working "with the grain".
+Relate to the concept of "affordance"?
 
+== Kotlin's preferences.
 
-== What Kotlin "prefers"
+Transformation over Mutation:
+the stdlib makes it easier & more concise to transform immutable data than mutate mutable data
 
-Concision: expression oriented, when statement, primary constructors, data classes, expression functions
+Concision over ???:
+expression oriented, when statement, primary constructors, data classes, single-expression functions.
 
-Static type safety: type inference, flow-sensitive typing, Nothing, (and the big selling point) null safety.
+Static type safety over reflection:
+type inference, flow-sensitive typing, Nothing, (and the big selling point) null safety.
+Kotlin encourages a type-safe, compositional coding style.
+Designed from the get-go to be used with a language aware editor that statically analyses the code for navigation and program transformation.
+If you want to use reflection, you have to add a platform-specific library dependency.
 
-Simpler than Java -- fewer special cases that interact in unpredictable ways. No primitive/reference type distinction, no special case for void.
+Explicit over Implicit:
+no implicit type coercion, even from smaller range to larger range.
+No implicit parameters, like Scala.
+Cannot have user-defined short-cut operators that could be implemented to have different control flow.
 
-User-defined control structures: inline functions as a very controlled form of macro.
+Regularity over special cases:
+compared to Java, there are fewer special cases that interact in unpredictable ways.
+No primitive/reference type distinction, no special case for void.
+You can write user-defined control structures using inline functions and return, break, continue etc. will act as expected.
 
-Easy (although not entirely seamless) interop with existing Java code.  Supports different <<java-programming-style,Java programming styles>>, to allow idomatic Java and Kotlin code to coexist in the same codebase.
+Easy (although not entirely seamless) interop with existing Java code over purity:
+supports different <<java-programming-style,Java programming styles>>, to allow idiomatic Java and Kotlin code to coexist in the same codebase.
+Some of that support removes guarantees provided by other language features, and should _only_ be used to interop with legacy Java.
+For example, lateinit opens a hole in the type system for Java DI frameworks that use reflection to violate encapsulation boundaries.
+As soon as you declare a variable `lateinit var`, it's up to you to ensure the variable is initialised correctly.
+The type checker will not catch your mistakes.
 
-== What Kotlin deliberately "spurns"
+== _Faux Amis_ for Java Programmers
 
-Reflection -- encourages a type-safe, compositional coding style.  Designed from the get-go to be used with a language aware editor that statically analyses the code for navigation and program transformation.  If you want to use reflection, you have to add a library dependency.
-
-Implicit behaviour -- no implicit type coercion, even from smaller range to larger range.  No implicit parameters, like Scala.  Cannot have user-defined short-cut operators.
-
-== Coming from Java and _faux amis_
-
-A _faux ami_ is a word in a foreign language that looks similar to a word in your native tongue, but has a significantly different meaning.  Likewise, Kotlin has syntax that look similar to Java -- sometimes even using the same keywords -- but that have quite different semantics.  We will call attention to these as we come to them, and take some time to explore how the difference influences idiomatic Kotlin design.  Feel free to skip any digression if you are comfortable with that aspect of the language.
+A _faux ami_ is a word in a foreign language that looks similar to a word in your native tongue, but has a significantly different meaning.
+Likewise, Kotlin has syntax that look similar to Java -- sometimes even using the same keywords -- but that have quite different semantics.
+We will call attention to these as we come to them, and take some time to explore how the difference influences idiomatic Kotlin design.
+Feel free to skip any digression if you are comfortable with that aspect of the language.
 
 
