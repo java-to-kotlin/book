@@ -1,10 +1,6 @@
 package grain.java1;
 
-public class AddIntegers implements Monoid {
-    public Object nil() {
-        return new Integer(0);
-    }
-
+public class AddIntegers implements Function2 {
     public Object apply(Object arg1, Object arg2) {
         int i1 = ((Integer) arg1).intValue();
         int i2 = ((Integer) arg2).intValue();

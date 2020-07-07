@@ -13,9 +13,9 @@ public class TheGrainOfJava1Point0Test extends TestCase {
         words.add("b");
         words.add("c");
 
-        // begin: map
+        /// begin: map
         List upperCaseWords = Lists.map(new StringToUpperCase(), words);
-        // end: map
+        /// end: map
 
         List expected = new ArrayList();
         expected.add("A");
@@ -31,12 +31,12 @@ public class TheGrainOfJava1Point0Test extends TestCase {
         words.add("b");
         words.add("c");
 
-        // begin: map_iteratively
+        /// begin: map_iteratively
         List upperCaseWords = new ArrayList();
         for (int i = 0; i < words.size(); i++) {
             upperCaseWords.add(((String)words.get(i)).toUpperCase());
         }
-        // end: map_iteratively
+        /// end: map_iteratively
 
         List expected = new ArrayList();
         expected.add("A");
@@ -53,11 +53,11 @@ public class TheGrainOfJava1Point0Test extends TestCase {
         counts.add(new Integer(20));
         counts.add(new Integer(12));
 
-        // begin: reduce
-        Integer total = (Integer)Lists.reduce(new AddIntegers(), counts);
-        // end: reduce
+        /// begin: fold
+        int total = ((Integer) Lists.fold(new AddIntegers(), new Integer(0), counts)).intValue();
+        /// end: fold
 
-        assertEquals(33, total.intValue());
+        assertEquals(33, total);
     }
 
     public void testReduceByIteration() {
@@ -66,12 +66,12 @@ public class TheGrainOfJava1Point0Test extends TestCase {
         counts.add(new Integer(20));
         counts.add(new Integer(12));
 
-        // begin: reduce_iteratively
+        /// begin: reduce_iteratively
         int total = 0;
         for (int i = 0; i < counts.size(); i++) {
             total += ((Integer)counts.get(i)).intValue();
         }
-        // end: reduce_iteratively
+        /// end: reduce_iteratively
 
         assertEquals(33, total);
     }

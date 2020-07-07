@@ -1,19 +1,74 @@
 = The "Grain" of the Kotlin Language
 
-All programming languages make some things easier to write, and other things more difficult.
+In all programming languages, some things easier to write, and other things more difficult.
 This affects the way we design programs in that language.
-For example, it has always been possible write functional code in Java, but it was so cumbersome to define functions and use higher-order functions before Java 8 that few programmers did.
-Instead, most Java code mutated shared state.
-Writing functional code _went against the grain_ of Java.
-It required too much effort compared to the benefit to be worth doing.
+For example, it has always been possible write in a functional style in Java but few programmers did.  Look what was required to do something as simple as sum a list of numbers in Java 1.2.  Java had no function types in its standard library, so you would have to define interfaces for them:
 
-Each programming language has its "grain": it's easier to work with the grain, and going against the grain requires constant effort with uncertain pay-off.
+// begin-insert: src/main/java/grain/java1/Function2.java
+[source,java]
+[%autofit]
+----
+public interface Function2 {
+    Object apply(Object arg1, Object arg2);
+}
+----
+// end-insert
+
+Then you had to write a higher-order function that used your function type to fold a list to a scalar value, hiding iteration and mutation behind a functional API.
+
+// begin-insert: src/main/java/grain/java1/Lists.java#fold
+[source,java]
+[%autofit]
+----
+public class Lists {
+    public static Object fold(Function2 f, Object initial, List l) {
+        Object result = initial;
+        for (int i = 0; i < l.size(); i++) {
+            result = f.apply(result, l.get(i));
+        }
+        return result;
+    }
+
+    ...
+}
+----
+// end-insert
+
+You had to define a separate class for every function you wanted to pass to `fold` -- no lambdas or closures back then, not even inner classes.
+
+// begin-insert: src/main/java/grain/java1/AddIntegers.java
+[source,java]
+[%autofit]
+----
+public class AddIntegers implements Function2 {
+    public Object apply(Object arg1, Object arg2) {
+        int i1 = ((Integer) arg1).intValue();
+        int i2 = ((Integer) arg2).intValue();
+        return new Integer(i1 + i2);
+    }
+}
+----
+// end-insert
+
+And _finally_ you could use all that to calculate the sum of a list of numbers:
+
+// begin-insert: src/test/java/grain/java1/TheGrainOfJava1Point0Test.java#fold
+[source,java]
+[%autofit]
+----
+int total = ((Integer) Lists.fold(new AddIntegers(), new Integer(0), counts)).intValue();
+----
+// end-insert
+
+That's a lot of effort for what can be achieved, in modern languages, with a single expression.  But that's not the end of it: because Java had no standard function types, you couldn't easily combine different libraries written in a functional style.  You'd have to write adapter classes to map between the function types defined in different libraries.
+
+There was just not enough pay-off for writing Java 1.2 in a functional style.  Java programmers found it easier to write procedural code that iterated over collections and mutated state. Writing functional code _went against the grain_ of Java.
+
+Every programming language has a "grain": it's easier to work with the grain, and going against the grain requires constant effort with uncertain pay-off.
 
 Kotlin also has a "grain".
 
-Explicit design goals: "Concise", "Safe", "Interoperable", "Tool-friendly".
-
-Unspoken preferences...
+It has explicit design goals that are listed in the https://kotlinlang.org/#why-kotlin["Why Kotlin"] section of the language website: "Concise", "Safe", "Interoperable", "Tool-friendly".  And it has unspoken preferences encoded in the design of the language and its standard libraries.
 
 Transformation over Mutation: data classes make it easy to define new types with value semantics.
 The stdlib makes it easier & more concise to transform collections immutable data than iterate and mutate data in place.
