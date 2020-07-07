@@ -54,10 +54,10 @@ public class TheGrainOfJava1Point0Test extends TestCase {
         counts.add(new Integer(12));
 
         /// begin: fold
-        int total = ((Integer) Lists.fold(new AddIntegers(), new Integer(0), counts)).intValue();
+        int sum = ((Integer) Lists.fold(new AddIntegers(), new Integer(0), counts)).intValue();
         /// end: fold
 
-        assertEquals(33, total);
+        assertEquals(33, sum);
     }
 
     public void testReduceByIteration() {
@@ -67,13 +67,12 @@ public class TheGrainOfJava1Point0Test extends TestCase {
         counts.add(new Integer(12));
 
         /// begin: reduce_iteratively
-        int total = 0;
+        int sum = 0;
         for (int i = 0; i < counts.size(); i++) {
-            total += ((Integer)counts.get(i)).intValue();
+            sum += ((Integer)counts.get(i)).intValue();
         }
         /// end: reduce_iteratively
 
-        assertEquals(33, total);
+        assertEquals(33, sum);
     }
-
 }
