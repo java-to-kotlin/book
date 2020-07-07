@@ -1,4 +1,4 @@
-package grain;
+package grain.java1;
 
 import java.util.ArrayList;
 import java.util.List;
