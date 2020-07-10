@@ -9,7 +9,6 @@ There is an HTTP endpoint in Colloquiumatic that allows the client to register a
 
 // begin-insert: tags/errors.0:src/main/java/colloquiumatic/handlers/RegistrationHandler.java
 [source,java]
-[%autofit]
 ----
 public class RegistrationHandler {
 
@@ -63,7 +62,6 @@ which is that potential attendees should be vetted against a blacklist.
 
 // begin-insert: tags/errors.0:src/main/java/colloquiumatic/Registration.java
 [source,java]
-[%autofit]
 ----
 public class Registration implements IRegister {
 
@@ -94,7 +92,6 @@ Here is the Attendees interface.
 
 // begin-insert: tags/errors.0:src/main/java/colloquiumatic/Attendees.java
 [source,java]
-[%autofit]
 ----
 public interface Attendees {
 
@@ -110,7 +107,6 @@ Here it is after conversion to Kotlin.
 
 // begin-insert: tags/errors.1:src/main/java/colloquiumatic/Attendee.kt
 [source,kotlin]
-[%autofit]
 ----
 data class Attendee(
     val id: String,
@@ -160,7 +156,6 @@ If we convert Attendees to Kotlin we get
 
 // begin-insert: tags/errors.2:src/main/java/colloquiumatic/Attendees.kt
 [source,kotlin]
-[%autofit]
 ----
 interface Attendees {
     @Throws(DuplicateException::class) // <1>
@@ -183,7 +178,6 @@ lets fix that.
 
 // begin-insert: tags/errors.3:src/main/java/colloquiumatic/Attendees.kt
 [source,kotlin]
-[%autofit]
 ----
 interface Attendees {
     @Throws(DuplicateException::class)
@@ -206,7 +200,6 @@ First we add result4k to our build.
 
 // begin-insert: tags/errors.4:build.gradle#result4k
 [source,groovy]
-[%autofit]
 ----
 dependencies {
      ... 
@@ -221,7 +214,6 @@ We can't call it `add` too, as both have the same parameters, so we call it `add
 
 // begin-insert: tags/errors.5:src/main/java/colloquiumatic/Attendees.kt
 [source,kotlin]
-[%autofit]
 ----
 interface Attendees {
     @Throws(DuplicateException::class)
@@ -248,7 +240,6 @@ You have to tell the compiler how to implement `@JVMDefault` with a compiler swi
 
 // begin-insert: tags/errors.5:build.gradle#foo
 [source,groovy]
-[%autofit]
 ----
 compileKotlin {
     kotlinOptions.jvmTarget = "1.8"
@@ -280,7 +271,6 @@ So let's take Registration (the caller of `add`)
 
 // begin-insert: tags/errors.5:src/main/java/colloquiumatic/Registration.java
 [source,java]
-[%autofit]
 ----
 public class Registration implements IRegister {
 
@@ -309,7 +299,6 @@ and convert it to Kotlin
 
 // begin-insert: tags/errors.6:src/main/java/colloquiumatic/Registration.kt
 [source,kotlin]
-[%autofit]
 ----
 class Registration(
     private val attendees: Attendees,
@@ -332,7 +321,6 @@ so we invert the if
 
 // begin-insert: tags/errors.7:src/main/java/colloquiumatic/Registration.kt#invert
 [source,kotlin]
-[%autofit]
 ----
 @Throws(BlacklistedException::class, DuplicateException::class)
 override fun register(data: RegistrationData): Attendee {
@@ -347,7 +335,6 @@ move the return
 
 // begin-insert: tags/errors.8:src/main/java/colloquiumatic/Registration.kt#invert
 [source,kotlin]
-[%autofit]
 ----
 @Throws(BlacklistedException::class, DuplicateException::class)
 override fun register(data: RegistrationData): Attendee {
@@ -362,7 +349,6 @@ and then extract the result as a local
 
 // begin-insert: tags/errors.9:src/main/java/colloquiumatic/Registration.kt#invert
 [source,kotlin]
-[%autofit]
 ----
 @Throws(BlacklistedException::class, DuplicateException::class)
 override fun register(data: RegistrationData): Attendee {
@@ -380,7 +366,6 @@ This won't compile yet
 
 // begin-insert: tags/errors.10:src/main/java/colloquiumatic/Registration.kt#invert
 [source,kotlin]
-[%autofit]
 ----
 @Throws(BlacklistedException::class, DuplicateException::class)
 override fun register(data: RegistrationData): Attendee {
@@ -401,7 +386,6 @@ we can use `result.recover` which will give us the exception back to throw
 
 // begin-insert: tags/errors.11:src/main/java/colloquiumatic/Registration.kt#invert
 [source,kotlin]
-[%autofit]
 ----
 @Throws(BlacklistedException::class, DuplicateException::class)
 override fun register(data: RegistrationData): Attendee {
@@ -418,7 +402,6 @@ and now we can inline to get back to a shorter form
 
 // begin-insert: tags/errors.12:src/main/java/colloquiumatic/Registration.kt#invert
 [source,kotlin]
-[%autofit]
 ----
 @Throws(BlacklistedException::class, DuplicateException::class)
 override fun register(data: RegistrationData): Attendee {
@@ -449,7 +432,6 @@ Let's look at the (not thread-safe) test version.
 
 // begin-insert: tags/errors.12:src/test/java/colloquiumatic/InMemoryAttendees.java
 [source,java]
-[%autofit]
 ----
 public class InMemoryAttendees implements Attendees {
 
@@ -487,7 +469,6 @@ The easiest way to implement `addToo` here is probably just to duplicate `add` a
 
 // begin-insert: tags/errors.13:src/test/java/colloquiumatic/InMemoryAttendees.java#foo
 [source,java]
-[%autofit]
 ----
 @Override
 public Attendee add(String name, String email) throws DuplicateException {
@@ -517,7 +498,6 @@ but we don't, so we can just remove it from here and the interface, and then ren
 
 // begin-insert: tags/errors.14:src/main/java/colloquiumatic/Attendees.kt
 [source,kotlin]
-[%autofit]
 ----
 interface Attendees {
 
@@ -532,7 +512,6 @@ and
 
 // begin-insert: tags/errors.14:src/main/java/colloquiumatic/Registration.kt
 [source,kotlin]
-[%autofit]
 ----
 class Registration(
     private val attendees: Attendees,
@@ -555,7 +534,6 @@ but I can't resist the conversion, as it has a number of warnings of the type `N
 
 // begin-insert: tags/errors.15:src/test/java/colloquiumatic/InMemoryAttendees.kt
 [source,kotlin]
-[%autofit]
 ----
 class InMemoryAttendees : Attendees {
 
@@ -590,7 +568,6 @@ Lets recap where we are now. Attendees is now Kotlin, and `add` returns a result
 
 // begin-insert: tags/errors.15:src/main/java/colloquiumatic/Attendees.kt
 [source,kotlin]
-[%autofit]
 ----
 interface Attendees {
 
@@ -604,7 +581,6 @@ interface Attendees {
 IRegister is still Java, and still throws 2 types of exception.
 // begin-insert: tags/errors.15:src/main/java/colloquiumatic/IRegister.java
 [source,java]
-[%autofit]
 ----
 public interface IRegister {
     Attendee register(RegistrationData data)
@@ -617,7 +593,6 @@ Registration is now Kotlin, and is the place where we now thunk between error an
 
 // begin-insert: tags/errors.15:src/main/java/colloquiumatic/Registration.kt
 [source,kotlin]
-[%autofit]
 ----
 class Registration(
     private val attendees: Attendees,
@@ -649,7 +624,6 @@ but to map to a new type.
 
 // begin-insert: tags/errors.16:src/main/java/colloquiumatic/IRegister.kt
 [source,kotlin]
-[%autofit]
 ----
 interface IRegister {
 
@@ -687,7 +661,6 @@ Now we can go and migrate callers of `register` to `registerToo`. Starting with 
 
 // begin-insert: tags/errors.17:src/main/java/colloquiumatic/handlers/RegistrationHandler.kt
 [source,kotlin]
-[%autofit]
 ----
 class RegistrationHandler(
     private val registration: IRegister
@@ -723,7 +696,6 @@ Now call the adapter method and act on the return type
 
 // begin-insert: tags/errors.18:src/main/java/colloquiumatic/handlers/RegistrationHandler.kt
 [source,kotlin]
-[%autofit]
 ----
 class RegistrationHandler(
     private val registration: IRegister
@@ -765,7 +737,6 @@ before removing the unnecessary exception cases and simplifying the error case
 
 // begin-insert: tags/errors.19:src/main/java/colloquiumatic/handlers/RegistrationHandler.kt#foo
 [source,kotlin]
-[%autofit]
 ----
 fun handle(request: Request): Response = try {
     val data = objectMapper.readValue(
@@ -807,7 +778,6 @@ but we are now calling `registerToo`. For example
 
 // begin-insert: tags/errors.20:src/test/java/colloquiumatic/handlers/RegistrationHandlerTests.java#foo
 [source,java]
-[%autofit]
 ----
 public class RegistrationHandlerTests {
 
@@ -867,7 +837,6 @@ we can dispense with a special `throwException` action in favour of returning
 
 // begin-insert: tags/errors.21:src/test/java/colloquiumatic/handlers/RegistrationHandlerTests.java#foo
 [source,java]
-[%autofit]
 ----
 @Test
 public void returns_Created_with_body_on_success() {
@@ -914,7 +883,6 @@ using `Result.mapFailure` to convert DuplicateException to Duplicate.
 
 // begin-insert: tags/errors.22:src/main/java/colloquiumatic/Registration.kt
 [source,kotlin]
-[%autofit]
 ----
 class Registration(
     private val attendees: Attendees,
@@ -949,7 +917,6 @@ the opposite of what we did in IRegister.
 
 // begin-insert: tags/errors.23:src/main/java/colloquiumatic/Registration.kt
 [source,kotlin]
-[%autofit]
 ----
 class Registration(
     private val attendees: Attendees,
@@ -980,7 +947,6 @@ Now our RegistrationTests, which work in terms of `register`, will be testing `r
 
 // begin-insert: tags/errors.23:src/test/java/colloquiumatic/RegistrationTests.java
 [source,java]
-[%autofit]
 ----
 public class RegistrationTests {
 
@@ -1044,7 +1010,6 @@ then to register with the immortal words,
 
 // begin-insert: tags/errors.24:src/test/java/colloquiumatic/RegistrationTests.kt
 [source,kotlin]
-[%autofit]
 ----
 class RegistrationTests {
 
@@ -1110,7 +1075,6 @@ ending up with (almost) exception-free Kotlin.
 
 // begin-insert: tags/errors.25:src/main/java/colloquiumatic/IRegister.kt
 [source,kotlin]
-[%autofit]
 ----
 interface IRegister {
     fun register(data: RegistrationData): Result<Attendee, RegistrationProblem>
@@ -1128,7 +1092,6 @@ data class Duplicate(
 
 // begin-insert: tags/errors.25:src/main/java/colloquiumatic/Attendees.kt
 [source,kotlin]
-[%autofit]
 ----
 interface Attendees {
 

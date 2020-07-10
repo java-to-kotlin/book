@@ -113,7 +113,6 @@ If we define
 
 // begin-insert: src/main/kotlin/errors/errors.kt#parseIntResult
 [source,kotlin]
-[%autofit]
 ----
 fun parseInt(s: String): Result<Int, String> =
     try {
@@ -143,7 +142,6 @@ valid arguments.Let's say that we define
 
 // begin-insert: src/main/kotlin/errors/errors.kt#ShortDigitString
 [source,kotlin]
-[%autofit]
 ----
 data class ShortDigitString(
     val value: String
@@ -162,7 +160,6 @@ Now we could define `parseInt`
 
 // begin-insert: src/main/kotlin/errors/errors.kt#parseInt
 [source,kotlin]
-[%autofit]
 ----
 fun parseInt(s: ShortDigitString) =
     Integer.parseInt(s.value)
@@ -189,7 +186,6 @@ Well if we just end up writing
 
 // begin-insert: src/main/kotlin/errors/errors.kt#numberOfMonths
 [source,kotlin]
-[%autofit]
 ----
 fun numberOfMonths(years: String) =
     12 * parseInt(ShortDigitString(years))
@@ -204,7 +200,6 @@ But if we push the parsing out a level
 
 // begin-insert: src/main/kotlin/errors/errors.kt#numberOfMonthsShort
 [source,kotlin]
-[%autofit]
 ----
 fun numberOfMonths(years: ShortDigitString) =
     12 * parseInt(years)
@@ -278,7 +273,6 @@ So, using Result as an example
 
 // begin-insert: src/main/kotlin/errors/errors.kt#errorMessage
 [source,kotlin]
-[%autofit]
 ----
 val Result<*, Exception>.errorMessage : String? get() =
     when (this) {
@@ -304,7 +298,6 @@ We used another handy Kotlin feature in our definition of ShortDigitString
 
 // begin-insert: src/main/kotlin/errors/errors.kt#ShortDigitString
 [source,kotlin]
-[%autofit]
 ----
 data class ShortDigitString(
     val value: String
@@ -327,7 +320,6 @@ ShortDigitString directly wherever the interface is required.
 
 // begin-insert: src/main/kotlin/errors/errors.kt#divisibleByTen
 [source,kotlin]
-[%autofit]
 ----
 fun divisibleByTen(s: ShortDigitString) =
     s.length > 1 && s.last() == '0'

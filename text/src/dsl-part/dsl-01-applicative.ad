@@ -8,7 +8,6 @@ To build a JSON tree, we statically import syntactic sugar methods from the Json
 
 // begin-insert: tags/jsondsl_mixed.0:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.java#json_dsl_import
 [source,java]
-[%autofit]
 ----
 import static colloquiumatic.json.Json.obj;
 import static colloquiumatic.json.Json.prop;
@@ -19,7 +18,6 @@ Code that constructs JSON data then looks like this:
 
 // begin-insert: tags/jsondsl_mixed.0:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.java#json_dsl_usage
 [source,java]
-[%autofit]
 ----
 JsonNode commandAsJson = obj(
     prop("userId", exampleUserId),
@@ -39,7 +37,6 @@ Here is the implementation of the JSON DSL:
 
 // begin-insert: tags/jsondsl_mixed.0:src/test/java/colloquiumatic/json/Json.java#json_dsl
 [source,java]
-[%autofit]
 ----
 public class Json {
     private static final JsonNodeFactory nodes = JsonNodeFactory.instance;
@@ -99,7 +96,6 @@ The converter leaves us with code like this:
 
 // begin-insert: tags/jsondsl_mixed.1:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_usage
 [source,kotlin]
-[%autofit]
 ----
 val commandAsJson: JsonNode = Json.obj(
     Json.prop("userId", exampleUserId),
@@ -119,7 +115,6 @@ We can get IntelliJ to add these imports automatically by hitting kbd:[Alt-Enter
 
 // begin-insert: tags/jsondsl_mixed.2:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_import
 [source,kotlin]
-[%autofit]
 ----
 import colloquiumatic.json.Json.obj
 import colloquiumatic.json.Json.prop
@@ -130,7 +125,6 @@ leading us back to the notation we want:
 
 // begin-insert: tags/jsondsl_mixed.2:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_usage
 [source,kotlin]
-[%autofit]
 ----
 val commandAsJson: JsonNode = obj(
     prop("userId", exampleUserId),
@@ -156,7 +150,6 @@ The compiler will generate static methods in the Java bytecode, leaving the Java
 // TODO: add callouts
 // begin-insert: tags/jsondsl_mixed.3:src/test/java/colloquiumatic/json/Json.kt#json_dsl
 [source,kotlin]
-[%autofit]
 ----
 object Json {
     private val nodes = JsonNodeFactory.instance
@@ -204,7 +197,6 @@ Happily it's easy to fix: we can remove the spurious nullability modifiers and a
 //TODO add callouts
 // begin-insert: tags/jsondsl_mixed.4:src/test/java/colloquiumatic/json/Json.kt#json_dsl
 [source,kotlin]
-[%autofit]
 ----
 object Json {
     private val nodes = JsonNodeFactory.instance
@@ -261,7 +253,6 @@ This removes a lot of boilerplate from the class:
 
 // begin-insert: tags/jsondsl_mixed.5:src/test/java/colloquiumatic/json/Json.kt#tidy_implementation
 [source,kotlin]
-[%autofit]
 ----
 object Json {
     private val nodes = JsonNodeFactory.instance
@@ -301,7 +292,6 @@ It can also import a feature under a different name within the importing file.
 
 // begin-insert: tags/jsondsl_mixed.6:src/test/java/colloquiumatic/json/Json.kt#import_nodes
 [source,kotlin]
-[%autofit]
 ----
 // ... the rest of our imports
 import com.fasterxml.jackson.databind.node.JsonNodeFactory.instance as nodes
@@ -337,7 +327,6 @@ Secondly, we add a typealias below the imports, aliasing Entry and SimpleImmutab
 
 // begin-insert: tags/jsondsl_mixed.7:src/test/java/colloquiumatic/json/Json.kt#type_aliases
 [source,kotlin]
-[%autofit]
 ----
 private typealias Entry<K,V> = Pair<K,V>
 private typealias SimpleImmutableEntry<K,V> = Pair<K,V>
@@ -351,7 +340,6 @@ Next we define two extension properties on Pair to match the properties of Map.E
 
 // begin-insert: tags/jsondsl_mixed.7:src/test/java/colloquiumatic/json/Json.kt#temporary_extension_properties
 [source,kotlin]
-[%autofit]
 ----
 private val <K,V> Pair<K,V>.key get() = first
 private val <K,V> Pair<K,V>.value get() = second
@@ -371,7 +359,6 @@ That leaves the code looking like:
 // TODO: fix the @JvmStatic annotation on the same line
 // begin-insert: tags/jsondsl_mixed.8:src/test/java/colloquiumatic/json/Json.kt#json_dsl
 [source,kotlin]
-[%autofit]
 ----
 object Json {
     @JvmStatic
@@ -417,7 +404,6 @@ It now looks like:
 
 // begin-insert: tags/jsondsl_mixed.9:src/test/java/colloquiumatic/json/Json.kt#use_to
 [source,kotlin]
-[%autofit]
 ----
 @JvmStatic
 fun prop(name: String, value: JsonNode) =
@@ -438,7 +424,6 @@ That would make Kotlin code that builds JSON look like:
 
 // begin-insert: tags/jsondsl_mixed.12:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_usage
 [source,kotlin]
-[%autofit]
 ----
 val commandAsJson: JsonNode = obj(
     "userId" of exampleUserId,
@@ -459,7 +444,6 @@ Our JSON-building code then looks like this:
 
 // begin-insert: tags/jsondsl_mixed.10:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_usage
 [source,kotlin]
-[%autofit]
 ----
 val commandAsJson: JsonNode = obj(
     "userId".prop(exampleUserId),
@@ -491,7 +475,6 @@ The "prop" functions will still be used by Java code, but the infix "of" functio
 
 // begin-insert: tags/jsondsl_mixed.11:src/test/java/colloquiumatic/json/Json.kt#prepare_for_inline
 [source,kotlin]
-[%autofit]
 ----
 object Json {
     // ...
@@ -529,7 +512,6 @@ All our Kotlin code is now using our infix notation:
 
 // begin-insert: tags/jsondsl_mixed.12:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_usage
 [source,kotlin]
-[%autofit]
 ----
 val commandAsJson: JsonNode = obj(
     "userId" of exampleUserId,
@@ -545,7 +527,6 @@ But the Java code is still calling prop:
 
 // begin-insert: tags/jsondsl_mixed.12:src/test/java/colloquiumatic/signup/SessionSignUpCommandParserTest.java#json_dsl_usage
 [source,java]
-[%autofit]
 ----
 JsonNode commandAsJson = obj(
     prop("userId", exampleUserId),
@@ -569,7 +550,6 @@ Then we move them to the top level of the file via the kbd:[Alt-Enter] menu:
 
 // begin-insert: tags/jsondsl_mixed.13:src/test/java/colloquiumatic/json/Json.kt#json_dsl
 [source,kotlin]
-[%autofit]
 ----
 object Json {
     @JvmStatic
@@ -620,7 +600,6 @@ So we inline the obj methods, to make the Kotlin code call the top-level jsonObj
 
 // begin-insert: tags/jsondsl_mixed.14:src/test/java/colloquiumatic/rating/RateSessionCommandParserTest.kt#json_dsl_usage
 [source,kotlin]
-[%autofit]
 ----
 val commandAsJson: JsonNode = jsonObject(
     "userId" of exampleUserId,
@@ -640,7 +619,6 @@ First, we annotate the top-level methods with @JvmName so that they are compiled
 
 // begin-insert: tags/jsondsl_mixed.15:src/test/java/colloquiumatic/json/Json.kt#json_dsl
 [source,kotlin]
-[%autofit]
 ----
 object Json {
     @JvmStatic
@@ -695,7 +673,6 @@ Then we annotate the source file with @JvmName to compile it to a Java classfile
 
 // begin-insert: tags/jsondsl_mixed.16:src/test/java/colloquiumatic/json/Json.kt#json_dsl
 [source,kotlin]
-[%autofit]
 ----
 @file:JvmName("Json")
 // ... package declaration and imports ...
@@ -736,7 +713,6 @@ As a final clean-up, we can rename the javaObject functions back to "obj" and de
 
 // begin-insert: tags/jsondsl_mixed.17:src/test/java/colloquiumatic/json/Json.kt#json_dsl
 [source,kotlin]
-[%autofit]
 ----
 @file:JvmName("Json")
 // ... package declaration and imports ...
@@ -770,7 +746,6 @@ We can remove the annotations from our Kotlin code, leaving the implementation a
 
 // begin-insert: tags/jsondsl_mixed.20:src/test/java/colloquiumatic/json/Json.kt#json_dsl
 [source,kotlin]
-[%autofit]
 ----
 fun obj(vararg props: Pair<String, JsonNode>) =
     obj(props.asList())
