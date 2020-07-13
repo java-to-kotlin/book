@@ -1,0 +1,123 @@
+= Working with the Grain of Kotlin
+
+== The "Grain" of a Programming Language
+
+In all programming languages, some things are easier to write, and other things more difficult.
+This affects the way we design programs in that language.
+For example, it has always been possible write Java code in a functional style, but few programmers did.
+Look what was required in Java 1.0.2 (the first public Java release) to do something as simple as calculating the sum of a list of numbers by reducing them with the addition operator.
+Java had no function types in its standard library, so you would have had to define interfaces for them:
+
+// begin-insert: src/main/java/grain/java1/Function2.java
+[source,java]
+----
+public interface Function2 {
+    Object apply(Object arg1, Object arg2);
+}
+----
+// end-insert
+
+Then you would have had to write the `fold` higher-order function, hiding the iteration and mutation required by the Java collections API:
+
+// begin-insert: src/main/java/grain/java1/Vectors.java#fold
+[source,java]
+----
+public class Lists {
+    public static Object fold(Function2 f, Object initial, List l) {
+        Object result = initial;
+        for (int i = 0; i < l.size(); i++) {
+            result = f.apply(result, l.get(i));
+        }
+        return result;
+    }
+
+    ...
+}
+----
+// end-insert
+
+You would have had to define a separate class for every function you wanted to pass to your `fold` function -- no lambdas or closures back then, not even inner classes.
+
+// begin-insert: src/main/java/grain/java1/AddIntegers.java
+[source,java]
+----
+public class AddIntegers implements Function2 {
+    public Object apply(Object arg1, Object arg2) {
+        int i1 = ((Integer) arg1).intValue();
+        int i2 = ((Integer) arg2).intValue();
+        return new Integer(i1 + i2);
+    }
+}
+----
+// end-insert
+
+And _finally_ you could use all that to calculate the sum:
+
+// begin-insert: src/test/java/grain/java1/TheGrainOfJava1Point0Test.java#fold
+[source,java]
+----
+int sum = ((Integer) Lists.fold(new AddIntegers(), new Integer(0), counts)).intValue();
+----
+// end-insert
+
+That's a lot of effort for what can be achieved, in modern languages, with a single expression.
+But that's not the end of it: because Java had no standard function types, you couldn't easily combine different libraries written in a functional style.
+You'd have to write adapter classes to map between the function types defined in different libraries.
+
+There was just not enough pay-off.
+Java programmers found it easier to write procedural code that iterated over collections and mutated state than the boilerplate needed for a functional style.
+Writing functional code _went against the grain_ of Java.
+
+Every programming language has a grain.
+It's easier to work with the grain of a language.
+Going against the grain involves constant effort with an uncertain pay-off.
+A language's grain forms over time as its designers and users build a common understanding of how language features interact and encode their understanding and preferences in libraries that others build upon.
+
+
+== The Grain of Kotlin
+
+Kotlin is a young language, but it clearly has a different grain to Java.
+
+The https://kotlinlang.org/#why-kotlin["Why Kotlin"] section of https://kotlinlang.org[kotlinlang.org] lists four design goals: "Concise", "Safe", "Interoperable", and "Tool-friendly".
+It also has unspoken preferences encoded in the design of the language and its standard libraries.
+
+Kotlin prefers the transformation of immutable data to mutation of state.
+Data classes make it easy to define new types with value semantics.
+The standard library makes it easier & more concise to transform collections of immutable data than iterate and mutate data in place.
+
+Kotlin prefers behaviour to be explicit.
+For example, there is no implicit coercion between types, even from smaller to larger range.
+Java implicitly converts int values to long values, because there is no loss of precision.
+In Kotlin you have to explicitly call `Int.toLong()`.
+The preference for explicitness is especially strong when it comes to control flow.
+Although you can overload arithmetic and comparison operators for your own types, you cannot overload the shortcut logical operators (`&&` and `||`), because that would allow you define different control flow.
+Polymorphism is opt-in, not opt-out.
+
+Static over dynamic binding:
+Kotlin encourages a type-safe, compositional coding style.
+Extension functions are bound statically.
+Designed from the get-go to be used with a language aware editor that statically analyses the code for navigation and program transformation.
+If you want to use reflection, you have to add a platform-specific library dependency.
+
+Kotlin doesn't like special cases.
+Compared to Java, Kotlin has fewer special cases that interact in unpredictable ways.
+There is no distinction between primitive and reference types.  There is no void type for functions that return but do not return a value. Functions in Kotlin either return a value, or never return at all.
+Extension functions allow you to add new operations to existing types, that look the same at the call point.
+You can write user-defined control structures using inline functions and return, break, continue etc. will act as expected.
+
+
+== Beware of features that exist only to ease interop
+
+Kotlin supports different <<java-programming-style,Java programming styles>>, to allow idiomatic Java and Kotlin code to coexist in the same codebase.
+Some of that support removes guarantees provided by other language features, and should _only_ be used to interop with legacy Java.
+For example, lateinit opens a hole in the type system for Java DI frameworks that use reflection to violate encapsulation boundaries.
+As soon as you declare a variable `lateinit var`, it's up to you to ensure the variable is initialised correctly.
+The type checker will not catch your mistakes.
+
+
+== _Faux Amis_ for Java Programmers
+
+A _faux ami_ is a word in a foreign language that looks similar to a word in your native tongue, but has a significantly different meaning.
+Likewise, Kotlin has syntax that look similar to Java -- sometimes even using the same keywords -- but that have quite different semantics.
+We will call attention to these as we come to them, and take some time to explore how the difference influences idiomatic Kotlin design.
+Feel free to skip any digression if you are comfortable with that aspect of the language.
