@@ -5,7 +5,7 @@ import java.util.List;
 
 /// begin: fold
 public class Lists {
-    public static <A,R> R fold(Function2<R,A,R> f, R initial, List<A> l) {
+    public static <A,R> R reduce(List<A> l, R initial, Function2<R, A, R> f) {
         R result = initial;
         for (A a : l) {
             result = f.apply(result, a);
@@ -14,7 +14,7 @@ public class Lists {
     }
 
     /// mute: fold
-    public static <A,R> List<R> map(Function1<A,R> f, List<A> l) {
+    public static <A,R> List<R> map(List<A> l, Function1<A, R> f) {
         List<R> result = new ArrayList<R>();
         for (A a : l) {
             result.add(f.apply(a));
@@ -22,7 +22,7 @@ public class Lists {
         return result;
     }
 
-    public static <A,R> List<R> flatMap(Function1<A,List<R>> f, List<A> l) {
+    public static <A,R> List<R> flatMap(List<A> l, Function1<A, List<R>> f) {
         List<R> result = new ArrayList<R>();
         for (A a : l) {
             result.addAll(f.apply(a));

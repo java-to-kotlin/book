@@ -1,11 +1,11 @@
-package grain.java1;
+package grain.java2;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /// begin: fold
 public class Lists {
-    public static Object fold(Function2 f, Object initial, List l) {
+    public static Object reduce(List l, Object initial, Function2 f) {
         Object result = initial;
         for (int i = 0; i < l.size(); i++) {
             result = f.apply(result, l.get(i));
@@ -14,7 +14,7 @@ public class Lists {
     }
 
     /// mute: fold
-    public static List map(Function1 f, List l) {
+    public static List map(List l, Function1 f) {
         List result = new ArrayList();
         for (int i = 0; i < l.size(); i++) {
             result.add(f.apply(l.get(i)));
@@ -22,7 +22,7 @@ public class Lists {
         return result;
     }
 
-    public static List flatMap(Function1 f, List l) {
+    public static List flatMap(List l, Function1 f) {
         List result = new ArrayList();
         for (int i = 0; i < l.size(); i++) {
             result.addAll((List)f.apply(l.get(i)));

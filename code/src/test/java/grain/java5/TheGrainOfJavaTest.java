@@ -12,12 +12,12 @@ public class TheGrainOfJavaTest extends TestCase {
         List<String> words = Arrays.asList("a", "b", "c");
 
         /// begin: map
-        List<String> upperCaseWords = Lists.map(new Function1<String,String>() {
+        List<String> upperCaseWords = Lists.map(words, new Function1<String,String>() {
             @Override
             public String apply(String arg) {
                 return arg.toUpperCase();
             }
-        }, words);
+        });
         /// end: map
 
         assertEquals(Arrays.asList("A", "B", "C"), upperCaseWords);
@@ -41,12 +41,12 @@ public class TheGrainOfJavaTest extends TestCase {
         List<Integer> counts = Arrays.asList(1, 20, 12);
 
         /// begin: fold
-        int sum = Lists.fold(new Function2<Integer, Integer, Integer>() {
+        int sum = Lists.reduce(counts, 0, new Function2<Integer, Integer, Integer>() {
             @Override
             public Integer apply(Integer arg1, Integer arg2) {
                 return arg1 + arg2;
             }
-        }, 0, counts);
+        });
         /// end: fold
 
         assertEquals(33, sum);
