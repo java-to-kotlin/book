@@ -3,33 +3,25 @@ package grain.java1;
 import junit.framework.TestCase;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 
-public class TheGrainOfJava1Point0Test extends TestCase {
+public class TheGrainOfJavaTest extends TestCase {
     public void testMap() {
-        List words = new ArrayList();
-        words.add("a");
-        words.add("b");
-        words.add("c");
+        List words = Arrays.asList("a", "b", "c");
 
         /// begin: map
         List upperCaseWords = Lists.map(new StringToUpperCase(), words);
         /// end: map
 
-        List expected = new ArrayList();
-        expected.add("A");
-        expected.add("B");
-        expected.add("C");
+        List expected = Arrays.asList("A", "B", "C");
 
         assertEquals(expected, upperCaseWords);
     }
 
     public void testMutateList() {
-        List words = new ArrayList();
-        words.add("a");
-        words.add("b");
-        words.add("c");
+        List words = Arrays.asList("a", "b", "c");
 
         /// begin: map_iteratively
         List upperCaseWords = new ArrayList();
@@ -38,20 +30,14 @@ public class TheGrainOfJava1Point0Test extends TestCase {
         }
         /// end: map_iteratively
 
-        List expected = new ArrayList();
-        expected.add("A");
-        expected.add("B");
-        expected.add("C");
+        List expected = Arrays.asList("A", "B", "C");
 
         assertEquals(expected, upperCaseWords);
     }
 
 
     public void testReduce() {
-        List counts = new ArrayList();
-        counts.add(new Integer(1));
-        counts.add(new Integer(20));
-        counts.add(new Integer(12));
+        List counts = Arrays.asList(new Integer(1), new Integer(20), new Integer(12));
 
         /// begin: fold
         int sum = ((Integer) Lists.fold(new AddIntegers(), new Integer(0), counts)).intValue();
@@ -61,10 +47,7 @@ public class TheGrainOfJava1Point0Test extends TestCase {
     }
 
     public void testReduceByIteration() {
-        List counts = new ArrayList();
-        counts.add(new Integer(1));
-        counts.add(new Integer(20));
-        counts.add(new Integer(12));
+        List counts = Arrays.asList(new Integer(1), new Integer(20), new Integer(12));
 
         /// begin: reduce_iteratively
         int sum = 0;

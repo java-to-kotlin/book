@@ -29,10 +29,6 @@ public class Lists {
         }
         return result;
     }
-
-    public static Object reduce(Monoid f, List l) {
-        return fold(f, f.nil(), l);
-    }
     /// resume: fold
 }
 /// end: fold
