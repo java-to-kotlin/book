@@ -53,7 +53,8 @@ public class TheGrainOfJavaTest extends TestCase {
         counts.add(new Integer(12));
 
         /// begin: reduce
-        int sum = ((Integer) Vectors.reduce(counts, new Integer(0), new AddIntegers())).intValue();
+        int sum = ((Integer) Vectors.reduce(counts, new Integer(0), new AddIntegers()))
+            .intValue();
         /// end: reduce
 
         assertEquals(33, sum);
