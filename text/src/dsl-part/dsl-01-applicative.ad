@@ -1,5 +1,5 @@
 [[applicative-dsl]]
-= We refactor an Embedded Domain-Specific Language
+== We refactor an Embedded Domain-Specific Language
 
 Our application contains a utility class of static methods that we use to build examples of JSON data in tests.
 This allows us to write self-contained tests that are not split between Java code and JSON resource files without having to build JSON examples by string concatenation.
@@ -89,7 +89,7 @@ At some point, we'll have enough Kotlin code using our Json notation that it's w
 From there we can introduce features for the benefit of Kotlin code.
 Eventually we'll convert the last bit of Java code, and we can delete anything that remains in the Json class solely for the benefit of Java.
 
-== Start by converting uses of the DSL
+=== Start by converting uses of the DSL
 
 Let's get started by converting the Java test we saw earlier that uses the Json class.
 The converter leaves us with code like this:
@@ -238,7 +238,7 @@ object Json {
 
 TODO: explain nullability & Jackson's API, the +node.set<JsonNode>+ weirdness, and keeping the @SafeVarargs for Java.
 
-== Simplifying the Kotlin code
+=== Simplifying the Kotlin code
 
 Now everything is working again, let's simplify the implementation of the Json class and improve the notation it provides to Kotlin code, while ensuring any remaining Java code that uses it is unaffected.
 
@@ -311,7 +311,7 @@ What stands out now is the use of Map.Entry and AbstractMap.SimpleImmutableEntry
 In our Java code, we used them to hold key/value pairs, because Java doesn't have pair type.
 Kotlin does -- let's use it.
 
-== Using Kotlin's Pair type
+=== Using Kotlin's Pair type
 
 There's no automatic refactoring that can replace Map.Entry and AbstractMap.SimpleImmutableEntry with Pair in one go.
 However, thanks to Kotlin type inference and our use of single-expression functions, Map.Entry is only referred to in three places: as parameters of the `obj` functions and in the implementation of `prop(String,JsonNode)`.
@@ -536,7 +536,7 @@ JsonNode commandAsJson = obj(
 ----
 // end-insert
 
-== Making idiomatic Kotlin usable from Java
+=== Making idiomatic Kotlin usable from Java
 
 Now all that remains to get to 100% conventional Kotlin is to move the declarations to the top-level and delete the Json object, all without disrupting the Java code that depends on it.
 
@@ -767,7 +767,7 @@ infix fun String.of(intValue: Int?) =
 ----
 // end-insert
 
-== Discussion
+=== Discussion
 
 In this chapter we explored a tiny _Embedded Domain-Specific Language_ that uses nested function calls to compose data structures.  This kind of notation is easy to implement but rather limited in what it can express and construct.
 
