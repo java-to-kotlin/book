@@ -2,7 +2,7 @@ package grain.java1;
 
 import java.util.Vector;
 
-/// begin: fold
+/// begin: reduce
 public class Vectors {
     public static Object reduce(Vector l, Object initial, Function2 f) {
         Object result = initial;
@@ -12,7 +12,7 @@ public class Vectors {
         return result;
     }
 
-    /// mute: fold
+    /// mute: reduce
     public static Vector map(Vector l, Function1 f) {
         Vector result = new Vector();
         for (int i = 0; i < l.size(); i++) {
@@ -28,6 +28,6 @@ public class Vectors {
         }
         return result;
     }
-    /// resume: fold
+    /// resume: reduce
 }
-/// end: fold
+/// end: reduce

@@ -43,7 +43,7 @@ public class TheGrainOfJavaTest extends TestCase {
     public void testReduce() {
         List counts = Arrays.asList(new Integer(1), new Integer(20), new Integer(12));
 
-        /// begin: fold
+        /// begin: reduce
         int sum = ((Integer) Lists.reduce(counts, new Integer(0), new Function2() {
             public Object apply(Object arg1, Object arg2) {
                 int i1 = ((Integer) arg1).intValue();
@@ -51,7 +51,7 @@ public class TheGrainOfJavaTest extends TestCase {
                 return new Integer(i1 + i2);
             }
         })).intValue();
-        /// end: fold
+        /// end: reduce
 
         assertEquals(33, sum);
     }

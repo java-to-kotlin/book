@@ -40,14 +40,14 @@ public class TheGrainOfJavaTest extends TestCase {
     public void testReduce() {
         List<Integer> counts = Arrays.asList(1, 20, 12);
 
-        /// begin: fold
+        /// begin: reduce
         int sum = Lists.reduce(counts, 0, new Function2<Integer, Integer, Integer>() {
             @Override
             public Integer apply(Integer arg1, Integer arg2) {
                 return arg1 + arg2;
             }
         });
-        /// end: fold
+        /// end: reduce
 
         assertEquals(33, sum);
     }

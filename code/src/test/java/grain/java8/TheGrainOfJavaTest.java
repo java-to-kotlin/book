@@ -29,9 +29,9 @@ public class TheGrainOfJavaTest extends TestCase {
     public void testReduce() {
         List<Integer> counts = Arrays.asList(1, 20, 12);
 
-        /// begin: fold
+        /// begin: reduce
         int sum = counts.stream().reduce(0, Integer::sum);
-        /// end: fold
+        /// end: reduce
 
         assertEquals(33, sum);
     }

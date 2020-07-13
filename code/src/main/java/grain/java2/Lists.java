@@ -3,7 +3,7 @@ package grain.java2;
 import java.util.ArrayList;
 import java.util.List;
 
-/// begin: fold
+/// begin: reduce
 public class Lists {
     public static Object reduce(List l, Object initial, Function2 f) {
         Object result = initial;
@@ -13,7 +13,7 @@ public class Lists {
         return result;
     }
 
-    /// mute: fold
+    /// mute: reduce
     public static List map(List l, Function1 f) {
         List result = new ArrayList();
         for (int i = 0; i < l.size(); i++) {
@@ -29,6 +29,6 @@ public class Lists {
         }
         return result;
     }
-    /// resume: fold
+    /// resume: reduce
 }
-/// end: fold
+/// end: reduce

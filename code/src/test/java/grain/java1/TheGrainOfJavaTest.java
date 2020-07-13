@@ -52,9 +52,9 @@ public class TheGrainOfJavaTest extends TestCase {
         counts.add(new Integer(20));
         counts.add(new Integer(12));
 
-        /// begin: fold
+        /// begin: reduce
         int sum = ((Integer) Vectors.reduce(counts, new Integer(0), new AddIntegers())).intValue();
-        /// end: fold
+        /// end: reduce
 
         assertEquals(33, sum);
     }
