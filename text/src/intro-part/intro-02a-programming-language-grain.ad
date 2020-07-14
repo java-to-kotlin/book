@@ -55,20 +55,65 @@ And _finally_ you could use all that to calculate the sum:
 // begin-insert: src/test/java/grain/java1/TheGrainOfJavaTest.java#reduce
 [source,java]
 ----
-int sum = ((Integer) Vectors.reduce(counts, new Integer(0), new AddIntegers())).intValue();
+int sum = ((Integer) Vectors.reduce(counts, new Integer(0), new AddIntegers()))
+    .intValue();
 ----
 // end-insert
 
 That's a lot of effort for what can be achieved, in modern languages, with a single expression.
-But that's not the end of it: because Java had no standard function types, you couldn't easily combine different libraries written in a functional style.
+But that's not the end of it.
+Because Java had no standard function types, you couldn't easily combine different libraries written in a functional style.
 You had to write adapter classes to map between the function types defined in different libraries.
+And because the virtual machine had no JIT and a simple garbage collector, functional code would perform much worse than the imperative alternative.
 
 There was just not enough pay-off.
-Java programmers found it easier to write procedural code that iterated over collections and mutated state than the boilerplate needed for a functional style.
+Java programmers found it easier to write imperative code that iterated over collections and mutated state.
 Writing functional code _went against the grain_ of Java.
 
 Every programming language has a grain.
 It's easier to work with the grain of a language.
 Going against the grain involves constant effort with an uncertain pay-off.
 A language's grain forms over time as its designers and users build a common understanding of how language features interact and encode their understanding and preferences in libraries that others build upon.
+The grain influences the way code is written in the language, which influences the evolution of the language and libraries, which influences the evolution of the grain.
 
+For example, Java 1.1 added anonymous inner classes to the language, and Java 2 added a collections framework to the standard library.  Anonymous inner classes meant that you didn't need to write a named class for each function you wanted to pass to `reduce`, but the resulting code was arguably harder to read.
+
+// begin-insert: src/test/java/grain/java2/TheGrainOfJavaTest.java#reduce
+[source,java]
+----
+int sum = ((Integer) Lists.reduce(counts, new Integer(0), new Function2() {
+    public Object apply(Object arg1, Object arg2) {
+        int i1 = ((Integer) arg1).intValue();
+        int i2 = ((Integer) arg2).intValue();
+        return new Integer(i1 + i2);
+    }
+})).intValue();
+----
+// end-insert
+
+Functional idioms still went against the grain of Java 2.
+
+Java 5 added generics, which made the code more type safe, and autoboxing, which removed some boilerplate:
+
+// begin-insert: src/test/java/grain/java5/TheGrainOfJavaTest.java#reduce
+[source,java]
+----
+int sum = Lists.reduce(counts, 0, new Function2<Integer, Integer, Integer>() {
+    @Override
+    public Integer apply(Integer arg1, Integer arg2) {
+        return arg1 + arg2;
+    }
+});
+----
+// end-insert
+
+This was enough for https://github.com/google/guava[Google's Guava library] to include some functional programming idioms, although `reduce` was not among them. However, the authors of Guava recommended writing imperative code where possible because it had better performance and was usually easier to read.
+
+Functional programming still went largely against the grain of Java 5, but you could see the start of a trend.
+
+Java 8 added anonymous functions (aka "lambda expressions") and method references to the language and the Streams API to the standard library.  The compiler and virtual machine optimised lambdas to avoid the performance overhead of anonymous inner classes.  The Streams API fully embraced functional idioms.
+
+// begin-insert: src/test/java/grain/java8/TheGrainOfJavaTest.java#reduce
+// end-insert
+
+Ok, there were still a few awkward edge cases because of Java's distinction between reference and primitive types, and the Streams API was missing some common higher-order functions that you'd be used to if coming from a functional language (or even Ruby).  But apart from that, functional idioms did work with the grain of Java.
