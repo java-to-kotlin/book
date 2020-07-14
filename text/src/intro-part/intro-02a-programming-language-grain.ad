@@ -76,7 +76,7 @@ Going against the grain involves constant effort with an uncertain pay-off.
 A language's grain forms over time as its designers and users build a common understanding of how language features interact and encode their understanding and preferences in libraries that others build upon.
 The grain influences the way code is written in the language, which influences the evolution of the language and libraries, which influences the evolution of the grain.
 
-For example, Java 1.1 added anonymous inner classes to the language, and Java 2 added a collections framework to the standard library.  Anonymous inner classes meant that you didn't need to write a named class for each function you wanted to pass to `reduce`, but the resulting code was arguably harder to read.
+For example, Java 1.1 added anonymous inner classes to the language, and Java 2 added the collections framework to the standard library.  Anonymous inner classes meant that you didn't need to write a named class for each function you wanted to pass to your `reduce` function, but the resulting code was arguably harder to read.
 
 // begin-insert: src/test/java/grain/java2/TheGrainOfJavaTest.java#reduce
 [source,java]
@@ -93,7 +93,16 @@ int sum = ((Integer) Lists.reduce(counts, new Integer(0), new Function2() {
 
 Functional idioms still went against the grain of Java 2.
 
-Java 5 added generics, which made the code more type safe, and autoboxing, which removed some boilerplate:
+Java 5 added generics, which improved type safety, and autoboxing, which removed some boilerplate:
+
+// begin-insert: src/main/java/grain/java5/Function2.java
+[source,java]
+----
+public interface Function2<A,B,R> {
+    R apply(A arg1, B arg2);
+}
+----
+// end-insert
 
 // begin-insert: src/test/java/grain/java5/TheGrainOfJavaTest.java#reduce
 [source,java]
@@ -107,13 +116,17 @@ int sum = Lists.reduce(counts, 0, new Function2<Integer, Integer, Integer>() {
 ----
 // end-insert
 
-This was enough for https://github.com/google/guava[Google's Guava library] to include some functional programming idioms, although `reduce` was not among them. However, the authors of Guava recommended writing imperative code where possible because it had better performance and was usually easier to read.
+This was enough for https://github.com/google/guava[Google's Guava library] to include some common higher-order functions over collections, although `reduce` was not among them. However, the authors of Guava recommended writing imperative code where possible because it had better performance and was usually easier to read.
 
 Functional programming still went largely against the grain of Java 5, but you could see the start of a trend.
 
 Java 8 added anonymous functions (aka "lambda expressions") and method references to the language and the Streams API to the standard library.  The compiler and virtual machine optimised lambdas to avoid the performance overhead of anonymous inner classes.  The Streams API fully embraced functional idioms.
 
 // begin-insert: src/test/java/grain/java8/TheGrainOfJavaTest.java#reduce
+[source,java]
+----
+int sum = counts.stream().reduce(0, Integer::sum);
+----
 // end-insert
 
-Ok, there were still a few awkward edge cases because of Java's distinction between reference and primitive types, and the Streams API was missing some common higher-order functions that you'd be used to if coming from a functional language (or even Ruby).  But apart from that, functional idioms did work with the grain of Java.
+It still wasn't entirely plain sailing. Java's type system creates awkward edge cases because of the distinction between reference and primitive types. The Streams API was missing some common higher-order functions that you'd be used to if coming from a functional language (or even Ruby).  Checked exceptions don't play well with the Streams API and functional programming in general.  And making immutable classes with value semantics still involves a lot of boilerplate code.  But Java has fundamentally changed to make a functional style work with, not against, its grain.
