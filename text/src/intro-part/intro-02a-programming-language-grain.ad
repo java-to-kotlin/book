@@ -4,9 +4,10 @@
 In all programming languages, some things are easier to write, and other things more difficult.
 This affects the way we design programs in that language.
 
-For example, it has always been possible write Java code in a functional style, but few programmers did.
+For example, it has always been possible write Java code in a functional style, but few programmers did before Java 8 for good reasons.
 Look what was required in Java 1.0.2 (the first public Java release) to do something as simple as calculating the sum of a list of numbers by reducing them with the addition operator.
-Java had no function types in its standard library, so you would have had to define interfaces for them:
+
+Java did not have first-class functions, so you would have had to define your own interfaces for function types:
 
 // begin-insert: src/main/java/grain/java1/Function2.java
 [source,java]
@@ -36,7 +37,7 @@ public class Vectors {
 ----
 // end-insert
 
-You would have had to define a separate class for every function you wanted to pass to your `reduce` function -- no lambdas or closures back then, not even inner classes.
+You would have had to define a separate class for every function you wanted to pass to your `reduce` function -- the addition operator couldn't be passed around as a value and the language had no lambdas or closures back then, not even inner classes.
 
 // begin-insert: src/main/java/grain/java1/AddIntegers.java
 [source,java]
@@ -130,10 +131,9 @@ int sum = counts.stream().reduce(0, Integer::sum);
 ----
 // end-insert
 
-It still wasn't entirely plain sailing. Java's type system creates awkward edge cases because of the distinction between reference and primitive types. The Streams API was missing some common higher-order functions that you'd reach for if coming from a functional language (or even Ruby).  Checked exceptions don't play well with the Streams API and functional programming in general.  And making immutable classes with value semantics still involves a lot of boilerplate code.  But with Java 8, Java fundamentally changed to make a functional style work with, not against, its grain.
+It still wasn't entirely plain sailing.  You still can't treat the addition operator as a value, but the standard library does define the `Integer::sum` function that does the same thing.  Java's type system creates awkward edge cases because of the distinction between reference and primitive types. The Streams API was missing some common higher-order functions that you'd reach for if coming from a functional language (or even Ruby).  Checked exceptions don't play well with the Streams API and functional programming in general.  And making immutable classes with value semantics still involves a lot of boilerplate code.  But with Java 8, Java fundamentally changed to make a functional style work with, not against, the grain of the language.
 
-A language's grain influences the way that programmers write code in the language, which influences the evolution of the language and its libraries, changing the grain, altering the way that programmers write code in the language, on amnd on in a continual cycle of mutual feedback and evolution.
-
+Grain influences the way that programmers write code in a language, which influences the evolution of the language and its libraries, changing the grain, altering the way that programmers write code in the language, on and on in a continual cycle of mutual feedback and evolution.
 In the case of Java, the grain of the language, and the way programmers adapted to it, evolved through several distinct programming styles.
 Kotlin has features designed specifically to simplify the interop with code written in these styles.
 We'll refer to these styles as a shorthand when explaining why these features exist, and when to use or avoid them.
