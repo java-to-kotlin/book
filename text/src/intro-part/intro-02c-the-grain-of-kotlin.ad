@@ -30,14 +30,15 @@ There is no distinction between primitive and reference types.  There is no void
 Extension functions allow you to add new operations to existing types, that look the same at the call point.
 You can write new control structures as inline functions and the break, continue and return statements act the same as they do in built-in control structures.
 
+When we re-read the first code we wrote in Kotlin, it looks like Java in Kotlin syntax.  We wrote unnecessary boilerplate.  We defined functions in objects instead of at the top-level of the source file.  We didn't make good use of the standard library.  We avoided using null because we weren't yet used to the type checker enforcing null safety.  We used infix functions inappropriately.  Scala programmers on the team went too far the other way, writing Kotlin cosplaying Scala cosplaying Haskell.  None of us had found the sweet spot that comes with working with the grain. Our aim with this book is to boost you past that stage, to give you a feel for the grain of Kotlin so that you design systems with Kotlin that make best use of the language features and ecosystem.
+
 
 === Beware of features that exist only to ease interop
 
-Kotlin supports different <<java-programming-style,Java programming styles>>, to allow idiomatic Java and Kotlin code to coexist in the same codebase.
-Some of that support removes guarantees provided by other language features, and should _only_ be used to interop with legacy Java.
-For example, lateinit opens a hole in the type system for Java DI frameworks that use reflection to violate encapsulation boundaries.
-As soon as you declare a variable `lateinit var`, it's up to you to ensure the variable is initialised correctly.
-The type checker will not catch your mistakes.
+The Kotlin language has features to allow idiomatic Java and Kotlin code to coexist in the same codebase.
+Some of those features remove guarantees provided by other language features, and should _only_ be used to interop with legacy Java.
+For example, lateinit opens a hole in the type system to allow Java [pattern]_Dependency Injection_ frameworks that instantiate objects by reflection to violate the encapsulation boundaries enforced by the compiler.
+As soon as you declare a property as `lateinit var`, it's up to you to ensure your code initialises the property before reading it -- the compiler will not catch your mistakes.
 
 
 [[faux-amis]]
@@ -47,3 +48,4 @@ A _faux ami_ is a word in a foreign language that looks similar to a word in you
 Likewise, Kotlin has syntax that look similar to Java -- sometimes even using the same keywords -- but that have quite different semantics.
 We will call attention to these as we come to them, and take some time to explore how the difference influences idiomatic Kotlin design.
 Feel free to skip any digression if you are comfortable with that aspect of the language.
+
