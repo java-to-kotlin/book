@@ -2,17 +2,26 @@
 === An opinionated history of Java programming style
 
 Kotlin has features that support different _styles_ of Java programming.
-Over the decades, Java programming style has developed through several distinct eras, that we'll name Primeval Style, Beans Style, Enterprise Style, and Modern Style.
-We'll refer to these styles as a shorthand when explaining why certain Kotlin features exist, and how to use them.
+Over the decades, Java programming style has developed through several distinct eras, that we think of as the Primeval Age, the Beans Age, the Enterprise Age, and the Modern Age.
+We'll refer to these styles as a shorthand when explaining why certain Kotlin features exist, and when to use them.
 
 [[primeval-java-style]]
 ==== Primeval Style
 
-Originally intended for domestic appliances and interactive TV, Java only took off when Netscape supported Java applets in their hugely popular Navigator browser.
+Originally intended for use in domestic appliances and interactive TV, Java only took off when Netscape supported Java applets in their hugely popular Navigator browser.
 Suddenly everyone with a web browser had a Java runtime environment.
 Sun released the Java development kit 1.0, Microsoft included Java in Internet Explorer, and interest in Java as a programming language exploded.
 
-A lot of the fundamentals of Java existed at that time: the Java virtual machine and its bytecode and classfile format; primitive and reference types; null references; garbage collection; classes and interfaces; methods and control flow statements; checked exceptions for error handling; the abstract windowing toolkit; classes for networking with Internet and web protocols; and loading and linking of code at runtime, sandboxed by a security manager.
+A lot of the fundamentals of Java existed at that time:
+the Java virtual machine and its bytecode and classfile format;
+primitive and reference types;
+null references; garbage collection;
+classes and interfaces;
+methods and control flow statements;
+checked exceptions for error handling;
+the abstract windowing toolkit;
+classes for networking with Internet and web protocols;
+and the loading and linking of code at runtime, sandboxed by a security manager.
 However, Java wasn’t yet ready for general purpose programming: the JVM was slow and the standard library sparse.
 
 Java looked like a cross between C++ and Smalltalk, and Java programming style at the time was influenced by those two languages.
@@ -25,23 +34,23 @@ Java's one true coding convention meant that Java programmers could seamlessly i
 [[bean-java-style]]
 ==== Bean Style
 
-1996: Java started to become a practical tool with version 1.1. This release introduced language changes (most notably inner classes), runtime changes (most notably just-in-time compilation and reflection), and many additions to the standard library. 1998: Java 1.2 introduced a standard collections API and the Swing cross-platform GUI framework, which ensured Java applications stood out on every desktop operating system.
+After its initial success, Sun set out to make Java a practical tool for building applications. Java 1.1 (1996) added to the language (most notably inner classes), improved the runtime (most notably just-in-time compilation and reflection), and extended the standard library. Java 1.2 (1998) added a standard collections API and the Swing cross-platform GUI framework, which ensured Java applications didn't look or feel quite right on every desktop operating system.
 
-Sun was eyeing Microsoft's domination of corporate software development.
-Java had potential as a competitor to Visual Basic.
-They added a slew of APIs that were, to be charitable, heavily inspired by Microsoft APIs.
+Sun was eyeing Microsoft and Borland's domination of corporate software development.
+Java had potential to be a strong competitor to Visual Basic and Delphi.
+Sun added a slew of APIs that were, to be charitable, heavily inspired by Microsoft APIs.
 JDBC for data base access (Microsoft had ODBC), Swing for desktop GUI programming (Microsoft had MFC), and the API that had the biggest influence on Java programming style: Java Beans.
 
 Java Beans was Sun's attempt to compete with Microsoft's ActiveX component model for low-code, graphical, drag-and-drop programming.
 Programmers could use ActiveX components in their Visual Basic programs, or embed them in office documents, or in web pages on their corporate intranet.
-ActiveX components were notoriously difficult to write, and Java Beans were much easier.
-You merely had to follow some additional coding conventions for your class to be considered a "bean" that could be instantiated and configured in a graphical UI designer.
+It was notoriously difficult to write an ActiveX component.
+Java Beans were much easier: you merely had to follow some additional coding conventions for your class to be considered a "bean" that could be instantiated and configured in a graphical designer.
 
-To be a Java Bean, a class had to have a constructor that took no arguments, and expose an interface made up of public properties that could be read and optionally written, methods that could be invoked, and events that objects of the class would announce.
-In an application designer, programmers could instantiate beans, set their properties, and write event listeners that invoked methods of other beans.
-By default, properties were defined by methods with names that started with get and set.
+For a class to be a Java Bean, it had to have a constructor that took no arguments, and expose an interface made up of public properties that could be read and optionally written, methods that could be invoked, and events that objects of the class would announce.
+In an application designer, programmers could instantiate beans, set their properties, and connect a bean's events to the methods of other beans.
+By default, properties were defined by methods with names that started with "get" and "set".
 This default could be overridden, but doing so required so much boilerplate that programmers usually only did so for existing classes.
-It was much easier to follow the conventions in new classes.
+In new code, it was much easier to follow the conventions.
 
 The drawback of Beans style is that it relies heavily on mutable state, and requires more of that state to be public than plain ol' Java objects because you cannot pass parameters to an object's constructor.
 Object state must be mutable so that it can be set after construction and objects must often be instantiated in an invalid state -- with required properties initialised to null, for example -- and then put into a valid state by setting their public properties.
