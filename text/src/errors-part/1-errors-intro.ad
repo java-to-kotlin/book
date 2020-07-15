@@ -307,12 +307,10 @@ but again this is potentially an issue for practically every piece of code,
 and so these are also exempted from having to be declared
 and handled.
 
-TOTOSOAJDFOASJDOIJASoda
-Checked exceptions force developers are forced to deal with operations
+This exception scheme forces developers to deal with operations
 that can fail due to IO or other things that are out of their control
-(the checked exceptions).
-This allows defensive programming where it is economical.
-
+(the checked exceptions),
+allowing defensive programming where it is economical.
 If an Error is thrown the best default approach
 is exit the process as quickly as possible,
 before any more damage can be done to persistent state.
@@ -348,7 +346,7 @@ This is an interesting case,
 and goes to the heart of why error handling is so hard.
 
 Looking through our strategies,
-it can't return a special integer value,
+`parseInt` can't return a special integer value,
 because all the ints are spoken for.
 It could return null as a boxed Integer,
 but having to box and unbox for this,
@@ -362,9 +360,8 @@ so we are left with throwing an exception.
 Should that exception be checked or unchecked?
 
 The language designers decided that
-
-* `parseInt` should throw NumberFormatException
-* NumberFormatException
+`parseInt` should throw NumberFormatException,
+and that NumberFormatException
 should be an IllegalArgumentException,
 which is a RuntimeException and so unchecked.
 
@@ -453,32 +450,26 @@ It does not have checked exceptions,
 because Java had already lost that fight,
 and because they are hard to reconcile with
 the higher-order functions that are now common.
-
-.How Can Kotlin Just Ignore Checked Exceptions?
-****
-The answer is that they are not a feature of the JVM,
+It is able to just ignore checked exceptions
+because they are not a feature of the JVM,
 but rather of the Java compiler.
 The compiler does record in the bytecode
-what checked exceptions are declared by a method
+what checked exceptions a method declares
 (in order for the compiler to be able to check them),
 but the JVM itself does not care.
-****
 
 The result is that Kotlin programs are by default
 no better or worse than most Java programs
 when it comes to error handling.
 
-****
 An exception ;-) to this is that,
 as we observed above,
 Kotlin can use null to indicate an error,
 safe in the knowledge that callers will have to write code to handle it.
-
-An example of this is the provision of
+For example of this is the provision of
 `<T> Iterable<T>.firstOrNull(): T?` in the runtime.
 Confusingly though the runtime also defines `first()`,
 which throws NoSuchElementException if the collection is empty.
-****
 
 == Functional Error Handling
 
@@ -486,7 +477,7 @@ Statically-typed functional programming languages
 often reject exceptions
 in favour of another error handling technique.
 
-A distinguishing feature of functional programming is Referential Transparency.
+A distinguishing feature of functional programming is _Referential Transparency_.
 When this applies we can replace an expression with the result of its evaluation.
 So if we write
 
@@ -538,7 +529,7 @@ In Kotlin,
 null would be great here,
 but what if we needed to say which was the first character that wasn't a digit?
 We can convey that information in an exception,
-but not in an return type of `Int?`.
+but not in a return type of `Int?`.
 
 Can we find a way for our function to return either the `Int`,
 or the way that it failed?
@@ -706,13 +697,13 @@ from those operations that would have thrown a checked exception in Java,
 either because of IO problems,
 or because, like `parseInt`,
 they cannot give a result for all inputs.
-Errors (capital E) are still appropriate for unrecoverable program errors.
+`Error`s are still appropriate for unrecoverable program errors.
 They should generally not be caught
 and the program should exit,
 with systems outside the JVM responsible for restarting it.
 RuntimeExceptions are still good for signalling when
 we have made an error as programmers -
-IndexOutOfBounds and the like.
+`IndexOutOfBounds` and the like.
 If we have carefully designed our system
 it should be able to survive these issues
 and process other inputs that do not run into the same problem.
@@ -734,7 +725,7 @@ There are plenty of others available,
 but for this book we will use Result4k,
 not coincidentally written by Nat.
 Compared to the generic Either type we introduced earlier,
-Result4 defines `Result<SuccessType, FailureType>`,
+Result4k defines `Result<SuccessType, FailureType>`,
 with subtypes Success and Failure
 rather than the generic Left and Right.
 As it is specialised for representing errors,
