@@ -1,7 +1,7 @@
 [[why-refactor-to-kotlin]]
 === Why _Refactor_ to Kotlin?
 
-We never had the luxury of spending time just converting our Java codebase to Kotlin.
+We have never had the luxury of spending time just converting our Java codebase to Kotlin.
 We had to port parts of our code to Kotlin as we continued to add features to the system, maintaining a mixed Java/Kotlin codebase as we did so.
 We managed the risk by working in small changes, making each easy to understand, and cheap to discard if we found out it broke something.
 Our process was to first convert Java code to Kotlin, giving us a Java-esque design in Kotlin syntax.
@@ -9,7 +9,6 @@ We then incrementally applied Kotlin language features to make the code increasi
 
 Small, safe, reversible changes that improved the design: we _refactored_ from idiomatic Java to idomatic Kotlin.
 
-It’s not unusual to refactor between languages.
 These days most projects are multilingual.
 A "Java" web app, for example, will involve code written in Java, HTML, CSS, JavaScript, at least one templating language, maybe more if you have templating on the server and in the browser, JSX if you're using React, and one or more query languages (SQL, etc).
 It’s common to refactor logic between these languages: persistence logic from Java into a query language or vice versa, browser-side presentation between Javascript code and CSS rules or HTML elements as browsers evolve, or between JavaScript code manipulating the DOM and browser-side templating; server-side presentation between the template language and functions or objects in the host language; and so on.
@@ -23,16 +22,15 @@ Thanks to the design of the Kotlin language, the way it is mapped to the JVM pla
 
 Our experience has been that we can refactor Java to Kotlin without impacting productivity, and that as more of the codebase is converted to Kotlin, productivity accelerates.
 
-[TIP]
-.Commit for Git Bisect
-====
-Imagine that you do, by accident, break something that is not caught by your test suite.
-You'll want to find the commit that introduced the fault and fix it as quick as you can.
-Git Bisect is a tool that finds the faulty commit: you write a test that demonstrates the error and Git Bisect does a binary search of the history to find the first commit that makes that test fail.
-If the commits in your history are a mish-mash of loosely related changes, Git Bisect cannot help as well: it can't tell you which of the changes within a commit introduced the error.
-If commits mix refactoring _and_ changes to behaviour, reverting a bad refactoring step can break _other_ behaviour in the system.
-Small, focused commits that separate refactorings from each other, and from changes to behaviour, make it easy to understand what changed and fix any erroneous change.
-====
+=== Prerequisites to Refactoring
+
+TODO:
+
+ - We assume good test coverage.
+ - If you don't have good test coverage it can be complicated to achieve it, because tests will not have influenced the design of the code to make it easy to isolate what you want to test.
+ - You're in a chicken and egg situation: you have to do some refactoring to improve test coverage, to be able to do more refactoring.
+ - Reference some books/techniques for getting test coverage for untested code: approval testing (Emily Bache's book?), Feathers WEWLC
+
 
 === Refactoring Combinations
 
@@ -49,3 +47,15 @@ That is itself a refactoring combination -- a meta-combination, if you will -- t
 
 The first time we describe a refactoring combination we'll go through it step by step and show how the code changes at each step, which takes quite a lot of space on the page, and will take a bit of reading time to follow.
 In practice, however, these combinations are pretty fast to perform -- typically a few seconds, a few minutes at most.
+
+
+[TIP]
+.Commit for Git Bisect
+====
+Imagine that you do, by accident, break something that is not caught by your test suite.
+You'll want to find the commit that introduced the fault and fix it as quick as you can.
+Git Bisect is a tool that finds the faulty commit: you write a test that demonstrates the error and Git Bisect does a binary search of the history to find the first commit that makes that test fail.
+If the commits in your history are a mish-mash of loosely related changes, Git Bisect cannot help as well: it can't tell you which of the changes within a commit introduced the error.
+If commits mix refactoring _and_ changes to behaviour, reverting a bad refactoring step can break _other_ behaviour in the system.
+Small, focused commits that separate refactorings from each other, and from changes to behaviour, make it easy to understand what changed and fix any erroneous change.
+====
