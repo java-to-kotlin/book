@@ -17,67 +17,60 @@ At the time of writing, the Kotlin compiler can generate bytecode compatible wit
 
 Here is our Gradle build file before changes.
 
-// begin-insert: tags/r0.0:build.gradle
+// begin-insert: tags/baseline.0:build.gradle#java_build
 [source,groovy]
 ----
 plugins {
     id("java")
 }
 
-group "com.colloquiumatic"
-version "1.0-SNAPSHOT"
-
-repositories {
-    mavenCentral()
-    jcenter()
-    mavenLocal()
-}
+java.sourceCompatibility = JavaVersion.VERSION_11
+java.targetCompatibility = JavaVersion.VERSION_11
+// ... and other project settings ...
 
 dependencies {
     implementation "com.fasterxml.jackson.core:jackson-databind:2.10.0"
     implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.10.0"
     implementation "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.10.0"
+    // ... and the rest of our app's implementation dependencies
 
     testImplementation "org.junit.jupiter:junit-jupiter-api:5.4.2"
     testImplementation "org.junit.jupiter:junit-jupiter-params:5.4.2"
-    testImplementation "org.jmock:jmock-junit5:2.12.0"
-    testImplementation "org.jmock:jmock-imposters:2.12.0"
-
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.5.2"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher:1.4.2"
+    // ... and the rest of our app's test dependencies
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
-}
-
-test {
-    useJUnitPlatform {
-        includeEngines "junit-jupiter"
-    }
-    testLogging {
-        events "skipped", "failed"
-    }
-}
+// ... and the rest of our build rules
 ----
 // end-insert
 
 and after
 
-// begin-insert: tags/r0.1:build.gradle#kotlin_plugin
+// begin-insert: tags/baseline.1:build.gradle#kotlin_plugin
 [source,groovy]
 ----
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.3.70' /// |
 }
 
-...
+java.sourceCompatibility = JavaVersion.VERSION_11
+java.targetCompatibility = JavaVersion.VERSION_11
+// ... and other project settings ...
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 
-     ... our existing dependencies ... 
+    implementation "com.fasterxml.jackson.core:jackson-databind:2.10.0"
+    implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.10.0"
+    implementation "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.10.0"
+    // ... and the rest of our app's implementation dependencies
+
+    testImplementation "org.junit.jupiter:junit-jupiter-api:5.4.2"
+    testImplementation "org.junit.jupiter:junit-jupiter-params:5.4.2"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.5.2"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher:1.4.2"
+    // ... and the rest of our app's test dependencies
 }
 
 compileKotlin {
@@ -87,6 +80,8 @@ compileKotlin {
 compileTestKotlin {
     kotlinOptions.jvmTarget = "1.8"
 }
+
+// ... and the rest of our build rules
 ----
 // end-insert:
 
@@ -96,16 +91,15 @@ Given those changes, we can rerun our build, and see that ...
 
 the build still works!
 
-We can also resync the Gradle project in IntelliJ, and after a waiting a while for IntelliJ to do some indexing, we can run our tests and programs from within the IDE
+We can also resync the Gradle project in IntelliJ, and after a waiting a while for IntelliJ to do some indexing, we can run our tests and programs from within the IDE.
 
 Cool!
 We haven't broken anything,
-but neither have we proved that we can add Kotlin code.
+but neither have we proved that we can use Kotlin in our project.
 Let's test that by writing a hello world program in the root package of our Java source tree:
 
 .HelloWorld.kt
-
-// begin-insert: tags/r0.2:src/main/java/HelloWorld.kt
+// begin-insert: tags/baseline.1:src/main/java/HelloWorld.kt
 [source,kotlin]
 ----
 fun main() {
@@ -121,7 +115,6 @@ Compiling the source file named HelloWorld.kt creates a Java class file named `H
 We'll look into how Kotlin source gets translated into Java class files in more detail later, but for now, we can run our program with the `java` command like so:
 
 [source,text]
-[%autofit]
 ----
 $ java -cp build/classes/kotlin/main HelloWorldKt
 hello, world
@@ -132,4 +125,4 @@ It lives!
 Let's delete HelloWorld.kt -- it's done its job -- commit and push.
 
 We now have the _option_ to use Kotlin in our project.
-But where should we start using it?
+Where should we start using it?
