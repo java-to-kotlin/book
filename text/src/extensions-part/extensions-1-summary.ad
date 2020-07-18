@@ -1,4 +1,4 @@
-= We explore the length and breadth of extension methods
+== We explore the length and breadth of extension methods
 
 NOTE: This is an overview of the material extension functions that we want to refer to from later DSL chapters.  We'll have to turn this into chapters and refactoring examples.
 
@@ -17,11 +17,11 @@ Compare to Java members vs. static methods. E.g. the Stream API cannot be seamle
 
 
 
-== Mutual pull between nullability and extension methods
+=== Mutual pull between nullability and extension methods
 
 Extension functions are easy to use with nullable types and null safety.  Kotlin's null-safe dereference operator (?.) is used when, well, dereferencing.  Therefore it's easy to use to safely call an extension method, but requires the use of the `let` scoping function to pass a nullable reference to a non-null parameter.
 
-== Mutual pull between type inference, generic functions and extension methods
+=== Mutual pull between type inference, generic functions and extension methods
 
 Compared to methods defined on a class, extension methods can be more betterer w.r.t. type parameters and inference.
 
@@ -43,14 +43,14 @@ As a rule of thumb, we add methods to our classes when they need to be polymorph
 A good fit with the [class="pattern"]_Hexagonal Architecture_.  Adapter modules define extensions for types defined in the domain model.
 
 
-== Using Extension Functions Well
+=== Using Extension Functions Well
 
 Extension functions chain to express the flow of data through a pipeline of transformations.  We've seen that with collections.  The same applies to individual values as well.
 
 Extension functions allow for more concise names.  The context is made clear by the left hand side of the expression.
 
 
-== Extension Functions of Data Classes
+=== Extension Functions of Data Classes
 
 Using domain-specific functions reduces chance of errors if the data-type must maintain an invariant between its properties
 
@@ -61,7 +61,7 @@ E.g. "withXxx" replaces, "plusXxx" adds, "minusXxx" removes.
 
 
 
-== Parameterise when extensions lead to duplicative code
+=== Parameterise when extensions lead to duplicative code
 
 It's not all "extension function, extension function, extension function" on our projects!
 
@@ -73,7 +73,7 @@ report if it's missing, try to parse it, & report if parsing fails. Lots of dupl
 After: the get method looks up the property & reports if it is missing, delegates to the parser, and reports if parsing fails. No duplicates code.
 
 
-== You can write extension methods of nullable types (and even the type of null)
+=== You can write extension methods of nullable types (and even the type of null)
 
 You can write code that doesn't need to use the null-safe dereference operator, because null-safety is handled _inside_ the extension method.
 
@@ -86,7 +86,7 @@ E.g. calling the Any?.toString() extension by mistake when you want to call the 
 Avoid unless there's a _really_ good reason to.
 
 
-== You can write extension methods of functions.
+=== You can write extension methods of functions.
 
 [source, kotlin]
 ----
@@ -97,7 +97,7 @@ fun (a: A) = that(this(a))
 ----
 
 
-== Extension _Lambdas_
+=== Extension _Lambdas_
 
 E.g. as passed to apply or with
 
@@ -105,9 +105,10 @@ Useful for making a block of code less duplicative.
 
 E.g. an extension lambda of PrintWriter.
 
+The basis for builders and expressive DSLs.
 
 
-== Local extensions for local logic
+=== Local extensions for local logic
 
 Local extension functions within a function can be used instead of explaining variables.  Close over local variables, which therefore do not need to be passed as arguments.
 
@@ -119,7 +120,4 @@ Luckily `this` is statically resolved, so we can navigate to the definition of a
 
 You can make nested extension code easier to follow by explicitly identifying which this this is with "@" clauses.  But it's a bit clumsy.
 
-
 Better to refactor extension lambdas into extension functions to make code easier to follow.  (Apply Extract Function to code within the lambda and select an outer scope for the location of the new function.)
-
-
