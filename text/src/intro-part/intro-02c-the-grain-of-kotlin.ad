@@ -4,13 +4,13 @@
 Kotlin is a young language, but it clearly has a different grain to Java.
 
 The https://kotlinlang.org/#why-kotlin["Why Kotlin"] section of https://kotlinlang.org[kotlinlang.org] lists four design goals: "Concise", "Safe", "Interoperable", and "Tool-friendly".
-It also has unspoken preferences encoded in the design of the language and its standard libraries that contribute these design goals.
+The designers of the language and its standard library also encoded implicit preferences that contribute to these design goals.
 
-Kotlin prefers the transformation of immutable data to mutation of state.
+Kotlin prefers the transformation of immutable data to mutation of state.::
 Data classes make it easy to define new types with value semantics.
 The standard library makes it easier and more concise to transform collections of immutable data than iterate and mutate data in place.
 
-Kotlin prefers behaviour to be explicit.
+Kotlin prefers behaviour to be explicit.::
 For example, there is no implicit coercion between types, even from smaller to larger range.
 Java implicitly converts int values to long values, because there is no loss of precision.
 In Kotlin you have to explicitly call `Int.toLong()`.
@@ -18,26 +18,27 @@ The preference for explicitness is especially strong when it comes to control fl
 Although you can overload arithmetic and comparison operators for your own types, you cannot overload the shortcut logical operators (`&&` and `||`), because that would allow you to define different control flow.
 Polymorphism is opt-in, not opt-out.
 
-Kotlin prefers static over dynamic binding:
+Kotlin prefers static over dynamic binding.::
 Kotlin encourages a type-safe, compositional coding style.
 Extension functions are bound statically.
 It is designed from the get-go to be used with a language aware editor that statically analyses the code to guide the programmer automate navigation and automate program transformation.
 If you want to use reflection, you have to add a platform-specific library dependency.
 
-Kotlin doesn't like special cases.
+Kotlin doesn't like special cases.::
 Compared to Java, Kotlin has fewer special cases that interact in unpredictable ways.
 There is no distinction between primitive and reference types.  There is no void type for functions that return but do not return a value -- functions in Kotlin either return a value, or never return at all.
 Extension functions allow you to add new operations to existing types, that look the same at the call point.
 You can write new control structures as inline functions and the break, continue and return statements act the same as they do in built-in control structures.
 
-When we reread the first code we wrote in Kotlin, it looks like Java in Kotlin syntax.
+When we look back on the earliest code we wrote in Kotlin, it tends to look like Java in Kotlin syntax because we came to Kotlin after years writing a lot of Java.
 We wrote unnecessary boilerplate.
 We defined functions in objects instead of at the top-level of the source file.
 We didn't make good use of the standard library.
 We avoided using null because we weren't yet used to the type checker enforcing null safety.
-We used infix functions inappropriately.
+We used infix functions too much.
 Scala programmers on the team went too far the other way, writing Kotlin cosplaying Scala cosplaying Haskell.
 None of us had found the sweet spot that comes with working with the grain.
+
 Our aim with this book is to boost you past that stage, to give you a feel for the grain of Kotlin so that you design systems with Kotlin that make best use of the language features and ecosystem.
 
 === Beware of features that exist only to ease interop
