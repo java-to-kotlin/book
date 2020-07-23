@@ -26,28 +26,27 @@ Our experience has been that we can refactor Java to Kotlin without impacting pr
 
 TODO:
 
- - We assume good test coverage.
- - If you don't have good test coverage it can be complicated to achieve it, because tests will not have influenced the design of the code to make it easy to isolate what you want to test.
- - You're in a chicken and egg situation: you have to do some refactoring to improve test coverage, to be able to do more refactoring.
- - Reference some books/techniques for getting test coverage for untested code: approval testing (Emily Bache's book?), Feathers WEWLC
-
+- We assume good test coverage.
+- If you don't have good test coverage it can be complicated to achieve it, because tests will not have influenced the design of the code to make it easy to isolate what you want to test.
+- You're in a chicken and egg situation: you have to do some refactoring to improve test coverage, to be able to do more refactoring.
+- Reference some books/techniques for getting test coverage for untested code: approval testing (Emily Bache's book?), Feathers WEWLC
 
 === Refactoring Combinations
 
-We use the IDE's automatic refactoring whenever we can.
-However, many of the larger scale transformations we need to perform are not made available as a distinct action in the user interface.
-We have to perform them as a sequence of more granular automated refactorings and, where the IDE does not automate a transformation we need, text edits.
-We call these sequences of transformations and edits _Refactoring Combinations_.footnote:["Combination" is a term we've borrowed from from link:https://en.wikipedia.org/wiki/One-two_combo[boxing], where it refers to a sequence of strikes performed in quick succession, each building on the last.]
+In boxing, a "Combination" is a sequence of movements and strikes performed in quick succession, each building on the last and setting up those that follow.
+We've borrowed the term to describe sequences of refactoring steps.
+When the IDE does not have distinct user-interface actions for a large-scale transformation we wish to do, we have to perform it as a sequence of more granular refactorings.
+We use the IDE's automatic refactoring whenever we can, and fall back on text editing when the IDE does not automate a transformation we need.
 
 It's tedious and error prone to refactor by editing text.
-To reduce the risk, and our boredom, we try to limit the amount of text editing we do.
-If we _have_ to edit text, we prefer to edit a single expression.
-We'll use automatic refactorings to make that possible, edit the expression, and then use automatic refactorings to tidy back up to the final state we're aiming for.
-That is itself a refactoring combination -- a meta-combination, if you will -- that we'll call [class="combination"]_Refactor to Single-Expression Edit_.
+To reduce the risk, and our boredom, we minimise the amount of text editing we have to do.
+If we _must_ edit text, we prefer that edit to affect a single expression.
+So, we use automatic refactorings to transform the code so that is possible, edit the expression, and then use automatic refactorings to tidy back up to the final state we're aiming for.
+This is itself a type of refactoring combination.
+In the following chapters, we'll refer to it by the name [role="combination"]_Transform to Single-Expression Edit_.
 
 The first time we describe a refactoring combination we'll go through it step by step and show how the code changes at each step, which takes quite a lot of space on the page, and will take a bit of reading time to follow.
 In practice, however, these combinations are pretty fast to perform -- typically a few seconds, a few minutes at most.
-
 
 [TIP]
 .Commit for Git Bisect
