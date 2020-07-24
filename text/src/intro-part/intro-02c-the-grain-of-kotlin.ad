@@ -30,6 +30,15 @@ There is no distinction between primitive and reference types.  There is no void
 Extension functions allow you to add new operations to existing types, that look the same at the call point.
 You can write new control structures as inline functions and the break, continue and return statements act the same as they do in built-in control structures.
 
+Kotlin breaks its own rules to provide a migration path.::
+The Kotlin language has features to allow idiomatic Java and Kotlin code to coexist in the same codebase.
+Some of those features remove guarantees provided by type checker, and should _only_ be used to interop with legacy Java.
+For example, lateinit opens a hole in the type system so that Java Dependency Injection frameworks that initialise objects by reflection can inject values through the encapsulation boundaries that are normally enforced by the compiler.
+If you declare a property as `lateinit var`, it's up to you to ensure the code initialises the property before reading it -- the compiler will not catch your mistakes.
+
+
+=== How This Book is Organised
+
 When we look back on the earliest code we wrote in Kotlin, it tends to look like Java in Kotlin syntax because we came to Kotlin after years writing a lot of Java.
 We wrote unnecessary boilerplate.
 We defined functions in objects instead of at the top-level of the source file.
@@ -37,31 +46,15 @@ We didn't make good use of the standard library.
 We avoided using null because we weren't yet used to the type checker enforcing null safety.
 We used infix functions too much.
 Scala programmers on the team went too far the other way, writing Kotlin cosplaying Scala cosplaying Haskell.
-None of us had found the sweet spot that comes with working with the grain.
+None of us had yet found the sweet spot that comes with working with the grain.
 
-Our aim with this book is to boost you past that stage, to give you a feel for the grain of Kotlin so that you design systems with Kotlin that make best use of the language features and ecosystem.
+Our aim with this book is to boost you past that stage, to give you a feel for the grain of Kotlin so that you can write code that makes best use of the language features and ecosystem.
 
-TODO: Something here about the structure of the book:
+_TBD: flesh out this info about the structure of the book_
 
- * organised into parts that explore areas where the grain of Kotlin and Java differ in significant ways.  Maybe Kotlin makes easier an approach that was difficult in Java.  Or Kotlin makes difficult an approach that is common in Java, to push design in a different direction that is less error prone, more concise, etc.
- * Not exhaustive: we cannot cover every way in which the languages differ.  We explore areas that we found most notable as we adopted Kotlin.  Your mileage may vary.  But hopefully the areas we explore are enough to give you an instinct for what you should consider when designing systems.
- * Each topic covers both how the grain affects Kotlin design differently, and what to do to gradually refactor from Java to Kotlin while maintaining a mixed Java/Kotlin codebase.
+To that end, the book is organised into parts that explore where the grain of Kotlin and Java differ in significant ways: maybe Kotlin makes easier an approach that was difficult in Java, or Kotlin makes difficult an approach that is common in Java, to guide design in a direction that is less error prone, more concise, and more tool-friendly.
+Each topic covers both how the grain affects Kotlin design differently, and what to do to gradually refactor from Java to Kotlin while maintaining a mixed Java/Kotlin codebase.
 
-
-=== Beware of features that exist only to ease interop
-
-The Kotlin language has features to allow idiomatic Java and Kotlin code to coexist in the same codebase.
-Some of those features remove guarantees provided by other language features, and should _only_ be used to interop with legacy Java.
-
-For example, lateinit opens a hole in the type system so that Java Dependency Injection frameworks that initialise objects by reflection can inject values through the encapsulation boundaries that are normally enforced by the type checker.
-If you declare a property as `lateinit var`, it's up to you to ensure the code initialises the property before reading it -- the compiler will not catch your mistakes.
-
-
-[[faux-amis]]
-=== _Faux Amis_ for Java Programmers
-
-A _faux ami_ is a word in a foreign language that looks similar to a word in your native tongue, but has a significantly different meaning.
-Likewise, Kotlin has syntax that look similar to Java -- sometimes even using the same keywords -- but that have quite different semantics.
-We will call attention to these as we come to them, and take some time to explore how the difference influences idiomatic Kotlin design.
-Feel free to skip any digression if you are comfortable with that aspect of the language.
-
+The topics are in no way exhaustive: we cannot cover every way in which the languages differ.
+We cover the areas that we found most notable as we adopted Kotlin.
+Your experience is likely to vary, but hopefully the topics we explore are enough to give you an instinct for what to consider when designing systems.
