@@ -1,16 +1,5 @@
 = Introduction to Error Handling
 
-You don't have to have tried computer programming for long
-to discover that things go wrong...
-
-...in so many different ways.
-
-In this part we'll look at the ways that software can fail.
-We'll see how to write code that is able not only to cope with the failure,
-but also communicate about what failures it is coping with.
-In the worked example we'll refactor exception-based error handling in Java
-into a more functional Kotlin style.
-
 ifdef::todos[]
 
 We have some quotes, but I'm finding it hard to weave them in. They are in the source here.
@@ -50,12 +39,16 @@ at first piecemeal,
 later with some strategy informed by experience.
 In this respect our error handling evolves in the same way
 as other aspects of our software design.
+Sometimes we design up-front,
+making use of our experience of similar systems;
+other times we allow the writing of the software
+to teach us what it needs.
 
 In the absence of a more deliberate strategy,
 most systems default to raising exceptions when something goes wrong,
 and catching and logging those exceptions at some outer level.
 Command-line utilities will just exit in this case,
-hopefully having given enough information for the user to correct the problem
+hopefully having provided enough information for the user to correct the problem
 and try again.
 A server app,
 or a GUI with an event-loop,
@@ -81,7 +74,8 @@ The great AWS outage of 28th February 2017 mysteriously fixed the problem -
 it turns out that all it required was a reboot of the Internet.
 ****
 
-If a system becomes successful,
+If errors and not well managed
+and the system becomes successful,
 diagnosing and fixing corruption due to errors
 can expand to fill all the team's time.
 This is not a great place for a software project to be -
@@ -93,7 +87,7 @@ and may result in corruption that takes a lot of effort to fix,
 if we can fix it at all.
 What sort of errors do we see?
 
-Programs can go wrong for so many reasons.
+Programs can go wrong for many reasons.
 When we say _program_ we also mean
 functions, methods, procedures -
 any code that we invoke.
@@ -102,13 +96,15 @@ we mean fail to do the job that we expected them to do.
 
 Reasons for this failure include
 
-* Sometimes they need to talk to other systems and that communication fails in some way.
-* Often we don’t give them the correct input that they need to do their job.
+* Sometimes programs need to talk to other systems
+and that communication fails in some way.
+* Often we don’t give software the correct input it needs to do its job.
 * We have heard of programmers making errors.
 Apparently they instruct their computers to dereference null pointers
-or read past the ends of collections.
-* Sometimes the environment that we are running in fails for some reason,
-we might run out of memory,
+or read past the ends of collections!
+* The environment that we are running in fails for some reason,
+for example
+it might run out of memory,
 or not be able to load a class.
 
 There are failures that don’t fit into these categories, but they cover the most common cases.
@@ -128,8 +124,9 @@ The code that detects an error,
 and the code that recovers from it,
 are hard to isolate from the happy path
 and so hard to test.
-Combine these with the tendency for errors to leave our system in unrecoverable states
-and most developers would rather hope for the best
+Combine these with the tendency for errors to leave our system in unrecoverable states,
+and we end up with a situation where
+most developers would rather hope for the best
 rather than take on the hard work and still get it wrong.
 
 Hard work _and_ error-prone?
@@ -150,14 +147,14 @@ We'll look at the pros and cons of those techniques first.
 The cons will show us why exceptions now dominate,
 the pros may give us options when exceptions aren't appropriate.
 
-
 === Ignore Errors
 
 We can ignore errors -
 either the failing routine does nothing to bring them to the attention of the caller,
 or the caller doesn't bother to check.
 
-Depending on design of our system this may lead to corruption of persistent data -
+This may lead to corruption of persistent data
+and silent failure to do the job -
 in most cases we need to aim higher.
 
 === Just Crash
@@ -173,10 +170,9 @@ to a procedure rather than a whole program.
 
 === Return a Special Value
 
-Where possible,
-returning a special value to signify an error can be convenient.
+Returning a special value to signify an error can be a useful technique.
 For example,
-returning -1 instead of an index
+returning `-1` instead of an index
 when an item is not found in a list.
 
 This technique can only be used when
@@ -202,7 +198,7 @@ In Kotlin though,
 the type-checker forces callers to deal with null -
 making this a safe and effective technique.
 
-=== Global Flags
+=== Set a Global Flag
 
 One problem with returning special values
 is that they make it hard to signal which of several possible errors occurred.
@@ -237,7 +233,7 @@ if the failed operation should be retried or aborted.
 This technique is an example of the strategy pattern
 applied to error handling.
 Even when exceptions are available,
-it is a useful tool in speciality situations.
+it is a useful tool in niche situations.
 
 ifdef::todos[]
 
@@ -256,7 +252,7 @@ to a greater or lesser extent,
 to ignore that an error occurred.
 
 Exceptions solve this problem -
-the operation is aborted on error -
+the operation automatically aborts on error -
 and the caller explicitly handles the exception.
 If the caller does not handle it,
 the exception propagates further up the call stack
@@ -268,7 +264,7 @@ the application exits.
 
 Exceptions were relatively new when Java was released,
 and the language designers decided to innovate in this area.
-They included the exceptions that a function could in its signature.
+They included the exceptions that a function could throw as part of its signature.
 This way callers could know that,
 for example,
 a method might fail because the network resource that it was reading
@@ -280,7 +276,7 @@ or declare that it, too, was liable to fail with the same exception.
 This ensures that the programmer takes account of the possibility of these errors.
 Such exceptions are called _checked exceptions_,
 because the compiler checks that they are handled
-or redeclared.
+(or redeclared to be thrown by the calling method).
 
 Unavoidable problems like these
 are only some of the possible reasons for failure though.
@@ -294,8 +290,8 @@ or the system runs out of memory.
 These conditions could happen at any point in the execution of a program,
 and so could cause any function to fail.
 If any function could fail in this way
-there is little point in including such errors in the function signature,
-so they are exempted.
+there is little value in including such errors in the function signature,
+so `Errors` are exempted from this requirement.
 
 RuntimeExceptions::
 Subclasses of RuntimeException represent other errors.
@@ -304,18 +300,18 @@ such as accessing a null reference,
 or trying to read outside the bounds of a collection.
 In both these cases the programmer could have been more careful,
 but again this is potentially an issue for practically every piece of code,
-and so these are also exempted from having to be declared
+and so `RuntimeExceptions` are also exempted from having to be declared
 and handled.
 
-This exception scheme forces developers to deal with operations
+Java's novel exception scheme forces developers to deal with operations
 that can fail due to IO or other things that are out of their control
 (the checked exceptions),
 allowing defensive programming where it is economical.
-If an Error is thrown the best default approach
+If an `Error` is thrown the best default approach
 is exit the process as quickly as possible,
 before any more damage can be done to persistent state.
 
-RuntimeExceptions are a middle ground.
+`RuntimeExceptions` are a middle ground.
 If they do represent a programmer error
 (as it appears was the original intention)
 then we should probably assume that we have just proved that
@@ -330,15 +326,15 @@ but it seems we were in the minority,
 as they fell out of favour in Java
 over the years.
 They were hampered from the start by the odd decision
-to make the unchecked RuntimeException
-a subclass of the checked exception,
+to make the unchecked `RuntimeException`
+a subclass of the otherwise checked `Exception`,
 so that code that wanted to handle all checked exceptions
 found itself catching unchecked ones as well,
 hiding programming errors.
 They were also not helped by the fact that the Java APIs used them inconsistently.
-Take extracting data from a string -
-the URL constructor `URL(String)` throws the _checked_ MalformedURLException;
-while `Integer.parseInt(String)` throws the _unchecked_ NumberFormatException.
+Take extracting data from a string for example -
+the `URL` constructor `URL(String)` throws the _checked_ `MalformedURLException`;
+while `Integer.parseInt(String)` throws the _unchecked_ `NumberFormatException`.
 
 .How should `parseInt` fail?
 ****
@@ -348,7 +344,7 @@ and goes to the heart of why error handling is so hard.
 Looking through our strategies,
 `parseInt` can't return a special integer value,
 because all the ints are spoken for.
-It could return null as a boxed Integer,
+It could return null as a boxed `Integer`,
 but having to box and unbox for this,
 a really fundamental low-level operation
 that will be used in performance critical code,
@@ -360,10 +356,10 @@ so we are left with throwing an exception.
 Should that exception be checked or unchecked?
 
 The language designers decided that
-`parseInt` should throw NumberFormatException,
-and that NumberFormatException
-should be an IllegalArgumentException,
-which is a RuntimeException and so unchecked.
+`parseInt` should throw `NumberFormatException`,
+and that `NumberFormatException`
+should be an `IllegalArgumentException`,
+which is a `RuntimeException` and so unchecked.
 
 Those are both reasonable decisions in isolation.
 In combination though
@@ -371,9 +367,9 @@ they lead to `parseInt` not forcing its callers to consider that
 it might fail by declaring a checked exception.
 
 I suspect that the JVM programmers were very used to
-parsing ints from char* in C,
+parsing ints from `char*` in C,
 where there were no exceptions,
-and `atoi` returned 0 if it didn't work.
+and `atoi` returned `0` if it didn't work.
 They would have considered not planning for this failure
 to be a programmer error,
 rather than a failure of the function itself.
@@ -381,48 +377,14 @@ rather than a failure of the function itself.
 We will have more to say on the characterisation of errors later.
 ****
 
-Confusion begat confusion,
+Confusion over what type of exception to use multiplied,
 and it wasn't long before the default was
 that the only checked exceptions that most Java libraries declared
-were IOExceptions.
+were `IOExceptions`.
 Even then database libraries such as Hibernate,
 which were definitely talking over the network
-and definitely subject to IOExceptions,
-would throw only RuntimeExceptions.
-
-.What should Hibernate have thrown?
-****
-Where a programmer explicitly invoked a Hibernate method to load an object,
-that method should declare IOException.
-If there are other ways that function could fail -
-maybe failure to parse a query -
-the method might also declare a checked exception to cover these.
-So most Hibernate methods should declare both IOException
-and a checked HibernateException,
-with the latter having different subclasses for different failure modes.
-
-Hibernate is an interesting case though because of lazy loading.
-If you load an object that contains a collection,
-Hibernate could be configured to load the contents of that collection
-only when it was accessed.
-So calling `Person.getContacts().size()` might go to the database.
-But `Collection.size()` doesn't declare that it throws `IOException`,
-so what is Hibernate to do?
-
-It must throw an unchecked exception, but should that be an Error or a RuntimeException?
-Given that the JVM is almost certainly still perfectly serviceable,
-we are left with RuntimeException.
-But in this case this is a RuntimeException that
-is not the result of programmer error,
-in as much as there is no defensive action that could have been taken to avoid it.
-
-So perhaps Hibernate should have declared a checked HibernateException
-and an unchecked HibernateRuntimeException.
-
-ifdef::todos[]
-Maybe an end-of-chapter piece with our discussion on this.
-endif::[]
-****
+and definitely subject to `IOExceptions`,
+would throw only `RuntimeExceptions`.
 
 Once a good proportion of the code that you call
 just uses unchecked exceptions
@@ -434,12 +396,47 @@ and the age-old technique of putting it into production,
 seeing what errors you log,
 and adding code to handle those you don't like the look of.
 
+.What should Hibernate have thrown?
+****
+Where a programmer explicitly invoked a Hibernate method to load an object,
+that method should declare `IOException`.
+If there are other ways that function could fail -
+maybe failure to parse a query -
+the method might also declare a checked exception to cover these.
+So most Hibernate methods should declare both `IOException`
+and a checked `HibernateException`,
+with the latter having different subclasses for different failure modes.
+
+Hibernate is an interesting case though because of lazy loading.
+If you load an object that contains a collection,
+Hibernate could be configured to load the contents of that collection
+only when it was accessed.
+So calling `itinerary.getStops().size()` might go to the database.
+But `Collection.size()` doesn't declare that it throws `IOException`,
+so what is Hibernate to do?
+
+It must throw an unchecked exception, but should that be an `Error` or a `RuntimeException`?
+Given that the JVM is almost certainly still perfectly serviceable,
+we are left with `RuntimeException`.
+But in this case this is a `RuntimeException` that
+is not the result of programmer error,
+in as much as there is no defensive action that could have been taken to avoid it.
+
+So perhaps Hibernate should have declared a checked `HibernateException`
+and an unchecked `HibernateRuntimeException`?
+
+ifdef::todos[]
+Maybe an end-of-chapter piece with our discussion on this.
+endif::[]
+****
+
 The final nail in the coffin of checked exceptions
 was the introduction of lambdas in Java 8.
 All the Function interfaces designed to work with streams
 did not declare an exception type,
 and so cannot propagate checked exceptions.
-To be fair I would probably have given up there too.
+To be fair,
+your authors would probably have given up there too.
 
 === Kotlin and Exceptions
 
@@ -450,34 +447,37 @@ It does not have checked exceptions,
 because Java had already lost that fight,
 and because they are hard to reconcile with
 the higher-order functions that are now common.
-It is able to just ignore checked exceptions
+It is able to largely ignore checked exceptions
 because they are not a feature of the JVM,
 but rather of the Java compiler.
 The compiler does record in the bytecode
 what checked exceptions a method declares
-(in order for the compiler to be able to check them),
+(in order to be able to check them),
 but the JVM itself does not care.
 
 The result is that Kotlin programs are by default
 no better or worse than most Java programs
 when it comes to error handling.
 
-An exception ;-) to this is that,
+An exception (lower case `l` ;-) to this is that,
 as we observed above,
 Kotlin can use null to indicate an error,
 safe in the knowledge that callers will have to write code to handle it.
-For example of this is the provision of
+An example of this is the provision of
 `<T> Iterable<T>.firstOrNull(): T?` in the runtime.
 Confusingly though the runtime also defines `first()`,
-which throws NoSuchElementException if the collection is empty.
+which throws `NoSuchElementException` if the collection is empty.
 
-== Functional Error Handling
+== Beyond Exceptions - Functional Error Handling
 
 Statically-typed functional programming languages
 often reject exceptions
-in favour of another error handling technique.
+in favour of another error handling technique
+based on sum-types -
+represented in Kotlin by sealed classes.
+Why not just use exceptions?
 
-A distinguishing feature of functional programming is _Referential Transparency_.
+Well a distinguishing feature of functional programming is _Referential Transparency_.
 When this applies we can replace an expression with the result of its evaluation.
 So if we write
 
@@ -486,8 +486,8 @@ So if we write
 val secondsIn24hours = 60 * 60 * 24
 ----
 
-then we can replace 60 * 60 with 3600 or 60 * 24 with 1440 without affecting the results.
-In fact the compiler may decide to replace the whole expression with 86400 for us,
+then we can replace `60 * 60` with `3600` or `60 * 24` with `1440` without affecting the results.
+In fact the compiler may decide to replace the whole expression with `86400` for us,
 and unless we examine the bytecode
 or use a debugger
 we will be none the wiser.
@@ -516,7 +516,7 @@ Let's return to our `Integer.parseInt(String)` example and see.
 For a given input,
 this will always return the same value,
 so it could be referentially transparent.
-But, what for the cases where the String doesn't represent an integer?
+But, what for the cases where the `String` doesn't represent an integer?
 We can't replace the result of the function invocation with an exception,
 because the type of the expression is `int`.
 Exceptions break referential transparency.
@@ -526,7 +526,7 @@ we returned to the old trick of using a special value to represent errors,
 then we would have referential transparency,
 because that error value can replace the expression.
 In Kotlin,
-null would be great here,
+`null` would be great here,
 but what if we needed to say which was the first character that wasn't a digit?
 We can convey that information in an exception,
 but not in a return type of `Int?`.
@@ -535,7 +535,7 @@ Can we find a way for our function to return either the `Int`,
 or the way that it failed?
 
 The answer, as they say, is in the question.
-We define a type Either,
+We define a type `Either`,
 which can hold one of two types,
 but only one at a time.
 
@@ -548,9 +548,9 @@ data class Left<out L>(val l: L) : Either<L, Nothing>()
 data class Right<out R>(val r: R) : Either<Nothing, R>()
 ----
 
-When Either is used for error handling,
-the convention is that Right is used for a result,
-Left for an error.
+When `Either` is used for error handling,
+the convention is that `Right` is used for a result,
+`Left` for an error.
 
 If we stick to this convention we could define
 
@@ -577,11 +577,11 @@ when (result) {
 }
 ----
 
-By returning an Either we force our clients to deal with the fact that we may have failed -
+By returning an `Either` we force our clients to deal with the fact that we may have failed -
 in effect we have reproduced some of checked exceptions in a functional form.
 To embrace this style you make all functions
 that might ordinarily throw an exception
-return Either,
+return `Either`,
 and when they in turn invoke something that could fail,
 pass on any failure or unwrap the success and act on it.
 
@@ -596,7 +596,7 @@ fun doubleString(s: String): Either<String, Int> {
 }
 ----
 
-Whilst using `when` to unwrap an Either is logical
+Whilst using `when` to unwrap an `Either` is logical
 it is also verbose,
 and this particular pattern occurs so much that we define
 
@@ -632,9 +632,9 @@ inline fun <L, R1, R2> Either<L, R1>.flatMap(f: (R1) -> Either<L, R2>): Either<L
 This unpacks our value
 and uses it to invoke a function
 that in turn might fail
-(as it returns Either).
+(as it returns `Either`).
 What can we do with that?
-Well lets say we want to read from a Reader
+Well lets say we want to read from a `Reader`
 and print double the result.
 
 [source,kotlin]
@@ -655,12 +655,12 @@ fun doubleNextLine(reader: BufferedReader): Either<String, Int> =
     reader.eitherReadLine().flatMap { doubleString(it) }
 ----
 
-This code will return a Left with the failure
+This code will return a `Left` with the failure
 if `eitherReadLine` fails,
 otherwise it will return the result of `doubleString`,
-which may itself be either a Left for failure,
-or a Right with the final `int` result.
-In this way a chain of map and/or flatMap calls acts like a series of expressions which might throw an exception -
+which may itself be either a `Left` for failure,
+or a `Right` with the final `int` result.
+In this way a chain of `map` and/or `flatMap` calls acts like a series of expressions which might throw an exception -
 the first failure aborts the rest of the computation.
 
 If you come from an object oriented background this style does take some getting used to.
@@ -692,24 +692,24 @@ Adding insult, you will lose the benefits of referential transparency,
 making it harder to fix and refactor
 your unreliable system.
 
-Our preference is to return an Either type
+Our preference is to return an `Either` type
 from those operations that would have thrown a checked exception in Java,
 either because of IO problems,
 or because, like `parseInt`,
 they cannot give a result for all inputs.
-`Error`s are still appropriate for unrecoverable program errors.
+`Errors` are still appropriate for unrecoverable program errors.
 They should generally not be caught
 and the program should exit,
 with systems outside the JVM responsible for restarting it.
-RuntimeExceptions are still good for signalling when
+`RuntimeExceptions` are still good for signalling when
 we have made an error as programmers -
 `IndexOutOfBounds` and the like.
 If we have carefully designed our system
 it should be able to survive these issues
 and process other inputs that do not run into the same problem.
 
-Which Either type should you choose?
-The built-in Kotlin Result type is,
+Which `Either` type should you choose?
+The built-in Kotlin `Result` type is,
 at the time of writing,
 a frustrating placeholder which just teases
 and gets in the way.
@@ -724,14 +724,14 @@ endif::[]
 There are plenty of others available,
 but for this book we will use Result4k,
 not coincidentally written by Nat.
-Compared to the generic Either type we introduced earlier,
+Compared to the generic `Either` type we introduced earlier,
 Result4k defines `Result<SuccessType, FailureType>`,
-with subtypes Success and Failure
-rather than the generic Left and Right.
+with subtypes `Success` and `Failure`
+rather than the generic `Left` and `Right`.
 As it is specialised for representing errors,
 Result4k can offer operations such as `onFailure`
 and `recover`
-that would not make sense on Either.
+that would not make sense on `Either`.
 
 
 

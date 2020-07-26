@@ -5,7 +5,7 @@ let's refactor some Java code to give us some practice.
 
 == Existing Code
 
-There is an HTTP endpoint in Travelator that allows the client app to register an customer.
+There is an HTTP endpoint in Travelator that allows the client app to register a `Customer`.
 
 // begin-insert: tags/errors.0:src/main/java/travelator/handlers/CustomerRegistrationHandler.java
 [source,java]
@@ -50,7 +50,7 @@ or a suitable error status.
 .HTTP
 ****
 We'd rather not tie our example code to a particular Java HTTP framework,
-so we have abstracted all that behind a simple function that takes a `Request` and returns a `Response`.
+so we have abstracted incoming calls behind a simple function that takes a `Request` and returns a `Response`.
 
 ifdef::todos[]
 Something about sending the correct status' being import in order to maintain correct HTTP systems
@@ -141,7 +141,7 @@ If we were to just convert this code to Kotlin,
 we would lose the advantages of checked exceptions to tell us
 what could go wrong and show where we are handling those problems.
 So as we convert we will replace exception-based
-error handling with a functional alternative using result4k.
+error handling with a functional alternative using Result4k.
 
 In this example we'll start at the lowest level
 and work our way up,
@@ -170,7 +170,7 @@ interface Customers {
 <1> Although Kotlin doesn't have checked exceptions, the `@Throws` annotation allows interoperation with Java code.
 Without it, a Java implementation of `Customers` cannot override the method
 (assuming that it does actually throw `DuplicateException`).
-Worse, it can't catch the exception
+Worse, Java client code can't catch the exception
 or declare that it is passed on,
 as it is a compile error for Java code to handle a checked exception
 that the compiler cannot see is possible.
@@ -192,20 +192,21 @@ interface Customers {
 What we're going to do for now is to add to our interface a version of `Customers.add` that instead of throwing an exception,
 returns `Result<Customer, DuplicateException>`.
 
-If we were starting from scratch we would probably not use an exception as our error type,
+If we were starting from scratch we would probably not use an exception
+the type of our error,
 but here it lets us interoperate with Java easily.
-We'll keep the old throwy version around for now so that we don't break existing callers,
-convert those callers to use the result version,
+We are going to keep the old throwy version around for now so that we don't break existing callers,
+convert those callers to use the `Result` version,
 then remove the old version when we can.
 
-First we add result4k to our build.
+First we add Result4k to our build.
 
-// begin-insert: tags/errors.4:build.gradle#result4k
+// begin-insert: tags/errors.4:build.gradle#Result4k
 [source,groovy]
 ----
 dependencies {
      ... 
-    implementation "com.natpryce:result4k:2.0.0"
+    implementation "com.natpryce:Result4k:2.0.0"
      ... 
 }
 ----
@@ -261,13 +262,13 @@ In all likelihood we'll come up with a better name later,
 and the bad name will reduce the risk that we settle for not-good-enough.
 
 In this case it really shouldn't matter,
-because we know that by the end of this refactor we will have replaced the original method,
-and can steal its name.
+because we know that by the end of this refactor we will have deleted the original method,
+and can steal its name once it is gone.
 ****
 
-Now we have both exception and result version of the method,
+Now we have both exception and result versions of the method,
 we can migrate the callers of the exception version.
-While we can use result4k from Java,
+While we can use Result4k from Java,
 it's a lot more convenient from Kotlin.
 So let's take `CustomerRegistration` (the caller of `add`)
 
@@ -363,10 +364,11 @@ override fun register(data: RegistrationData): Customer {
 
 <1> Type mismatch. Required: Customer Found: Result<Customer, DuplicateException>
 
-Now to throw the exception in the result
-(in order to keep the current behaviour of `register`)
-we can use `result.recover`,
-which will give us the exception back to throw
+Now in the case of failure,
+we want to throw the `DuplicateException` in the `Result`
+(in order to keep the current behaviour of `register`).
+We can use `result.recover`,
+which will give us the content of the `Failure` to throw
 
 // begin-insert: tags/errors.9:src/main/java/travelator/CustomerRegistration.kt#foo
 [source,kotlin]
@@ -419,20 +421,21 @@ override fun register(data: RegistrationData): Customer {
 // end-insert
 
 That is a good place for a rest,
-having learned to replace one use of exceptions with a result type.
+having replaced one use of exceptions with a result type.
 
-== Moving Up a Level
+== Broadening
 
 OK, ready to go again? Good.
 
 We now have to choose whether to proceed depth or breadth first.
-Depth first would address the caller of `CustomerRegistration.register`,
-breadth first would first fix up other callers of `Customers.add`.
+Depth-first would address the caller of `CustomerRegistration.register`,
+breadth-first would first fix up the other callers of `Customers.add`,
+so that we can remove it.
 As it happens our example code has no other callers of `add`,
-and breadth first will allow us to remove our irritating `addToo`,
 so let's go that way.
 
-While there is no other caller of `Customers.add`, there is of course at least one implementation.
+While there is no other caller of `Customers.add`,
+there are of course implementations.
 Let's look at the (not thread-safe) test version.
 
 // begin-insert: tags/errors.11:src/test/java/travelator/InMemoryCustomers.java
@@ -493,9 +496,12 @@ public Result<Customer, DuplicateException> addToo(
 ----
 // end-insert
 
-If we still had any uses of `add` we could implement it in terms of our new method,
-but we don't,
-so we can just remove it from here and the interface,
+We can also use this strategy to add `addToo` to our production implementations of Customers.
+
+If we still had any remaining callers of `add`
+we could implement `add` by delegating to our new `addTo`,
+but we don't.
+So we can just remove it from here and the interface,
 and then rename `addToo` to `add`,
 leaving us with
 
@@ -532,9 +538,12 @@ class CustomerRegistration(
 ----
 // end-insert
 
-We left `InMemoryCustomers` as Java really just to demonstrate that we could return result4k types from our old code,
-but I can't resist the conversion,
-as it has a number of warnings of the type `Not annotated [X] overrides @NotNull [X]`.
+We left `InMemoryCustomers` as Java really just to demonstrate that we could return Result4k types from our old code,
+but we can't resist the conversion,
+as the code now has a number of warnings
+of the type `Not annotated [X] overrides @NotNull [X]`.
+
+After converstion we have
 
 // begin-insert: tags/errors.14:src/test/java/travelator/InMemoryCustomers.kt
 [source,kotlin]
@@ -571,7 +580,7 @@ class InMemoryCustomers : Customers {
 
 Lets recap where we are now.
 `Customers` is now Kotlin,
-and `add` returns a result instead of throwing `DuplicateException`.
+and `add` returns a `Result` instead of throwing `DuplicateException`.
 
 // begin-insert: tags/errors.14:src/main/java/travelator/Customers.kt
 [source,kotlin]
@@ -618,27 +627,37 @@ class CustomerRegistration(
 ----
 // end-insert
 
+== Stepping Out
+
+Now we have converted a whole layer of our interaction to use a result type,
+we move to the next.
+
 If we are to follow the same pattern with `IRegisterCustomers` as we did with `Customers` -
 provide a default implementation of an adapter between exception-throwing and error-returning -
 we are going to have to address the issue of how to express
+the result of a function that can fail because of one of two causes.
+In code -
 `Result<Customer, Either<ExcludedException, DuplicateException>>`.
 
-We could reach for a generic Either type,
+
+We could reach for a generic `Either` type,
 but that only gets us so far as a strategy.
-For a start, it will mean that `Either<ExcludedException, DuplicateException>`
+For a start,
+`Either<ExcludedException, DuplicateException>`
 is not the same thing as `Either<DuplicateException, ExcludedException>`,
-which is at best confusing,
-and gets worse when we expand to `OneOf<ExcludedException, DuplicateException, SomeOtherProblem>`.
+which is at best really confusing,
+and will get even worse if we ever have to expand to `OneOf<ExcludedException, DuplicateException, SomeOtherProblem>`.
 Instead,
 our best bet here is not to try to express the error in terms of existing types,
 but to map to a new type.
 
-As exception and error are all overloaded terms,
-we've chosen RegistrationProblem,
-with subtypes of Excluded,
+As _exception_ and _error_ are all overloaded terms,
+we've chosen `RegistrationProblem`,
+with subtypes of `Excluded`,
 (which carries no additional information and so can be an object),
-and Duplicate
-(which carries any data from the original exception).
+and `Duplicate`
+(which carries any data from the original `DuplicateException`).
+We use these when we add a default implementation of `registerToo` to the interface.
 
 // begin-insert: tags/errors.15:src/main/java/travelator/IRegisterCustomers.kt
 [source,kotlin]
@@ -668,7 +687,7 @@ data class Duplicate(
 ----
 // end-insert
 
-Now we can go and migrate callers of `register` to `registerToo`.
+Now we can migrate callers of `register` to `registerToo`.
 Starting with `CustomerRegistrationHandler`,
 which we convert to Kotlin first.
 
@@ -705,7 +724,8 @@ class CustomerRegistrationHandler(
 ----
 // end-insert
 
-Now call the adapter method and act on the return type
+Now call `registerToo` instead of `register` in the handler,
+and interpret the return type with `when`
 
 // begin-insert: tags/errors.17:src/main/java/travelator/handlers/CustomerRegistrationHandler.kt
 [source,kotlin]
@@ -749,7 +769,9 @@ private fun RegistrationProblem.toResponse() = when (this) {
 ----
 // end-insert
 
-before removing the unnecessary exception cases and simplifying the error case
+before removing the unnecessary exception cases
+and simplifying the error case
+with `map` and `recover`.
 
 // begin-insert: tags/errors.18:src/main/java/travelator/handlers/CustomerRegistrationHandler.kt#foo
 [source,kotlin]
@@ -777,19 +799,19 @@ fun handle(request: Request): Response =
 // end-insert
 
 Note that this code is not exception-free.
-Firstly the `ObjectMapper` can still throw.
+Firstly the `ObjectMapper` can still throw `JSONProcessingException`.
 That is the reality of Java (and frankly most Kotlin) APIs,
 but the code is safe and communicates well,
 as the throwing and catching are in the same method.
-Secondly we still have to consider other runtime exceptions that could be thrown from anywhere
+Secondly we still have to consider other `RuntimeExceptions` that could be thrown from anywhere
 (`NullPointerException` etc).
 These could have crossed function boundaries and leaked up to here,
 where the buck stops at the top-level catch-all.
 The reality is that we can still have unexpected exceptions,
-but the expected failure cases are now expressed by Results
+but the expected failure cases are now expressed by `Results`
 and communicated in our code.
 
-Now we can confess that the RegistrationHandlerTests got broken a few steps ago.
+Now we can confess that the `RegistrationHandlerTests` got broken a few steps ago.
 Ordinarily we would have fixed them straight away,
 but that would have interrupted our explanation.
 
@@ -850,8 +872,8 @@ public class CustomerRegistrationHandlerTests {
 ----
 // end-insert
 
-We can fix the wrong expectation
-and the return type
+We can fix the wrong expectation,
+and the return type,
 in one edit.
 Note that returning a error type has simplified our mock tests -
 we can dispense with a special `throwException` action in favour of returning
@@ -896,7 +918,7 @@ public void returns_Conflict_for_duplicate() {
 ----
 // end-insert
 
-At this point we can now return to `CustomerRegistration`
+At this point we can return to `CustomerRegistration`
 and implement `registerToo` directly.
 In lieu of any cleverer idea we do this by duplicating the `register` method
 and fettling the error handling,
@@ -1031,7 +1053,7 @@ while we migrate away from Java and exceptions
 to Kotlin and an error type.
 In this case though the tests are actually the last callers of `register`,
 so let's convert them to call `registerToo`.
-We could take the time to show how to use result4k in Java,
+We could take the time to show how to use Result4k in Java,
 but I for one am pretty tired of this refactoring now,
 so we'll convert the tests to Kotlin and
 then to call `register` with the immortal words,
