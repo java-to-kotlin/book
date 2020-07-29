@@ -11,7 +11,7 @@ Originally intended for use in domestic appliances and interactive TV, Java only
 Sun released the Java development kit 1.0, Microsoft included Java in Internet Explorer, and suddenly everyone with a web browser had a Java runtime environment.
 Interest in Java as a programming language exploded.
 
-The of the fundamentals of Java were defined at that time:
+The fundamentals of Java were in place by this time:
 the Java virtual machine and its bytecode and classfile format; primitive and reference types; null references; garbage collection; classes and interfaces; methods and control flow statements; checked exceptions for error handling; the abstract windowing toolkit; classes for networking with Internet and web protocols; and the loading and linking of code at runtime, sandboxed by a security manager.
 However, Java wasn’t yet ready for general purpose programming: the JVM was slow, and the standard library sparse.
 
@@ -39,9 +39,9 @@ Programmers could use ActiveX components in their Visual Basic programs, or embe
 It was notoriously difficult to write an ActiveX component.
 Java Beans were much easier: you merely had to follow some additional coding conventions for your class to be considered a "bean" that could be instantiated and configured in a graphical designer.
 
-For a class to be a Java Bean, it had to have a constructor that took no arguments, and expose an interface made up of public properties that could be read and optionally written, methods that could be invoked, and events that objects of the class would emit.
+For a class to be a Java Bean, it had to have a constructor that took no arguments, be serializable, and expose an interface made up of public properties that could be read and optionally written, methods that could be invoked, and events that objects of the class would emit.
 In an application designer, programmers could instantiate beans, set their properties, and connect a bean's events to the methods of other beans.
-By default, properties were defined by methods with names that started with "get" and "set".
+By default, the Beans API defined properties by methods with names that started with "get" and "set".
 This default could be overridden, but doing so required additional classes of boilerplate code.
 Programmers usually went to the effort when retrofitting existing classes to act as Java Beans.
 In new code, it was much easier to go with the grain.
@@ -69,13 +69,13 @@ The Java Beans and applets APIs also suffer from abstraction inversion -- they b
 J2EE applications don't have a single entry point.
 They are comprised of many small components whose lifetime is managed by an "application container", and are exposed to one another through a JNDI name service.
 Applications need a lot of boilerplate code and mutable state to look up and store the resources they depend on.
-Programmers responded by inventing [role="pattern"]_Dependency Injection_ (DI) frameworks that did all the resource look up and binding and managed lifetimes.
+Programmers responded by inventing [role="pattern"]_dependency injection_ (DI) frameworks that did all the resource look up and binding and managed lifetimes.
 The most successful of these is Spring.
 It builds upon the Java Beans coding conventions, and uses reflection to compose applications from "beans".
 
 ****
 .Abstraction Inversion
-_Abstraction Inversion_ is an architectural flaw in which a software platform prevents client code from using lower level mechanisms that it requires.
+[role="antipattern"]_Abstraction inversion_ is an architectural flaw in which a software platform prevents client code from using lower level mechanisms that it requires.
 This forces programmers to reimplement those lower level mechanisms using the higher-level facilities exposed by the platform's API, which in turn use the very features being reimplemented.
 The end result is unnecessary code, poor performance, and additional maintenance and testing costs.
 ****
@@ -84,7 +84,7 @@ In terms of programming style, DI encourages programmers to avoid direct use of 
 (We count Android APIs in these as well: they also exhibit abstraction inversion, and Android programmers also turn to DI frameworks to help them write to the APIs).
 DI frameworks focus on mechanism over domain modelling lead to "enterprisey" class names, such as Spring's infamous `AbstractSingletonProxyFactoryBean`.
 
-On the plus side, though, 1999 saw the release of Java 5, which added generics to the language: the most significant change to date. This era also saw a massive uptake of Open Source libraries in the Java community, powered by the Maven Central package repository.
+On the plus side, though, 1999 saw the release of Java 5, which added generics and autoboxing to the language, the most significant change to date. This era also saw a massive uptake of Open Source libraries in the Java community, powered by the Maven Central package repository.
 The availability of top-notch open source libraries fueled the adoption of Java for business critical application development, and led to more open source libraries, in a virtuous circle.
 This was followed by best in class development tools, including IntelliJ which we use in this book.
 
