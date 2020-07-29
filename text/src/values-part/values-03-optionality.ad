@@ -1,6 +1,105 @@
-= We remove uses of Java's Optional class
+= Nullability and Optionality
 
-TODO - Some introduction on how it was watching me struggling to write simple things in Java that made Nat go out and find Kotlin.
+Perhaps Kotlin's biggest claim to fame is its representation of nullability in its typesystem.
+We won't rehash the arguments around why this is such a good idea,
+but instead observe that this is another area
+where the grains of Java and Kotlin are different.
+
+Traditionally Java relied on convention, intuition and documentation
+to distinguish between references that could or could not be null.
+We know that methods that return an item from a collection must be able to return `null`,
+but can `addressLine3` be `null`,
+or do we use an empty string when there is no information?
+
+Your authors settled down into a convention where,
+unless otherwise noted,
+no references could be null.
+So we might have a field named `addressLine3OrNull`,
+or a method `previousAddressOrNull`.
+Within a codebase this worked well enough,
+even if it is a little verbose,
+and requires diligence and even vigilance
+to avoid the scourge of `NullPointerExceptions`.
+
+Some codebases instead opted to use `@Nullable` and `@NotNullable` annotations,
+often supported by tools that would check for correctness.
+Java 8 enhanced support for annotations to the extent that tools like the Checker Framework
+could statically check the much more than just null safety,
+but more crucially introduced a standard `Optional` type.
+
+By now (2014) many JVM developers had dabbled in Scala
+and come to appreciate the advantages of using an option type
+when absence was possible,
+and plain references when it was not.
+Oracle did their best to snatch defeat from the jaws of victory
+by telling developers not to use `Optional` for field values
+(as if anyone had ever actually used Java serialisation in the preceding decade).
+As with many features introduced in Java 8 though,
+`Optional` was good enough
+and successfully enhanced the mainstream usage of Java.
+
+Depending on its age your Java code may employ some or all
+of these strategies for dealing with absence.
+It is certainly possible to have a codebase
+in which `NullPointerExceptions` are practically never seen,
+but the reality is that this is hard work.
+Java is weighed down by null,
+and embarrassed by its half-hearted `Optional` type.
+
+Kotlin embraces null.
+Making optionality a part of the typesystem,
+rather than the standard library,
+means that Kotlin codebases have refreshing uniformity in their treatment of missing values.
+It isn't all perfect:
+`Map<K, V>.get(key)` returns a nullable `V?`
+if there is no value for `key`;
+but
+`Array<T>.get(index)` throws `IndexOutOfBoundsException`
+when there is no value at `index`.
+Likewise `Iterable<T>.first()` throws `NoSuchElementException`
+rather than returning `null`.
+These cases though were forced on the designers
+to give backwards compatibility with Java.
+
+Where Kotlin has its own APIs they are generally
+good examples of how to safely use null to represent
+optional properties, parameters and return values.
+Returning to languages without this support feels unsafe,
+like walking a cliff path
+and realising that there is no fence.
+
+You may be advised by functional programmers to use a maybe type
+rather than nullablity in Kotlin.
+We advise against this.
+It will give you the option to use the same
+(monadic, there, we said it)
+tools to represent optionality, errors, asynchrony etc.
+The reason,
+apart loosing access to language features
+and compatibility with other Kotlin APIs,
+is subtle but important.
+
+In the Kotlin typesystem,
+`T` is a subtype of `T?`.
+If we have a `T` that cannot be null,
+we can always use it where a nullable `T` is required.
+In contrast,
+`T` is not a subtype of `Optional<T>`.
+If we have a String
+and we want to assign it to an optional variable,
+we have first to wrap it in an `Optional`.
+Worse,
+if we have a function that returns an `Optional<String>`
+and later discover a way to always return a result,
+changing the return type to `String` will break all our clients.
+Had our return type been `T?`,
+then we could have strengthed it to `T`
+whilst maintaining compatibility.
+
+It's safe to say then that your authors love Kotlin's support for nullablity,
+and have learned to lean on it to solve many problems.
+Let's look at how to migrate from Java code using `Optional`
+to Kotlin.
 
 Here is one of the many utility functions we've found in the code
 
