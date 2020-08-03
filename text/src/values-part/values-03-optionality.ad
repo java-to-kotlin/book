@@ -1,23 +1,23 @@
 = Nullability and Optionality
 
 Perhaps Kotlin's biggest claim to fame is its representation of nullability in its typesystem.
-We won't rehash the arguments around why this is such a good idea,
+We won't start by rehashing the arguments around why this is such a good idea,
 but instead observe that this is another area
 where the grains of Java and Kotlin are different.
 
 Traditionally,
-Java relied on convention, documentation and intuition
+Java relied on convention, documentation, and intuition
 to distinguish between references that could or could not be null.
-We know that methods that return an item from a collection must be able to return `null`,
+We can deduce that methods that return an item from a collection must be able to return `null`,
 but can `addressLine3` be `null`,
 or do we use an empty string when there is no information?
 
-Your authors settled down into a convention where,
-unless otherwise flagged,
-no references could be null.
-So we might have a field named `addressLine3OrNull`,
+Your authors settled down into a convention
+where references are assumed non-null,
+unless otherwise flagged.
+So we might name a field `addressLine3OrNull`,
 or a method `previousAddressOrNull`.
-Within a codebase this worked well enough,
+Within a codebase this worked well enough;
 even if it is a little verbose,
 and requires eternal vigilance
 to avoid the scourge of `NullPointerExceptions`.
@@ -29,18 +29,19 @@ could statically check much more than just null safety,
 but more crucially introduced a standard `Optional` type.
 
 By now (2014) many JVM developers had dabbled in Scala
-and come to appreciate the advantages of using a maybe type
+and come to appreciate the advantages of using a _Maybe_ type
+(named `Option` in Scala's standard library)
 when absence was possible,
 and plain references when it was not.
 Oracle did their best to snatch defeat from the jaws of victory
-by telling developers not to use `Optional` for field values
+by telling developers not to use their `Optional` for field values
 (as if anyone had ever actually used Java serialisation in the preceding decade).
 As with many features introduced in Java 8 though,
 `Optional` was good enough
 and was adopted into the mainstream usage of Java.
 
 Depending on its age,
-your Java code may employ some or all
+your Java code may use some or all
 of these strategies for dealing with absence.
 It is certainly possible to have a codebase
 in which `NullPointerExceptions` are practically never seen,
@@ -67,16 +68,15 @@ Where Kotlin has its own APIs they are generally
 good examples of how to safely use null to represent
 optional properties, parameters and return values.
 Returning to languages without this support feels unsafe.
-Like riding on a cliff path
-and realising that there is no fence,
+Like riding a bike on a cliff path with no fence,
 your speed is limited by the unmitigated risk.
 
-You may be advised by functional programmers to use a maybe type
+You may be advised by functional programmers to use a Maybe type
 rather than nullablity in Kotlin.
-We advise against this,
+We counsel against this,
 even though it will give you the option to use the same
 (monadic, there, we said it)
-tools to represent optionality, errors, asynchrony etc.
+tools to represent potential abscence, errors, asynchrony etc.
 The reason,
 apart loosing access to language features
 and compatibility with other Kotlin APIs,
@@ -107,8 +107,10 @@ and have learned to lean on it to solve many problems.
 Let's look at how to migrate from Java code using `Optional`
 to Kotlin.
 
+== Migrating from Optional to Nullable
+
 Travelator has the concept of trip `Legs`.
-Here is one of the many utility functions we've found in the code,
+Here is one of the utility functions we've found in the code,
 designed to help find legs which we might make less strenuous.
 
 // begin-insert: tags/nullability.0:src/main/java/travelator/Legs.java
@@ -133,23 +135,20 @@ public class Legs {
 
 Here are the tests.
 
-// begin-insert: tags/nullability.0:src/test/java/travelator/LongestLegOverTests.java
+// begin-insert: tags/nullability.0:src/test/java/travelator/LongestLegOverTests.java#foo
 [source,java]
 ----
 public class LongestLegOverTests {
 
     private List<Leg> legs = List.of(
         new Leg("one hour",
-            ZonedDateTime.parse("2020-07-28T12:00:00+01:00[Europe/London]"),
-            ZonedDateTime.parse("2020-07-28T13:00:00+01:00[Europe/London]")
+            ...
         ),
         new Leg("one day",
-            ZonedDateTime.parse("2020-07-29T12:00:00+01:00[Europe/London]"),
-            ZonedDateTime.parse("2020-07-30T12:00:00+01:00[Europe/London]")
+            ...
         ),
         new Leg("two hours",
-            ZonedDateTime.parse("2020-07-30T14:00:00+01:00[Europe/London]"),
-            ZonedDateTime.parse("2020-07-30T16:00:00+01:00[Europe/London]")
+            ...
         )
     );
     private final Duration oneDay = Duration.ofDays(1);
@@ -232,8 +231,9 @@ the second parameter being `Duration?` is a little odd.
 Given that this is currently called from Java,
 that is probably the safest thing,
 although it does make it clear that we might pass `null` on to `Duration.compareTo`.
-We'll change the parameter to the non-nullable `Duration`.
-That will make the compiler insert a null check before the function body
+We'll change the parameter to the non-nullable `Duration`,
+without showing it here.
+The compiler inserts a null check before the function body for such parameters,
 so that if Java callers sneak in a `null` we know straight away
 (the `legs` parameter is similarly checked).
 
@@ -261,32 +261,15 @@ In order to make use of nullability in our clients
 they have to be Kotlin,
 so let's convert the tests.
 
-// begin-insert: tags/nullability.3:src/test/java/travelator/LongestLegOverTests.kt
+// begin-insert: tags/nullability.3:src/test/java/travelator/LongestLegOverTests.kt#foo
 [source,kotlin]
 ----
 class LongestLegOverTests {
-    private val legs = List.of(
-        Leg(
-            "one hour",
-            ZonedDateTime.parse("2020-07-28T12:00:00+01:00[Europe/London]"),
-            ZonedDateTime.parse("2020-07-28T13:00:00+01:00[Europe/London]")
-        ),
-        Leg(
-            "one day",
-            ZonedDateTime.parse("2020-07-29T12:00:00+01:00[Europe/London]"),
-            ZonedDateTime.parse("2020-07-30T12:00:00+01:00[Europe/London]")
-        ),
-        Leg(
-            "two hours",
-            ZonedDateTime.parse("2020-07-30T14:00:00+01:00[Europe/London]"),
-            ZonedDateTime.parse("2020-07-30T16:00:00+01:00[Europe/London]")
-        )
-    )
-    private val oneDay = Duration.ofDays(1)
+    ...
 
     @Test
     fun is_absent_when_no_legs() {
-        Assertions.assertEquals(
+        assertEquals(
             Optional.empty<Any>(),
             findLongestLegOver(emptyList(), Duration.ZERO)
         )
@@ -294,14 +277,14 @@ class LongestLegOverTests {
 
     @Test
     fun is_absent_when_no_legs_long_enough() {
-        Assertions.assertEquals(
+        assertEquals(
             Optional.empty<Any>(),
             findLongestLegOver(legs, oneDay)
         )
     }
 
     @Test
-    public void is_longest_leg_when_one_match() {
+    fun is_longest_leg_when_one_match() {
         assertEquals(
             "one day",
             findLongestLegOver(legs, oneDay.minusMillis(1)).orElseThrow().description
@@ -309,7 +292,7 @@ class LongestLegOverTests {
     }
 
     @Test
-    public void is_longest_leg_when_more_than_one_match() {
+    fun is_longest_leg_when_more_than_one_match() {
         assertEquals(
             "one day",
             findLongestLegOver(legs, Duration.ofMinutes(59)).orElseThrow().description
@@ -323,8 +306,10 @@ Actually (when we wrote this)
 the converted code didn't compile,
 but what's the odd import between friends?
 
-Now to migrate,
-we're going to need two versions of `findLongestLegOver`.
+Now to migrate gradually,
+we're going to need two versions of `findLongestLegOver`,
+the existing `Optional`-returning one,
+and a new one that returns `Leg?`.
 We can do that by extracting the guts of the current implementation.
 We can't give it the same name,
 so we use `longestLegOver`
@@ -357,10 +342,11 @@ fun longestLegOver(
 ----
 // end-insert
 
-Now we can convert our Kotlin clients to call `longestLegOver`,
+Now we can convert our Kotlin clients to call the nullable-returning `longestLegOver`,
 while leaving our Java clients
-(and in this case as-yet-unconverted Kotlin)
+(and as-yet-unconverted Kotlin)
 to consume the `Optional`.
+We'll do the absent ones first.
 
 // begin-insert: tags/nullability.5:src/test/java/travelator/LongestLegOverTests.kt#foo
 [source,kotlin]
@@ -372,15 +358,12 @@ fun `is absent when no legs`() {
 
 @Test
 fun is_absent_when_no_legs_long_enough() {
-    assertEquals(
-        Optional.empty<Any>(),
-        findLongestLegOver(legs, oneDay)
-    )
+    assertNull(longestLegOver(legs, oneDay))
 }
 
 @Test
 fun is_longest_leg_when_one_match() {
-    Assertions.assertEquals(
+    assertEquals(
         "one day",
         findLongestLegOver(legs, oneDay.minusMillis(1)).orElseThrow().description
     )
@@ -388,7 +371,7 @@ fun is_longest_leg_when_one_match() {
 
 @Test
 fun is_longest_leg_when_more_than_one_match() {
-    Assertions.assertEquals(
+    assertEquals(
         "one day",
         findLongestLegOver(legs, Duration.ofMinutes(59)).orElseThrow().description
     )
@@ -396,6 +379,7 @@ fun is_longest_leg_when_more_than_one_match() {
 ----
 // end-insert
 
+Now for the calls returning non-absent.
 The Kotlin equivalent of `Option.orElseThrow()` (aka `get()`) is the `!!` operator,
 or we can use `?.` in these cases too,
 giving us
@@ -431,9 +415,12 @@ fun `is longest leg when more than one match`() {
 ----
 // end-insert
 
-Once all of our Java clients have been converted to Kotlin,
-we should have no callers of the `Optional`-returning `findLongestLegOver` left.
-We can delete it, and move its replacement `longestLegOver`
+We can work this refactoring through our clients,
+converting them to Kotlin
+and then to using `longestLegOver`.
+Once we have converted all of them
+we delete the `Optional`-returning `findLongestLegOver`,
+and move its replacement `longestLegOver`
 out of the `Legs` object scope into the top-level.
 
 // begin-insert: tags/nullability.7:src/main/java/travelator/Legs.kt
@@ -470,8 +457,8 @@ Then we're forced to think,
 
 Actually,
 let's not think;
-let's just read the name of the function!
-`longestLegOver`.
+let's just read the name of the function -
+`longestLegOver`!
 We can find the longest leg,
 and if it is longer than duration,
 return it,
@@ -481,7 +468,8 @@ and find `maxBy` -
 our longestLeg is going to be `legs.maxBy(Leg::plannedDuration)`.
 This API helpfully returns `Leg?` to remind us
 that it can't give a result if `legs` is empty.
-So we write the thing that we can write with least thinking at this stage.
+So we write the thing that we can write with least thinking at this stage,
+checking that it passes the tests.
 
 // begin-insert: tags/nullability.8:src/main/java/travelator/Legs.kt
 [source,kotlin]
@@ -499,7 +487,7 @@ fun longestLegOver(
 ----
 // end-insert
 
-Now IntelliJ will offer to lift the `return` out of the `if`.
+IntelliJ will helpfully offer to lift the `return` out of the `if`.
 
 // begin-insert: tags/nullability.9:src/main/java/travelator/Legs.kt
 [source,kotlin]
@@ -517,7 +505,7 @@ fun longestLegOver(
 ----
 // end-insert
 
-Now Kotlin's nullability support gives several ways to refactor this,
+Now Kotlin's nullability support allows several ways to refactor this,
 depending on your tastes.
 
 We can return early
@@ -557,7 +545,7 @@ fun longestLegOver(
 ----
 // end-insert
 
-We can mash everything into a when
+We can mash all that logic into a `when` expression.
 
 // begin-insert: tags/nullability.12:src/main/java/travelator/Legs.kt
 [source,kotlin]
@@ -577,8 +565,8 @@ fun longestLegOver(
 // end-insert
 
 Maybe the clearest,
-although not a single expression,
-is a when with a local.
+(although regrettably not a single expression),
+is a `when` with a local.
 This is both as short as it feels it should be and easy to read -
 which is our goal at this level of expression.
 
@@ -598,6 +586,27 @@ fun longestLegOver(
 }
 ----
 // end-insert
+
+Finally,
+let's make `legs` the receiver in an extension function,
+allowing us finally to get rid of our accidental
+(but pleasing)
+double-entendre.
+
+// begin-insert: tags/nullability.14:src/main/java/travelator/Legs.kt
+[source,kotlin]
+----
+fun List<Leg>.longestOver(duration: Duration): Leg? {
+    val longestLeg = maxBy(Leg::plannedDuration)
+    return when {
+        longestLeg == null -> null
+        longestLeg.plannedDuration > duration -> longestLeg
+        else -> null
+    }
+}
+----
+// end-insert
+
 
 Just before we finish this chapter,
 take the time to compare this version with the original.
