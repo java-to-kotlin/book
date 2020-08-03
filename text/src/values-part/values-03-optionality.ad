@@ -107,621 +107,552 @@ and have learned to lean on it to solve many problems.
 Let's look at how to migrate from Java code using `Optional`
 to Kotlin.
 
-Here is one of the many utility functions we've found in the code
+Travelator has the concept of trip `Legs`.
+Here is one of the many utility functions we've found in the code,
+designed to help find legs which we might make less strenuous.
 
-// begin-insert: tags/r3.0:src/main/java/colloquiumatic/Sessions.java
+// begin-insert: tags/nullability.0:src/main/java/travelator/Legs.java
 [source,java]
 ----
-public class Sessions {
+public class Legs {
 
-    public static Optional<Session> findSessionWithTitle(List<Session> sessions, String title) {
-        for (Session session : sessions) {
-            if (session.getTitle().equals(title))
-                return Optional.of(session);
+    public static Optional<Leg> findLongestLegOver(List<Leg> legs, Duration duration) {
+        Leg result = null;
+        for (Leg leg : legs) {
+            Duration legPlannedDuration = leg.getPlannedDuration();
+            if (legPlannedDuration.compareTo(duration) > 0 &&
+                (result == null ||
+                    legPlannedDuration.compareTo(result.getPlannedDuration()) > 0))
+                result = leg;
         }
-        return Optional.empty();
+        return Optional.ofNullable(result);
     }
 }
 ----
 // end-insert
 
-and its tests.
+Here are the tests.
 
-// begin-insert: tags/r3.0:src/test/java/colloquiumatic/SessionsTests.java
+// begin-insert: tags/nullability.0:src/test/java/travelator/LongestLegOverTests.java
 [source,java]
 ----
-public class SessionsTests {
-
-    private List<Session> sessions = List.of(
-        new Session("s1", "Title", emptyList()),
-        new Session("s2", "Title Too", emptyList())
-    );
-
-    @Test
-    public void find_session_with_title() {
-        assertEquals(
-            Optional.of(sessions.get(1)),
-            findSessionWithTitle(sessions, "Title Too")
-        );
-    }
-
-    @Test
-    public void find_no_session_with_title() {
-        assertEquals(
-            Optional.empty(),
-            findSessionWithTitle(sessions, "No such")
-        );
-    }
-
-    @Test
-    public void find_in_no_sessions() {
-        assertEquals(
-            Optional.empty(),
-            findSessionWithTitle(emptyList(), "No such")
-        );
-    }
-}
-----
-// end-insert
-
-Let's see what we can do to make things better in Kotlin. Converting Sessions.java to Kotlin gives us this
-
-// begin-insert: tags/r3.1:src/main/java/colloquiumatic/Sessions.kt
-[source,kotlin]
-----
-object Sessions {
-    @JvmStatic
-    fun findSessionWithTitle(
-        sessions: List<Session>,
-        title: String
-    ): Optional<Session> {
-        for (session in sessions) {
-            if (session.title == title) return Optional.of(session)
-        }
-        return Optional.empty()
-    }
-}
-----
-// end-insert
-
-Take a couple of minutes to note the differences and see what they tell you about Kotlin.
-
-First we have an object rather than a class declaration. Objects are Kotlin's way of creating a static namespace - as all the methods in the Java class were static the converter has placed them in an object.
-
-The method is marked with an `@JvmStatic` annotations. Annotations aren't used as much in Kotlin as they are in Java, but this one tells the compiler that there are Java usages of the method and so it had better mark the method as static in the bytecode for interoperability.
-
-The method parameters are as we would expect, with Kotlin `List<Session>` transparently accepting a `java.util.List`. You'll find that Kotlin code seems to flow better with more vertical breaks than Java, hence the 1 parameter to a line style. `Alt-Enter` in the parameter list will give you the option of swapping between one and multi-line style.
-
-The Kotlin for loop is very similar to Java's except for `in` rather than `:`, and similarly applies to any type that extends `Iterable`.
-
-We could leave it there, but this is not very idiomatic Kotlin. Arguably since the introduction of streams it wasn't very idiomatic Java either. Instead of a for loop we should look for something more intention-revealing.
-
-IntelliJ has ever-improving support in this area, and if you Alt-Enter on the `for` it offers to 'Replace with firstOrNull{}'. Accepting the offer we get
-
-// begin-insert: tags/r3.2:src/main/java/colloquiumatic/Sessions.kt
-[source,kotlin]
-----
-object Sessions {
-    @JvmStatic
-    fun findSessionWithTitle(
-        sessions: List<Session>,
-        title: String
-    ): Optional<Session> {
-        return sessions
-            .firstOrNull { it.title == title }
-            ?.let { Optional.of(it) }
-            ?: Optional.empty()
-    }
-}
-----
-// end-insert
-
-Eeek, that escalated quickly! Even if it is logically correct it isn't easily readable, with or without a few years Kotlin experience. Let's back out that change and see if we can work our way to a nicer formulation.
-
-TODO Enough about lambdas to make progress
-
-Now that we know that we can call `sessions.firstOrNull { it.title == title }` we can introduce a local variable, leaving the working code to do its job afterwards.
-
-// begin-insert: tags/r3.3:src/main/java/colloquiumatic/Sessions.kt
-[source,kotlin]
-----
-object Sessions {
-    @JvmStatic
-    fun findSessionWithTitle(
-        sessions: List<Session>,
-        title: String
-    ): Optional<Session> {
-
-        val thing = sessions.firstOrNull { it.title == title } /// +
-
-        for (session in sessions) {
-            if (session.title == title) return Optional.of(session)
-        }
-        return Optional.empty()
-    }
-}
-----
-// end-insert
-
-<Alt-Enter> on `thing` will give the option to 'Specify type explicitly'
-
-// begin-insert: tags/r3.4:src/main/java/colloquiumatic/Sessions.kt#foo
-[source,kotlin]
-----
-val thing: Session? = sessions.firstOrNull { it.title == title } /// |
-----
-// end-insert
-
-Hmmm, the type of `thing` is `Session?`. This is our second encounter with Kotlin's treatment of nullable references - `Session?` means that `thing` may be null, after all we have just called `firstOrNull`! What do we want to do with the value?
-
-Well, spelling it out
-
-// begin-insert: tags/r3.5:src/main/java/colloquiumatic/Sessions.kt#foo
-[source,kotlin]
-----
-val thing: Session? = sessions.firstOrNull { it.title == title }
-if (thing != null)              /// |
-    return Optional.of(thing)   /// |
-else                            /// |
-    return Optional.empty()     /// |
-----
-// end-insert
-
-If you're playing along at home you may see that IntelliJ is a little unhappy with the `if` statement, as shown by a little wavy line and the offer to 'Lift return out of if'
-
-// begin-insert: tags/r3.6:src/main/java/colloquiumatic/Sessions.kt#foo
-[source,kotlin]
-----
-val thing: Session? = sessions.firstOrNull { it.title == title }
-return if (thing != null) /// |
-    Optional.of(thing)    /// |
-else                      /// |
-    Optional.empty()      /// |
-----
-// end-insert
-
-That's interesting. In Kotlin `if` is an expression, the value of which is the value of whichever branch is taken at runtime.
-
-After this promising intervention, unfortuately IntelliJ seems to have lost its mojo, as it doesn't (at the time of writing) suggest that the `if` expression is the definition of `Optional.ofNullable()`, Replacing it we have
-
-// begin-insert: tags/r3.7:src/main/java/colloquiumatic/Sessions.kt#foo
-[source,kotlin]
-----
-val thing: Session? = sessions.firstOrNull { it.title == title }
-return Optional.ofNullable(thing) /// |
-----
-// end-insert
-
-A quick inline and we can make our function a single expression.
-
-// begin-insert: tags/r3.8:src/main/java/colloquiumatic/Sessions.kt
-[source,kotlin]
-----
-object Sessions {
-    @JvmStatic
-    fun findSessionWithTitle(
-        sessions: List<Session>,
-        title: String
-    ): Optional<Session> =
-        Optional.ofNullable(sessions.firstOrNull { it.title == title }) /// |
-}
-----
-// end-insert
-
-Most developers would stop there, but you didn't buy this book to be in that group, you want to be the best. So let's go back a step.
-
-// begin-insert: tags/r3.9:src/main/java/colloquiumatic/Sessions.kt#bar
-[source,kotlin]
-----
-val thing: Session? = sessions.firstOrNull { it.title == title }
-return Optional.ofNullable(thing) 
-----
-// end-insert
-
-then select the `Optional.ofNullable(thing)` and extract method
-
-// begin-insert: tags/r3.10:src/main/java/colloquiumatic/Sessions.kt#foo
-[source,kotlin]
-----
-@JvmStatic
-fun findSessionWithTitle(
-    sessions: List<Session>,
-    title: String
-): Optional<Session> {
-    val thing: Session? = sessions.firstOrNull { it.title == title }
-    return optional(thing) /// |
-}
-
-private fun optional(thing: Session?) = Optional.ofNullable(thing) /// +
-----
-// end-insert
-
-Now <Alt-Enter> on the thing parameter and select 'Convert parameter to receiver'
-
-// begin-insert: tags/r3.11:src/main/java/colloquiumatic/Sessions.kt#foo
-[source,kotlin]
-----
-@JvmStatic
-fun findSessionWithTitle(
-    sessions: List<Session>,
-    title: String
-): Optional<Session> {
-    val thing: Session? = sessions.firstOrNull { it.title == title }
-    return thing.optional() /// |
-}
-
-private fun Session?.optional() = Optional.ofNullable(this) /// |
-----
-// end-insert
-
-We have just created our first extension function. In the JVM this is just a static function with the session as its first (well only) parameter, but in Kotlin we can invoke it postfix with a dot, as if it was a method. It isn't a method though, so that receiver (the `this`) can be null - hence the `?` in `Session?.optional()`. This turns out to be a very powerful technique to help break code down and read better. To see the effect, we'll rename `optional` to `toOptional` and then simplify all the things.
-
-// begin-insert: tags/r3.12:src/main/java/colloquiumatic/Sessions.kt
-[source,kotlin]
-----
-object Sessions {
-    @JvmStatic
-    fun findSessionWithTitle(sessions: List<Session>, title: String) = /// |
-        sessions.firstOrNull { it.title == title }.toOptional()        /// |
-
-    private fun Session?.toOptional() = Optional.ofNullable(this) /// |
-}
-----
-// end-insert
-
-Ah that's a lot more expressive now - there is something about reading left to right that (for our culture at least) makes everything flow better.
-
-Can we go further? Well we can make `findSessionsWithTitle` an extension function as well. We can still call it from Java without changing any callers due to its static nature, so now we have.
-
-// begin-insert: tags/r3.13:src/main/java/colloquiumatic/Sessions.kt
-[source,kotlin]
-----
-object Sessions {
-    @JvmStatic
-    fun List<Session>.findSessionWithTitle(title: String) = /// |
-        firstOrNull { it.title == title }.toOptional()      /// |
-
-    private fun Session?.toOptional() = Optional.ofNullable(this)
-}
-----
-// end-insert
-
-The name `findSessionWithTitle` may now be a bit grating, depending on the callers. In Java they will either be
-
-[source,java]
-----
-import path.Sessions.findSessionWithTitle;
-
-...
-
-var match = findSessionWithTitle(listOfSessions, "Refactoring to Kotlin");
-----
-
-or
-
-[source,java]
-----
-import path.Sessions;
-
-...
-
-var match = Sessions.findSessionWithTitle(listOfSessions, "Refactoring to Kotlin");
-----
-
-If we move to the second form we could rename the function
-
-[source,java]
-----
-import path.Sessions;
-
-...
-
-var match = Sessions.findWithTitle(listOfSessions, "Refactoring to Kotlin");
-----
-
-which makes the Kotlin read better.
-
-// begin-insert: tags/r3.14:src/main/java/colloquiumatic/Sessions.kt
-[source,kotlin]
-----
-object Sessions {
-    @JvmStatic
-    fun List<Session>.findWithTitle(title: String) =  
-        firstOrNull { it.title == title }.toOptional()
-
-    private fun Session?.toOptional() = Optional.ofNullable(this)
-}
-----
-// end-insert
-
-Apart from that last change, we have not so far had to change any of the code that references Sessions. Let's look at the tests as a representative sample.
-
-// begin-insert: tags/r3.14:src/test/java/colloquiumatic/SessionsTests.java
-[source,java]
-----
-public class SessionsTests {
-
-    private List<Session> sessions = List.of(
-        new Session("s1", "Title", emptyList()),
-        new Session("s2", "Title Too", emptyList())
-    );
-
-    @Test
-    public void find_session_with_title() {
-        assertEquals(
-            Optional.of(sessions.get(1)),
-            findWithTitle(sessions, "Title Too")
-        );
-    }
-
-    @Test
-    public void find_no_session_with_title() {
-        assertEquals(
-            Optional.empty(),
-            findWithTitle(sessions, "No such")
-        );
-    }
-
-    @Test
-    public void find_in_no_sessions() {
-        assertEquals(
-            Optional.empty(),
-            findWithTitle(emptyList(), "No such")
-        );
-    }
-}
-----
-// end-insert
-
-Converting this to Kotlin actually gives code that fails to compile
-
-// begin-insert: tags/r3.15:src/test/java/colloquiumatic/SessionsTests.kt
-[source,kotlin]
-----
-class SessionsTests {
-    private val sessions = List.of(
-        Session("s1", "Title", emptyList()),
-        Session("s2", "Title Too", emptyList())
-    )
-
-    @Test
-    fun find_session_with_title() {
-        Assertions.assertEquals(
-            Optional.of(sessions[1]),
-            sessions.findWithTitle("Title Too")
+public class LongestLegOverTests {
+
+    private List<Leg> legs = List.of(
+        new Leg("one hour",
+            ZonedDateTime.parse("2020-07-28T12:00:00+01:00[Europe/London]"),
+            ZonedDateTime.parse("2020-07-28T13:00:00+01:00[Europe/London]")
+        ),
+        new Leg("one day",
+            ZonedDateTime.parse("2020-07-29T12:00:00+01:00[Europe/London]"),
+            ZonedDateTime.parse("2020-07-30T12:00:00+01:00[Europe/London]")
+        ),
+        new Leg("two hours",
+            ZonedDateTime.parse("2020-07-30T14:00:00+01:00[Europe/London]"),
+            ZonedDateTime.parse("2020-07-30T16:00:00+01:00[Europe/London]")
         )
+    );
+    private final Duration oneDay = Duration.ofDays(1);
+
+    @Test
+    public void is_absent_when_no_legs() {
+        assertEquals(
+            Optional.empty(),
+            findLongestLegOver(emptyList(), Duration.ZERO)
+        );
     }
 
     @Test
-    fun find_no_session_with_title() {
+    public void is_absent_when_no_legs_long_enough() {
+        assertEquals(
+            Optional.empty(),
+            findLongestLegOver(legs, oneDay)
+        );
+    }
+
+    @Test
+    public void is_longest_leg_when_one_match() {
+        assertEquals(
+            "one day",
+            findLongestLegOver(legs, oneDay.minusMillis(1)).orElseThrow().getDescription()
+        );
+    }
+
+    @Test
+    public void is_longest_leg_when_more_than_one_match() {
+        assertEquals(
+            "one day",
+            findLongestLegOver(legs, Duration.ofMinutes(59)).orElseThrow().getDescription()
+        );
+    }
+}
+----
+// end-insert
+
+Let's see what we can do to make things better in Kotlin.
+Converting `Legs.java` to Kotlin gives us this
+
+// begin-insert: tags/nullability.2:src/main/java/travelator/Legs.kt
+[source,kotlin]
+----
+object Legs {
+    @JvmStatic
+    fun findLongestLegOver(legs: List<Leg>, duration: Duration?): Optional<Leg> {
+        var result: Leg? = null
+        for (leg in legs) {
+            val legPlannedDuration = leg.plannedDuration
+            if (legPlannedDuration.compareTo(duration) > 0 &&
+                (result == null ||
+                    legPlannedDuration.compareTo(result.plannedDuration) > 0)
+            ) result = leg
+        }
+        return Optional.ofNullable(result)
+    }
+}
+----
+// end-insert
+
+Take a couple of minutes to note the differences
+and see what they tell you about Kotlin.
+
+First we have an object rather than a class declaration.
+Objects are Kotlin's way of creating a static namespace -
+as all the methods in the Java class were static the converter has placed them in an object.
+
+The method is marked with an `@JvmStatic` annotations.
+Annotations aren't used as much in Kotlin as they are in Java,
+but this one tells the compiler that there are Java usages of the method
+and so it had better mark the method as static in the bytecode for interoperability.
+
+The method parameters are as we would expect,
+with Kotlin `List<Session>` transparently accepting a `java.util.List`.
+Actually,
+now we look at it,
+the second parameter being `Duration?` is a little odd.
+Given that this is currently called from Java,
+that is probably the safest thing,
+although it does make it clear that we might pass `null` on to `Duration.compareTo`.
+We'll change the parameter to the non-nullable `Duration`.
+That will make the compiler insert a null check before the function body
+so that if Java callers sneak in a `null` we know straight away
+(the `legs` parameter is similarly checked).
+
+The Kotlin for loop is very similar to Java's except for `in` rather than `:`,
+and similarly applies to any type that extends `Iterable`.
+Actually,
+you can use other types as well -
+"for iterates over anything that is iterable
+(anything that has an iterator() function that provides an Iterator object),
+or anything that is itself an iterator".
+You can even define an (operator) extension function to make someone else's type `Iterable` -
+we hope to find a use for that one day.
+
+This is not very idiomatic Kotlin.
+Arguably,
+since the introduction of streams,
+it wasn't very idiomatic Java either.
+Instead of a for loop we should look for something more intention-revealing,
+but let's park that urge for now because our primary mission is to
+migrate from `Optional` to nullable.
+We'll illustrate that by converting our tests one by one,
+so that we have a mix as we would in a codebase
+that we were migrating.
+In order to make use of nullability in our clients
+they have to be Kotlin,
+so let's convert the tests.
+
+// begin-insert: tags/nullability.3:src/test/java/travelator/LongestLegOverTests.kt
+[source,kotlin]
+----
+class LongestLegOverTests {
+    private val legs = List.of(
+        Leg(
+            "one hour",
+            ZonedDateTime.parse("2020-07-28T12:00:00+01:00[Europe/London]"),
+            ZonedDateTime.parse("2020-07-28T13:00:00+01:00[Europe/London]")
+        ),
+        Leg(
+            "one day",
+            ZonedDateTime.parse("2020-07-29T12:00:00+01:00[Europe/London]"),
+            ZonedDateTime.parse("2020-07-30T12:00:00+01:00[Europe/London]")
+        ),
+        Leg(
+            "two hours",
+            ZonedDateTime.parse("2020-07-30T14:00:00+01:00[Europe/London]"),
+            ZonedDateTime.parse("2020-07-30T16:00:00+01:00[Europe/London]")
+        )
+    )
+    private val oneDay = Duration.ofDays(1)
+
+    @Test
+    fun is_absent_when_no_legs() {
         Assertions.assertEquals(
             Optional.empty<Any>(),
-            sessions.findWithTitle("No such")
+            findLongestLegOver(emptyList(), Duration.ZERO)
         )
     }
 
     @Test
-    fun find_in_no_sessions() {
+    fun is_absent_when_no_legs_long_enough() {
         Assertions.assertEquals(
             Optional.empty<Any>(),
-            emptyList().findWithTitle("No such") // <1>
+            findLongestLegOver(legs, oneDay)
+        )
+    }
+
+    @Test
+    public void is_longest_leg_when_one_match() {
+        assertEquals(
+            "one day",
+            findLongestLegOver(legs, oneDay.minusMillis(1)).orElseThrow().description
+        )
+    }
+
+    @Test
+    public void is_longest_leg_when_more_than_one_match() {
+        assertEquals(
+            "one day",
+            findLongestLegOver(legs, Duration.ofMinutes(59)).orElseThrow().description
         )
     }
 }
 ----
 // end-insert
 
-<1> Not enough information to infer type variable T
+Actually (when we wrote this)
+the converted code didn't compile,
+but what's the odd import between friends?
 
-We can fix that by giving the compiler a hint.
+Now to migrate,
+we're going to need two versions of `findLongestLegOver`.
+We can do that by extracting the guts of the current implementation.
+We can't give it the same name,
+so we use `longestLegOver`
 
-// begin-insert: tags/r3.16:src/test/java/colloquiumatic/SessionsTests.kt#get_compiling
-[source,kotlin]
-----
-@Test
-fun find_in_no_sessions() {
-    Assertions.assertEquals(
-        Optional.empty<Any>(),
-        emptyList<Session>().findWithTitle("No such") /// |
-    )
-}
-----
-// end-insert
-
-To simulate gradually converting the clients of Sessions to Kotlin, let's make the tests more idiomatic one at at time.
-
-First `find_session_with_title`.
-
-// begin-insert: tags/r3.16:src/test/java/colloquiumatic/SessionsTests.kt#with_title_1
-[source,kotlin]
-----
-@Test
-fun find_session_with_title() {
-    Assertions.assertEquals(
-        Optional.of(sessions[1]),
-        sessions.findWithTitle("Title Too") 
-    )
-}
-----
-// end-insert
-
-Kotlin clients would expect `sessions.findWithTitle` to return `Session?` rather than `Optional<Session>`.
-
-That code is currently
-
-// begin-insert: tags/r3.16:src/main/java/colloquiumatic/Sessions.kt#bar
+// begin-insert: tags/nullability.4:src/main/java/travelator/Legs.kt#foo
 [source,kotlin]
 ----
 @JvmStatic
-fun List<Session>.findWithTitle(title: String) =  
-    firstOrNull { it.title == title }.toOptional()
-----
-// end-insert
+fun findLongestLegOver(
+    legs: List<Leg>,
+    duration: Duration
+): Optional<Leg> {
+    return Optional.ofNullable(longestLegOver(legs, duration))
+}
 
-We can have both by extracting a method from `firstOrNull { it.title == title }` in Sessions - call it firstWithTitle for now - and make `toOptional` public
-
-// begin-insert: tags/r3.17:src/main/java/colloquiumatic/Sessions.kt#foo
-[source,kotlin]
-----
-@JvmStatic
-fun List<Session>.findWithTitle(title: String) =
-    firstWithTitle(title).toOptional() /// |
-
-fun List<Session>.firstWithTitle(title: String) = /// +
-    firstOrNull { it.title == title }             /// +
-
-fun Session?.toOptional() = Optional.ofNullable(this) /// |
-----
-// end-insert
-
-Now we can inline individual invocations of `findWithTitle`. Ie from
-
-// begin-insert: tags/r3.17:src/test/java/colloquiumatic/SessionsTests.kt#with_title_2
-[source,kotlin]
-----
-@Test
-fun find_session_with_title() {
-    Assertions.assertEquals(
-        Optional.of(sessions[1]),
-        sessions.findWithTitle("Title Too") /// |
-    )
+fun longestLegOver(
+    legs: List<Leg>,
+    duration: Duration
+): Leg? {
+    var result: Leg? = null
+    for (leg in legs) {
+        val legPlannedDuration = leg.plannedDuration
+        if (legPlannedDuration.compareTo(duration) > 0 &&
+            (result == null ||
+                legPlannedDuration.compareTo(result.plannedDuration) > 0)
+        ) result = leg
+    }
+    return result
 }
 ----
 // end-insert
 
-to
+Now we can convert our Kotlin clients to call `longestLegOver`,
+while leaving our Java clients
+(and in this case as-yet-unconverted Kotlin)
+to consume the `Optional`.
 
-// begin-insert: tags/r3.18:src/test/java/colloquiumatic/SessionsTests.kt#with_title
+// begin-insert: tags/nullability.5:src/test/java/travelator/LongestLegOverTests.kt#foo
 [source,kotlin]
 ----
 @Test
-fun find_session_with_title() {
-    Assertions.assertEquals(
-        Optional.of(sessions[1]),
-        sessions.firstWithTitle("Title Too").toOptional() /// |
-    )
+fun `is absent when no legs`() {
+    assertNull(longestLegOver(emptyList(), Duration.ZERO))
 }
-----
-// end-insert
 
-and unwrap the expected and actual from the Optional
-
-// begin-insert: tags/r3.19:src/test/java/colloquiumatic/SessionsTests.kt#with_title
-[source,kotlin]
-----
 @Test
-fun find_session_with_title() {
-    Assertions.assertEquals(
-        sessions[1],                         /// |
-        sessions.firstWithTitle("Title Too") /// |
-    )
-}
-----
-// end-insert
-
-Meanwhile other uses, and in fact Java invocations, can still use the old method
-
-// begin-insert: tags/r3.19:src/test/java/colloquiumatic/SessionsTests.kt#with_no_title
-[source,kotlin]
-----
-@Test
-fun find_no_session_with_title() {
-    Assertions.assertEquals(
+fun is_absent_when_no_legs_long_enough() {
+    assertEquals(
         Optional.empty<Any>(),
-        sessions.findWithTitle("No such")
+        findLongestLegOver(legs, oneDay)
+    )
+}
+
+@Test
+fun is_longest_leg_when_one_match() {
+    Assertions.assertEquals(
+        "one day",
+        findLongestLegOver(legs, oneDay.minusMillis(1)).orElseThrow().description
+    )
+}
+
+@Test
+fun is_longest_leg_when_more_than_one_match() {
+    Assertions.assertEquals(
+        "one day",
+        findLongestLegOver(legs, Duration.ofMinutes(59)).orElseThrow().description
     )
 }
 ----
 // end-insert
 
-// begin-insert: tags/r3.0:src/test/java/colloquiumatic/SessionsTests.java#no_sessions
+The Kotlin equivalent of `Option.orElseThrow()` (aka `get()`) is the `!!` operator,
+or we can use `?.` in these cases too,
+giving us
+
+// begin-insert: tags/nullability.6:src/test/java/travelator/LongestLegOverTests.kt#foo
+[source,kotlin]
+----
+@Test
+fun `is absent when no legs`() {
+    assertNull(longestLegOver(emptyList(), Duration.ZERO))
+}
+
+@Test
+fun `is absent when no legs long enough`() {
+    assertNull(longestLegOver(legs, oneDay))
+}
+
+@Test
+fun `is longest leg when one match`() {
+    assertEquals(
+        "one day",
+        longestLegOver(legs, oneDay.minusMillis(1))!!.description
+    )
+}
+
+@Test
+fun `is longest leg when more than one match`() {
+    assertEquals(
+        "one day",
+        longestLegOver(legs, Duration.ofMinutes(59))?.description
+    )
+}
+----
+// end-insert
+
+Once all of our Java clients have been converted to Kotlin,
+we should have no callers of the `Optional`-returning `findLongestLegOver` left.
+We can delete it, and move its replacement `longestLegOver`
+out of the `Legs` object scope into the top-level.
+
+// begin-insert: tags/nullability.7:src/main/java/travelator/Legs.kt
+[source,kotlin]
+----
+fun longestLegOver(
+    legs: List<Leg>,
+    duration: Duration
+): Leg? {
+    var result: Leg? = null
+    for (leg in legs) {
+        val legPlannedDuration = leg.plannedDuration
+        if (legPlannedDuration.compareTo(duration) > 0 &&
+            (result == null ||
+                legPlannedDuration.compareTo(result.plannedDuration) > 0)
+        ) result = leg
+    }
+    return result
+}
+----
+// end-insert
+
+Now we're all-Kotlin,
+but the normal feeling of relaxation we get from finishing a refactor
+is spoiled by that implementation -
+it still looks like Java converted to Kotlin,
+largely on account of it being Java converted to Kotlin.
+Can we find a nice way to refactor it?
+
+The only suggestion IntelliJ gives is to replace `compareTo` with `>`,
+so lets do that first.
+Then we're forced to think,
+"What is the code trying to do?"
+
+Actually,
+let's not think;
+let's just read the name of the function!
+`longestLegOver`.
+We can find the longest leg,
+and if it is longer than duration,
+return it,
+otherwise null.
+Typing `legs.` at the beginning of the function we look at the suggestions
+and find `maxBy` -
+our longestLeg is going to be `legs.maxBy(Leg::plannedDuration)`.
+This API helpfully returns `Leg?` to remind us
+that it can't give a result if `legs` is empty.
+So we write the thing that we can write with least thinking at this stage.
+
+// begin-insert: tags/nullability.8:src/main/java/travelator/Legs.kt
+[source,kotlin]
+----
+fun longestLegOver(
+    legs: List<Leg>,
+    duration: Duration
+): Leg? {
+    val longestLeg: Leg? = legs.maxBy(Leg::plannedDuration)
+    if (longestLeg != null && longestLeg.plannedDuration > duration)
+        return longestLeg
+    else
+        return null
+}
+----
+// end-insert
+
+Now IntelliJ will offer to lift the `return` out of the `if`.
+
+// begin-insert: tags/nullability.9:src/main/java/travelator/Legs.kt
+[source,kotlin]
+----
+fun longestLegOver(
+    legs: List<Leg>,
+    duration: Duration
+): Leg? {
+    val longestLeg: Leg? = legs.maxBy(Leg::plannedDuration)
+    return if (longestLeg != null && longestLeg.plannedDuration > duration)
+        longestLeg
+    else
+        null
+}
+----
+// end-insert
+
+Now Kotlin's nullability support gives several ways to refactor this,
+depending on your tastes.
+
+We can return early
+
+// begin-insert: tags/nullability.10:src/main/java/travelator/Legs.kt
+[source,kotlin]
+----
+fun longestLegOver(
+    legs: List<Leg>,
+    duration: Duration
+): Leg? {
+    val longestLeg = legs.maxBy(Leg::plannedDuration) ?:
+        return null
+    return if (longestLeg.plannedDuration > duration)
+        longestLeg
+    else
+        null
+}
+----
+// end-insert
+
+We can go with a single `?.let` expression
+
+// begin-insert: tags/nullability.11:src/main/java/travelator/Legs.kt
+[source,kotlin]
+----
+fun longestLegOver(
+    legs: List<Leg>,
+    duration: Duration
+): Leg? =
+    legs.maxBy(Leg::plannedDuration)?.let { longestLeg ->
+        if (longestLeg.plannedDuration > duration)
+            longestLeg
+        else
+            null
+    }
+----
+// end-insert
+
+We can mash everything into a when
+
+// begin-insert: tags/nullability.12:src/main/java/travelator/Legs.kt
+[source,kotlin]
+----
+fun longestLegOver(
+    legs: List<Leg>,
+    duration: Duration
+): Leg? =
+    legs.maxBy(Leg::plannedDuration).let { longestLeg ->
+        when {
+            longestLeg == null -> null
+            longestLeg.plannedDuration > duration -> longestLeg
+            else -> null
+        }
+    }
+----
+// end-insert
+
+Maybe the clearest,
+although not a single expression,
+is a when with a local.
+This is both as short as it feels it should be and easy to read -
+which is our goal at this level of expression.
+
+// begin-insert: tags/nullability.13:src/main/java/travelator/Legs.kt
+[source,kotlin]
+----
+fun longestLegOver(
+    legs: List<Leg>,
+    duration: Duration
+): Leg? {
+    val longestLeg = legs.maxBy(Leg::plannedDuration)
+    return when {
+        longestLeg == null -> null
+        longestLeg.plannedDuration > duration -> longestLeg
+        else -> null
+    }
+}
+----
+// end-insert
+
+Just before we finish this chapter,
+take the time to compare this version with the original.
+Are there any advantages to the old version?
+
+// begin-insert: tags/nullability.0:src/main/java/travelator/Legs.java
 [source,java]
 ----
-@Test
-public void find_in_no_sessions() {
-    assertEquals(
-        Optional.empty(),
-        findSessionWithTitle(emptyList(), "No such")
-    );
-}
-----
-// end-insert
+public class Legs {
 
-Once all the Java clients of Sessions have been converted to Kotlin, and all the Kotlin uses `Session?`
-
-// begin-insert: tags/r3.20:src/test/java/colloquiumatic/SessionsTests.kt
-[source,kotlin]
-----
-class SessionsTests {
-    private val sessions = listOf(
-        Session("s1", "Title", emptyList()),
-        Session("s2", "Title Too", emptyList())
-    )
-
-    @Test
-    fun `find session with title`() {
-        assertEquals(
-            sessions[1],
-            sessions.firstWithTitle("Title Too")
-        )
-    }
-
-    @Test
-    fun `find no session with title`() {
-        assertNull(sessions.firstWithTitle("No such")) /// |
-    }
-
-    @Test
-    fun `find in no sessions`() {
-        assertNull(emptyList<Session>().firstWithTitle("No such")) /// |
+    public static Optional<Leg> findLongestLegOver(List<Leg> legs, Duration duration) {
+        Leg result = null;
+        for (Leg leg : legs) {
+            Duration legPlannedDuration = leg.getPlannedDuration();
+            if (legPlannedDuration.compareTo(duration) > 0 &&
+                (result == null ||
+                    legPlannedDuration.compareTo(result.getPlannedDuration()) > 0))
+                result = leg;
+        }
+        return Optional.ofNullable(result);
     }
 }
 ----
 // end-insert
 
-we can remove the Java accommodations from Sessions, leaving just
+Usually we would say "It depends,"
+but in this case we think that the new version is better on pretty much every front.
+It is shorter, simpler, easier to see how it works,
+and in most cases results in fewer calls to `getPlannedDuration()`,
+which is a relatively expensive operation.
+What if we had taken the same approach in Java?
 
-// begin-insert: tags/r3.20:src/main/java/colloquiumatic/Sessions.kt
-[source,kotlin]
+// begin-insert: tags/nullability.1:src/main/java/travelator/Legs.java
+[source,java]
 ----
-object Sessions {
-    fun List<Session>.firstWithTitle(title: String) =
-        firstOrNull { it.title == title }
+public class Legs {
+
+    public static Optional<Leg> findLongestLegOver(List<Leg> legs, Duration duration) {
+        var longestLeg = legs.stream().max(Comparator.comparing(Leg::getPlannedDuration));
+        if (longestLeg.isEmpty()) {
+            return Optional.empty();
+        } else if (longestLeg.get().getPlannedDuration().compareTo(duration) > 0) {
+            return longestLeg;
+        } else {
+            return Optional.empty();
+        }
+    }
 }
 ----
 // end-insert
 
-Now at this point we might discuss whether or not `firstWithTitle` is actually pulling its weight, as
-`firstOrNull { it.title == title }` is almost as descriptive. Should we decide that it isn't we can inline the function
-
-// begin-insert: tags/r3.21:src/test/java/colloquiumatic/SessionsTests.kt#foo
-[source,kotlin]
-----
-@Test
-fun `find session with title`() {
-    assertEquals(
-        sessions[1],
-        sessions.firstOrNull { it.title == "Title Too" } /// |
-    )
-}
-
-@Test
-fun `find no session with title`() {
-    assertNull(sessions.firstOrNull { it.title == "No such" }) /// |
-}
-
-@Test
-fun `find in no sessions`() {
-    assertNull(emptyList<Session>().firstOrNull { it.title == "No such" }) /// |
-}
-----
-// end-insert
-
-Once we have refactored our code into this state, where instead of creating our our methods we are just using the standard Kotlin API on our types, then there is no point in our tests. We can delete the definition of `Sessions.firstWithTitle` and the tests, leaving us less code to document, build and maintain.
-
-== Conclusions
-
-* Nullability and extension functions complement each other
-* We can migrate code to Kotlin leaving its clients in Java, and then gradually convert those.
-* Once all clients are also Kotlin, we often find we didn't need the code in the first place.
-* TODO - API design by adding extension functions rather than defining new types
+Actually that isn't bad,
+but compared with the Kotlin version you can see how `Optional`
+adds noise to pretty much every line of the method.
+The absence or otherwise of information is inescapable in our code:
+by raising it to first-class status,
+Kotlin makes sure that we are take account of it when we have to,
+but are not overwhealmed by it when we don't.
