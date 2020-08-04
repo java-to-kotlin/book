@@ -1,0 +1,180 @@
+= Data, Calculations, and Actions
+
+In his book _Grokking Simplicity_,
+Eric Normand develops the idea
+that we can divide our code into data, calculations, and actions.
+
+== Data
+
+Data is, erm, data.
+You know it when you see it.
+While that sounds like a cop-out,
+it's the key attribute -
+you can read data,
+and interpret it,
+without executing code.
+
+[source,kotlin]
+----
+val data = mapOf(
+    "firstName" to "Fred",
+    "lastName" to "Flintstone"
+)
+----
+
+or
+
+[source,kotlin]
+----
+val customer = Customer(
+    firstName = "Fred",
+    lastName = "Flintstone"
+)
+----
+
+or
+
+[source,json]
+----
+{
+    "firstName" : "Fred",
+    "lastName" : "Flintstone"
+}
+----
+
+are all meaningful without being run by some computer.
+The JSON form is meaningful between different computer systems,
+even written in different languages,
+and even when the system that wrote it was decommissioned
+before the system that read it was conceived.
+
+It is this simplicity of interpretation that makes data so useful.
+To make it even simpler,
+we further constrain data to be immutable.
+Otherwise we don't just have data,
+we have data as it is at a particular time,
+and that isn't simple at all.
+
+== Calculations
+
+Calculations are mappings from input data to output data -
+they are functions.
+We specify their working in code
+(or maths, or some notation),
+so they are less easy to interpret than data.
+We call them calculations because they are pure -
+they must always give the same output given the same input -
+so not all software functions are calculations.
+
+[source,kotlin]
+----
+fun fullName(customer: Customer) = "${customer.firstName} ${customer.secondName}"
+----
+
+is a calculation,
+as it will always return the same value
+when supplied the same `Customer` data.
+By extension 
+(pun only retrospectively intended) 
+then
+
+[source,kotlin]
+----
+fun Customer.fullName() = "$firstName $secondName"
+----
+
+is also a calculation,
+making it clear that the receiver of extension function
+counts as a parameter in our definition.
+
+Computed properties can also be calculations
+
+[source,kotlin]
+----
+val Customer.fullName get() = "$firstName $secondName"
+----
+
+indeed things get confusing quickly 
+if they don't always give the same result.
+
+Methods,
+or the hidden methods that are computed member-properties,
+can also be calculations.
+
+[source,kotlin]
+----
+data class Customer
+... 
+{
+    fun getFullName() = "$firstName $secondName"
+    val fullName get() = "$firstName $secondName"
+}
+----
+
+Here `this` is considered a parameter to the functions,
+and so these are only calculations if `Customer` is immutable, 
+or at least `firstName` and `secondName` are.
+
+== Actions
+
+Code that does not define immutable data,
+or specify a pure calculation,
+is an action.
+Actions depend on when and/or how many times they are run.
+This will happen if they change something in their environment,
+or their environment affects their result - 
+side-effects in other words.
+
+[source,kotlin]
+----
+class Customers {
+    fun save(data: CustomerData) {
+        ...
+    }
+    fun find(id: String): Customer? {
+        ...
+    }
+}
+----
+
+Both `save` and `find` are actions,
+as find's result depends on whether it is run before or after
+a customer with that id has been saved.
+
+[source,kotlin]
+----
+fun email(itinerary: Itinerary) {
+    ...
+}
+----
+
+is an action,
+because if you run it twice the customer will get two emails,
+which is different from if you run it once,
+which is different from if you run it nonce.
+
+Functions returning `void` or `Unit` are a dead giveaway for actions,
+as are functions that take no parameters
+(although there are exceptions here).
+
+
+
+
+
+
+
+
+
+Actually Eric Normand defines
+
+
+
+
+
+
+
+
+
+
+
+
