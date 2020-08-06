@@ -527,7 +527,7 @@ fun longestLegOver(
 ----
 // end-insert
 
-We can go with a single `?.let` expression
+or we can go with a single `?.let` expression
 
 // begin-insert: tags/nullability.11:src/main/java/travelator/Legs.kt
 [source,kotlin]
@@ -545,7 +545,13 @@ fun longestLegOver(
 ----
 // end-insert
 
-We can mash all that logic into a `when` expression.
+In order to simplify further we need a trick that Duncan
+(who is writing this)
+has so far failed to internalise.
+`takeIf` returns its receiver if a predicate is true,
+otherwise null,
+which is exactly the logic of our let block.
+So we can write
 
 // begin-insert: tags/nullability.12:src/main/java/travelator/Legs.kt
 [source,kotlin]
@@ -554,17 +560,15 @@ fun longestLegOver(
     legs: List<Leg>,
     duration: Duration
 ): Leg? =
-    legs.maxBy(Leg::plannedDuration).let { longestLeg ->
-        when {
-            longestLeg == null -> null
-            longestLeg.plannedDuration > duration -> longestLeg
-            else -> null
-        }
+    legs.maxBy(Leg::plannedDuration)?.takeIf { longestLeg ->
+        longestLeg.plannedDuration > duration
     }
 ----
 // end-insert
 
-Maybe the clearest,
+Depending on the team's experience with Kotlin,
+that may be too subtle?
+Maybe clearer,
 (although regrettably not a single expression),
 is a `when` with a local.
 This is both as short as it feels it should be and easy to read -
