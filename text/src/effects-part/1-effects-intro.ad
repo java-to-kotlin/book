@@ -1,17 +1,20 @@
-= Data, Calculations, and Actions
+= Values, Calculations, and Actions
 
-In his book _Grokking Simplicity_,
+In his excellent book _Grokking Simplicity_,
 Eric Normand develops the idea
-that we can divide our code into data, calculations, and actions.
+that we can categorise our code into values, calculations, and actions.
+Actually he says _data_ rather that _values_,
+but in the context of Kotlin,
+which allows mutable data types,
+values avoids confusion.
 
-== Data
+== Values
 
-Data is, erm, data.
-You know it when you see it.
+Values are immutable data.
+You know code that represents data when you it when you see it.
 While that sounds like a cop-out,
 it's the key attribute -
-you can read data,
-and interpret it,
+you can interpret data
 without executing code.
 
 [source,kotlin]
@@ -43,59 +46,71 @@ or
 ----
 
 are all meaningful without being run by some computer.
-The JSON form is meaningful between different computer systems,
-even written in different languages,
-and even when the system that wrote it was decommissioned
-before the system that read it was conceived.
+The JSON form even manages to be meaningful
+between different systems,
+written in different languages,
+even when the system that wrote it was decommissioned
+before the system that read it was conceived,
+and even when one of those systems is a human.
 
 It is this simplicity of interpretation that makes data so useful.
-To make it even simpler,
+To make it even more useful,
 we further constrain data to be immutable.
 Otherwise we don't just have data,
 we have data as it is at a particular time,
 and that isn't simple at all.
+So maybe _values_ would be a better characterisation than data,
+but let's stick with Eric's terminology.
 
 == Calculations
 
-Calculations are mappings from input data to output data -
+Calculations are mappings from input values to output values -
 they are functions.
 We specify their working in code
-(or maths, or some notation),
-so they are less easy to interpret than data.
-We call them calculations because they are pure -
-they must always give the same output given the same input -
-so not all software functions are calculations.
+(or maths, or some notation) -
+as a result they are less easy to interpret than values.
+We call them calculations,
+rather than functions,
+because they are pure -
+they must always give the same output given the same input.
+Not all software functions are calculations.
 
 [source,kotlin]
 ----
-fun fullName(customer: Customer) = "${customer.firstName} ${customer.secondName}"
+fun fullName(customer: Customer) = "${customer.firstName} ${customer.lastName}"
 ----
 
 is a calculation,
 as it will always return the same value
-when supplied the same `Customer` data.
+when supplied the same `Customer` value.
+This is true only if `Customer` is immutable,
+(or at least `firstName` and `secondName` are) -
+let's stick with values for our inputs and that will always be true.
+
 By extension 
-(pun only retrospectively intended) 
-then
+(pun only retrospectively intended)
 
 [source,kotlin]
 ----
-fun Customer.fullName() = "$firstName $secondName"
+fun Customer.fullName() = "$firstName $lastName"
 ----
 
 is also a calculation,
 making it clear that the receiver of extension function
-counts as a parameter in our definition.
+counts as an input in our definition.
 
 Computed properties can also be calculations
 
 [source,kotlin]
 ----
-val Customer.fullName get() = "$firstName $secondName"
+val Customer.fullName get() = "$firstName $lastName"
 ----
 
 indeed things get confusing quickly 
 if they don't always give the same result.
+That's a good guideline for when to use to choose a property
+over a function or method -
+when the result doesn't change over time.
 
 Methods,
 or the hidden methods that are computed member-properties,
@@ -103,21 +118,21 @@ can also be calculations.
 
 [source,kotlin]
 ----
-data class Customer
-... 
-{
-    fun getFullName() = "$firstName $secondName"
-    val fullName get() = "$firstName $secondName"
+data class Customer(
+    val firstName: String,
+    val lastName: String
+) {
+    fun getFullName() = "$firstName $lastName"
+    val fullName get() = "$firstName $lastName"
 }
 ----
 
-Here `this` is considered a parameter to the functions,
-and so these are only calculations if `Customer` is immutable, 
-or at least `firstName` and `secondName` are.
+Here `this` is considered a input to the functions,
+as the receiver was for the extension examples.
 
 == Actions
 
-Code that does not define immutable data,
+Code that does not define values,
 or specify a pure calculation,
 is an action.
 Actions depend on when and/or how many times they are run.
@@ -158,14 +173,6 @@ as are functions that take no parameters
 (although there are exceptions here).
 
 
-
-
-
-
-
-
-
-Actually Eric Normand defines
 
 
 
