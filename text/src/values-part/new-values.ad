@@ -8,42 +8,41 @@ The grain of Kotlin encourages immutable data and programming by transforming co
 
 TODO:
 
- - Refactoring a value type from Java to Kotlin
-   * NB: a more complicated example than our current first data type
-   * data class means much less code, and less to test
-   * Collections are immutable by default: getting rid of defensive copying
-   * copy(...): getting rid of withXXX helper methods
+* CurrencyConversion - a simple data class.
+** Much shorter code.
+** No need to test it
+** And equals/hashCode remains correct as we change fields
+
+* Money
+** Maintains consistency constraints between fields.
+** Cannot be done in data classes, do cannot convert it to data class
+*** But flow typing lets us implement equals much more succinctly
+** Converting code that _uses_ Money to Kotlin loses the Money.of(...) idiom.
+*** It's not idiomatic Kotlin: Money(...) or moneyOf(...) would be more likely.
+*** should we try converting uses to Kotlin first?
 
 
-== Opt and Optionality
 
- - Nulls are type safe!
-   * Refactoring Optional<T> to T?
-   * Flow typing for the win
-   * Null-safe dereference & Elvis operators
+== Connections and Transformation Pipelines
 
-
-== Data Transformation Pipelines
-
-TODO:
-
- - Transform inputs into outputs.
-
-   * If you can't do that easily in one step, transform inputs into an intermediate representation from which it is easy to transform into outputs.
-      Can't do _that_ easily in one step?
-      Repeat until you can.
-
- - Refactoring Java streams to Kotlin stdlib
-
- - Abstracting common transformations into extension methods
-   * call forward to extension methods part
+* A type that contains a collection
+  ** Collections are immutable by default: getting rid of defensive copying
+  ** copy(...): getting rid of withXXX helper methods
 
 
-== Refactoring _to_ Values
+* Transform inputs into outputs.
+** If you can't do that easily in one step, transform inputs into an intermediate representation from which it is easy to transform into outputs.
+*** Can't do _that_ easily in one step? Repeat until you can.
 
-TODO:
+* Refactoring Java streams to Kotlin stdlib
 
- - refactoring loops and mutation to value types and transformations using the stdlib
+* Abstracting common transformations into extension methods
+** call forward to extension methods part
 
-   * ideally an example that needs zip.
+ - Factor out the middle of pipelines (useful transformations), rather than the downstream ends (tell-don't-ask).
 
+== Refactoring _to_ Data Transformation
+
+* refactoring loops and mutation to value types and transformations using the stdlib
+
+** Route requiredStays (needs a zip, impossible with Streams) and FX Conversion / cost summary (needs aggregation)
