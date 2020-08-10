@@ -1,6 +1,7 @@
 = Values, Calculations, and Actions
 
-In his excellent book _Grokking Simplicity_,
+In his excellent book
+https://www.manning.com/books/grokking-simplicity[Grokking Simplicity],
 Eric Normand develops the idea
 that we can categorise our code into values, calculations, and actions.
 Actually he says _data_ rather that _values_,
@@ -108,7 +109,7 @@ val Customer.fullName get() = "$firstName $lastName"
 
 indeed things get confusing quickly 
 if they don't always give the same result.
-That's a good guideline for when to use to choose a property
+That's a good guideline for when to choose a property
 over a function or method -
 when the result doesn't change over time.
 
@@ -167,10 +168,154 @@ is an action,
 because if you run it twice the customer will get two emails,
 which is different from if you run it once,
 which is different from if you run it nonce.
-
 Functions returning `void` or `Unit` are a dead giveaway for actions,
-as are functions that take no parameters
-(although there are exceptions here).
+because if they do anything they have to do it by side effect.
+
+Functions that have no parameters
+(so this doesn't include methods or extension functions)
+must also either be returning a constant;
+or be reading from some other source
+and so be categorised as actions.
+So we can deduce that the top-level function
+
+[source,kotlin]
+----
+fun requestRate(): Double {
+    ...
+}
+----
+
+is probably an action,
+reading from some global mutable state,
+whereas
+
+[source,kotlin]
+----
+class Metrics(
+   ...
+) {
+
+    fun requestRate(): Double {
+        ...
+    }
+}
+----
+
+is probably a calculation,
+provided `Metrics` is immutable.
+We say probably,
+because in languages that allow IO or mutating data from any code
+(like Java or Kotlin),
+there is no way to be sure if a function represents a value, calculation or action
+short of examining it.
+We'll return to that problem soon.
+
+== Why Should We Care?
+
+We should obviously pay special attention to some actions in our software.
+Sending the same email to every user twice is a bug,
+as is not sending it at all.
+We care exactly how many times it is sent,
+and probably when it is sent too,
+maybe down to the minute,
+so that our offer for a free first-class upgrade is at the top of our customer's inbox
+when they read their email over breakfast.
+
+Other seemingly innocuous actions may be more nocuous than we think.
+Changing the order of read and write actions causes concurrency bugs.
+Error handling is much more complicated if the second of two related actions fails.
+Fundamentally,
+actions prevent us having free-reign to refactor in ways
+which change when or whether they are invoked.
+
+Calculations on the other hand can be invoked at any time,
+with no consequences except a waste of time and energy.
+If you are refactoring code
+and find that you don't need the result of a calculation,
+you can safely not invoke it.
+If it is an expensive calculation,
+you can safely cache its result;
+if it is not expensive,
+you can safely recalculate it on demand if that simplifies things.
+It is this feeling of safety that puts the smug smile on the faces of functional programmers.
+
+Values, well they just are.
+Simply accessing immutable data takes even less reasoning than calculations.
+You don't have to drill down through source code,
+or write tests,
+to determine behaviour.
+Calculations can fail for various reasons,
+the main error that we have to consider with data is what to do in its absence,
+and, at least in the case of Kotlin,
+we have language support for that.
+The more code we can move into the values category
+the simpler our life will be.
+
+== Most Complicated Category Wins
+
+These categories - values, calculations and actions,
+do not overlap.
+If code depends on when or whether you run it,
+it is an action and not a calculation.
+If it doesn't,
+but isn't just accessing immutable data,
+it is a calculation.
+Otherwise we put it in the values category.
+
+If you have code which is simply accessing a value,
+and you change it to invoke a calculation,
+it becomes a calculation itself,
+as we now have to interpret code to work out what it is doing.
+Similarly,
+any calculation which invokes an action becomes an action itself,
+as it is now subject to time.
+We will see a similar situation with errors -
+code is raised to the most tainted level
+of all of its dependencies.
+
+As with the susceptibility to errors,
+if we value the lack of taint,
+we must strive to pull the boundary between impure and pure code
+to the outer layers of our system.
+If we succeed,
+then a significant proportion of our code can be values and calculations,
+and hence easily tested, reasoned-with, and refactored,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Let's look again at `requestRate` - the method this time.
+
+[source,kotlin]
+----
+class Metrics(
+    private val _requestRate: Double,
+   ...
+) {
+
+    fun requestRate() = _requestRate
+}
+----
+
+
+
+
+
+
 
 
 
