@@ -152,12 +152,16 @@ On balance, I don't think it's so much better than what a data class generates t
 If we do, we don't need the empty body of the class any more.
 Our CurrencyConversion class is now defined entirely by its properties:
 
-TODO: insert it here
-
-Because they require no boilerplate, it is much easier to define new value types in Kotlin than in Java.
-We find we introduce new value classes far more frequently --
-to hold intermediate results in a calculation pipeline,
-or to pivot data into temporary structures that make it easier to write application logic.
+// begin-insert: tags/value_types.4:src/main/java/travelator/money/CurrencyConversion.kt
+[source,kotlin]
+----
+data class CurrencyConversion(
+    val fromMoney: Money,
+    val toMoney: Money,
+    val rate: BigDecimal
+)
+----
+// end-insert
 
 Now we have so little code, smaller syntactic differences between Java and Kotlin stand out.  For example, there are no visibility modifiers.  The default visibility in Kotlin is public, so `public class CurrencyConversion` in Java has been translated to just `class CurrencyConversion` in Kotlin.  Being used to Java programming style, as we were, you may question this language design decision. Our experience working with Kotlin is that public by default works well with a design philosophy oriented around the transformation of data, where there is less need to hide and encapsulate mutable state.  It's another example of Kotlin's grain nudging the design in a different direction from Java. modelling by encapsulating mutable state needs more work than modelling with immutable values.
 
@@ -175,7 +179,7 @@ We'll have more to say about properties later, but for now if you think of them 
 There is quite a bit of subtlety to properties. We will keep on returning to this subject.
 ====
 
-We could convert our CurrencyConversionTest class to Kotlin, but as we now have no logic of our own in the CurrencyConversion class, we have no need for the tests and can delete the class.
+We could convert our tests to Kotlin, but as we now have no logic of our own in the CurrencyConversion class, we have no need for the tests and can delete the entire test class.
 
 
 === A More Sophisticated Value Type
@@ -186,7 +190,7 @@ Any calculations our application performs with CurrencyConversions, such as calc
 Such calculations are performed with the `Money` class, which _does_ have operations of its own.
 Here is the Java Money class:
 
-// begin-insert: tags/value_types.4:src/main/java/travelator/money/Money.java
+// begin-insert: tags/value_types.5:src/main/java/travelator/money/Money.java
 [source,java]
 ----
 public class Money {
@@ -256,7 +260,21 @@ public class Money {
 ----
 // end-insert
 
+
+== Copy Methods
+
+... todo ...
+
+
 == Conclusions
+
+Because they require no boilerplate, it is much easier to define new value types in Kotlin than in Java.
+We find we introduce new value classes far more frequently --
+to hold intermediate results in a calculation pipeline,
+or to pivot data into temporary structures that make it easier to write application logic.
+
+
+... the following is to be woven into the conclusions...
 
 * Convert to Kotlin is handy
 * But does not do all the work for you
