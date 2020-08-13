@@ -53,15 +53,15 @@ public class CurrencyConversion {
 ----
 // end-insert
 
-Even in this simple class, which does nothing more than group related data and provides no operations on that data,
-it takes a lot of boilerplate to implement value semantics.
+This class is very simple -- it does nothing more than group related data and provides no operations of its own.
+Even so, the class involves a lot of boilerplate code:
 
 1. Values are immutable, so the class declares its fields as final.
 2. It must define a constructor to initialise those fields
 3. Although the class is not a Java Bean, the accessor methods of its properties follow the Java Bean naming conventions.
-4. The class implements the equals and hashCode methods to ensure that two CurrencyConversion values with equal fields compare as equal. There is quite a lot of code to make that happen, but luckily our IDE has generated it for us.  However, we have to remember to delete and regenerate those methods when we change the fields of the class.
+4. The class implements the equals and hashCode methods to ensure that two CurrencyConversion values with equal fields compare as equal. There is quite a lot of code to make that happen, but happily our IDE generated it for us.  However, we have to remember to delete and regenerate those methods when we change the fields of the class to avoid confusing bugs.
 5. It returns a readable representation of itself from the toString method.
-6. We come from the school of Java that assumes that everything we pass, store or return is not null unless explicitly indicated otherwise.footnote:[Well, you can't _see_ that, but it's why there are no `@Nullable` annotations or null checks of parameters.]
+6. We come from the school of Java that assumes that everything we pass, store or return is not null unless explicitly indicated otherwise.  You can't _see_ that, but it's why there are no `@Nullable` annotations or null checks of parameters.
 
 Let's see what this looks like when we translate it to Kotlin.
 
@@ -124,12 +124,22 @@ public BigDecimal getRate() {
 ----
 // end-insert
 
-The primary constructor syntax is convenient, but it does interfere with the "scannability" of the class.  Java classes that follow the standard coding conventions always define their elements in the same order: class name, superclass, interfaces, then within the class body, fields, constructors, and methods.  This makes it easy to skim-read the class and quickly locate the features you're interested in.  It's not quite so easy in Kotlin: a class definition is organised thus: class name, primary constructor (which can contain parameters and/or property definitions), superclass (which may also be the call to the superclass' constructor), interfaces, then within the class body, more properties, more constructors, methods, and companion objects (we'll come to those later).  Coming from Java, I definitely found it harder to read classes at first, and although I got used to it eventually, I still find it hard at times to neatly format classes that have a primary constructor, a superclass, several interfaces, and properties that are defined outside the primary constructor. I'll happily diverge from the standard Kotlin coding conventions to add more blank lines between the primary constructor and the rest of the class definition if it makes it easier to distinguish different elements of the class.
+The primary constructor syntax is convenient, but it does interfere with the "scannability" of the class.
+Java classes that follow the standard coding conventions always define their elements in the same order: class name, superclass, interfaces, then within the class body, fields, constructors, and methods.
+This makes it easy to skim-read the class and quickly locate the features you're interested in.
+It's not quite so easy in Kotlin: a class definition is organised thus: class name, primary constructor (which can contain parameters and/or property definitions), superclass (which may also be the call to the superclass' constructor), interfaces, then within the class body, more properties, more constructors, methods, and companion objects (we'll come to those later).
+Coming from Java, I definitely found it harder to read classes at first, and although I got used to it eventually, I still find it hard at times to neatly format classes that have a primary constructor, a superclass, several interfaces, and properties that are defined outside the primary constructor.
+I'll happily diverge from the standard Kotlin coding conventions to add more blank lines between the primary constructor and the rest of the class definition if it makes it easier to distinguish different elements of the class.
 
 
-`Val` is short for 'value' and marks a property that you cannot change once set - the equivalent of Java's `final`. We could (but almost always wouldn't) have used `var` for `variable`, in which case the property could be modified and a Java setter would be generated.
+`Val` is short for 'value' and marks a property that you cannot change once set - the equivalent of Java's `final`.
+We could (but almost always wouldn't) have used `var` for `variable`, in which case the property could be modified and a Java setter would be generated.
 
-So far converting our value type to Kotlin has saved us 17 lines of code, but we aren't done yet. Value types like this are so useful but so tedious to get right and keep right that Kotlin supports them at a language level. Mark the class with the `data` modifier and the compiler will generate `equals`, `hashCode` and `toString` methods automatically, if they are not defined by the class. Our CurrencyConversion class has a specialised toString method, and it produces a more succinct representation of the object, so we'll leave that in the class. We can still delete the equals and hashCode methods and let the compiler implement the value semantics for us:
+So far converting our value type to Kotlin has saved us 17 lines of code, but we aren't done yet.
+Value types like this are so useful but so tedious to get right and keep right that Kotlin supports them at a language level.
+Mark the class with the `data` modifier and the compiler will generate `equals`, `hashCode` and `toString` methods automatically, if they are not defined by the class.
+Our CurrencyConversion class has a specialised toString method, and it produces a more succinct representation of the object, so we'll leave that in the class.
+We can still delete the equals and hashCode methods and let the compiler implement the value semantics for us:
 
 // begin-insert: tags/value_types.3:src/main/java/travelator/money/CurrencyConversion.kt
 [source,kotlin]
@@ -163,7 +173,12 @@ data class CurrencyConversion(
 ----
 // end-insert
 
-Now we have so little code, smaller syntactic differences between Java and Kotlin stand out.  For example, there are no visibility modifiers.  The default visibility in Kotlin is public, so `public class CurrencyConversion` in Java has been translated to just `class CurrencyConversion` in Kotlin.  Being used to Java programming style, as we were, you may question this language design decision. Our experience working with Kotlin is that public by default works well with a design philosophy oriented around the transformation of data, where there is less need to hide and encapsulate mutable state.  It's another example of Kotlin's grain nudging the design in a different direction from Java. modelling by encapsulating mutable state needs more work than modelling with immutable values.
+Now we have so little code, smaller syntactic differences between Java and Kotlin stand out.
+For example, there are no visibility modifiers.
+The default visibility in Kotlin is public, so `public class CurrencyConversion` in Java has been translated to just `class CurrencyConversion` in Kotlin.
+Being used to Java programming style, as we were, you may question this language design decision.
+Our experience working with Kotlin is that public by default works well with a design philosophy oriented around the transformation of data, where there is less need to hide and encapsulate mutable state.
+It's another example of Kotlin's grain nudging the design in a different direction from Java. modelling by encapsulating mutable state needs more work than modelling with immutable values.
 
 You haven't seen them, but we have some JUnit tests for our CurrencyConversion class.
 Due to the excellent interoperation between Kotlin and Java, these continue to pass with the converted class.
