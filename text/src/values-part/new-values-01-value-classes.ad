@@ -1,6 +1,11 @@
 == Value Types
 
 Compared to Java, Kotlin makes it much easier to define and transform immutable values.
+As a result, I find I define new value classes more frequently.
+I'm more likely to define "throwaway" value classes to hold intermediate results in a calculation pipeline, or to pivot data into shapes that make it easier to write application logic, for example.
+And I am much more likely to define my core application domain model entirely as immutable values and functions that act upon them.
+
+=== A Simple Value Type
 
 Here is a typical Java value type, in this case representing the result of a currency conversion.
 
@@ -59,13 +64,21 @@ Even so, the class involves a lot of boilerplate code:
 1. Values are immutable, so the class declares its fields as final.
 2. It must define a constructor to initialise those fields
 3. Although the class is not a Java Bean, the accessor methods of its properties follow the Java Bean naming conventions.
-4. The class implements the equals and hashCode methods to ensure that two CurrencyConversion values with equal fields compare as equal. There is quite a lot of code to make that happen, but happily our IDE generated it for us.  However, we have to remember to delete and regenerate those methods when we change the fields of the class to avoid confusing bugs.
+4. The class implements the equals and hashCode methods to ensure that two CurrencyConversion values with equal fields compare as equal.
+There is quite a lot of code to make that happen, but happily our IDE generated it for us.
+However, we have to remember to delete and regenerate those methods when we change the fields of the class to avoid confusing bugs.
 5. It returns a readable representation of itself from the toString method.
-6. We come from the school of Java that assumes that everything we pass, store or return is not null unless explicitly indicated otherwise.  You can't _see_ that, but it's why there are no `@Nullable` annotations or null checks of parameters.
+6. We come from the school of Java that assumes that everything we pass, store or return is not null unless explicitly indicated otherwise.
+You can't _see_ that, but it's why there are no `@Nullable` annotations or null checks of parameters.
 
 Let's see what this looks like when we translate it to Kotlin.
 
-IntelliJ has a command to convert a Java source file to Kotlin. It is called (at the time of writing) 'Convert Java File to Kotlin File', and is bound to Ctrl+Shift+Alt+K on Windows and Linux, Cmd-Shift-Option-K on the Mac.  When we run that command on CurrencyConversion.java, IntelliJ thinks for a while and then pops up a dialog that informs us "Some of the code in the rest of your project may require corrections after performing this conversion." and asks "Do you want to find such code and correct it too?".  We'll look into the effects of this choice later. For now, we'll click the "Yes" button and let IntelliJ to do the needful.  When it finishes, our code looks like:
+IntelliJ has a command to convert a Java source file to Kotlin.
+It is called (at the time of writing) 'Convert Java File to Kotlin File', and is bound to Ctrl+Shift+Alt+K on Windows and Linux, Cmd-Shift-Option-K on the Mac.
+When we run that command on CurrencyConversion.java, IntelliJ thinks for a while and then pops up a dialog that informs us "Some of the code in the rest of your project may require corrections after performing this conversion." and asks "Do you want to find such code and correct it too?".
+We'll look into the effects of this choice later.
+For now, we'll click the "Yes" button and let IntelliJ to do the needful.
+When it finishes, our code looks like:
 
 // begin-insert: tags/value_types.2:src/main/java/travelator/money/CurrencyConversion.kt
 [source,kotlin]
@@ -95,7 +108,8 @@ class CurrencyConversion(
 
 Let's take some time to compare the two files.
 
-The Kotlin class is noticeably more succinct because it declares its properties in the primary constructor.  Those declarations stand in for all this Java:
+The Kotlin class is noticeably more succinct because it declares its properties in the primary constructor.
+Those declarations stand in for all this Java:
 
 // begin-insert: tags/value_types.0:src/main/java/travelator/money/CurrencyConversion.java#replaced_by_primary_constructor
 [source,java]
@@ -187,15 +201,16 @@ Take a moment to think what that implies about the generated class.
 Our Java CurrencyConversion class had explicit "getter" methods.
 These are not in the converted Kotlin source, but our Java can still call them.
 The Kotlin compiler is not only generating the `equals` and `hashCode` methods we knew about, but also  `getFromMoney`, `getToMoney` and `getRate` -- `fromMoney` and `toMoney` and `rate` are not fields in Kotlin, they are properties.
-Where Java calls `conversion.getRate()`, Kotlin accesses the property `conversion.rate`. In actual fact Kotlin will call the `getRate` method that it has generated (or one supplied by a Java class) rather than accessing a field directly - so nothing has really changed except that we can drop the `get` and `()`.
+Where Java calls `conversion.getRate()`, Kotlin accesses the property `conversion.rate`.
+In actual fact Kotlin will call the `getRate` method that it has generated (or one supplied by a Java class) rather than accessing a field directly - so nothing has really changed except that we can drop the `get` and `()`.
 We'll have more to say about properties later, but for now if you think of them as a private field with a public getter and, if a `var` property, a public setter, you won't often be wrong.
 
 ****
-There is quite a bit of subtlety to properties. We will keep on returning to this subject.
+There is quite a bit of subtlety to properties.
+We will keep on returning to this subject.
 ****
 
 We could convert our tests to Kotlin, but as we now have no logic of our own in the CurrencyConversion class, we have no need for the tests and can delete the entire test class.
-
 
 === A More Sophisticated Value Type
 
@@ -276,24 +291,23 @@ public class Money {
 // end-insert
 
 TODO:
- * cannot convert to data class because it maintains constraints between properties
- * convert tests to Kotlin (??? maybe)
- * operator overloading for maths-like classes -- implemented as extension methods in stdlib for Java classes
- ** limitations: cannot change flow control.  Remember, the "grain" of Kotlin is to prefer explicitness
- ** avoid operator "punning"
 
+* cannot convert to data class because it maintains constraints between properties
+* convert tests to Kotlin (??? maybe)
+* operator overloading for maths-like classes -- implemented as extension methods in stdlib for Java classes
+** limitations: cannot change flow control.
+Remember, the "grain" of Kotlin is to prefer explicitness
+** avoid operator "punning"
 
 == Copy Methods
 
 ... todo ...
 
-
 == Conclusions
 
 Because they require no boilerplate, it is much easier to define new value types in Kotlin than in Java.
 We find we introduce new value classes far more frequently --
-to hold intermediate results in a calculation pipeline,
-or to pivot data into temporary structures that make it easier to write application logic.
+to hold intermediate results in a calculation pipeline, or to pivot data into temporary structures that make it easier to write application logic.
 
 
 ... the following is to be woven into the conclusions...
