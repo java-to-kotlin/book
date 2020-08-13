@@ -251,65 +251,31 @@ we have language support for that.
 The more code we can move into the values category
 the simpler our life will be.
 
-== Most Complicated Category Wins
+.Procedural Code
+****
+Nat and Duncan are both old enough to have learned to programme in Sinclair BASIC. This dialect had no local variables, no immutable data, and no concept of defining a function with parameters that could return values.
+It requires real discipline to programme in such a system, because practically every line of code is an action, and hence potentially affects the functioning of every other statement.
 
-These categories - values, calculations and actions,
-do not overlap.
-If code depends on when or whether you run it,
-it is an action and not a calculation.
-If it doesn't,
-but isn't just accessing immutable data,
-it is a calculation.
-Otherwise we put it in the values category.
+This is in fact very close to the way that our computers actually work, with mutable values held in registers and global memory, manipulated by machine-code actions.
+The evolution of programming languages has been a process of restricting the ultimate flexibility of this model, in order that humans can better reason with the code that they create.
+****
 
-If you have code which is simply accessing a value,
-and you change it to invoke a calculation,
-it becomes a calculation itself,
-as we now have to interpret code to work out what it is doing.
-Similarly,
-any calculation which invokes an action becomes an action itself,
-as it is now subject to time.
-We will see a similar situation with errors -
-code is raised to the most tainted level
-of all of its dependencies.
+== Combining Categories
 
-As with the susceptibility to errors,
-if we value the lack of taint,
-we must strive to pull the boundary between impure and pure code
-to the outer layers of our system.
-If we succeed,
-then a significant proportion of our code can be values and calculations,
-and hence easily tested, reasoned-with, and refactored,
+The categories - values, calculations and actions, do not overlap.
+If code depends on when or whether you run it, it is an action and not a calculation.
+If it doesn't, but isn't just accessing immutable data, it is a calculation.
+Otherwise, the code is expressing a value.
 
+If you have code which is simply accessing a value, and you change it to invoke a calculation, it becomes a calculation itself, as we now have to interpret code to work out what it is doing.
+Similarly, any calculation which invokes an action becomes an action itself, as it is now subject to time.
+We see a similar situation with errors - code is raised to the most tainted level of all of its dependencies.
 
+As with the susceptibility to errors, if we value the lack of taint, we must strive to pull the boundary between impure and pure code to the outer layers of our system.
+If we succeed, then a significant proportion of our code can be values and calculations, and hence easily tested, reasoned-with, and refactored.
 
+If we don't succeed in keeping actions at the top of our call-stack, we can fix things with refactoring.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Let's look again at `requestRate` - the method this time.
-
-[source,kotlin]
-----
-class Metrics(
-    private val _requestRate: Double,
-   ...
-) {
-
-    fun requestRate() = _requestRate
-}
-----
 
 
 
