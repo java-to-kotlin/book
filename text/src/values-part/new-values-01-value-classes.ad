@@ -12,30 +12,31 @@ Here is a typical Java value type, in this case representing the result of a cur
 [source,java]
 ----
 public class CurrencyConversion {
-    private final Money fromMoney;
+    private final Money fromMoney; // <1>
     private final Money toMoney;
     private final BigDecimal rate;
 
+    // <2>
     public CurrencyConversion(Money fromMoney, Money toMoney, BigDecimal rate) {
         this.fromMoney = fromMoney;
         this.toMoney = toMoney;
         this.rate = rate;
     }
 
-    public Money getFromMoney() {
+    public Money getFromMoney() { // <3>
         return fromMoney;
     }
 
-    public Money getToMoney() {
+    public Money getToMoney() { // <3>
         return toMoney;
     }
 
-    public BigDecimal getRate() {
+    public BigDecimal getRate() { // <3>
         return rate;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(Object o) { // <4>
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         CurrencyConversion that = (CurrencyConversion) o;
@@ -45,12 +46,12 @@ public class CurrencyConversion {
     }
 
     @Override
-    public int hashCode() {
+    public int hashCode() { // <4>
         return Objects.hash(fromMoney, toMoney, rate);
     }
 
     @Override
-    public String toString() {
+    public String toString() { // <5>
         return fromMoney + " @ " + rate + " -> " + toMoney;
     }
 }
@@ -79,7 +80,7 @@ We'll look into the effects of this choice later.
 For now, we'll click the "Yes" button and let IntelliJ to do the needful.
 When it finishes, our code looks like:
 
-// begin-insert: tags/value_types.2:src/main/java/travelator/money/CurrencyConversion.kt
+// begin-insert: tags/value_types.3:src/main/java/travelator/money/CurrencyConversion.kt
 [source,kotlin]
 ----
 class CurrencyConversion(
@@ -110,7 +111,7 @@ Let's take some time to compare the two files.
 The Kotlin class is noticeably more succinct because it declares its properties in the primary constructor.
 Those declarations stand in for all this Java:
 
-// begin-insert: tags/value_types.0:src/main/java/travelator/money/CurrencyConversion.java#replaced_by_primary_constructor
+// begin-insert: tags/value_types.1:src/main/java/travelator/money/CurrencyConversion.java#replaced_by_primary_constructor
 [source,java]
 ----
 private final Money fromMoney;
@@ -154,7 +155,7 @@ Mark the class with the `data` modifier and the compiler will generate `equals`,
 Our CurrencyConversion class has a specialised toString method, and it produces a more succinct representation of the object, so we'll leave that in the class.
 We can still delete the equals and hashCode methods and let the compiler implement the value semantics for us:
 
-// begin-insert: tags/value_types.3:src/main/java/travelator/money/CurrencyConversion.kt
+// begin-insert: tags/value_types.4:src/main/java/travelator/money/CurrencyConversion.kt
 [source,kotlin]
 ----
 data class CurrencyConversion(
@@ -175,7 +176,7 @@ On balance, I don't think it's so much better than what a data class generates t
 If we delete it, we can also delete the now empty body of the class.
 Our CurrencyConversion class is now defined entirely by its properties:
 
-// begin-insert: tags/value_types.4:src/main/java/travelator/money/CurrencyConversion.kt
+// begin-insert: tags/value_types.5:src/main/java/travelator/money/CurrencyConversion.kt
 [source,kotlin]
 ----
 data class CurrencyConversion(
@@ -219,7 +220,7 @@ Any calculations our application performs with CurrencyConversions, such as calc
 Such calculations are performed with the `Money` class, which _does_ have operations of its own.
 Here is the Java Money class:
 
-// begin-insert: tags/value_types.5:src/main/java/travelator/money/Money.java
+// begin-insert: tags/value_types.6:src/main/java/travelator/money/Money.java
 [source,java]
 ----
 public class Money {
