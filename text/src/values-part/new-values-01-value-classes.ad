@@ -357,17 +357,35 @@ private constructor(
 ----
 // end-insert
 
-TODO: cannot convert to data class because it maintains constraints between properties
+TODO: explain Kotlin code
 
-* convert tests to Kotlin (??? maybe)
+* What's that @JvmStatic stuff?
+* companion objects vs top-level functions, what is idiomatic Kotlin, and how that is affected visibility -- call forward to <<organising-code-by-domain>>.
 
-TODO: plus operator
+
+TODO: try to convert to a data class: get a warning about private constructor and public copy method
+
+* don't want to make the constructor public
+** the 'of' method maintains a constraint between properties
+** the constructor just sets fields, which could violate that constraint
+** the 'add' method maintains the constraint and so avoids recalculating the scale of the amount
+** a data class has no way to maintain a constraint in its constructor or copy method
+
+* But we can make the code more concise
+** methods to single-expression form
+** lean on flow typing in the equals method
+
+* convert tests to Kotlin (??? is it worth it? They don't look that different.)
+
+TODO: add -> plus operator
+
 * operator overloading for maths-like classes -- implemented as extension methods in stdlib for Java classes
 ** IntelliJ cannot refactor all method calls to an operator method into an operator call
 ** introduce the "delegate and inline" refactoring combination
 *** this is also used to introduce infix methods in the JSON DSL chapter -- ensure they are consistent and don't repeat themselves
 ** NOTE: limitations of operators: cannot change flow control. Remember, the "grain" of Kotlin is to prefer explicitness
 ** WARNING: avoid operator "punning"
+
 
 == Copy Methods
 
