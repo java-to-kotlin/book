@@ -145,7 +145,6 @@ It's not quite so easy in Kotlin: a class definition is organised thus: class na
 Coming from Java, I definitely found it harder to read classes at first, and although I got used to it eventually, I still find it hard at times to neatly format classes that have a primary constructor, a superclass, several interfaces, and properties that are defined outside the primary constructor.
 I'll happily diverge from the standard Kotlin coding conventions to add more blank lines between the primary constructor and the rest of the class definition if it makes it easier to distinguish different elements of the class.
 
-
 `Val` is short for 'value' and marks a property that you cannot change once set - the equivalent of Java's `final`.
 We could (but almost always wouldn't) have used `var` for `variable`, in which case the property could be modified and the class would no longer have true value semantics.
 
@@ -192,7 +191,8 @@ For example, there are no visibility modifiers.
 The default visibility in Kotlin is public, so `public class CurrencyConversion` in Java has been translated to just `class CurrencyConversion` in Kotlin.
 Being used to Java programming style, as we were, you may question this language design decision.
 Our experience working with Kotlin is that public by default works well with a design philosophy oriented around the transformation of data, where there is less need to hide and encapsulate mutable state.
-It's another example of Kotlin's grain nudging the design in a different direction from Java. modelling by encapsulating mutable state needs more work than modelling with immutable values.
+It's another example of Kotlin's grain nudging the design in a different direction from Java:
+modelling with objects that encapsulate mutable state needs more work than modelling with immutable values.
 
 You haven't seen them, but we have some JUnit tests for our CurrencyConversion class.
 Due to the excellent interoperation between Kotlin and Java, these continue to pass with the converted class.
@@ -281,7 +281,8 @@ public class Money {
 
     public Money add(Money that) { // <7>
         if (!this.currency.equals(that.currency)) {
-            throw new IllegalArgumentException("cannot add Money values of different currencies");
+            throw new IllegalArgumentException(
+                "cannot add Money values of different currencies");
         }
 
         return new Money(this.amount.add(that.amount), this.currency);
