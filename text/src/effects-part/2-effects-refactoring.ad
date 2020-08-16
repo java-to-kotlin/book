@@ -1,0 +1,378 @@
+= Refactoring Actions
+
+Let's have a look at recognising and refactoring actions in existing code.
+
+
+== Existing Code
+
+There is an HTTP endpoint in Travelator that allows the client app to fetch information about the customers current trip.
+
+// begin-insert: tags/effects.0:src/main/java/travelator/handlers/CurrentTripsHandler.java
+[source,java]
+----
+public class CurrentTripsHandler {
+
+    private final ITrackTrips tracking;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    public CurrentTripsHandler(ITrackTrips tracking) {
+        this.tracking = tracking;
+    }
+
+    public Response handle(Request request) {
+        try {
+            var customerId = request.getQueryParam("customerId").stream()
+                .findFirst();
+            if (customerId.isEmpty())
+                return new Response(HTTP_BAD_REQUEST);
+            var currentTrip = tracking.currentTripFor(customerId.get());
+            return currentTrip.isPresent() ?
+                new Response(HTTP_OK, objectMapper.writeValueAsString(currentTrip)) :
+                new Response(HTTP_NOT_FOUND);
+        } catch (Exception x) {
+            return new Response(HTTP_INTERNAL_ERROR);
+        }
+    }
+}
+----
+// end-insert
+
+Actions are code that is sensitive to time, so words like _current_ are a dead give-away.
+Our handler is an action, and that's OK, things on the edge of our systems often are.
+
+The handler delegates to some business logic, implemented in `Tracking`.
+
+// begin-insert: tags/effects.0:src/main/java/travelator/Tracking.java
+[source,java]
+----
+class Tracking implements ITrackTrips {
+
+    private final Trips trips;
+
+    public Tracking(Trips trips) {
+        this.trips = trips;
+    }
+
+    @Override
+    public Optional<Trip> currentTripFor(String customerId) {
+        var candidates = trips.currentTripsFor(customerId).stream()
+            .filter((trip) -> trip.getBookingStatus() == BOOKED)
+            .collect(toList());
+        if (candidates.size() == 1)
+            return Optional.of(candidates.get(0));
+        else if (candidates.size() == 0)
+            return Optional.empty();
+        else
+            throw new IllegalStateException("Unexpectedly more than one current trip for " + customerId);
+    }
+}
+----
+// end-insert
+
+Using the _current_ rule `Tracking.currentTripFor` is evidently an action too, as is `Trips.currentTripsFor`.
+Here is its implementation in `InMemoryTrips`, which is used for testing in place of a version implemented with database queries.
+
+// begin-insert: tags/effects.0:src/test/java/travelator/InMemoryTrips.java#foo
+[source,java]
+----
+public class InMemoryTrips implements Trips {
+
+    ...
+    @Override
+    public Set<Trip> currentTripsFor(String customerId) {
+        return tripsFor(customerId).stream()
+            .filter(trip -> trip.isPlannedToBeActiveAt(clock.instant()))
+            .collect(toSet());
+    }
+}
+----
+// end-insert
+
+The thunking from `Set<Trip>` to `Optional<Trip>` seems to be because there is some business rule around only one booked active trip at any time that is not enforced in the persistence layer.
+
+Until we got here, we have been relying on our knowledge of the meanings of words to establish that Java methods represent actions rather than calculations.
+Here finally we find a smoking gun.
+Can you spot it?
+
+Yes - `clock.instant()`.
+That definitely depends on when we call it.
+(If you found another action, well done, but keep it to yourself for now, we'll come back to it.)
+
+As well as making it harder to refactor our code, actions make it harder to test too.
+Let's see how that is manifested.
+
+// begin-insert: tags/effects.0:src/test/java/travelator/TrackingTests.java#foo
+[source,java]
+----
+public class TrackingTests {
+
+    final StoppedClock clock = new StoppedClock();
+
+    final InMemoryTrips trips = new InMemoryTrips(clock);
+    final Tracking tracking = new Tracking(trips);
+
+    @Test
+    public void returns_empty_when_no_trip_planned_to_happen_now() {
+        clock.now = anInstant();
+        assertEquals(Optional.empty(), tracking.currentTripFor("aCustomer"));
+    }
+
+    @Test
+    public void returns_single_active_booked_trip() {
+        Trip diwaliTrip = givenATrip("aCustomer", "Diwali", "2020-11-13", "2020-11-15", BOOKED);
+        givenATrip("aCustomer", "Christmas", "2020-12-24", "2020-11-26", BOOKED);
+
+        clock.now = diwaliTrip.getPlannedStartTime().toInstant();
+        assertEquals(Optional.of(diwaliTrip), tracking.currentTripFor("aCustomer"));
+    }
+
+    ...
+}
+----
+// end-insert
+
+In order to give predictable results we have had to use a fake clock, injected into `InMemoryTrips`.
+Having said that `clock.instant()` definitely depends on when we call it, in our tests it doesn't (at least not in the same way).
+The alternative would been to have set up trips relative to the time that the tests are being run - you can do this, but things get ugly quickly.
+
+.2015 was the End of Time
+****
+Duncan and Nat returned to work after Christmas holidays at the beginning of 2015 to find a slew of previously-passing unit tests now failing.
+It turns out that 2015-01-01T00:00:00 had been used as a constant for a time that would always be after `now()`.
+When that time was in the past, all the tests that relied on this behaviour began failing.
+
+The solution was the refactoring that we are presenting here.
+****
+
+Is having to inject a clock https://dhh.dk/2014/test-induced-design-damage.html[Test-Induced Design Damage]?
+In some ways it is.
+Dependency injection, and in particular mocks, have allowed us to solve testing problems that would otherwise have forced a rethink that might lead to a better design.
+
+What would a better design look like here?
+
+In order to make this less time-dependant, we can simply supply the time as an argument to the method.
+Whilst this forces the caller to know the time, that isn't generally a problem.
+In fact this is a special case of the way that we refactor to avoid dependencies on other global state - instead of calling out to read, pass the value into the function.
+
+Let's start the refactor by adding an (as yet unused) `Instant` parameter to the `Trips.currentTripsFor(customerId)` method.
+Before this was
+
+// begin-insert: tags/effects.0:src/main/java/travelator/Trips.java#foo
+[source,java]
+----
+public interface Trips {
+    ...
+    Set<Trip> currentTripsFor(String customerId);
+}
+----
+// end-insert
+
+If we use IntelliJ's _Change Signature_ refactoring we can call it `at`, and default it to `Instant.now()` on the assumption that shouldn't break any code.
+Running the tests shows that we are right.
+
+`Trips` now looks like this
+
+// begin-insert: tags/effects.1:src/main/java/travelator/Trips.java#foo
+[source,java]
+----
+public interface Trips {
+    ...
+    Set<Trip> currentTripsFor(String customerId, Instant at);
+}
+----
+// end-insert
+
+and here is a call
+
+// begin-insert: tags/effects.1:src/main/java/travelator/Tracking.java#foo
+[source,java]
+----
+class Tracking implements ITrackTrips {
+    ...
+
+    @Override
+    public Optional<Trip> currentTripFor(String customerId) {
+        var candidates = trips.currentTripsFor(customerId, Instant.now()) // <1>
+            .stream()
+            .filter((trip) -> trip.getBookingStatus() == BOOKED)
+            .collect(toList());
+        if (candidates.size() == 1)
+            return Optional.of(candidates.get(0));
+        else if (candidates.size() == 0)
+            return Optional.empty();
+        else
+            throw new IllegalStateException("Unexpectedly more than one current trip for " + customerId);
+    }
+}
+----
+// end-insert
+<1> New parameter
+
+Note that we can only pull this trick because `Instant.now()`, while an action, has no side effects that will affect any other part of our program.
+
+That `now()` is not really helping us in `Tracking`, so lets pull it out as a parameter, supplied by the caller again, in this case `CurrentTripsHandler`.
+
+// begin-insert: tags/effects.2:src/main/java/travelator/Tracking.java#foo
+[source,java]
+----
+class Tracking implements ITrackTrips {
+    ...
+
+    @Override
+    public Optional<Trip> currentTripFor(String customerId, Instant at) { // <1>
+        var candidates = trips.currentTripsFor(customerId, at)
+            .stream()
+            .filter((trip) -> trip.getBookingStatus() == BOOKED)
+            .collect(toList());
+        if (candidates.size() == 1)
+            return Optional.of(candidates.get(0));
+        else if (candidates.size() == 0)
+            return Optional.empty();
+        else
+            throw new IllegalStateException("Unexpectedly more than one current trip for " + customerId);
+    }
+}
+----
+// end-insert
+<1> Now a parameter
+
+// begin-insert: tags/effects.2:src/main/java/travelator/handlers/CurrentTripsHandler.java#foo
+[source,java]
+----
+public class CurrentTripsHandler {
+    ...
+    public Response handle(Request request) {
+        try {
+            var customerId = request.getQueryParam("customerId").stream()
+                .findFirst();
+            if (customerId.isEmpty())
+                return new Response(HTTP_BAD_REQUEST);
+            var currentTrip = tracking.currentTripFor(customerId.get(), Instant.now()); // <1>
+            return currentTrip.isPresent() ?
+                new Response(HTTP_OK, objectMapper.writeValueAsString(currentTrip)) :
+                new Response(HTTP_NOT_FOUND);
+        } catch (Exception x) {
+            return new Response(HTTP_INTERNAL_ERROR);
+        }
+    }
+}
+----
+// end-insert
+<1> Supplying the time.
+
+At this point we still haven't changed the behaviour of our code, but neither are we using the time now passed down from our handler.
+Let's do that in `InMemoryTrips`, where we started.
+We did have
+
+// begin-insert: tags/effects.2:src/test/java/travelator/InMemoryTrips.java#foo
+[source,java]
+----
+public class InMemoryTrips implements Trips {
+
+    ...
+    @Override
+    public Set<Trip> currentTripsFor(String customerId, Instant at) {
+        return tripsFor(customerId).stream()
+            .filter(trip -> trip.isPlannedToBeActiveAt(clock.instant()))
+            .collect(toSet());
+    }
+}
+----
+// end-insert
+
+and now
+// begin-insert: tags/effects.3:src/test/java/travelator/InMemoryTrips.java#foo
+[source,java]
+----
+public class InMemoryTrips implements Trips {
+
+    ...
+    @Override
+    public Set<Trip> currentTripsFor(String customerId, Instant at) {
+        return tripsFor(customerId).stream()
+            .filter(trip -> trip.isPlannedToBeActiveAt(at))
+            .collect(toSet());
+    }
+}
+----
+// end-insert
+
+Now that we aren't asking the clock for the time the tests that use `InMemoryTrips` will fail.
+
+// begin-insert: tags/effects.3:src/test/java/travelator/TrackingTests.java#foo
+[source,java]
+----
+public class TrackingTests {
+
+    final StoppedClock clock = new StoppedClock();
+
+    final InMemoryTrips trips = new InMemoryTrips(clock);
+    final Tracking tracking = new Tracking(trips);
+
+    @Test
+    public void returns_empty_when_no_trip_planned_to_happen_now() {
+        assertEquals(
+            Optional.empty(),
+            tracking.currentTripFor("aCustomer", anInstant())
+        );
+    }
+
+    @Test
+    public void returns_single_active_booked_trip() {
+        Trip diwaliTrip = givenATrip("aCustomer", "Diwali", "2020-11-13", "2020-11-15", BOOKED);
+        givenATrip("aCustomer", "Christmas", "2020-12-24", "2020-11-26", BOOKED);
+
+        assertEquals(
+            Optional.of(diwaliTrip),
+            tracking.currentTripFor("aCustomer", diwaliTrip.getPlannedStartTime().toInstant())
+        );
+    }
+
+    ...
+}
+----
+// end-insert
+<1> These need to be the value we were setting into the `StoppedClock`.
+
+// begin-insert: tags/effects.3:src/test/java/travelator/TrackingTests.java#foo
+[source,java]
+----
+public class TrackingTests {
+
+    final StoppedClock clock = new StoppedClock();
+
+    final InMemoryTrips trips = new InMemoryTrips(clock);
+    final Tracking tracking = new Tracking(trips);
+
+    @Test
+    public void returns_empty_when_no_trip_planned_to_happen_now() {
+        assertEquals(
+            Optional.empty(),
+            tracking.currentTripFor("aCustomer", anInstant())
+        );
+    }
+
+    @Test
+    public void returns_single_active_booked_trip() {
+        Trip diwaliTrip = givenATrip("aCustomer", "Diwali", "2020-11-13", "2020-11-15", BOOKED);
+        givenATrip("aCustomer", "Christmas", "2020-12-24", "2020-11-26", BOOKED);
+
+        assertEquals(
+            Optional.of(diwaliTrip),
+            tracking.currentTripFor("aCustomer", diwaliTrip.getPlannedStartTime().toInstant())
+        );
+    }
+
+    ...
+}
+----
+// end-insert
+
+We're nearly almost done now (refactoring never sleeps).
+Neither of our `currentTripFor` methods now fetch the time, leaving that to the handler.
+Tests for the handler may well require us to control _now_, so we will probably inject a clock into it.
+In return we can remove the clock from `InMemoryTrips` and `TrackingTests`.
+
+Something about action about the current state of Trips
+
+Making a calculation out of currentTripsFor(Set<Trip>, Instant)
