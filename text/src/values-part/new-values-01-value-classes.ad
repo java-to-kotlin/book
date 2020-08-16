@@ -14,13 +14,11 @@ Here is a typical Java value type, in this case representing the result of a cur
 public class CurrencyConversion {
     private final Money fromMoney; // <1>
     private final Money toMoney;
-    private final BigDecimal rate;
 
     // <2>
-    public CurrencyConversion(Money fromMoney, Money toMoney, BigDecimal rate) {
+    public CurrencyConversion(Money fromMoney, Money toMoney) {
         this.fromMoney = fromMoney;
         this.toMoney = toMoney;
-        this.rate = rate;
     }
 
     public Money getFromMoney() { // <3>
@@ -31,28 +29,26 @@ public class CurrencyConversion {
         return toMoney;
     }
 
-    public BigDecimal getRate() { // <3>
-        return rate;
-    }
-
     @Override
     public boolean equals(Object o) { // <4>
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         CurrencyConversion that = (CurrencyConversion) o;
         return fromMoney.equals(that.fromMoney) &&
-            toMoney.equals(that.toMoney) &&
-            rate.equals(that.rate);
+            toMoney.equals(that.toMoney);
     }
 
     @Override
     public int hashCode() { // <4>
-        return Objects.hash(fromMoney, toMoney, rate);
+        return Objects.hash(fromMoney, toMoney);
     }
 
     @Override
     public String toString() { // <5>
-        return fromMoney + " @ " + rate + " -> " + toMoney;
+        return "CurrencyConversion{" +
+            "fromMoney=" + fromMoney +
+            ", toMoney=" + toMoney +
+            '}';
     }
 }
 ----
@@ -67,7 +63,7 @@ Even so, the class involves a lot of boilerplate code:
 4. The class implements the equals and hashCode methods to ensure that two CurrencyConversion values with equal fields compare as equal.
 There is quite a lot of code to make that happen, but happily our IDE generated it for us.
 However, we have to remember to delete and regenerate those methods when we change the fields of the class to avoid confusing bugs.
-5. It returns a readable representation of itself from the toString method.
+5. It returns a textual representation of itself from the toString method.
 6. We come from the school of Java that assumes that everything we pass, store or return is not null unless explicitly indicated otherwise.
 You can't _see_ that, but it's why there are no `@Nullable` annotations or null checks of parameters.
 
@@ -80,27 +76,27 @@ We'll look into the effects of this choice later.
 For now, we'll click the "Yes" button and let IntelliJ to do the needful.
 When it finishes, our code looks like:
 
-// begin-insert: tags/value_types.3:src/main/java/travelator/money/CurrencyConversion.kt
+// begin-insert: tags/value_types.2:src/main/java/travelator/money/CurrencyConversion.kt
 [source,kotlin]
 ----
-class CurrencyConversion(
-    val fromMoney: Money,
-    val toMoney: Money,
-    val rate: BigDecimal
-) {
+class CurrencyConversion(val fromMoney: Money, val toMoney: Money) {
+
     override fun equals(o: Any?): Boolean {
         if (this === o) return true
         if (o == null || javaClass != o.javaClass) return false
         val that = o as CurrencyConversion
-        return fromMoney == that.fromMoney && toMoney == that.toMoney && rate == that.rate
+        return fromMoney == that.fromMoney && toMoney == that.toMoney
     }
 
     override fun hashCode(): Int {
-        return Objects.hash(fromMoney, toMoney, rate)
+        return Objects.hash(fromMoney, toMoney)
     }
 
     override fun toString(): String {
-        return "$fromMoney @ $rate -> $toMoney"
+        return "CurrencyConversion{" +
+            "fromMoney=" + fromMoney +
+            ", toMoney=" + toMoney +
+            '}'
     }
 }
 ----
@@ -114,12 +110,10 @@ Those declarations stand in for all this Java:
 ----
 private final Money fromMoney;
 private final Money toMoney;
-private final BigDecimal rate;
 
-public CurrencyConversion(Money fromMoney, Money toMoney, BigDecimal rate) {
+public CurrencyConversion(Money fromMoney, Money toMoney) {
     this.fromMoney = fromMoney;
     this.toMoney = toMoney;
-    this.rate = rate;
 }
 
 public Money getFromMoney() {
@@ -128,10 +122,6 @@ public Money getFromMoney() {
 
 public Money getToMoney() {
     return toMoney;
-}
-
-public BigDecimal getRate() {
-    return rate;
 }
 ----
 // end-insert
@@ -143,46 +133,24 @@ It's not quite so easy in Kotlin: a class definition is organised thus: class na
 Coming from Java, I definitely found it harder to read classes at first, and although I got used to it eventually, I still find it hard at times to neatly format classes that have a primary constructor, a superclass, several interfaces, and properties that are defined outside the primary constructor.
 I'll happily diverge from the standard Kotlin coding conventions to add more blank lines between the primary constructor and the rest of the class definition if it makes it easier to distinguish different elements of the class.
 
-`Val` is short for 'value' and marks a property that you cannot change once set - the equivalent of Java's `final`.
+The `val` keyword is short for 'value' and marks a property that you cannot change once set - the equivalent of Java's `final`.
 We could (but almost always wouldn't) have used `var` for `variable`, in which case the property could be modified and the class would no longer have true value semantics.
 
-So far converting our value type to Kotlin has saved us 17 lines of code, but we aren't done yet.
+So far converting our value type to Kotlin has saved us 12 lines of code, but we aren't done yet.
 Value types like this are so useful but so tedious to get right and keep right that Kotlin supports them at a language level.
 Mark the class with the `data` modifier and the compiler will generate `equals`, `hashCode` and `toString` methods automatically, if they are not defined by the class.
-Our CurrencyConversion class has a specialised toString method, and it produces a more succinct representation of the object, so we'll leave that in the class.
-We can still delete the equals and hashCode methods and let the compiler implement the value semantics for us:
 
-// begin-insert: tags/value_types.4:src/main/java/travelator/money/CurrencyConversion.kt
+// begin-insert: tags/value_types.3:src/main/java/travelator/money/CurrencyConversion.kt
 [source,kotlin]
 ----
 data class CurrencyConversion(
     val fromMoney: Money,
-    val toMoney: Money,
-    val rate: BigDecimal
-) {
-    override fun toString() = "$fromMoney @ $rate -> $toMoney"
-}
+    val toMoney: Money)
 ----
 // end-insert
 
-That's much more succinct and, more importantly, when we add properties to a CurrencyConversion we won't have to remember to update the generated methods or find ourselves with hard-to-diagnose bugs.
-Well... except for that `toString()` function.
-A bit of investigation shows that the result of `toString` is never used in production code.
-It only appears in diagnostic messages generated by the assertions in our tests.
-On balance, I don't think it's so much better than what a data class generates that it's worth keeping.
-If we delete it, we can also delete the now empty body of the class.
-Our CurrencyConversion class is now defined entirely by its properties:
-
-// begin-insert: tags/value_types.5:src/main/java/travelator/money/CurrencyConversion.kt
-[source,kotlin]
-----
-data class CurrencyConversion(
-    val fromMoney: Money,
-    val toMoney: Money,
-    val rate: BigDecimal
-)
-----
-// end-insert
+That's much more succinct and, more importantly, our CurrencyConversion class is now defined entirely by its properties.
+When we add properties to a CurrencyConversion we won't have to remember to update the generated methods or find ourselves with hard-to-diagnose bugs.
 
 Now we have so little code, smaller syntactic differences between Java and Kotlin stand out.
 For example, there are no visibility modifiers.
@@ -203,11 +171,6 @@ Where Java calls `conversion.getRate()`, Kotlin accesses the property `conversio
 In actual fact Kotlin will call the `getRate` method that it has generated (or one supplied by a Java class) rather than accessing a field directly - so nothing has really changed except that we can drop the `get` and `()`.
 We'll have more to say about properties later, but for now if you think of them as a private field with a public getter and, if a `var` property, a public setter, you won't often be wrong.
 
-****
-There is quite a bit of subtlety to properties.
-We will keep on returning to this subject.
-****
-
 We could convert our tests to Kotlin, but as we now have no logic of our own in the CurrencyConversion class, we have no need for the tests and can delete the entire test class.
 
 === A More Sophisticated Value Type
@@ -218,7 +181,7 @@ Any calculations our application performs with CurrencyConversions, such as calc
 Such calculations are performed with the `Money` class, which _does_ have operations of its own.
 Here is the Java Money class:
 
-// begin-insert: tags/value_types.6:src/main/java/travelator/money/Money.java
+// begin-insert: tags/value_types.4:src/main/java/travelator/money/Money.java
 [source,java]
 ----
 public class Money {
@@ -230,7 +193,7 @@ public class Money {
         this.currency = currency;
     }
 
-    public static Money of(BigDecimal amount, Currency currency) { // <2>
+    public static Money of(BigDecimal amount, Currency currency) { // <1>
         return new Money(
             amount.setScale(
                 currency.getDefaultFractionDigits(),
@@ -246,20 +209,20 @@ public class Money {
         return Money.of(new BigDecimal(amount), currency);
     }
 
-    public static Money zero(Currency userCurrency) { // <3>
+    public static Money zero(Currency userCurrency) { // <2>
         return Money.of(ZERO, userCurrency);
     }
 
-    public BigDecimal getAmount() { // <4>
+    public BigDecimal getAmount() { // <3>
         return amount;
     }
 
-    public Currency getCurrency() { // <4>
+    public Currency getCurrency() { // <3>
         return currency;
     }
 
     @Override
-    public boolean equals(Object o) { // <5>
+    public boolean equals(Object o) { // <4>
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Money money = (Money) o;
@@ -268,16 +231,16 @@ public class Money {
     }
 
     @Override
-    public int hashCode() { // <5>
+    public int hashCode() { // <4>
         return Objects.hash(amount, currency);
     }
 
     @Override
-    public String toString() { // <6>
+    public String toString() { // <5>
         return amount.toString() + " " + currency.getCurrencyCode();
     }
 
-    public Money add(Money that) { // <7>
+    public Money add(Money that) { // <6>
         if (!this.currency.equals(that.currency)) {
             throw new IllegalArgumentException(
                 "cannot add Money values of different currencies");
@@ -291,9 +254,14 @@ public class Money {
 
 TODO: explain significant differences / additions beyond CurrencyConversion
 
+1. The constructor is private. Code calls the Money.of method to create money values.  This ensures that the scale of the `amount` property is consistent with the number of minor units of the currency.  Most currencies are divided into 100 minor units, but the Japanese Yen has no minor units and the Jordanian Dinar has one thousand.
+2. The Money class also provides some static convenience methods to make it easier to create Money values.
+
+
+
 Convert to Kotlin:
 
-// begin-insert: tags/value_types.8:src/main/java/travelator/money/Money.kt
+// begin-insert: tags/value_types.5:src/main/java/travelator/money/Money.kt
 [source,kotlin]
 ----
 class Money
@@ -338,7 +306,7 @@ private constructor(
         }
 
         @JvmStatic
-        fun of(amountStr: String, currency: Currency): Money {
+        fun of(amountStr: String?, currency: Currency): Money {
             return of(BigDecimal(amountStr), currency)
         }
 
