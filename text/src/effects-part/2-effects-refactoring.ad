@@ -299,7 +299,7 @@ public class InMemoryTrips implements Trips {
 
 Now that we aren't asking the clock for the time the tests that use `InMemoryTrips` will fail.
 
-// begin-insert: tags/effects.3:src/test/java/travelator/TrackingTests.java#foo
+// begin-insert: tags/effects.2:src/test/java/travelator/TrackingTests.java#foo
 [source,java]
 ----
 public class TrackingTests {
@@ -311,10 +311,8 @@ public class TrackingTests {
 
     @Test
     public void returns_empty_when_no_trip_planned_to_happen_now() {
-        assertEquals(
-            Optional.empty(),
-            tracking.currentTripFor("aCustomer", anInstant())
-        );
+        clock.now = anInstant();
+        assertEquals(Optional.empty(), tracking.currentTripFor("aCustomer", Instant.now())); // <1>
     }
 
     @Test
@@ -322,10 +320,8 @@ public class TrackingTests {
         Trip diwaliTrip = givenATrip("aCustomer", "Diwali", "2020-11-13", "2020-11-15", BOOKED);
         givenATrip("aCustomer", "Christmas", "2020-12-24", "2020-11-26", BOOKED);
 
-        assertEquals(
-            Optional.of(diwaliTrip),
-            tracking.currentTripFor("aCustomer", diwaliTrip.getPlannedStartTime().toInstant())
-        );
+        clock.now = diwaliTrip.getPlannedStartTime().toInstant();
+        assertEquals(Optional.of(diwaliTrip), tracking.currentTripFor("aCustomer", Instant.now())); // <1>
     }
 
     ...
