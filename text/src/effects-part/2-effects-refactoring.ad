@@ -62,7 +62,9 @@ class Tracking implements ITrackTrips {
         else if (candidates.size() == 0)
             return Optional.empty();
         else
-            throw new IllegalStateException("Unexpectedly more than one current trip for " + customerId);
+            throw new IllegalStateException(
+                "Unexpectedly more than one current trip for " + customerId
+            );
     }
 }
 ----
@@ -118,11 +120,11 @@ public class TrackingTests {
 
     @Test
     public void returns_single_active_booked_trip() {
-        Trip diwaliTrip = givenATrip("aCustomer", "Diwali", "2020-11-13", "2020-11-15", BOOKED);
-        givenATrip("aCustomer", "Christmas", "2020-12-24", "2020-11-26", BOOKED);
+        var diwaliTrip = givenATrip("cust1", "Diwali", "2020-11-13", "2020-11-15", BOOKED);
+        givenATrip("cust1", "Christmas", "2020-12-24", "2020-11-26", BOOKED);
 
         clock.now = diwaliTrip.getPlannedStartTime().toInstant();
-        assertEquals(Optional.of(diwaliTrip), tracking.currentTripFor("aCustomer"));
+        assertEquals(Optional.of(diwaliTrip), tracking.currentTripFor("cust1"));
     }
 
     ...
@@ -202,7 +204,9 @@ class Tracking implements ITrackTrips {
         else if (candidates.size() == 0)
             return Optional.empty();
         else
-            throw new IllegalStateException("Unexpectedly more than one current trip for " + customerId);
+            throw new IllegalStateException(
+                "Unexpectedly more than one current trip for " + customerId
+            );
     }
 }
 ----
@@ -230,7 +234,9 @@ class Tracking implements ITrackTrips {
         else if (candidates.size() == 0)
             return Optional.empty();
         else
-            throw new IllegalStateException("Unexpectedly more than one current trip for " + customerId);
+            throw new IllegalStateException(
+                "Unexpectedly more than one current trip for " + customerId
+            );
     }
 }
 ----
@@ -313,16 +319,22 @@ public class TrackingTests {
     @Test
     public void returns_empty_when_no_trip_planned_to_happen_now() {
         clock.now = anInstant();
-        assertEquals(Optional.empty(), tracking.currentTripFor("aCustomer", Instant.now())); // <1>
+        assertEquals(
+            Optional.empty(),
+            tracking.currentTripFor("cust1", Instant.now()) // <1>
+        );
     }
 
     @Test
     public void returns_single_active_booked_trip() {
-        Trip diwaliTrip = givenATrip("aCustomer", "Diwali", "2020-11-13", "2020-11-15", BOOKED);
-        givenATrip("aCustomer", "Christmas", "2020-12-24", "2020-11-26", BOOKED);
+        var diwaliTrip = givenATrip("cust1", "Diwali", "2020-11-13", "2020-11-15", BOOKED);
+        givenATrip("cust1", "Christmas", "2020-12-24", "2020-11-26", BOOKED);
 
         clock.now = diwaliTrip.getPlannedStartTime().toInstant();
-        assertEquals(Optional.of(diwaliTrip), tracking.currentTripFor("aCustomer", Instant.now())); // <1>
+        assertEquals(
+            Optional.of(diwaliTrip),
+            tracking.currentTripFor("cust1", Instant.now()) // <1>
+        );
     }
 
     ...
@@ -345,18 +357,18 @@ public class TrackingTests {
     public void returns_empty_when_no_trip_planned_to_happen_now() {
         assertEquals(
             Optional.empty(),
-            tracking.currentTripFor("aCustomer", anInstant())
+            tracking.currentTripFor("cust1", anInstant())
         );
     }
 
     @Test
     public void returns_single_active_booked_trip() {
-        Trip diwaliTrip = givenATrip("aCustomer", "Diwali", "2020-11-13", "2020-11-15", BOOKED);
-        givenATrip("aCustomer", "Christmas", "2020-12-24", "2020-11-26", BOOKED);
+        var diwaliTrip = givenATrip("cust1", "Diwali", "2020-11-13", "2020-11-15", BOOKED);
+        givenATrip("cust1", "Christmas", "2020-12-24", "2020-11-26", BOOKED);
 
         assertEquals(
             Optional.of(diwaliTrip),
-            tracking.currentTripFor("aCustomer", diwaliTrip.getPlannedStartTime().toInstant())
+            tracking.currentTripFor("cust1", diwaliTrip.getPlannedStartTime().toInstant())
         );
     }
 
