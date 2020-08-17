@@ -2,7 +2,6 @@
 
 Let's have a look at recognising and refactoring actions in existing code.
 
-
 == Existing Code
 
 There is an HTTP endpoint in Travelator that allows the client app to fetch information about the customers current trip.
@@ -148,11 +147,13 @@ Is having to inject a clock https://dhh.dk/2014/test-induced-design-damage.html[
 In some ways it is.
 Dependency injection, and in particular mocks, have allowed us to solve testing problems that would otherwise have forced a rethink that might lead to a better design.
 
+== A Better Desigh
+
 What would a better design look like here?
 
 In order to make this less time-dependant, we can simply supply the time as an argument to the method.
 Whilst this forces the caller to know the time, that isn't generally a problem.
-In fact this is a special case of the way that we refactor to avoid dependencies on other global state - instead of calling out to read, pass the value into the function.
+In fact this is a special case of the way that we refactor to avoid dependencies on other global variables - instead of calling out to read, pass the value into the function.
 
 Let's start the refactor by adding an (as yet unused) `Instant` parameter to the `Trips.currentTripsFor(customerId)` method.
 Before this was
