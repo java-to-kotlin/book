@@ -236,7 +236,7 @@ Where our application uses CurrencyConversions, it performs calculations with it
 This is not the normal case.  We usually define value types in order to abstract the representation of a concept in our application domain and define the operations on that abstraction.
 An example of a value type with operations of its own is our `Money` class:
 
-// begin-insert: tags/value_types.4:src/main/java/travelator/money/Money.java
+// begin-insert: tags/value_types.4:src/main/java/travelator/money/Money.java#money
 [source,java]
 ----
 public class Money {
@@ -256,19 +256,9 @@ public class Money {
             currency);
     }
 
-    public static Money of(String amountStr, Currency currency) { // <2>
-        return Money.of(new BigDecimal(amountStr), currency);
-    }
+    // ... and convenience overloads
 
-    public static Money of(int amount, Currency currency) { // <2>
-        return Money.of(new BigDecimal(amount), currency);
-    }
-
-    public static Money zero(Currency userCurrency) { // <2>
-        return Money.of(ZERO, userCurrency);
-    }
-
-    public BigDecimal getAmount() { // <3>
+    public BigDecimal getAmount() { // <2>
         return amount;
     }
 
@@ -277,7 +267,7 @@ public class Money {
     }
 
     @Override
-    public boolean equals(Object o) { // <4>
+    public boolean equals(Object o) { // <3>
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Money money = (Money) o;
@@ -286,16 +276,16 @@ public class Money {
     }
 
     @Override
-    public int hashCode() { // <4>
+    public int hashCode() { // <3>
         return Objects.hash(amount, currency);
     }
 
     @Override
-    public String toString() { // <5>
+    public String toString() { // <4>
         return amount.toString() + " " + currency.getCurrencyCode();
     }
 
-    public Money add(Money that) { // <6>
+    public Money add(Money that) { // <5>
         if (!this.currency.equals(that.currency)) {
             throw new IllegalArgumentException(
                 "cannot add Money values of different currencies");
@@ -312,11 +302,12 @@ Other classes obtain Money values by calling the static `Money.of` method, which
 Most currencies have 100 minor units (two digits), but some have fewer and some more: the Japanese Yen has no minor units, and the Jordanian Dinar has one thousand, for example.
 +
 The "of" method follows a coding convention of <<modern-java-style,Modern Java>> that draws a distinction in the source between objects with identity, which are constructed by the new operator, and values, which are obtained from static methods.  This convention is followed by the Java time API (for example `LocalDate.of(2020,8,17)`) and recent additions to the collections API (for example, `List.of(1,2,3)` creates an immutable list)
-<2> The Money class provides some convenient overloads of the `of` method for String or int amounts.
-<3> It exposes the amount and currency properties using Java Bean conventions, even though, like CurrencyConversion, it is not actually a Java Bean.
-<4> The equals and hashCode methods implement value semantics.
-<5> The toString method returns a representation of its properties.  Unlike the CurrencyConversion class, Money returns a representation that is shown to the user, not just for debugging.
-<6> Money provides operations for calculating with money values.  For example, you can add monetary values together.  The add method constructs new Money values by calling the constructor directly, because the result of BigDecimal.add has the correct scale already and so we can avoid the overhead of setting the scale.
++
+The Money class provides some convenient overloads of the `of` method for String or int amounts.
+<2> It exposes the amount and currency properties using Java Bean conventions, even though, like CurrencyConversion, it is not actually a Java Bean.
+<3> The equals and hashCode methods implement value semantics.
+<4> The toString method returns a representation of its properties.  Unlike the CurrencyConversion class, Money returns a representation that is shown to the user, not just for debugging.
+<5> Money provides operations for calculating with money values.  For example, you can add monetary values together.  The add method constructs new Money values by calling the constructor directly, because the result of BigDecimal.add has the correct scale already and so we can avoid the overhead of setting the scale.
 
 Converting Money to Kotlin produces the following code:
 
