@@ -6,7 +6,9 @@ Kotlin makes it practical to define the core application domain model entirely a
 
 === A Value Class That Holds Related Data
 
-Here is a typical Java value type, in this case representing the result of a currency conversion.
+Our users want to know what their trip will cost.  We show costs in the local currencies of the countries they are travelling through, and convert those costs to the user's currency to give them an idea of the total cost of the entire trip.
+
+Here is the Java value type in our application that represents the result of a currency conversion.
 
 // begin-insert: tags/value_types.0:src/main/java/travelator/money/CurrencyConversion.java
 [source,java]
@@ -57,14 +59,15 @@ public class CurrencyConversion {
 This class is very simple -- it does nothing more than group related data and provides no operations of its own.
 Even so, the class involves a lot of boilerplate code:
 
-1. Values are immutable, so the class declares its fields as final.
-2. It must define a constructor to initialise those fields
-3. Although the class is not a Java Bean, because it is not serializable and doesn't have a zero-argument constructor, the accessor methods of its properties follow the Java Bean naming conventions.
-4. The class implements the equals and hashCode methods to ensure that two CurrencyConversion values with equal fields compare as equal.
+<1> Values are immutable, so the class declares its fields as final.
+<2> It must define a constructor to initialise those fields
+<3> Although the class is not a Java Bean, because it is not serializable and doesn't have a zero-argument constructor, the accessor methods of its properties follow the Java Bean naming conventions.
+<4> The class implements the equals and hashCode methods to ensure that two CurrencyConversion values with equal fields compare as equal.
 There is quite a lot of code to make that happen, but happily our IDE generated it for us.
 However, we have to remember to delete and regenerate those methods when we change the fields of the class to avoid confusing bugs.
-5. It returns a textual representation of itself from the toString method.
-6. We come from the school of Java that assumes that everything we pass, store or return is not null unless explicitly indicated otherwise.
+<5> It returns a textual representation of itself from the toString method.
+
+We come from the school of Java that assumes that everything we pass, store or return is not null unless explicitly indicated otherwise.
 You can't _see_ that, but it's why there are no `@Nullable` annotations or null checks of parameters.
 
 Let's see what this looks like when we translate it to Kotlin.
@@ -213,7 +216,7 @@ We'll have more to say about properties later, but for now if you think of them 
 
 A CurrencyConversion is a very simple value.
 It holds data so that we can show it to the user but has no operations of its own.
-Where our application uses CurrencyConversions, it performs calculations its properties individually rather than treating the value as an atomic whole.
+Where our application uses CurrencyConversions, it performs calculations with its properties individually rather than treating the CurrencyConversion value as an atomic whole.
 This is not the normal case.  We usually define value types in order to abstract the representation of a concept in our application domain and define the operations on that abstraction.
 An example of a value type with operations of its own is our `Money` class:
 
@@ -290,12 +293,12 @@ public class Money {
 
 TODO: explain how Money follows conventions Java value types that CurrencyConversion does not.  E.g. 'of' methods, private constructor, etc.
 
-1. The constructor is private. Code calls the Money.of method to create money values.  This ensures that the scale of the `amount` property is consistent with the number of minor units of the currency.  Most currencies are divided into 100 minor units, but the Japanese Yen has no minor units and the Jordanian Dinar has one thousand.
-2. The Money class also provides some static convenience methods to make it easier to create Money values from String or int amounts.
-3. It exposes the amount and currency properties using Java Bean conventions, even though, like CurrencyConversion, it is not actually a Java Bean.
-4. The equals and hashCode methods implement value semantics.
-5. The toString method returns a representation of its properties.  Unlike the CurrencyConversion class, Money returns a representation that is shown to the user, not just for debugging.
-6. And finally, Money provides operations for calculating with money values.  For example, you can add monetary values together.
+<1> The constructor is private. Code calls the Money.of method to create money values.  This ensures that the scale of the `amount` property is consistent with the number of minor units of the currency.  Most currencies are divided into 100 minor units, but the Japanese Yen has no minor units and the Jordanian Dinar has one thousand.
+<2> The Money class also provides some static convenience methods to make it easier to create Money values from String or int amounts.
+<3> It exposes the amount and currency properties using Java Bean conventions, even though, like CurrencyConversion, it is not actually a Java Bean.
+<4> The equals and hashCode methods implement value semantics.
+<5> The toString method returns a representation of its properties.  Unlike the CurrencyConversion class, Money returns a representation that is shown to the user, not just for debugging.
+<6> And finally, Money provides operations for calculating with money values.  For example, you can add monetary values together.
 
 
 Converting Money to Kotlin produces the following code:
