@@ -153,19 +153,21 @@ data class CurrencyConversion(
 ----
 // end-insert
 
-That's much more succinct than the Java. More importantly, our CurrencyConversion class is now defined entirely by its properties.
+That's much more succinct than the Java.
+More importantly, our CurrencyConversion class is now defined entirely by its properties.
 When we add properties in the future we won't have to remember to update the generated methods or find ourselves with hard-to-diagnose bugs.
 
-Now we have so little code, smaller syntactic differences between Java and Kotlin stand out.
+We have JUnit tests for the value semantics of our CurrencyConversion class.
+We could convert these tests to Kotlin, but as we now have no logic of our own in the CurrencyConversion class, we have no need for the tests and instead can delete the entire test class.
+We have reduced the entire Money class and its tests to a single, declarative line of Kotlin.
+
+Now that we have so little code, smaller syntactic differences between Java and Kotlin stand out.
 For example, there are no visibility modifiers.
 The default visibility in Kotlin is public, so `public class CurrencyConversion` in Java has been translated to just `class CurrencyConversion` in Kotlin.
 Being used to Java programming style, as we were, you may question this language design decision.
 Our experience working with Kotlin is that public by default works well with a design philosophy oriented around the transformation of data, where there is less need to hide and encapsulate mutable state.
 It's another example of Kotlin's grain nudging the design in a different direction from Java:
 modelling with objects that encapsulate mutable state needs more work than modelling with immutable values.
-
-We have JUnit tests for the value semantics of our CurrencyConversion class.
-We could convert these tests to Kotlin, but as we now have no logic of our own in the CurrencyConversion class, we have no need for the tests and instead can delete the entire test class.
 
 We also use the CurrencyConversion class elsewhere in our production code.  For example, the `ExchangeRates` type creates CurrencyConversion values to represent the result of a currency conversion calculation:
 
@@ -229,7 +231,7 @@ We'll have more to say about properties later, but for now if you think of them 
 === A Value Class That Implements Domain Logic
 
 A CurrencyConversion is a very simple value.
-It holds data so that we can show it to the user but has no operations of its own.
+It holds two related data items that we want keep together and show to the user, but it has no operations of its own.
 Where our application uses CurrencyConversions, it performs calculations with its properties individually rather than treating the CurrencyConversion value as an atomic whole.
 This is not the normal case.  We usually define value types in order to abstract the representation of a concept in our application domain and define the operations on that abstraction.
 An example of a value type with operations of its own is our `Money` class:
@@ -305,14 +307,12 @@ public class Money {
 ----
 // end-insert
 
-TODO: explain how Money follows conventions Java value types that CurrencyConversion does not.  E.g. 'of' methods, private constructor, etc.
-
-<1> The constructor is private. Code calls the Money.of method to create money values.  This ensures that the scale of the `amount` property is consistent with the number of minor units of the currency.  Most currencies are divided into 100 minor units, but the Japanese Yen has no minor units and the Jordanian Dinar has one thousand.
-<2> The Money class also provides some static convenience methods to make it easier to create Money values from String or int amounts.
+<1> The constructor is private. Other classes obtain Money values by calling the static `Money.of` method, which guarantees that the scale of the amount is consistent with the number of minor units of the currency.  Most currencies have 100 minor units (two digits), but some have fewer and some more: the Japanese Yen has no minor units, and the Jordanian Dinar has one thousand, for example.
+<2> The Money class provides some convenient overloads of the `of` method for String or int amounts.
 <3> It exposes the amount and currency properties using Java Bean conventions, even though, like CurrencyConversion, it is not actually a Java Bean.
 <4> The equals and hashCode methods implement value semantics.
 <5> The toString method returns a representation of its properties.  Unlike the CurrencyConversion class, Money returns a representation that is shown to the user, not just for debugging.
-<6> And finally, Money provides operations for calculating with money values.  For example, you can add monetary values together.
+<6> Money provides operations for calculating with money values.  For example, you can add monetary values together.  The add method constructs new Money values by calling the constructor directly, because the result of BigDecimal.add has the correct scale already and so we can avoid the overhead of setting the scale.
 
 
 Converting Money to Kotlin produces the following code:
@@ -408,6 +408,11 @@ TODO: add -> plus operator
 *** this is also used to introduce infix methods in the JSON DSL chapter -- ensure they are consistent and don't repeat themselves
 ** NOTE: limitations of operators: cannot change flow control. Remember, the "grain" of Kotlin is to prefer explicitness
 ** WARNING: avoid operator "punning"
+
+* Money.of(...) is not idiomatic Kotlin.
+** moneyOf(...) would be more conventional, or even extension methods on Currency.  E.g. GBP.of(10) or EUR.zero
+** Would involve making the constructor have `internal` visibility, which gives it public visibility from Java.  While we're still changing Java code, introduces more scope for errors.  So let's leave it for now...
+
 
 
 === Copy Methods
