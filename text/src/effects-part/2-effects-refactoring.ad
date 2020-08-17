@@ -99,6 +99,29 @@ Yes - `clock.instant()`.
 That definitely depends on when we call it.
 (If you found another action, well done, but keep it to yourself for now, we'll come back to it.)
 
+Even if we were to not proceed with the rest of this refactoring, there is one change that we should make now.
+Once you start to differentiate actions from calculations, it makes sense not to throw a random action into an otherwise pure calculation.
+We have discussed values, calculations and actions as applying to named blocks of code, but they also apply at the expression level.
+Let's pull the action out so that the remainder of the expression is pure.
+
+// begin-insert: tags/effects.1:src/test/java/travelator/InMemoryTrips.java#foo
+[source,java]
+----
+@Override
+public Set<Trip> currentTripsFor(String customerId) {
+    var now = clock.instant();
+    return tripsFor(customerId).stream()
+        .filter(trip -> trip.isPlannedToBeActiveAt(now))
+        .collect(toSet());
+}
+----
+// end-insert
+
+That one simple act has allowed us to see that we were previously comparing every trip against a slightly different time!
+Was that a problem?
+Probably not here, but you've probably worked on systems where it would be.
+Duncan for one has recently finished diagnosing an issue where half of a transaction could be accounted for in one day, and the other half in the next.
+
 As well as making it harder to refactor our code, actions make it harder to test too.
 Let's see how that is manifested.
 
@@ -175,7 +198,7 @@ Running the tests shows that we are right.
 
 `Trips` now looks like this
 
-// begin-insert: tags/effects.1:src/main/java/travelator/Trips.java#foo
+// begin-insert: tags/effects.2:src/main/java/travelator/Trips.java#foo
 [source,java]
 ----
 public interface Trips {
@@ -187,7 +210,7 @@ public interface Trips {
 
 and here is a call
 
-// begin-insert: tags/effects.1:src/main/java/travelator/Tracking.java#foo
+// begin-insert: tags/effects.2:src/main/java/travelator/Tracking.java#foo
 [source,java]
 ----
 class Tracking implements ITrackTrips {
@@ -217,7 +240,7 @@ Note that we can only pull this trick because `Instant.now()`, while an action, 
 
 That `now()` is not really helping us in `Tracking`, so lets pull it out as a parameter, supplied by the caller again, in this case `CurrentTripsHandler`.
 
-// begin-insert: tags/effects.2:src/main/java/travelator/Tracking.java#foo
+// begin-insert: tags/effects.3:src/main/java/travelator/Tracking.java#foo
 [source,java]
 ----
 class Tracking implements ITrackTrips {
@@ -243,7 +266,7 @@ class Tracking implements ITrackTrips {
 // end-insert
 <1> Now a parameter
 
-// begin-insert: tags/effects.2:src/main/java/travelator/handlers/CurrentTripsHandler.java#foo
+// begin-insert: tags/effects.3:src/main/java/travelator/handlers/CurrentTripsHandler.java#foo
 [source,java]
 ----
 public class CurrentTripsHandler {
@@ -271,7 +294,7 @@ At this point we still haven't changed the behaviour of our code, but neither ar
 Let's do that in `InMemoryTrips`, where we started.
 We did have
 
-// begin-insert: tags/effects.2:src/test/java/travelator/InMemoryTrips.java#foo
+// begin-insert: tags/effects.3:src/test/java/travelator/InMemoryTrips.java#foo
 [source,java]
 ----
 public class InMemoryTrips implements Trips {
@@ -279,8 +302,9 @@ public class InMemoryTrips implements Trips {
     ...
     @Override
     public Set<Trip> currentTripsFor(String customerId, Instant at) {
+        var now = clock.instant();
         return tripsFor(customerId).stream()
-            .filter(trip -> trip.isPlannedToBeActiveAt(clock.instant()))
+            .filter(trip -> trip.isPlannedToBeActiveAt(now))
             .collect(toSet());
     }
 }
@@ -288,7 +312,7 @@ public class InMemoryTrips implements Trips {
 // end-insert
 
 and now
-// begin-insert: tags/effects.3:src/test/java/travelator/InMemoryTrips.java#foo
+// begin-insert: tags/effects.4:src/test/java/travelator/InMemoryTrips.java#foo
 [source,java]
 ----
 public class InMemoryTrips implements Trips {
@@ -306,7 +330,7 @@ public class InMemoryTrips implements Trips {
 
 Now that we aren't asking the clock for the time the tests that use `InMemoryTrips` will fail.
 
-// begin-insert: tags/effects.2:src/test/java/travelator/TrackingTests.java#foo
+// begin-insert: tags/effects.3:src/test/java/travelator/TrackingTests.java#foo
 [source,java]
 ----
 public class TrackingTests {
@@ -343,7 +367,7 @@ public class TrackingTests {
 // end-insert
 <1> These need to be the value we were setting into the `StoppedClock`.
 
-// begin-insert: tags/effects.3:src/test/java/travelator/TrackingTests.java#foo
+// begin-insert: tags/effects.4:src/test/java/travelator/TrackingTests.java#foo
 [source,java]
 ----
 public class TrackingTests {
@@ -377,11 +401,57 @@ public class TrackingTests {
 ----
 // end-insert
 
-We're nearly almost done now (refactoring never sleeps).
-Neither of our `currentTripFor` methods now fetch the time, leaving that to the handler.
-Tests for the handler may well require us to control _now_, so we will probably inject a clock into it.
+== End Game
+
+We're nearly almost done now (refactoring is never completely done).
+Now that neither of our `currentTripFor` methods fetch the time, leaving that to the handler,
+tests for the handler may well require us to control _now_.
+So we'll probably inject the clock into `CurrentTripHandler` rather than call the raw `Instant.now()`.
 In return we can remove the clock from `InMemoryTrips` and `TrackingTests`.
+Oh, and we haven't converted the code to Kotlin!
 
-Something about action about the current state of Trips
+This last observation is quite significant.
+This way of thinking about values, calculations and actions is not exclusive to Kotlin.
+It is certainly possible to make the distinction in any language, and the grain of Java is becoming more functional with time.
+We find though that Kotlin's more natural support for immutable data and other functional constructs means that the costs of making the distinction are lower, and so the cost/benefit ratio looks more favourable.
 
-Making a calculation out of currentTripsFor(Set<Trip>, Instant)
+Before we finish this chapter, what about the other action we hinted at?
+Here is the previous implementation of `Trips`, now converted to Kotlin.
+
+// begin-insert: tags/effects.5:src/test/java/travelator/InMemoryTrips.kt
+[source,kotlin]
+----
+class InMemoryTrips : Trips {
+    private val trips: MutableMap<String, MutableSet<Trip>> = mutableMapOf()
+
+    fun addTrip(trip: Trip) {
+        val existingTrips = trips.getOrDefault(trip.customerId, mutableSetOf())
+        existingTrips.add(trip)
+        trips[trip.customerId] = existingTrips
+    }
+
+    override fun tripsFor(customerId: String) =
+        trips.getOrDefault(customerId, emptySet<Trip>())
+
+    override fun currentTripsFor(customerId: String, at: Instant): Set<Trip> =
+        tripsFor(customerId)
+            .filter { it.isPlannedToBeActiveAt(at) }
+            .toSet()
+}
+----
+// end-insert
+
+That `MutableMap` of `MutableSets` is a sign that something can change over time - in this case if we add a trip for a customer the result of `tripsFor` may change - it is an action not a calculation.
+If `tripsFor` is an action, then anything that calls it is an action, including our `currentTripsFor`.
+The same will obviously be true of the production version of `Trips` that reads and writes to the database.
+After all this work, we haven't actually promoted our action to a calculation after all!
+
+Should we be downhearted⸮ - probably not.
+Actions are graduated, they can be more or less susceptible to time.
+In this case, unless other code _in this interaction_ is also going to fetch the trips for a customer and find an inconsistency, we can treat `Trips` as effectively immutable, and so `tripsFor`, and by extension `currentTripsFor`, are effectively calculations.
+In this respect our `InMemoryTrips` is less safe than our database implementation, because if accessed on multiple threads it can mutate the collection returned by `tripsFor`, leading to potential `ConcurrentModificationExceptions` in the `filter` implementation.
+Categorising our code into values, calculations and actions has helped us see these issues, and given us a framework for deciding if they are important in context.
+
+Lastly, it is worth noting that one place in which Kotlin makes this categorisation easier is in its default use of immutable data.
+When you see `List` in Java you have to find the places in which it is created or referenced in order to establish its mutability, and hence the likelihood that code accessing it can be an action.
+In Kotlin when you see `MutableList` you can infer an action, although as we have seen with `InMemoryTrips`, exposing a mutable collection with a read-only alias can lead to actions pretending to be calculations.
