@@ -169,7 +169,7 @@ Our experience working with Kotlin is that public by default works well with a d
 It's another example of Kotlin's grain nudging the design in a different direction from Java:
 modelling with objects that encapsulate mutable state needs more work than modelling with immutable values.
 
-We also use the CurrencyConversion class elsewhere in our production code.  For example, the `ExchangeRates` type creates CurrencyConversion values to represent the result of a currency conversion calculation:
+We also use the CurrencyConversion class elsewhere in our production code.  For example, the ExchangeRates type creates CurrencyConversion values to represent the result of a currency conversion calculation:
 
 // begin-insert: tags/value_types.3:src/main/java/travelator/money/ExchangeRates.java
 [source,java]
@@ -307,13 +307,16 @@ public class Money {
 ----
 // end-insert
 
-<1> The constructor is private. Other classes obtain Money values by calling the static `Money.of` method, which guarantees that the scale of the amount is consistent with the number of minor units of the currency.  Most currencies have 100 minor units (two digits), but some have fewer and some more: the Japanese Yen has no minor units, and the Jordanian Dinar has one thousand, for example.
+<1> The constructor is private.
+Other classes obtain Money values by calling the static `Money.of` method, which guarantees that the scale of the amount is consistent with the number of minor units of the currency.
+Most currencies have 100 minor units (two digits), but some have fewer and some more: the Japanese Yen has no minor units, and the Jordanian Dinar has one thousand, for example.
++
+The "of" method follows a coding convention of <<modern-java-style,Modern Java>> that draws a distinction in the source between objects with identity, which are constructed by the new operator, and values, which are obtained from static methods.  This convention is followed by the Java time API (for example `LocalDate.of(2020,8,17)`) and recent additions to the collections API (for example, `List.of(1,2,3)` creates an immutable list)
 <2> The Money class provides some convenient overloads of the `of` method for String or int amounts.
 <3> It exposes the amount and currency properties using Java Bean conventions, even though, like CurrencyConversion, it is not actually a Java Bean.
 <4> The equals and hashCode methods implement value semantics.
 <5> The toString method returns a representation of its properties.  Unlike the CurrencyConversion class, Money returns a representation that is shown to the user, not just for debugging.
 <6> Money provides operations for calculating with money values.  For example, you can add monetary values together.  The add method constructs new Money values by calling the constructor directly, because the result of BigDecimal.add has the correct scale already and so we can avoid the overhead of setting the scale.
-
 
 Converting Money to Kotlin produces the following code:
 
