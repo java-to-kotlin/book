@@ -4,7 +4,7 @@ Compared to Java, Kotlin makes it much easier to define and transform immutable 
 As a result, I find I define new value classes more frequently.
 Kotlin makes it practical to define the core application domain model entirely as immutable values and functions that act upon them, and cheap to define "throwaway" value classes to hold the intermediate results of calculation pipelines, or to pivot data into shapes that make it easier to write application logic.
 
-=== A Simple Value Type
+=== A Value Class That Holds Related Data
 
 Here is a typical Java value type, in this case representing the result of a currency conversion.
 
@@ -139,6 +139,7 @@ We could (but almost always wouldn't) have used `var` for `variable`, in which c
 So far converting our value type to Kotlin has saved us 12 lines of code, but we aren't done yet.
 Value types like this are so useful but so tedious to get right and keep right that Kotlin supports them at a language level.
 Mark the class with the `data` modifier and the compiler will generate `equals`, `hashCode` and `toString` methods automatically, if they are not defined by the class.
+That reduces the CurrencyConversion class to:
 
 // begin-insert: tags/value_types.3:src/main/java/travelator/money/CurrencyConversion.kt
 [source,kotlin]
@@ -149,8 +150,8 @@ data class CurrencyConversion(
 ----
 // end-insert
 
-That's much more succinct and, more importantly, our CurrencyConversion class is now defined entirely by its properties.
-When we add properties to a CurrencyConversion we won't have to remember to update the generated methods or find ourselves with hard-to-diagnose bugs.
+That's much more succinct than the Java. More importantly, our CurrencyConversion class is now defined entirely by its properties.
+When we add properties in the future we won't have to remember to update the generated methods or find ourselves with hard-to-diagnose bugs.
 
 Now we have so little code, smaller syntactic differences between Java and Kotlin stand out.
 For example, there are no visibility modifiers.
@@ -160,26 +161,61 @@ Our experience working with Kotlin is that public by default works well with a d
 It's another example of Kotlin's grain nudging the design in a different direction from Java:
 modelling with objects that encapsulate mutable state needs more work than modelling with immutable values.
 
-You haven't seen them, but we have some JUnit tests for our CurrencyConversion class.
-Due to the excellent interoperation between Kotlin and Java, these continue to pass with the converted class.
-Take a moment to think what that implies about the generated class.
+We have JUnit tests for the value semantics of our CurrencyConversion class.
+We could convert these tests to Kotlin, but as we now have no logic of our own in the CurrencyConversion class, we have no need for the tests and instead can delete the entire test class.
 
+We also use the CurrencyConversion class elsewhere in our production code.  For example, the `ExchangeRates` type creates CurrencyConversion values to represent the result of a currency conversion calculation:
+
+// begin-insert: tags/value_types.3:src/main/java/travelator/itinerary/ExchangeRates.java
+// end-insert: tags/value_types.3:src/main/java/travelator/itinerary/ExchangeRates.java
+
+And the CostSummary class stores a list of CurrencyConversions representing costs in local and the user's currency, and calculates the total amount in the user's currency:
+
+// begin-insert: tags/value_types.3:src/main/java/travelator/itinerary/CostSummary.java#use_of_currency_conversion
+[source,java]
+----
+public class CostSummary {
+    private final List<CurrencyConversion> lines = new ArrayList<>();
+    private Money total;
+
+    public CostSummary(Currency userCurrency) {
+        this.total = Money.zero(userCurrency);
+    }
+
+    public List<CurrencyConversion> getLines() {
+        return List.copyOf(lines);
+    }
+
+    public void addLine(CurrencyConversion line) {
+        lines.add(line);
+        total = total.add(line.getToMoney());
+    }
+
+    public Money getTotal() {
+        return total;
+    }
+
+    ...
+}
+----
+// end-insert
+
+Due to the excellent interoperation between Kotlin and Java, these continue to work with the converted class.
 Our Java CurrencyConversion class had explicit "getter" methods.
 These are not in the converted Kotlin source, but our Java can still call them.
-The Kotlin compiler is not only generating the `equals` and `hashCode` methods we knew about, but also  `getFromMoney`, `getToMoney` and `getRate` -- `fromMoney` and `toMoney` and `rate` are not fields in Kotlin, they are properties.
-Where Java calls `conversion.getRate()`, Kotlin accesses the property `conversion.rate`.
-In actual fact Kotlin will call the `getRate` method that it has generated (or one supplied by a Java class) rather than accessing a field directly - so nothing has really changed except that we can drop the `get` and `()`.
+The Kotlin compiler is not only generating the `equals` and `hashCode` methods we knew about, but also  `getFromMoney` and `getToMoney` -- `fromMoney` and `toMoney` are not fields in Kotlin, they are properties.
+Where Java calls `line.getToMoney()`, Kotlin accesses the property `line.toMoney`.
+In actual fact Kotlin will call the `getToMoney` method that it has generated (or one supplied by a Java class) rather than accessing a field directly - so nothing has really changed except that we can drop the `get` and `()`.
 We'll have more to say about properties later, but for now if you think of them as a private field with a public getter and, if a `var` property, a public setter, you won't often be wrong.
 
-We could convert our tests to Kotlin, but as we now have no logic of our own in the CurrencyConversion class, we have no need for the tests and can delete the entire test class.
 
-=== A More Sophisticated Value Type
+=== A Value Class That Implements Domain Logic
 
 A CurrencyConversion is a very simple value.
 It holds data so that we can show it to the user but has no operations of its own.
-Any calculations our application performs with CurrencyConversions, such as calculating the total cost in the user's currency of purchases made in different currencies, it performs on its properties individually rather than the value as a whole.
-Such calculations are performed with the `Money` class, which _does_ have operations of its own.
-Here is the Java Money class:
+Where our application uses CurrencyConversions, it performs calculations its properties individually rather than treating the value as an atomic whole.
+This is not the normal case.  We usually define value types in order to abstract the representation of a concept in our application domain and define the operations on that abstraction.
+An example of a value type with operations of its own is our `Money` class:
 
 // begin-insert: tags/value_types.4:src/main/java/travelator/money/Money.java
 [source,java]
