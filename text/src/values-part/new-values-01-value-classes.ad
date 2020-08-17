@@ -288,14 +288,17 @@ public class Money {
 ----
 // end-insert
 
-TODO: explain significant differences / additions beyond CurrencyConversion
+TODO: explain how Money follows conventions Java value types that CurrencyConversion does not.  E.g. 'of' methods, private constructor, etc.
 
 1. The constructor is private. Code calls the Money.of method to create money values.  This ensures that the scale of the `amount` property is consistent with the number of minor units of the currency.  Most currencies are divided into 100 minor units, but the Japanese Yen has no minor units and the Jordanian Dinar has one thousand.
-2. The Money class also provides some static convenience methods to make it easier to create Money values.
+2. The Money class also provides some static convenience methods to make it easier to create Money values from String or int amounts.
+3. It exposes the amount and currency properties using Java Bean conventions, even though, like CurrencyConversion, it is not actually a Java Bean.
+4. The equals and hashCode methods implement value semantics.
+5. The toString method returns a representation of its properties.  Unlike the CurrencyConversion class, Money returns a representation that is shown to the user, not just for debugging.
+6. And finally, Money provides operations for calculating with money values.  For example, you can add monetary values together.
 
 
-
-Convert to Kotlin:
+Converting Money to Kotlin produces the following code:
 
 // begin-insert: tags/value_types.5:src/main/java/travelator/money/Money.kt
 [source,kotlin]
