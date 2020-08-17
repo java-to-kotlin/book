@@ -169,10 +169,24 @@ We could convert these tests to Kotlin, but as we now have no logic of our own i
 
 We also use the CurrencyConversion class elsewhere in our production code.  For example, the `ExchangeRates` type creates CurrencyConversion values to represent the result of a currency conversion calculation:
 
-// begin-insert: tags/value_types.3:src/main/java/travelator/itinerary/ExchangeRates.java
-// end-insert: tags/value_types.3:src/main/java/travelator/itinerary/ExchangeRates.java
+// begin-insert: tags/value_types.3:src/main/java/travelator/money/ExchangeRates.java
+[source,java]
+----
+public interface ExchangeRates {
+    BigDecimal rate(Currency fromCurrency, Currency toCurrency);
 
-And the CostSummary class stores a list of CurrencyConversions representing costs in local and the user's currency, and calculates the total amount in the user's currency:
+    default CurrencyConversion convert(Money fromMoney, Currency toCurrency) {
+        BigDecimal rate = rate(fromMoney.getCurrency(), toCurrency);
+        BigDecimal toAmount = fromMoney.getAmount().multiply(rate);
+        Money toMoney = Money.of(toAmount, toCurrency);
+        
+        return new CurrencyConversion(fromMoney, toMoney);
+    }
+}
+----
+// end-insert: tags/value_types.3:src/main/java/travelator/money/ExchangeRates.java
+
+And the CostSummary class stores a list of CurrencyConversions representing costs in the local and user's currencies, and calculates the total amount in the user's currency:
 
 // begin-insert: tags/value_types.3:src/main/java/travelator/itinerary/CostSummary.java#use_of_currency_conversion
 [source,java]
@@ -205,10 +219,10 @@ public class CostSummary {
 
 Due to the excellent interoperation between Kotlin and Java, these continue to work with the converted class.
 Our Java CurrencyConversion class had explicit "getter" methods.
-These are not in the converted Kotlin source, but our Java can still call them.
+These do not appear in the converted Kotlin source, but our Java can still call them.
 The Kotlin compiler is not only generating the `equals` and `hashCode` methods we knew about, but also  `getFromMoney` and `getToMoney` -- `fromMoney` and `toMoney` are not fields in Kotlin, they are properties.
-Where Java calls `line.getToMoney()`, Kotlin accesses the property `line.toMoney`.
-In actual fact Kotlin will call the `getToMoney` method that it has generated (or one supplied by a Java class) rather than accessing a field directly - so nothing has really changed except that we can drop the `get` and `()`.
+Where Java code calls the `line.getToMoney()` method, Kotlin code accesses the property `line.toMoney`.
+In actual fact Kotlin will call the `getToMoney()` method that it has generated (or one supplied by a Java class) rather than accessing a field directly - so nothing has really changed except that we can drop the `get` and `()`.
 We'll have more to say about properties later, but for now if you think of them as a private field with a public getter and, if a `var` property, a public setter, you won't often be wrong.
 
 
