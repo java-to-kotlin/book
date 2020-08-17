@@ -311,7 +311,7 @@ The Money class provides some convenient overloads of the `of` method for String
 
 Converting Money to Kotlin produces the following code:
 
-// begin-insert: tags/value_types.5:src/main/java/travelator/money/Money.kt
+// begin-insert: tags/value_types.5:src/main/java/travelator/money/Money.kt#money
 [source,kotlin]
 ----
 class Money
@@ -319,7 +319,6 @@ private constructor(
     val amount: BigDecimal,
     val currency: Currency
 ) {
-
     override fun equals(o: Any?): Boolean {
         if (this === o) return true
         if (o == null || javaClass != o.javaClass) return false
@@ -355,20 +354,7 @@ private constructor(
             )
         }
 
-        @JvmStatic
-        fun of(amountStr: String?, currency: Currency): Money {
-            return of(BigDecimal(amountStr), currency)
-        }
-
-        @JvmStatic
-        fun of(amount: Int, currency: Currency): Money {
-            return of(BigDecimal(amount), currency)
-        }
-
-        @JvmStatic
-        fun zero(userCurrency: Currency): Money {
-            return of(BigDecimal.ZERO, userCurrency)
-        }
+        ... and convenience overloads
     }
 }
 ----
