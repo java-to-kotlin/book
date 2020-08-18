@@ -21,8 +21,8 @@ without executing code.
 [source,kotlin]
 ----
 val data = mapOf(
-    "firstName" to "Fred",
-    "lastName" to "Flintstone"
+    "givenName" to "Fred",
+    "familyName" to "Flintstone"
 )
 ----
 
@@ -31,8 +31,8 @@ or
 [source,kotlin]
 ----
 val customer = Customer(
-    firstName = "Fred",
-    lastName = "Flintstone"
+    givenName = "Fred",
+    familyName = "Flintstone"
 )
 ----
 
@@ -41,8 +41,8 @@ or
 [source,json]
 ----
 {
-    "firstName" : "Fred",
-    "lastName" : "Flintstone"
+    "givenName" : "Fred",
+    "familyName" : "Flintstone"
 }
 ----
 
@@ -60,32 +60,26 @@ we further constrain data to be immutable.
 Otherwise we don't just have data,
 we have data as it is at a particular time,
 and that isn't simple at all.
-So maybe _values_ would be a better characterisation than data,
-but let's stick with Eric's terminology.
+A value is an unchanging piece of data.
 
 == Calculations
 
-Calculations are mappings from input values to output values -
-they are functions.
-We specify their working in code
-(or maths, or some notation) -
-as a result they are less easy to interpret than values.
-We call them calculations,
-rather than functions,
-because they are pure -
-they must always give the same output given the same input.
-Not all software functions are calculations.
+Calculations are mappings from input values to output values - they are functions.
+We specify their working in code (or maths, or some notation) - as a result they are less easy to interpret than values.
+We call them calculations, rather than functions, to avoid confusion with software functions.
+To be a calculation, a function must always give the same output given the same input for the same input, and most computer languages don't make that guarantee for their functions.
+Pure functions is another term we use.
 
 [source,kotlin]
 ----
-fun fullName(customer: Customer) = "${customer.firstName} ${customer.lastName}"
+fun fullName(customer: Customer) = "${customer.givenName} ${customer.familyName}"
 ----
 
 is a calculation,
 as it will always return the same value
 when supplied the same `Customer` value.
 This is true only if `Customer` is immutable,
-(or at least `firstName` and `secondName` are) -
+(or at least `givenName` and `secondName` are) -
 let's stick with values for our inputs and that will always be true.
 
 By extension 
@@ -93,7 +87,7 @@ By extension
 
 [source,kotlin]
 ----
-fun Customer.fullName() = "$firstName $lastName"
+fun Customer.fullName() = "$givenName $familyName"
 ----
 
 is also a calculation,
@@ -104,7 +98,7 @@ Computed properties can also be calculations
 
 [source,kotlin]
 ----
-val Customer.fullName get() = "$firstName $lastName"
+val Customer.fullName get() = "$givenName $familyName"
 ----
 
 indeed things get confusing quickly 
@@ -120,11 +114,11 @@ can also be calculations.
 [source,kotlin]
 ----
 data class Customer(
-    val firstName: String,
-    val lastName: String
+    val givenName: String,
+    val familyName: String
 ) {
-    fun getFullName() = "$firstName $lastName"
-    val fullName get() = "$firstName $lastName"
+    fun getFullName() = "$givenName $familyName"
+    val fullName get() = "$givenName $familyName"
 }
 ----
 
@@ -164,12 +158,8 @@ fun email(itinerary: Itinerary) {
 }
 ----
 
-is an action,
-because if you run it twice the customer will get two emails,
-which is different from if you run it once,
-which is different from if you run it nonce.
-Functions returning `void` or `Unit` are a dead giveaway for actions,
-because if they do anything they have to do it by side effect.
+is an action, because if you run it twice the customer will get two emails, which is different from if you run it once, which is different from if you don't run it at all.
+Functions returning `void` or `Unit` are a dead giveaway for actions, because if they do anything they have to do it by side effect.
 
 Functions that have no parameters
 (so this doesn't include methods or extension functions)
@@ -241,19 +231,13 @@ It is this feeling of safety that puts the smug smile on the faces of functional
 
 Values, well they just are.
 Simply accessing immutable data takes even less reasoning than calculations.
-You don't have to drill down through source code,
-or write tests,
-to determine behaviour.
-Calculations can fail for various reasons,
-the main error that we have to consider with data is what to do in its absence,
-and, at least in the case of Kotlin,
-we have language support for that.
-The more code we can move into the values category
-the simpler our life will be.
+You don't have to drill down through source code, or write tests, to determine behaviour.
+Calculations can fail for various reasons, but the main error that we have to consider with data is what to do in its absence, and, at least in the case of Kotlin, we have language support for that.
+The more code we can move into the values category the simpler our life will be.
 
 .Procedural Code
 ****
-Nat and Duncan are both old enough to have learned to programme in Sinclair BASIC. This dialect had no local variables, no immutable data, and no concept of defining a function with parameters that could return values.
+Nat and Duncan are both old enough to have learned to program in Sinclair BASIC. This dialect had no local variables, no immutable data, and no concept of defining a function with parameters that could return values.
 It requires real discipline to programme in such a system, because practically every line of code is an action, and hence potentially affects the functioning of every other statement.
 
 This is in fact very close to the way that our computers actually work, with mutable values held in registers and global memory, manipulated by machine-code actions.
@@ -269,7 +253,7 @@ Otherwise, the code is expressing a value.
 
 If you have code which is simply accessing a value, and you change it to invoke a calculation, it becomes a calculation itself, as we now have to interpret code to work out what it is doing.
 Similarly, any calculation which invokes an action becomes an action itself, as it is now subject to time.
-We see a similar situation with errors - code is raised to the most tainted level of all of its dependencies.
+We see a similar situation with errors - code inherits the most tainted level of all of its dependencies.
 
 As with the susceptibility to errors, if we value the lack of taint, we must strive to pull the boundary between impure and pure code to the outer layers of our system.
 If we succeed, then a significant proportion of our code can be values and calculations, and hence easily tested, reasoned-with, and refactored.
