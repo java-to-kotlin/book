@@ -14,7 +14,7 @@ We can deduce that methods that return an item from a collection must be able to
 but can `addressLine3` be `null`,
 or do we use an empty string when there is no information?
 
-Your authors settled down into a convention
+Your authors settled down into a convention in Java
 where references are assumed non-null,
 unless otherwise flagged.
 So we might name a field `addressLine3OrNull`,
@@ -232,28 +232,17 @@ Annotations aren't used as much in Kotlin as they are in Java,
 but this one tells the compiler that there are Java usages of the method
 and so it had better mark the method as static in the bytecode for interoperability.
 
-The method parameters are as we would expect,
-with Kotlin `List<Session>` transparently accepting a `java.util.List`.
-Actually,
-now we look at it,
-the second parameter being `Duration?` is a little odd.
-Given that this is currently called from Java,
-that is probably the safest thing,
-although it does make it clear that we might pass `null` on to `Duration.compareTo`.
-We'll change the parameter to the non-nullable `Duration`,
-without showing it here.
-The compiler inserts a null check before the function body for such parameters,
-so that if Java callers sneak in a `null` we know straight away
-(the `legs` parameter is similarly checked).
-Because of these defensive checks Kotlin detects unexpected nulls
-as close as possible to their source,
-in contrast to Java,
-where a reference can be set to null a long way in time and space
-from where it finally explodes.
+The method parameters are as we would expect, with Kotlin `List<Leg>` transparently accepting a `java.util.List`.
+Actually, now we look at it, the second parameter being `Duration?` is a little odd.
+Given that this is currently called from Java, that is the safest representation, although it does make it clear that we might pass `null` on to `Duration.compareTo`.
+We'll change the parameter to the non-nullable `Duration` (without showing it here).
+When we do, the compiler inserts a null check before the function body, as it does for all non-nullable parameters.
+That way, if Java callers sneak in a `null` we know straight away (the `legs` parameter is similarly checked).
+Because of these defensive checks Kotlin detects unexpected nulls as close as possible to their source, in contrast to Java, where a reference can be set to `null` a long way in time and space from where it finally explodes.
 
 Returning to the example,
-the Kotlin `for` loop is very similar to Java's
-except for `in` rather than `:`,
+the Kotlin `for` loop is very similar to Java's,
+except for the use of the `in` keyword rather than `:`,
 and similarly applies to any type that extends `Iterable`.
 Actually,
 you can use other types as well -
@@ -566,32 +555,7 @@ fun longestLegOver(
 ----
 // end-insert
 
-In order to simplify further we need a trick that Duncan
-(who is writing this)
-has so far failed to internalise.
-`takeIf` returns its receiver if a predicate is true,
-otherwise null,
-which is exactly the logic of our let block.
-So we can write
-
-// begin-insert: tags/nullability.12:src/main/java/travelator/Legs.kt
-[source,kotlin]
-----
-fun longestLegOver(
-    legs: List<Leg>,
-    duration: Duration
-): Leg? =
-    legs.maxBy(Leg::plannedDuration)?.takeIf { longestLeg ->
-        longestLeg.plannedDuration > duration
-    }
-----
-// end-insert
-
-Depending on the team's experience with Kotlin,
-that may be too subtle?
-Nat thinks it's fine,
-Duncan would probably go with the following
-unless brevity was really important to the context.
+That is succinct, and a pleasing single-expression, but maybe hard to comprehend in a single glance. Spelling out the options with a `when` is clearer
 
 // begin-insert: tags/nullability.13:src/main/java/travelator/Legs.kt
 [source,kotlin]
@@ -610,9 +574,31 @@ fun longestLegOver(
 ----
 // end-insert
 
-Finally,
-let's make `legs` the receiver in an extension function,
-allowing us finally to get rid of our accidental double-entendre.
+In order to simplify further we need a trick that Duncan
+(who is writing this)
+has so far failed to internalise.
+`takeIf` returns its receiver if a predicate is `true`,
+otherwise null,
+which is exactly the logic of our `let` block.
+So we can write
+
+// begin-insert: tags/nullability.12:src/main/java/travelator/Legs.kt
+[source,kotlin]
+----
+fun longestLegOver(
+    legs: List<Leg>,
+    duration: Duration
+): Leg? =
+    legs.maxBy(Leg::plannedDuration)?.takeIf { longestLeg ->
+        longestLeg.plannedDuration > duration
+    }
+----
+// end-insert
+
+Depending on the team's experience with Kotlin, that may be too subtle? Nat thinks it's fine, but Duncan touched it last, so the `when` version gets to stay.
+
+
+Finally, let's make `legs` the receiver in an extension function, allowing us finally to get rid of our accidental double-entendre.
 
 // begin-insert: tags/nullability.14:src/main/java/travelator/Legs.kt
 [source,kotlin]
