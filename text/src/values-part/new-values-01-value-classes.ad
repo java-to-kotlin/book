@@ -360,10 +360,14 @@ private constructor(
 ----
 // end-insert
 
-TODO: explain Kotlin code
+The Kotlin class still has a primary constructor, but that constructor is now marked private.
+The syntax for this is a little clunky.
 
-* What's that @JvmStatic stuff?
-* companion objects vs top-level functions, what is idiomatic Kotlin, and how that is affected visibility -- call forward to <<organising-code-by-domain>>.
+The static "of" functions are now methods on a companion object. IntelliJ noticed that they are called from our Java code, and therefore annotated them as `@JvmStatic`, which ensures they are compiled to static methods and the call sites in the Java code are unchanged.
+
+****
+TODO: sidebar to explain @Jvm... annotations
+****
 
 
 TODO: try to convert to a data class: get a warning about private constructor and public copy method
@@ -392,7 +396,7 @@ TODO: add -> plus operator
 * Money.of(...) is not idiomatic Kotlin.
 ** moneyOf(...) would be more conventional, or even extension methods on Currency.  E.g. GBP.of(10) or EUR.zero
 ** Would involve making the constructor have `internal` visibility, which gives it public visibility from Java.  While we're still changing Java code, introduces more scope for errors.  So let's leave it for now...
-
+* call forward to <<organising-code-by-domain>>
 
 
 === Copy Methods
