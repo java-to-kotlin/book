@@ -74,13 +74,16 @@ public class Legs {
     public static Optional<Leg> findLongestLegOver(List<Leg> legs, Duration duration) {
         Leg result = null;
         for (Leg leg : legs) {
-            Duration legPlannedDuration = leg.getPlannedDuration();
-            if (legPlannedDuration.compareTo(duration) > 0 &&
-                (result == null ||
-                    legPlannedDuration.compareTo(result.getPlannedDuration()) > 0))
-                result = leg;
+            if (isLongerThan(leg, duration))
+                if (result == null || isLongerThan(leg, result.getPlannedDuration())) {
+                    result = leg;
+                }
         }
         return Optional.ofNullable(result);
+    }
+
+    private static boolean isLongerThan(Leg leg, Duration duration) {
+        return leg.getPlannedDuration().compareTo(duration) > 0;
     }
 }
 ----
@@ -142,41 +145,32 @@ public class LongestLegOverTests {
 // end-insert
 
 Let's see what we can do to make things better in Kotlin.
-Converting `Legs.java` to Kotlin gives us this
+Converting `Legs.java` to Kotlin gives us this (after a little reformatting)
 
 // begin-insert: tags/nullability.2:src/main/java/travelator/Legs.kt
 [source,kotlin]
 ----
 object Legs {
     @JvmStatic
-    fun findLongestLegOver(legs: List<Leg>, duration: Duration?): Optional<Leg> {
+    fun findLongestLegOver(legs: List<Leg>, duration: Duration): Optional<Leg> {
         var result: Leg? = null
         for (leg in legs) {
-            val legPlannedDuration = leg.plannedDuration
-            if (legPlannedDuration.compareTo(duration) > 0 &&
-                (result == null ||
-                    legPlannedDuration.compareTo(result.plannedDuration) > 0)
-            ) result = leg
+            if (isLongerThan(leg, duration))
+                if (result == null || isLongerThan(leg, result.plannedDuration))
+                    result = leg
         }
         return Optional.ofNullable(result)
+    }
+
+    private fun isLongerThan(leg: Leg, duration: Duration): Boolean {
+        return leg.plannedDuration.compareTo(duration) > 0
     }
 }
 ----
 // end-insert
 
-We'll pause to note the differences and see what they tell us about Kotlin.
-
-First we have an object rather than a class declaration.
-Objects are Kotlin's way of creating a static namespace - as all the methods in the Java class were static the converter has placed them in an object.
-
-The method is marked with an `@JvmStatic` annotations.
-Annotations aren't used as much in Kotlin as they are in Java, but this one tells the compiler that there are Java usages of the method and so it had better mark the method as static in the bytecode for interoperability.
-
 The method parameters are as we would expect, with Kotlin `List<Leg>` transparently accepting a `java.util.List`.
-Actually, now we look at it, the second parameter being `Duration?` is a little odd.
-Given that this is currently called from Java, that is the safest representation, although it does make it clear that we might pass `null` on to `Duration.compareTo`.
-We'll change the parameter to the non-nullable `Duration` (without showing it here).
-When we do, the compiler inserts a null check before the function body, as it does for all non-nullable parameters.
+It's worth mentioning here that, when a Kotlin function declares a non-nullable parameter, the compiler inserts a null check before the function body.
 That way, if Java callers sneak in a `null` we know straight away (the `legs` parameter is similarly checked).
 Because of these defensive checks Kotlin detects unexpected nulls as close as possible to their source, in contrast to Java, where a reference can be set to `null` a long way in time and space from where it finally explodes.
 
@@ -195,10 +189,9 @@ In order to make use of nullability in our clients they have to be Kotlin, so le
 ----
 class LongestLegOverTests {
     ...
-
     @Test
     fun is_absent_when_no_legs() {
-        assertEquals(
+        Assertions.assertEquals(
             Optional.empty<Any>(),
             findLongestLegOver(emptyList(), Duration.ZERO)
         )
@@ -206,7 +199,7 @@ class LongestLegOverTests {
 
     @Test
     fun is_absent_when_no_legs_long_enough() {
-        assertEquals(
+        Assertions.assertEquals(
             Optional.empty<Any>(),
             findLongestLegOver(legs, oneDay)
         )
@@ -214,7 +207,7 @@ class LongestLegOverTests {
 
     @Test
     fun is_longest_leg_when_one_match() {
-        assertEquals(
+        Assertions.assertEquals(
             "one day",
             findLongestLegOver(legs, oneDay.minusMillis(1)).orElseThrow().description
         )
@@ -222,7 +215,7 @@ class LongestLegOverTests {
 
     @Test
     fun is_longest_leg_when_more_than_one_match() {
-        assertEquals(
+        Assertions.assertEquals(
             "one day",
             findLongestLegOver(legs, Duration.ofMinutes(59)).orElseThrow().description
         )
@@ -254,11 +247,9 @@ fun longestLegOver(
 ): Leg? {
     var result: Leg? = null
     for (leg in legs) {
-        val legPlannedDuration = leg.plannedDuration
-        if (legPlannedDuration.compareTo(duration) > 0 &&
-            (result == null ||
-                legPlannedDuration.compareTo(result.plannedDuration) > 0)
-        ) result = leg
+        if (isLongerThan(leg, duration))
+            if (result == null || isLongerThan(leg, result.plannedDuration))
+                result = leg
     }
     return result
 }
@@ -266,9 +257,34 @@ fun longestLegOver(
 // end-insert
 
 Now we can convert our Kotlin clients to call the nullable-returning `longestLegOver`, while leaving our Java clients (and as-yet-unconverted Kotlin) to consume the `Optional`.
-We'll do the absent ones first.
 
-// begin-insert: tags/nullability.5:src/test/java/travelator/LongestLegOverTests.kt#foo
+We'll do the absent ones first.
+Change `assertEquals(Optional.empty<Any>())`
+
+// begin-insert: tags/nullability.4:src/test/java/travelator/LongestLegOverTests.kt#absent
+[source,kotlin]
+----
+@Test
+fun is_absent_when_no_legs() {
+    assertEquals(
+        Optional.empty<Any>(),
+        findLongestLegOver(emptyList(), Duration.ZERO)
+    )
+}
+
+@Test
+fun is_absent_when_no_legs_long_enough() {
+    assertEquals(
+        Optional.empty<Any>(),
+        findLongestLegOver(legs, oneDay)
+    )
+}
+----
+// end-insert
+
+to `assertNull`
+
+// begin-insert: tags/nullability.5:src/test/java/travelator/LongestLegOverTests.kt#absent
 [source,kotlin]
 ----
 @Test
@@ -280,7 +296,14 @@ fun `is absent when no legs`() {
 fun `is absent when no legs long enough`() {
     assertNull(longestLegOver(legs, oneDay))
 }
+----
+// end-insert
 
+Now for the calls returning non-absent.
+
+// begin-insert: tags/nullability.4:src/test/java/travelator/LongestLegOverTests.kt#present
+[source,kotlin]
+----
 @Test
 fun is_longest_leg_when_one_match() {
     assertEquals(
@@ -299,11 +322,10 @@ fun is_longest_leg_when_more_than_one_match() {
 ----
 // end-insert
 
-Now for the calls returning non-absent.
 The Kotlin equivalent of `Option.orElseThrow()`
 (aka `get()`) is the `!!` operator.
 
-// begin-insert: tags/nullability.6:src/test/java/travelator/LongestLegOverTests.kt#foo
+// begin-insert: tags/nullability.6:src/test/java/travelator/LongestLegOverTests.kt#present
 [source,kotlin]
 ----
 @Test
@@ -340,6 +362,8 @@ Once we have converted all of them we delete the `Optional`-returning `findLonge
 out of the `Legs` object scope into the top-level.
 Unfortunately this refactoring is not automated - we describe the steps in detail in <<applicative-dsl>>.
 
+We now have just a top-level Kotlin function, plus a supporting function that we converted to an extension function because, well, it just reads better that way.
+
 // begin-insert: tags/nullability.7:src/main/java/travelator/Legs.kt
 [source,kotlin]
 ----
@@ -349,29 +373,31 @@ fun longestLegOver(
 ): Leg? {
     var result: Leg? = null
     for (leg in legs) {
-        val legPlannedDuration = leg.plannedDuration
-        if (legPlannedDuration.compareTo(duration) > 0 &&
-            (result == null ||
-                legPlannedDuration.compareTo(result.plannedDuration) > 0)
-        ) result = leg
+        if (leg.isLongerThan(duration))
+            if (result == null || leg.isLongerThan(result.plannedDuration))
+                result = leg
     }
     return result
 }
+
+private fun Leg.isLongerThan(duration: Duration) =
+    plannedDuration.compareTo(duration) > 0
 ----
 // end-insert
 
 Now we're all-Kotlin, but the normal feeling of relaxation we get from finishing a refactor is spoiled by that implementation - it still looks like Java converted to Kotlin, largely on account of it being Java converted to Kotlin.
 Can we find a nice way to refactor it?
 
-The only suggestion IntelliJ gives is to replace `compareTo` with `>`, so lets do that first.
+The only suggestion IntelliJ gives is to replace `compareTo` with `>`, so let's do that first.
+Once we have, `isLongerThan` isn't really pulling its weight, so we inline it.
+
 Then we're forced to think, "What is the code trying to do?"
 
-Actually, let's not think; let's just read the name of the function -
-`longestLegOver`!
-We can find the longest leg, and if it is longer than duration, return it, otherwise null.
+Actually, let's not think; let's just read the name of the function - `longestLegOver`!
+In order to implement this, we can find the longest leg, and if it is longer than duration, return it, otherwise null.
 Typing `legs.` at the beginning of the function we look at the suggestions and find `maxBy` - our longestLeg is going to be `legs.maxBy(Leg::plannedDuration)`.
 This API helpfully returns `Leg?` to remind us that it can't give a result if `legs` is empty.
-So we write the thing that we can write with least thinking at this stage, checking that it passes the tests.
+So we write the thing that we can write with least thinking at this stage.
 
 // begin-insert: tags/nullability.8:src/main/java/travelator/Legs.kt
 [source,kotlin]
@@ -389,6 +415,7 @@ fun longestLegOver(
 ----
 // end-insert
 
+That passes the tests, but those multiple returns are ugly.
 IntelliJ will helpfully offer to lift the `return` out of the `if`.
 
 // begin-insert: tags/nullability.9:src/main/java/travelator/Legs.kt
@@ -513,13 +540,16 @@ public class Legs {
     public static Optional<Leg> findLongestLegOver(List<Leg> legs, Duration duration) {
         Leg result = null;
         for (Leg leg : legs) {
-            Duration legPlannedDuration = leg.getPlannedDuration();
-            if (legPlannedDuration.compareTo(duration) > 0 &&
-                (result == null ||
-                    legPlannedDuration.compareTo(result.getPlannedDuration()) > 0))
-                result = leg;
+            if (isLongerThan(leg, duration))
+                if (result == null || isLongerThan(leg, result.getPlannedDuration())) {
+                    result = leg;
+                }
         }
         return Optional.ofNullable(result);
+    }
+
+    private static boolean isLongerThan(Leg leg, Duration duration) {
+        return leg.getPlannedDuration().compareTo(duration) > 0;
     }
 }
 ----
@@ -538,11 +568,15 @@ public class Legs {
         var longestLeg = legs.stream().max(Comparator.comparing(Leg::getPlannedDuration));
         if (longestLeg.isEmpty()) {
             return Optional.empty();
-        } else if (longestLeg.get().getPlannedDuration().compareTo(duration) > 0) {
+        } else if (isLongerThan(longestLeg.get(), duration)) {
             return longestLeg;
         } else {
             return Optional.empty();
         }
+    }
+
+    private static boolean isLongerThan(Leg leg, Duration duration) {
+        return leg.getPlannedDuration().compareTo(duration) > 0;
     }
 }
 ----
