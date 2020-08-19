@@ -369,16 +369,19 @@ The static "of" functions are now methods on a companion object. IntelliJ notice
 TODO: sidebar to explain @Jvm... annotations
 ****
 
+Can we also reduce the size of the class even further by making it a data class?
 
-TODO: try to convert to a data class: get a warning about private constructor and public copy method
+When we change `class` to `data class`, IntelliJ highlights the `private` keyword of the primary constructor with a warning: "Private data class constructor is exposed via the generated 'copy' method."
 
-* don't want to make the constructor public
-** the 'of' method maintains a constraint between properties
-** the constructor just sets fields, which could violate that constraint
-** the 'add' method maintains the constraint and so avoids recalculating the scale of the amount
-** a data class has no way to maintain a constraint in its constructor or copy method
+What's that all about?
 
-* But we can make the code more concise
+Kotlin generates a public `copy` method for data classes that creates a copy of an instance, replacing some of the field values.
+
+The constructor of the Money class is private because the class maintains an invariant between its properties, ensuring that the scale of the amount field is equal to the default number of minor currency digits of the currency field.  The `Money.of(BigDecimal,Currency)` method ensures the invariant for new Money values. The `add` method maintains the constraint because adding two BigDecimal values with the same scale produces a BigDecimal that also has the same scale, so it doesn't need to recalculate the scale.  Therefore, the constructor need only assign fields, safe in the knowledge that it is only called with parameters that meet the class invariant, and it is private to prevent client code creating Money values that violate the invariant.
+
+However, the public `copy` method of a data class _would_ allow client code to create Money values that violate the invariant.  Our Money class cannot be a data class but we can still make the code more concise by applying Kotlin features.
+
+TODO:
 ** methods to single-expression form
 ** lean on flow typing in the equals method
 
