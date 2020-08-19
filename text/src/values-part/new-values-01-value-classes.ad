@@ -381,12 +381,57 @@ The constructor of the Money class is private because the class maintains an inv
 
 However, the public `copy` method of a data class _would_ allow client code to create Money values that violate the invariant.  Our Money class cannot be a data class.
 
-We can still make the code more concise by applying Kotlin features.
+[TIP]
+====
+Don't define a value type as a data class if it must maintain invariants between its properties.
+====
+
+We can still make the code more concise by applying other Kotlin features. We can define all the methods in single-expression form, and lean on Kotlin's flow-sensitive type inference to greatly simplify the `equals` method:
+
+// begin-insert: tags/value_types.7:src/main/java/travelator/money/Money.kt#money
+[source,kotlin]
+----
+class Money private constructor(
+    val amount: BigDecimal,
+    val currency: Currency
+) {
+    override fun equals(other: Any?) =
+        this === other ||
+            other is Money &&
+            amount == other.amount &&
+            currency == other.currency
+
+    override fun hashCode() =
+        Objects.hash(amount, currency)
+
+    override fun toString() =
+        amount.toString() + " " + currency.currencyCode
+
+    fun add(that: Money): Money {
+        require(currency == that.currency) {
+            "cannot add Money values of different currencies"
+        }
+
+        return Money(amount.add(that.amount), currency)
+    }
+
+    companion object {
+        @JvmStatic
+        fun of(amount: BigDecimal, currency: Currency) = Money(
+            amount.setScale(
+                currency.defaultFractionDigits,
+                RoundingMode.UNNECESSARY
+            ),
+            currency
+        )
+
+        // ... and convenience overloads
+    }
+}
+----
+// end-insert
 
 TODO:
-
-** methods to single-expression form
-** lean on flow typing in the equals method
 
 * convert tests to Kotlin (??? is it worth it? They don't look that different.)
 
