@@ -377,11 +377,14 @@ What's that all about?
 
 Kotlin generates a public `copy` method for data classes that creates a copy of an instance, replacing some of the field values.
 
-The constructor of the Money class is private because the class maintains an invariant between its properties, ensuring that the scale of the amount field is equal to the default number of minor currency digits of the currency field.  The `Money.of(BigDecimal,Currency)` method ensures the invariant for new Money values. The `add` method maintains the constraint because adding two BigDecimal values with the same scale produces a BigDecimal that also has the same scale, so it doesn't need to recalculate the scale.  Therefore, the constructor need only assign fields, safe in the knowledge that it is only called with parameters that meet the class invariant, and it is private to prevent client code creating Money values that violate the invariant.
+The constructor of the Money class is private because the class maintains an invariant between its properties, ensuring that the scale of the amount field is equal to the default number of minor currency digits of the currency field.  The `Money.of(BigDecimal,Currency)` method ensures the invariant for new Money values. The `add` method maintains the invariant because adding two BigDecimal values with the same scale produces a BigDecimal that also has the same scale. The add method therefore can call the constructor directly because doesn't need to recalculate the scale.  The constructor need only assign fields, safe in the knowledge that it is only called with parameters that meet the class invariant. and it is private to prevent code outside the Money class from creating values that violate the invariant.
 
-However, the public `copy` method of a data class _would_ allow client code to create Money values that violate the invariant.  Our Money class cannot be a data class but we can still make the code more concise by applying Kotlin features.
+However, the public `copy` method of a data class _would_ allow client code to create Money values that violate the invariant.  Our Money class cannot be a data class.
+
+We can still make the code more concise by applying Kotlin features.
 
 TODO:
+
 ** methods to single-expression form
 ** lean on flow typing in the equals method
 
