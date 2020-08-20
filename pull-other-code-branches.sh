@@ -1,29 +1,21 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 
 cd ../refactoring-to-kotlin-code
 
-current_branch=`git rev-parse --abbrev-ref HEAD`
-echo Currently on $current_branch
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+echo Currently on "$current_branch"
 
-branches=(
-  baseline
-  builders
-  data-and-extensions
-  effects
-  errors
-  json-dsl
-  master
-  mutation-to-transformation
-  nullability
-  value_types_currency_conversion
-)
+branches=$(git ls-remote --heads origin | cut -f 2 | xargs basename)
 
 git fetch
-for branch in "${branches[@]/$CURRENT_BRANCH}"
-do
-	git checkout $branch
-	git pull --force
-done
 
-git checkout CURRENT_BRANCH
+for branch in $branches
+do
+  if [ "$branch" != "$current_branch" ]
+  then
+    git branch -f "$branch" origin/"$branch"
+  else
+    echo "not changing current branch $current_branch"
+  fi
+done
