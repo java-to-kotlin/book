@@ -4,7 +4,7 @@ Compared to Java, Kotlin makes it easier to define and transform immutable value
 As a result, your authors find they define new value classes more frequently in Kotlin than in Java.
 Kotlin makes it practical to define the core application domain model entirely as immutable values and functions that act upon them, and cheap to define "throwaway" value classes to hold the intermediate results of calculation pipelines, or to pivot data into shapes that make it easier to write application logic.
 
-=== A Value Class That Holds Related Data
+=== A Value Class That Groups Related Data
 
 Our users want to know what their trip will cost.  We show costs in the local currencies of the countries they are travelling through, and convert those costs to the user's currency to give them an idea of the total cost of the entire trip.
 
@@ -308,6 +308,10 @@ The Money class provides some convenient overloads of the `of` method for String
 <3> The equals and hashCode methods implement value semantics.
 <4> The toString method returns a representation of its properties.  Unlike the CurrencyConversion class, Money returns a representation that is shown to the user, not just for debugging.
 <5> Money provides operations for calculating with money values.  For example, you can add monetary values together.  The add method constructs new Money values by calling the constructor directly, because the result of BigDecimal.add has the correct scale already and so we can avoid the overhead of setting the scale.
+
+****
+TODO: sidebar about why BigDecimal.setScale is not really as setter.
+****
 
 Converting Money to Kotlin produces the following code:
 
