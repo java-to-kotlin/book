@@ -431,41 +431,67 @@ class Money private constructor(
 ----
 // end-insert
 
+TODO: Convert tests to Kotlin (??? is it worth showing? They don't look that different.)
+
+
+=== Operator Overloading
+
+****
+TODO: should this and the next section be moved to a separate chapter about making Kotlin code idiomatic while keeping Java code running?
+****
+
+Code that adds Money values is still rather clumsy:
+
+[source,kotlin]
+----
+total = price.add(tax)
+----
+
+This is the best we can do in Java, but in Kotlin we have operator overloading, allowing us to write code like:
+
+[source,kotlin]
+----
+total = price + tax
+----
+
+
 TODO:
 
-* convert tests to Kotlin (??? is it worth it? They don't look that different.)
-
-TODO: add -> plus operator
-
 * operator overloading for maths-like classes -- implemented as extension methods in stdlib for Java classes
-** IntelliJ cannot refactor all method calls to an operator method into an operator call
+
+* IntelliJ cannot refactor all method calls to an operator method into an operator call
 ** introduce the "delegate and inline" refactoring combination
-*** this is also used to introduce infix methods in the JSON DSL chapter -- ensure they are consistent and don't repeat themselves
-** NOTE: limitations of operators: cannot change flow control. Remember, the "grain" of Kotlin is to prefer explicitness
-** WARNING: avoid operator "punning"
+** this is also used to introduce infix methods in the JSON DSL chapter -- ensure they are consistent and don't repeat themselves
+
+* NOTE: limitations of operators: cannot change flow control. Remember, the "grain" of Kotlin is to prefer explicitness
+
+[WARNING]
+====
+TODO
+
+Avoid operator "punning". E.g. URL construction example using `/`
+====
+
+
+=== Supporting Both Java and Kotlin Style Conventions
 
 * Money.of(...) is not idiomatic Kotlin.
-** moneyOf(...) would be more conventional, or even extension methods on Currency.  E.g. GBP.of(10) or EUR.zero
+** Money(...) or moneyOf(...) would be more conventional, or even extension methods on Currency.  E.g. GBP.of(10) or EUR.zero
 ** Would involve making the constructor have `internal` visibility, which gives it public visibility from Java.  While we're still changing Java code, introduces more scope for errors.  So let's leave it for now...
 * call forward to <<organising-code-by-domain>>
 
+A tempting solution is to declare the constructor as `internal`, rather than `private`.  This makes the constructor visible to any Kotlin code in the same compilation unit (equivalent to a Gradle subproject or IntelliJ module), but prevents it being called by Kotlin code in other compilation units.  The compilation unit, rather than the class, would then have to guarantee the invariants of the Money class by never calling its constructor inappropriately.   That would be safe enough, if it wasn't for parts of our system that remain in Java, and that we will continue to maintain while translating our system to Kotlin.  Java and the JVM does not even have the concept of `internal` visiblity.  The Kotlin compiler must compile an internal feature to a public feature in the JVM classfile, and records that it has internal visibility in an additional metadata section.  The Kotlin compiler reads this metadata and enforces the internal visibility, but to the Java compiler and JVM it has public visibility.  As a result, it would be possible to accidentally create invalid Money values when we're working in the Java side of our project.  Let's take that option off the table.
 
-=== Copy Methods
-
-... todo ...
 
 === Conclusions
 
 Because they require no boilerplate, it is much easier to define new value types in Kotlin than in Java.
-We find we introduce new value classes far more frequently --
-to hold intermediate results in a calculation pipeline, or to pivot data into temporary structures that make it easier to write application logic.
+Your authors find they introduce new value classes far more frequently in Kotlin than in Java --
+to declare application-specific "micro-types" that wrap primitive values,
+to hold intermediate results of a calculation pipeline,
+or to pivot data into temporary structures that make it easier to write application logic.
 
+Data classes greatly reduce the amount of boilerplate we need to implement value semantics.
+However, the limitations of data classes mean they are only applicable to values that do not have to maintain invariants between their properties.
 
-... the following is to be woven into the conclusions...
-
-* Convert to Kotlin is handy
-* But does not do all the work for you
-* Minimum ceremony
-* Convenience
-* Favour immutability
-* Data classes greatly reduce boilerplate code, but only where we do not have to maintain invariants between properties.
+Kotlin's nudges towards immutability goes much further than making it easy to define value types.  The standard library also makes it easy to program by transforming values in bulk.  We'll look at that in the next chapter.
