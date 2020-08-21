@@ -193,7 +193,7 @@ public interface Trips {
 ----
 // end-insert
 
-If we use IntelliJ's _Change Signature_ refactoring we can call it `at`, and default it to `Instant.now()` on the assumption that shouldn't break any code.
+We use IntelliJ's _Change Signature_ refactoring to add the parameter, calling it `at`, and defaulting it to `Instant.now()` on the assumption that shouldn't break any code.
 Running the tests shows that we are right.
 
 `Trips` now looks like this
@@ -328,7 +328,7 @@ public class InMemoryTrips implements Trips {
 ----
 // end-insert
 
-Now that we aren't asking the clock for the time the tests that use `InMemoryTrips` will fail.
+Now that we aren't asking the clock for the time the tests that use `InMemoryTrips` will fail, because the method is now using the value of the parameter, and the tests are not supplying the right value.
 
 // begin-insert: tags/effects.3:src/test/java/travelator/TrackingTests.java#foo
 [source,java]
@@ -367,14 +367,73 @@ public class TrackingTests {
 // end-insert
 <1> These need to be the value we were setting into the `StoppedClock`.
 
-// begin-insert: tags/effects.4:src/test/java/travelator/TrackingTests.java#foo
+A cunning refactor (kudos to Jordan Stewart) is to replace all the `Instant.now()` calls with `clock.now`
+
+// begin-insert: tags/effects.5:src/test/java/travelator/TrackingTests.java#foo
+[source,java]
+----
+@Test
+public void returns_empty_when_no_trip_planned_to_happen_now() {
+    clock.now = anInstant();
+    assertEquals(
+        Optional.empty(),
+        tracking.currentTripFor("cust1", clock.now)
+    );
+}
+
+@Test
+public void returns_single_active_booked_trip() {
+    var diwaliTrip = givenATrip("cust1", "Diwali", "2020-11-13", "2020-11-15", BOOKED);
+    givenATrip("cust1", "Christmas", "2020-12-24", "2020-11-26", BOOKED);
+
+    clock.now = diwaliTrip.getPlannedStartTime().toInstant();
+    assertEquals(
+        Optional.of(diwaliTrip),
+        tracking.currentTripFor("cust1", clock.now)
+    );
+}
+----
+// end-insert
+
+This gets our tests to pass, because we are now passing the correct time as the argument, albeit via setting and immediately reading a field in the `StoppedClock`.
+To fix that, we can replace `clock.now =` with `var clockNow =` and then `clock.now` with `clockNow`.
+This cleverness disintermediates the clock.
+
+// begin-insert: tags/effects.6:src/test/java/travelator/TrackingTests.java#foo
+[source,java]
+----
+@Test
+public void returns_empty_when_no_trip_planned_to_happen_now() {
+    var clockNow = anInstant();
+    assertEquals(
+        Optional.empty(),
+        tracking.currentTripFor("cust1", clockNow)
+    );
+}
+
+@Test
+public void returns_single_active_booked_trip() {
+    var diwaliTrip = givenATrip("cust1", "Diwali", "2020-11-13", "2020-11-15", BOOKED);
+    givenATrip("cust1", "Christmas", "2020-12-24", "2020-11-26", BOOKED);
+
+    var clockNow = diwaliTrip.getPlannedStartTime().toInstant();
+    assertEquals(
+        Optional.of(diwaliTrip),
+        tracking.currentTripFor("cust1", clockNow)
+    );
+}
+----
+// end-insert
+
+Now we have simply to inline all the uses of `clockNow` to have a nice functional expression of the tests.
+Taking the opportunity to remove the now vestigial `clock` from the tests and `InMemoryTrips` we have
+
+// begin-insert: tags/effects.7:src/test/java/travelator/TrackingTests.java#foo
 [source,java]
 ----
 public class TrackingTests {
 
-    final StoppedClock clock = new StoppedClock();
-
-    final InMemoryTrips trips = new InMemoryTrips(clock);
+    final InMemoryTrips trips = new InMemoryTrips();
     final Tracking tracking = new Tracking(trips);
 
     @Test
@@ -407,18 +466,18 @@ We're nearly almost done now (refactoring is never completely done).
 Now that neither of our `currentTripFor` methods fetch the time, leaving that to the handler,
 tests for the handler may well require us to control _now_.
 So we'll probably inject the clock into `CurrentTripHandler` rather than call the raw `Instant.now()`.
-In return we can remove the clock from `InMemoryTrips` and `TrackingTests`.
 Oh, and we haven't converted the code to Kotlin!
 
 This last observation is quite significant.
 This way of thinking about values, calculations and actions is not exclusive to Kotlin.
 It is certainly possible to make the distinction in any language, and the grain of Java is becoming more functional with time.
 We find though that Kotlin's more natural support for immutable data and other functional constructs means that the costs of making the distinction are lower, and so the cost/benefit ratio looks more favourable.
+It's also worth observing that a lot of the refactoring steps taken in this chapter (and others) are safe because we are moving around the invocation of calculations and not actions.
 
 Before we finish this chapter, what about the other action we hinted at?
 Here is the previous implementation of `Trips`, now converted to Kotlin.
 
-// begin-insert: tags/effects.5:src/test/java/travelator/InMemoryTrips.kt
+// begin-insert: tags/effects.8:src/test/java/travelator/InMemoryTrips.kt
 [source,kotlin]
 ----
 class InMemoryTrips : Trips {
