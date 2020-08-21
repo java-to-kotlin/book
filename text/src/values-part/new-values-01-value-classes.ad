@@ -477,11 +477,16 @@ Avoid operator "punning". E.g. URL construction example using `/`
 
 * Money.of(...) is not idiomatic Kotlin.
 ** Money(...) or moneyOf(...) would be more conventional, or even extension methods on Currency.  E.g. GBP.of(10) or EUR.zero
-** Would involve making the constructor have `internal` visibility, which gives it public visibility from Java.  While we're still changing Java code, introduces more scope for errors.  So let's leave it for now...
-* call forward to <<organising-code-by-domain>>
 
 A tempting solution is to declare the constructor as `internal`, rather than `private`.  This makes the constructor visible to any Kotlin code in the same compilation unit (equivalent to a Gradle subproject or IntelliJ module), but prevents it being called by Kotlin code in other compilation units.  The compilation unit, rather than the class, would then have to guarantee the invariants of the Money class by never calling its constructor inappropriately.   That would be safe enough, if it wasn't for parts of our system that remain in Java, and that we will continue to maintain while translating our system to Kotlin.  Java and the JVM does not even have the concept of `internal` visiblity.  The Kotlin compiler must compile an internal feature to a public feature in the JVM classfile, and records that it has internal visibility in an additional metadata section.  The Kotlin compiler reads this metadata and enforces the internal visibility, but to the Java compiler and JVM it has public visibility.  As a result, it would be possible to accidentally create invalid Money values when we're working in the Java side of our project.  Let's take that option off the table.
 
+TODO: call forward to <<organising-code-by-domain>>?
+
+* Instead rename 'of' to 'invoke' and make it an operator function.  Now code creating objects as if with the constructor outside the class will call the Companion.invoke method, but inside the class will call the primary constructor.
+* The factory functions ensure invariants, but client code can treat the class as if it’s constructed normally
+* But: in Java, code would now look like `Money.invoke("200.00", EUR)`.  The `of` function has two roles: to enforce the invariant _and_ to be syntactic sugar that makes the code read well at the call site.
+* Introduce refactoring trick to use 'of' in Java and 'invoke' in Kotlin:
+** annotate 'of' method with @JvmName("of")  before renaming it to invoke, the Kotlin code sees the renamed method, while Java code remains unchanged.  So you can rename a static factory function with a name that makes sense in Java to, say, operator invoke: and Java call sites continue to have Java-specific syntactic sugar, and Kotlin call sites have Kotlin-specific syntactic sugar.
 
 === Conclusions
 
