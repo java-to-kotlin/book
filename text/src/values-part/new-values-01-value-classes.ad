@@ -309,9 +309,25 @@ The Money class provides some convenient overloads of the `of` method for String
 <4> The toString method returns a representation of its properties.  Unlike the CurrencyConversion class, Money returns a representation that is shown to the user, not just for debugging.
 <5> Money provides operations for calculating with money values.  For example, you can add monetary values together.  The add method constructs new Money values by calling the constructor directly, because the result of BigDecimal.add has the correct scale already and so we can avoid the overhead of setting the scale.
 
-****
-TODO: sidebar about why BigDecimal.setScale is not really as setter.
-****
+[NOTE]
+====
+.BigDecimal.setScale does not set the scale!
+
+The method `BigDecimal.setScale` is confusing.
+Although named like a Java Bean setter, it does not actually mutate the BigDecimal object.  Like our Money class, BigDecimal is an immutable value type, so `setScale` returns a BigDecimal value with the specified scale.
+
+Sun added BigDecimal class was to the standard library in Java 1.1.  This also included the first release of the Java Beans API and the Java Beans coding conventions  <<bean-java-style>> very popular.  At the time, there were no Java conventions for value types.
+
+Today, we avoid the "set" prefix for methods that do not mutate their receiver and instead use names that emphasise when the method returns a transformation of the receiver.  A common convention is use the prefix "with", which would make the code in our Money class read like `amount.withScale(currency.getDefaultFractionDigits(), ...)`.
+
+In Kotlin we can write extension methods to fix such historical accidents.  If we were writing a lot of code that calculated with BigDecimals, it might be worth doing so to improve the clarity of the code:
+
+[source,kotlin]
+----
+inline fun BigDecimal.withScale(int scale, RoundingMode mode) =
+    setScale(scale, mode)
+----
+====
 
 Converting Money to Kotlin produces the following code:
 
@@ -370,7 +386,7 @@ The syntax for this is a little clunky.
 The static "of" functions are now methods on a companion object. IntelliJ noticed that they are called from our Java code, and annotated them as `@JvmStatic` to ensure they are compiled to static methods and the call sites in the Java code are unaffected.
 
 ****
-TODO: sidebar to explain @Jvm... annotations
+TODO: sidebar to explain @Jvm... annotations. Coordinate with what Duncan is writing.
 ****
 
 Can we also reduce the size of the class even further by making it a data class?
