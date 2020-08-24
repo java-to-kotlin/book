@@ -46,7 +46,7 @@ Command-line utilities will just exit in this case, hopefully having provided en
 A server app, or a GUI with an event-loop, will usually abort only the current interaction and get on with the next.
 
 Often this is just a poor experience for our users, but sometimes the error will have corrupted the persistent state of the system, so that correcting the initial problem and retrying does not work.
-This is the source of the hackneyed advice to "turn it off and on again" - our systems mainly start in a safe state - so that after a restart a retry should succeed.
+This is the source of the often good advice to "turn it off and on again" - our systems mainly start in a safe state - so that after a restart a retry should succeed.
 If not; well you've probably been in a situation where the only solution has been to reinstall the operating system - the ultimate way of removing corrupted persistent state.
 
 .Rebooting the Internet
@@ -56,7 +56,7 @@ IFTTT was receiving notifications when the Nest entered home mode, but not away 
 The great AWS outage of 28th February 2017 mysteriously fixed the problem - it turns out that all it required was a reboot of the Internet.
 ****
 
-If errors and not well managed and the system becomes successful, diagnosing and fixing corruption due to errors can expand to fill all the team's time.
+If errors are not well managed and the system becomes successful, diagnosing and fixing corruption due to errors can expand to fill all the team's time.
 This is not a great place for a software project to be - ask us how we know!
 
 So we don't want errors because they annoy our users and may result in corruption that takes a lot of effort to fix, if we can fix it at all.
@@ -94,20 +94,20 @@ Most error handling these days is based on exceptions, but other techniques have
 We'll look at the pros and cons of those techniques first.
 The cons will show us why exceptions now dominate, the pros may give us options when exceptions aren't appropriate.
 
-=== Ignore Errors
+=== Ignoring Errors
 
 We can ignore errors - either the failing routine does nothing to bring them to the attention of the caller, or the caller doesn't bother to check.
 
 This may lead to corruption of persistent data and silent failure to do the job - in most cases we need to aim higher.
 
-=== Just Crash
+=== Just Crashing
 
 Some programs just exit when an error is detected.
 
 Combined with a supervisor to restart on error and careful coding to prevent corruption of persistent state, this is a battle-tested strategy that may be appropriate.
 Throwing an exception and aborting an operation can be seen as the application of this technique to a procedure rather than a whole program.
 
-=== Return a Special Value
+=== Returning a Special Value
 
 Returning a special value to signify an error can be a useful technique.
 For example, returning `-1` instead of an index when an item is not found in a list.
@@ -118,10 +118,10 @@ If we try to calculate the distance between two items in a list by subtracting t
 We are not able to lean on the type checker to help us avoid errors.
 
 A special case of returning a special value is returning null on error.
-This is quite dangerous in most languages, because if the caller doesn't explicitly check for null, then using the result will throw a NullPointerException, which may be worse than the initial problem.
+This is quite dangerous in most languages, because if the caller doesn't explicitly check for null, then using the result will throw a `NullPointerException`, which may be worse than the initial problem.
 In Kotlin though, the type-checker forces callers to deal with null - making this a safe and effective technique.
 
-=== Set a Global Flag
+=== Setting a Global Flag
 
 One problem with returning special values is that they make it hard to signal which of several possible errors occurred.
 To solve this we can combine the special value with setting a global variable.
@@ -129,12 +129,12 @@ When the special value is detected the caller can read `errno` for example to es
 
 This technique was popular in C, but was largely superseded by exception-based error handling.
 
-=== Return a Status Code
+=== Returning a Status Code
 
 Another technique from the days before exceptions is returning a status code.
 This is possible when a function either returns no value (it is entirely side-effect), or returns a value in another way, often by mutating a parameter passed by reference.
 
-=== Invoke a Special Function
+=== Invoking a Special Function
 
 Even when exceptions are available, invoking a special function when an error occurs is sometimes a good strategy.
 Usually the function is passed as a parameter to the invoked function - if a problem is detected the error function is invoked with the issue as a parameter.
@@ -262,7 +262,7 @@ The compiler does record in the bytecode what checked exceptions a method declar
 
 The result is that Kotlin programs are by default no better or worse than most Java programs when it comes to error handling.
 
-An exception (lower case `l` ;-) to this is that, as we observed above, Kotlin can use null to indicate an error, safe in the knowledge that callers will have to write code to handle it.
+An exception (lower case `e`) to this is that, as we observed above, Kotlin can use null to indicate an error, safe in the knowledge that callers will have to write code to handle it.
 An example of this is the provision of
 `<T> Iterable<T>.firstOrNull(): T?` in the runtime.
 Confusingly though the runtime also defines `first()`, which throws `NoSuchElementException` if the collection is empty.
@@ -434,8 +434,8 @@ It depends of course.
 Using nullable types to represent failure is very effective, provided that you don't need to convey any information about the reason for failure.
 
 You won't be fired for using exceptions as your default strategy.
-The lack of type checking makes it hard to communicate what code is subject to what failure though, which in turn makes it hard to build reliable systems.
-Adding insult, you will lose the benefits of referential transparency, making it harder to fix and refactor your unreliable system.
+The lack of type-checking makes it hard to communicate what code is subject to what failure though, which in turn makes it hard to build reliable systems.
+Adding insult to this injury, you will lose the benefits of referential transparency, making it harder to fix and refactor your unreliable system.
 
 Our preference is to return an `Either` type from those operations that would have thrown a checked exception in Java, either because of IO problems, or because, like `parseInt`, they cannot give a result for all inputs.
 `Errors` are still appropriate for unrecoverable program errors.
@@ -446,22 +446,15 @@ If we have carefully designed our system it should be able to survive these issu
 
 Which `Either` type should you choose?
 The built-in Kotlin `Result` type is, at the time of writing, a frustrating placeholder which just teases and gets in the way.
+It is designed just for coroutines implementation, is restricted to an `Exception` as its `Left` type, and IntelliJ moans if you use it as a return value or property type.
+This would be reasonable if it wasn't published in the `Kotlin` package.
+As it is, if you try to use a more useful type called `Result` you get strange error messages until you remember that, until you specifically import, the compiler is assuming you mean the one that you aren't supposed to use.
 
-ifdef::todos[]
-
-.Kotlin Result
-****
-
-****
-
-endif::[]
-
-There are plenty of others available, but for this book we will use Result4k, not coincidentally written by Nat.
+There are plenty of other `Result` types available, but for this book we will use Result4k, not coincidentally written by Nat.
 Compared to the generic `Either` type we introduced earlier, Result4k defines `Result<SuccessType, FailureType>`, with subtypes `Success` and `Failure`
 rather than the generic `Left` and `Right`.
-As it is specialised for representing errors, Result4k can offer operations such as `onFailure`
-and `recover`
-that would not make sense on `Either`.
+As it is specialised for representing errors, Result4k can offer operations, such as `onFailure` and `recover`, that would not make sense on `Either`.
+We'll see some more of its other operations in the next chapter.
 
 
 

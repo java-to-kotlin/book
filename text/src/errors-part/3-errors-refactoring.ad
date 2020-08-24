@@ -324,7 +324,7 @@ class CustomerRegistration(
 // end-insert
 
 That `customers.add` expression is the one that can throw `DuplicateException`.
-We're going to replace it with a call to `addTo`
+We're going to replace it with a call to `addToo`
 but keeping the behaviour the same.
 So we pull out `result` as a local
 
@@ -362,7 +362,7 @@ override fun register(data: RegistrationData): Customer {
 ----
 // end-insert
 
-<1> Type mismatch. Required: Customer Found: Result<Customer, DuplicateException>
+<1> `Type mismatch. Required: Customer Found: Result<Customer, DuplicateException>`
 
 Now in the case of failure,
 we want to throw the `DuplicateException` in the `Result`
@@ -499,7 +499,7 @@ public Result<Customer, DuplicateException> addToo(
 We can also use this strategy to add `addToo` to our production implementations of Customers.
 
 If we still had any remaining callers of `add`
-we could implement `add` by delegating to our new `addTo`,
+we could implement `add` by delegating to our new `addToo`,
 but we don't.
 So we can just remove it from here and the interface,
 and then rename `addToo` to `add`,
@@ -543,7 +543,7 @@ but we can't resist the conversion,
 as the code now has a number of warnings
 of the type `Not annotated [X] overrides @NotNull [X]`.
 
-After converstion we have
+After conversion we have
 
 // begin-insert: tags/errors.14:src/test/java/travelator/InMemoryCustomers.kt
 [source,kotlin]
@@ -922,7 +922,7 @@ At this point we can return to `CustomerRegistration`
 and implement `registerToo` directly.
 In lieu of any cleverer idea we do this by duplicating the `register` method
 and fettling the error handling,
-using `Result.mapFailure` to convert DuplicateException to Duplicate.
+using `Result.mapFailure` to convert `DuplicateException` to `Duplicate`.
 
 // begin-insert: tags/errors.21:src/main/java/travelator/CustomerRegistration.kt
 [source,kotlin]
@@ -1054,7 +1054,7 @@ to Kotlin and an error type.
 In this case though the tests are actually the last callers of `register`,
 so let's convert them to call `registerToo`.
 We could take the time to show how to use Result4k in Java,
-but I for one am pretty tired of this refactoring now,
+but you author for one is pretty tired of this refactoring now,
 so we'll convert the tests to Kotlin and
 then to call `register` with the immortal words,
 "Here's one I made earlier".
