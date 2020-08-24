@@ -47,11 +47,13 @@ A value is an unchanging piece of data.
 
 == Calculations
 
-Calculations are mappings from input values to output values - they are functions.
+Calculations are mappings from input values to output values: they are functions.
 We specify their working in code (or maths, or some notation) - as a result they are less easy to interpret than values.
 We call them calculations, rather than functions, to avoid confusion with software functions.
 To be a calculation, a function must always give the same output given the same input for the same input, and most computer languages don't make that guarantee for their functions.
-Pure functions is another term we use.
+You may also see them referred to as _pure_ functions, code with no side-effects.
+What is a side-effect?
+We'll get on to them in the next section.
 
 [source,kotlin]
 ----
@@ -97,9 +99,9 @@ Here `this` is considered a input to the functions, as the receiver was for the 
 
 == Actions
 
-Code that does not define values, or specify a pure calculation, is an action.
+Code that does not define a value, or specify a pure calculation, is an action.
 Actions depend on when and/or how many times they are run.
-This will happen if they change something in their environment, or their environment affects their result - side-effects in other words.
+This will happen if they change something in their environment, or their environment affects their result - the side-effects that calculations don't have.
 
 [source,kotlin]
 ----
@@ -122,7 +124,7 @@ fun email(itinerary: Itinerary) {
 }
 ----
 
-is an action, because if you run it twice the customer will get two emails, which is different from if you run it once, which is different from if you don't run it at all.
+is an action, because if we run it twice the customer will get two emails, which is different from if we run it once, which is different from if we don't run it at all.
 Functions returning `void` or `Unit` are a dead giveaway for actions, because if they do anything they have to do it by side effect.
 
 Functions that have no parameters (so this doesn't include methods or extension functions) must also either be returning a constant; or be reading from some other source and so be categorised as actions.
@@ -165,13 +167,14 @@ Error handling is much more complicated if the second of two related actions fai
 Fundamentally, actions prevent us having free-reign to refactor in ways which change when or whether they are invoked.
 
 Calculations on the other hand can be invoked at any time, with no consequences except a waste of time and energy.
-If you are refactoring code and find that you don't need the result of a calculation, you can safely not invoke it.
-If it is an expensive calculation, you can safely cache its result; if it is not expensive, you can safely recalculate it on demand if that simplifies things.
+If we are refactoring code and find that you don't need the result of a calculation, we can safely not invoke it.
+If it is an expensive calculation, we can safely cache its result; if it is not expensive, we can safely recalculate it on demand if that simplifies things.
 It is this feeling of safety that puts the smug smile on the faces of functional programmers.
+We'll, that and knowing that a monad is just a monoid in the category of endofunctors, if not actually why.
 
 Values, well they just are.
 Simply accessing immutable data takes even less reasoning than calculations.
-You don't have to drill down through source code, or write tests, to determine behaviour.
+We don't have to drill down through source code, or write tests, to determine their behaviour.
 Calculations can fail for various reasons, but the main error that we have to consider with data is what to do in its absence, and, at least in the case of Kotlin, we have language support for that.
 The more code we can move into the values category the simpler our life will be.
 
