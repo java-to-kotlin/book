@@ -1,22 +1,13 @@
 = Values, Calculations, and Actions
 
-In his excellent book
-https://www.manning.com/books/grokking-simplicity[Grokking Simplicity],
-Eric Normand develops the idea
-that we can categorise our code into values, calculations, and actions.
-Actually he says _data_ rather that _values_,
-but in the context of Kotlin,
-which allows mutable data types,
-values avoids confusion.
+In his excellent book https://www.manning.com/books/grokking-simplicity[Grokking Simplicity], Eric Normand develops the idea that we can categorise our code into values, calculations, and actions.
+Actually he says _data_ rather that _values_, but in the context of Kotlin, which allows mutable data types, values avoids confusion.
 
 == Values
 
 Values are immutable data.
 You know code that represents data when you it when you see it.
-While that sounds like a cop-out,
-it's the key attribute -
-you can interpret data
-without executing code.
+While that sounds like a cop-out, it's the key attribute - you can interpret data without executing code.
 
 [source,kotlin]
 ----
@@ -47,19 +38,11 @@ or
 ----
 
 are all meaningful without being run by some computer.
-The JSON form even manages to be meaningful
-between different systems,
-written in different languages,
-even when the system that wrote it was decommissioned
-before the system that read it was conceived,
-and even when one of those systems is a human.
+The JSON form even manages to be meaningful between different systems, written in different languages, even when the system that wrote it was decommissioned before the system that read it was conceived, and even when one of those systems is a human.
 
 It is this simplicity of interpretation that makes data so useful.
-To make it even more useful,
-we further constrain data to be immutable.
-Otherwise we don't just have data,
-we have data as it is at a particular time,
-and that isn't simple at all.
+To make it even more useful, we further constrain data to be immutable.
+Otherwise we don't just have data, we have data as it is at a particular time, and that isn't simple at all.
 A value is an unchanging piece of data.
 
 == Calculations
@@ -75,24 +58,17 @@ Pure functions is another term we use.
 fun fullName(customer: Customer) = "${customer.givenName} ${customer.familyName}"
 ----
 
-is a calculation,
-as it will always return the same value
-when supplied the same `Customer` value.
-This is true only if `Customer` is immutable,
-(or at least `givenName` and `secondName` are) -
-let's stick with values for our inputs and that will always be true.
+is a calculation, as it will always return the same value when supplied the same `Customer` value.
+This is true only if `Customer` is immutable, (or at least `givenName` and `secondName` are) - let's stick with values for our inputs and that will always be true.
 
-By extension 
-(pun only retrospectively intended)
+By extension (pun only retrospectively intended)
 
 [source,kotlin]
 ----
 fun Customer.fullName() = "$givenName $familyName"
 ----
 
-is also a calculation,
-making it clear that the receiver of extension function
-counts as an input in our definition.
+is also a calculation, making it clear that the receiver of extension function counts as an input in our definition.
 
 Computed properties can also be calculations
 
@@ -101,15 +77,10 @@ Computed properties can also be calculations
 val Customer.fullName get() = "$givenName $familyName"
 ----
 
-indeed things get confusing quickly 
-if they don't always give the same result.
-That's a good guideline for when to choose a property
-over a function or method -
-when the result doesn't change over time.
+indeed things get confusing quickly if they don't always give the same result.
+That's a good guideline for when to choose a property over a function or method - when the result doesn't change over time.
 
-Methods,
-or the hidden methods that are computed member-properties,
-can also be calculations.
+Methods, or the hidden methods that are computed member-properties, can also be calculations.
 
 [source,kotlin]
 ----
@@ -122,18 +93,13 @@ data class Customer(
 }
 ----
 
-Here `this` is considered a input to the functions,
-as the receiver was for the extension examples.
+Here `this` is considered a input to the functions, as the receiver was for the extension examples.
 
 == Actions
 
-Code that does not define values,
-or specify a pure calculation,
-is an action.
+Code that does not define values, or specify a pure calculation, is an action.
 Actions depend on when and/or how many times they are run.
-This will happen if they change something in their environment,
-or their environment affects their result - 
-side-effects in other words.
+This will happen if they change something in their environment, or their environment affects their result - side-effects in other words.
 
 [source,kotlin]
 ----
@@ -147,9 +113,7 @@ class Customers {
 }
 ----
 
-Both `save` and `find` are actions,
-as find's result depends on whether it is run before or after
-a customer with that id has been saved.
+Both `save` and `find` are actions, as find's result depends on whether it is run before or after a customer with that id has been saved.
 
 [source,kotlin]
 ----
@@ -161,11 +125,7 @@ fun email(itinerary: Itinerary) {
 is an action, because if you run it twice the customer will get two emails, which is different from if you run it once, which is different from if you don't run it at all.
 Functions returning `void` or `Unit` are a dead giveaway for actions, because if they do anything they have to do it by side effect.
 
-Functions that have no parameters
-(so this doesn't include methods or extension functions)
-must also either be returning a constant;
-or be reading from some other source
-and so be categorised as actions.
+Functions that have no parameters (so this doesn't include methods or extension functions) must also either be returning a constant; or be reading from some other source and so be categorised as actions.
 So we can deduce that the top-level function
 
 [source,kotlin]
@@ -175,9 +135,7 @@ fun requestRate(): Double {
 }
 ----
 
-is probably an action,
-reading from some global mutable state,
-whereas
+is probably an action, reading from some global mutable state, whereas
 
 [source,kotlin]
 ----
@@ -191,42 +149,24 @@ class Metrics(
 }
 ----
 
-is probably a calculation,
-provided `Metrics` is immutable.
-We say probably,
-because in languages that allow IO or mutating data from any code
-(like Java or Kotlin),
-there is no way to be sure if a function represents a value, calculation or action
-short of examining it.
+is probably a calculation, provided `Metrics` is immutable.
+We say probably, because in languages that allow IO or mutating data from any code (like Java or Kotlin), there is no way to be sure if a function represents a value, calculation or action short of examining it.
 We'll return to that problem soon.
 
 == Why Should We Care?
 
 We should obviously pay special attention to some actions in our software.
-Sending the same email to every user twice is a bug,
-as is not sending it at all.
-We care exactly how many times it is sent,
-and probably when it is sent too,
-maybe down to the minute,
-so that our offer for a free first-class upgrade is at the top of our customer's inbox
-when they read their email over breakfast.
+Sending the same email to every user twice is a bug, as is not sending it at all.
+We care exactly how many times it is sent, and probably when it is sent too, maybe down to the minute, so that our offer for a free first-class upgrade is at the top of our customer's inbox when they read their email over breakfast.
 
 Other seemingly innocuous actions may be more nocuous than we think.
 Changing the order of read and write actions causes concurrency bugs.
 Error handling is much more complicated if the second of two related actions fails.
-Fundamentally,
-actions prevent us having free-reign to refactor in ways
-which change when or whether they are invoked.
+Fundamentally, actions prevent us having free-reign to refactor in ways which change when or whether they are invoked.
 
-Calculations on the other hand can be invoked at any time,
-with no consequences except a waste of time and energy.
-If you are refactoring code
-and find that you don't need the result of a calculation,
-you can safely not invoke it.
-If it is an expensive calculation,
-you can safely cache its result;
-if it is not expensive,
-you can safely recalculate it on demand if that simplifies things.
+Calculations on the other hand can be invoked at any time, with no consequences except a waste of time and energy.
+If you are refactoring code and find that you don't need the result of a calculation, you can safely not invoke it.
+If it is an expensive calculation, you can safely cache its result; if it is not expensive, you can safely recalculate it on demand if that simplifies things.
 It is this feeling of safety that puts the smug smile on the faces of functional programmers.
 
 Values, well they just are.
@@ -259,7 +199,6 @@ As with the susceptibility to errors, if we value the lack of taint, we must str
 If we succeed, then a significant proportion of our code can be values and calculations, and hence easily tested, reasoned-with, and refactored.
 
 If we don't succeed in keeping actions at the top of our call-stack, we can fix things with refactoring.
-
 
 SOMETHING ABOUT THE GRAIN OF JAVA AND KOTLIN WRT ACTIONS
 
