@@ -1,7 +1,17 @@
 [[conventionality]]
-== Conventionality
+== Supporting Java and Kotlin Conventions
 
-Making Kotlin code idiomatic while keeping our Java code running.
+In <<value-types>> we translated our Money class from Kotlin to Java.
+However, it still looks sort of "Java-ish".
+It follows conventions for value types that are common in <<modern-java-style,Modern Java>>, but are not the way things are usually done in Kotlin:
+it uses methods of a companion object to create values,
+and it uses methods, rather than operators, for arithmetic.
+
+In a monolingual codebase, it'd be pretty straightforward to address those issues.
+But when adopting Kotlin in a project that has a significant amount of Java, it's unlikely that we will translate all the Java in one big bang -- it involves too much up-front cost and risk.
+So, we'll continue to make changes to the Java and to the Kotlin, until Kotlin has edged Java out altogether.
+In the meantime, when both Kotlin _and_ Java use a Kotlin class, we'll ensure that the call sites in either language are conventional enough to not surprise the horses.
+
 
 === Operator Overloading
 
@@ -43,7 +53,7 @@ Avoid operator "punning". E.g. URL construction example using `/`
 * Money.of(...) is not idiomatic Kotlin.
 ** Money(...) or moneyOf(...) would be more conventional, or even extension methods on Currency.  E.g. GBP.of(10) or EUR.zero
 
-A tempting solution is to declare the constructor as `internal`, rather than `private`.  This makes the constructor visible to any Kotlin code in the same compilation unit (equivalent to a Gradle subproject or IntelliJ module), but prevents it being called by Kotlin code in other compilation units.  The compilation unit, rather than the class, would then have to guarantee the invariants of the Money class by never calling its constructor inappropriately.   That would be safe enough, if it wasn't for parts of our system that remain in Java, and that we will continue to maintain while translating our system to Kotlin.  Java and the JVM does not even have the concept of `internal` visiblity.  The Kotlin compiler must compile an internal feature to a public feature in the JVM classfile, and records that it has internal visibility in an additional metadata section.  The Kotlin compiler reads this metadata and enforces the internal visibility, but to the Java compiler and JVM it has public visibility.  As a result, it would be possible to accidentally create invalid Money values when we're working in the Java side of our project.  Let's take that option off the table.
+To define a top-level `moneyOf` function we would have to declare the constructor as `internal`, rather than `private`, so that our function could call it.  This makes the constructor visible to any Kotlin code in the same compilation unit (equivalent to a Gradle subproject or IntelliJ module), but prevents it being called by Kotlin code in other compilation units.  The compilation unit, rather than the class, would then have to guarantee the invariants of the Money class by never calling its constructor inappropriately.   That would be safe enough, if it wasn't for parts of our system that continue to be written in Java, and that we will continue to maintain while translating our system to Kotlin.  Java and the JVM does not even have the concept of `internal` visiblity.  The Kotlin compiler must compile an internal feature to a public feature in the JVM classfile, and records that it has internal visibility in an additional metadata section.  The Kotlin compiler reads this metadata and enforces the internal visibility, but to the Java compiler and JVM it has public visibility.  As a result, it would be possible to accidentally create invalid Money values when we're working in the Java side of our project.  Let's take that option off the table.
 
 TODO: call forward to <<organising-code-by-domain>>?
 
