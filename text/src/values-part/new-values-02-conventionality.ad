@@ -30,11 +30,34 @@ total = price + tax
 ----
 
 
-TODO:
+The Kotlin `+` operator is implemented as a method, or extension function, called `plus`, marked with the `operator` keyword.  We can rename the existing `add` method to `plus` and add the `operator` modifier:
 
-* operator overloading for maths-like classes -- implemented as extension methods in stdlib for Java classes
+// begin-insert: tags/value_types.9:src/main/java/travelator/money/Money.kt#money
+[source,kotlin]
+----
+class Money private constructor(
+    val amount: BigDecimal,
+    val currency: Currency
+) {
+    ...
 
-* IntelliJ cannot refactor all method calls to an operator method into an operator call
+    operator fun plus(that: Money): Money {
+        require(currency == that.currency) {
+            "cannot add Money values of different currencies"
+        }
+
+        return Money(amount.add(that.amount), currency)
+    }
+
+    ...
+}
+----
+// end-insert
+
+Our Kotlin code can now add Money values with the + operator, and Java code does so by calling `plus` as a method.
+
+However, if any of our Kotlin code added Money values by calling the `add` method, it won't have been converted to use the `+` operator.  At the time of writing, IntelliJ does not have an automated refactoring to replace all calls to an operator method with the appropriate arithmetic operator.  We'll have to use a _refactoring combo_ to achieve that.
+
 ** introduce the "delegate and inline" refactoring combination
 ** this is also used to introduce infix methods in the JSON DSL chapter -- ensure they are consistent and don't repeat themselves
 
@@ -46,6 +69,10 @@ TODO
 
 Avoid operator "punning". E.g. URL construction example using `/`
 ====
+
+Also use operator overloading _inside_ the plus method of the Money class.
+Operator overloading implemented as extension methods in stdlib for Java classes.
+
 
 
 === Supporting Both Java and Kotlin Style Conventions
