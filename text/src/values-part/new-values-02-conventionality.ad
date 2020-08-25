@@ -29,8 +29,8 @@ This is the best we can do in Java, but in Kotlin we have operator overloading, 
 total = price + tax
 ----
 
-
-The Kotlin `+` operator is implemented as a method, or extension function, called `plus`, marked with the `operator` keyword.  We can rename the existing `add` method to `plus` and add the `operator` modifier:
+In Kotlin we give classes the `+` operator by writing an operator method or extension function called `plus`.
+For our Money class we can rename the existing `add` method to `plus` and add the `operator` modifier:
 
 // begin-insert: tags/value_types.9:src/main/java/travelator/money/Money.kt#money
 [source,kotlin]
@@ -54,9 +54,21 @@ class Money private constructor(
 ----
 // end-insert
 
-Our Kotlin code can now add Money values with the + operator, and Java code does so by calling `plus` as a method.
+With this change, our Kotlin code can add Money values with the + operator, while the Java code calls `plus` as a method.
 
-However, if any of our Kotlin code added Money values by calling the `add` method, it won't have been converted to use the `+` operator.  At the time of writing, IntelliJ does not have an automated refactoring to replace all calls to an operator method with the appropriate arithmetic operator.  We'll have to use a _refactoring combo_ to achieve that.
+The name "plus" isn't conventional Java.
+Java classes in the standard library that have arithmetic operations, such as BigDecimal and BigInteger, use the name "add", not "plus".
+We can actually make the method appear to have different names in Java and Kotlin by annotating the method with `@JvmName("add")` before renaming the method to "plus" and making it an operator.
+Now the rename refactoring does not affect our Java code, leaving us with both Java and Kotlin code that follows the respective language conventions.
+Whether this is desirable is not cut and dried.
+It can be quite confusing to have the same method appear under different names in different parts of the same codebase.
+Your authors think it's worth being a little unconventional in Java during the transition to Kotlin,
+but it's something you will need to agree within your team.
+
+
+At the time of writing, IntelliJ does not have an automated refactoring to replace all calls to an operator method with the appropriate arithmetic operator.
+If, before the rename, any of our Kotlin code had been calling the `Money.add` method, it will now be calling `Money.plus` instead of the `+` operator operator.
+If we have a mixture of Kotlin and Java code calling `add`, we'll need to use a _refactoring combo_ to switch all our Kotlin code over to use the `+` operator.
 
 ** introduce the "delegate and inline" refactoring combination
 ** this is also used to introduce infix methods in the JSON DSL chapter -- ensure they are consistent and don't repeat themselves
