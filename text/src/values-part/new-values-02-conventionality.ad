@@ -101,9 +101,14 @@ but it's something you will need to agree within your team.
 
 === Calling Operators from Existing Kotlin Code
 
+But this still leaves us with a problem.
 At the time of writing, IntelliJ does not have an automated refactoring to replace all calls to an operator method with the appropriate arithmetic operator.
 If, before the rename, any of our Kotlin code had been calling the `Money.add` method, it will now be calling `Money.plus` instead of the `+` operator operator.
-If we have a mixture of Kotlin and Java code calling `add`, we'll need to use a _refactoring combo_ to switch all our Kotlin code over to use the `+` operator.
+And... when we convert our Java code to Kotlin, it will be converted to code that calls 'plus', not use the `+` operator.
+
+To address this problem, we'll need to use a _refactoring combo_ to switch all our Kotlin code over to use the `+` operator, and leave a hook in our code so we can easily do that in bulk as we convert more Java classes to Kotlin.
+
+Let's revert, and take yet another run at it...
 
 ** introduce the "delegate and inline" refactoring combination.
 
@@ -157,5 +162,6 @@ TODO: call forward to <<organising-code-by-domain>>?
 * Instead rename 'of' to 'invoke' and make it an operator function.  Now code creating objects as if with the constructor outside the class will call the Companion.invoke method, but inside the class will call the primary constructor.
 * The factory functions ensure invariants, but client code can treat the class as if it’s constructed normally
 * But: in Java, code would now look like `Money.invoke("200.00", EUR)`.  The `of` function has two roles: to enforce the invariant _and_ to be syntactic sugar that makes the code read well at the call site.
-* Introduce refactoring trick to use 'of' in Java and 'invoke' in Kotlin:
-** annotate 'of' method with @JvmName("of")  before renaming it to invoke, the Kotlin code sees the renamed method, while Java code remains unchanged.  So you can rename a static factory function with a name that makes sense in Java to, say, operator invoke: and Java call sites continue to have Java-specific syntactic sugar, and Kotlin call sites have Kotlin-specific syntactic sugar.
+* Use the same refactoring combo's we used to introduce the plus operator, this time to make the method be "operator invoke" in Kotlin and "of" in Java.
+** Annotate `of` method with `@JvmName("of")` before renaming it to invoke
+** Use the "delegate-and-inline" combo to replace of with function call in Kotlin code.
