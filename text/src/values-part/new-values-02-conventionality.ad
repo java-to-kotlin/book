@@ -105,8 +105,9 @@ At the time of writing, IntelliJ does not have an automated refactoring to repla
 If, before the rename, any of our Kotlin code had been calling the `Money.add` method, it will now be calling `Money.plus` instead of the `+` operator operator.
 If we have a mixture of Kotlin and Java code calling `add`, we'll need to use a _refactoring combo_ to switch all our Kotlin code over to use the `+` operator.
 
-** introduce the "delegate and inline" refactoring combination
-** this is also used to introduce infix methods in the JSON DSL chapter -- ensure they are consistent and don't repeat themselves
+** introduce the "delegate and inline" refactoring combination.
+
+// this is also used to introduce infix methods in the JSON DSL chapter -- ensure they are consistent and don't repeat themselves
 
 * NOTE: limitations of operators: cannot change flow control. Remember, the "grain" of Kotlin is to prefer explicitness
 
@@ -117,9 +118,32 @@ TODO
 Avoid operator "punning". E.g. URL construction example using `/`
 ====
 
-Also use operator overloading _inside_ the plus method of the Money class.
-Operator overloading implemented as extension methods in stdlib for Java classes.
+=== Operators for existing Java classes
 
+While we're working on the `plus` method, we can also take the opportunity to use the `+` operator inside the method to add the amount values.
+The Money class represents its amount as a `BigDecimal`, a class from the Java standard library.
+We can replace the call to the BigDecimal's `add` method with the + operator:
+
+// begin-insert: tags/value_types.19:src/main/java/travelator/money/Money.kt#plus_method
+[source,kotlin]
+----
+@JvmName("add")
+operator fun plus(that: Money): Money {
+    require(currency == that.currency) {
+        "cannot add Money values of different currencies"
+    }
+
+    return Money(this.amount + that.amount, currency)
+}
+----
+// end-insert
+
+Our code continues to compile.
+How is that possible?
+
+The Kotlin standard library defines operators as extension functions for classes in the Java standard library: mathematical classes, such as `BigInteger` and `BigDecimal` and collections, such as `List<T>` or `Set<T>`.
+Operator overloading implemented as extension methods in stdlib for Java classes.
+Because they are defined in the `kotlin` package, they are available to any package automatically; we do not need to explicitly import them.
 
 === Construction of Values
 
