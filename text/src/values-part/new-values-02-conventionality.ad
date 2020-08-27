@@ -58,10 +58,9 @@ With this change, our Kotlin code can add Money values with the + operator, whil
 
 The name "plus" isn't conventional Java.
 Java classes in the standard library that have arithmetic operations, such as BigDecimal and BigInteger, use the name "add", not "plus".
-Let's revert that change and take another run at it.
 
 We can make the method appear to have different names in Java and Kotlin by annotating it's definition with the `@JvmName` annotation.
-If we annotate the method with `@JvmName("add")` before renaming it to "plus", the rename will not affect our Java code.
+Let's revert the change we just made and take another run at it, starting by annotating the method with `@JvmName("add")`.
 
 // begin-insert: tags/value_types.10:src/main/java/travelator/money/Money.kt#add_method
 [source,kotlin]
@@ -77,7 +76,9 @@ fun add(that: Money): Money {
 ----
 // end-insert
 
-We can now mark the method as an operator, allowing both Java and Kotlin code to call the method according to their respective language conventions.
+Now when we rename the method to "plus", our Java code is unchanged.
+
+Marking the method as an operator allows both Java and Kotlin code to call the method according to their respective language conventions.
 
 // begin-insert: tags/value_types.11:src/main/java/travelator/money/Money.kt#plus_method
 [source,kotlin]
@@ -101,27 +102,91 @@ but it's something you will need to agree within your team.
 
 === Calling Operators from Existing Kotlin Code
 
-But this still leaves us with a problem.
-At the time of writing, IntelliJ does not have an automated refactoring to replace all calls to an operator method with the appropriate arithmetic operator.
-If, before the rename, any of our Kotlin code had been calling the `Money.add` method, it will now be calling `Money.plus` instead of the `+` operator operator.
-And... when we convert our Java code to Kotlin, it will be converted to code that calls 'plus', not use the `+` operator.
+This still leaves us with a problem.
+At the time of writing, IntelliJ does not have an automated refactoring to replace all direct calls to an operator method with use of the respective operator.
+Any of our Kotlin code that had been calling the `Money.add` method before we turned it into an operator will now be calling `Money.plus` as a method instead of using the `+` operator.
+Even if we only called `Money.add` from Java code, we've still got a problem:
+IntelliJ will convert that code to Kotlin that calls 'Money.plus' as a method instead of using `+` operator.
+IntelliJ can automatically refactor each of those call sites from a method call to an operator, but we would have to go through them one by one, refactoring each one individually.
 
-To address this problem, we'll need to use a _refactoring combo_ to switch all our Kotlin code over to use the `+` operator, and leave a hook in our code so we can easily do that in bulk as we convert more Java classes to Kotlin.
+To address these problems, we'll need to use a _refactoring combo_ to switch all our Kotlin code over to use the `+` operator, and leave a hook in our code to let us easily do that in bulk as we convert more Java classes to Kotlin.
 
-Let's revert, and take yet another run at it...
+Let's revert our change again, and take yet another run at the conversion.
 
-** introduce the "delegate and inline" refactoring combination.
+This time, we'll extract the entire body of the `add` method as a method called `plus` and make it a public, operator method:
 
-// this is also used to introduce infix methods in the JSON DSL chapter -- ensure they are consistent and don't repeat themselves
+// begin-insert: tags/value_types.13:src/main/java/travelator/money/Money.kt#extract_plus
+[source,kotlin]
+----
+fun add(that: Money): Money {
+    return plus(that)
+}
 
-* NOTE: limitations of operators: cannot change flow control. Remember, the "grain" of Kotlin is to prefer explicitness
+operator fun plus(that: Money): Money {
+    require(currency == that.currency) {
+        "cannot add Money values of different currencies"
+    }
 
-[WARNING]
-====
-TODO
+    return Money(amount.add(that.amount), currency)
+}
+----
+// end-insert
 
-Avoid operator "punning". E.g. URL construction example using `/`
-====
+Using IntelliJ's automatic refactoring, we make `this` explicit in the call to `plus`:
+
+// begin-insert: tags/value_types.14:src/main/java/travelator/money/Money.kt#add
+[source,kotlin]
+----
+fun add(that: Money): Money {
+    return this.plus(that)
+}
+----
+// end-insert
+
+From this form, IntelliJ's lets us automatically refactor from method call to operator:
+
+// begin-insert: tags/value_types.15:src/main/java/travelator/money/Money.kt#add
+[source,kotlin]
+----
+fun add(that: Money): Money {
+    return this + that
+}
+----
+// end-insert
+
+And finally we can transform the `add` method to single-expression form.
+
+// begin-insert: tags/value_types.16:src/main/java/travelator/money/Money.kt#extract_plus
+[source,kotlin]
+----
+fun add(that: Money) = this + that
+
+operator fun plus(that: Money): Money {
+    require(currency == that.currency) {
+        "cannot add Money values of different currencies"
+    }
+
+    return Money(amount.add(that.amount), currency)
+}
+----
+// end-insert
+
+We now have two methods for addition.
+The `plus` operator method implements addition logic and is what we'd like all our Kotlin code to use in the future, but nothing calls it directly yet.
+The `add` method will remain for use by our Java code, while it exists, and its body contains the ideal syntax we would like to use in our Kotlin code.
+
+We can make all our Kotlin code that adds Money values use that ideal syntax by inlining the `Money.add` method.
+When we do so, IntelliJ reports that it was unable to inline all the uses of `add`.
+That's just what we want!
+We can't inline Kotlin code into Java, so IntelliJ has inlined the body of `add` method only into the Kotlin call sites, and has not deleted `add` method because it is still called by Java.
+All our Kotlin code is now using the `+` operator, and our Java code is unchanged.
+
+In the future, when we translate more Java classes that add Money values to Kotlin, we can inline the `add` method again to make the converted Kotlin class use the `+` operator instead of method call syntax.
+As long as there is Java code in our codebase that calls it, IntelliJ will preserve the `add` method.
+After we've converted the last Java class that adds Money, IntelliJ will remove the now unused `add` method as part of the inline refactoring.
+Our codebase will then only use the `+` operator.
+
+// this refactoring combo is also used to introduce infix methods in the JSON DSL chapter -- ensure they are consistent and don't repeat themselves
 
 === Operators for existing Java classes
 
@@ -149,6 +214,7 @@ How is that possible?
 The Kotlin standard library defines operators as extension functions for classes in the Java standard library: mathematical classes, such as `BigInteger` and `BigDecimal` and collections, such as `List<T>` or `Set<T>`.
 Operator overloading implemented as extension methods in stdlib for Java classes.
 Because they are defined in the `kotlin` package, they are available to any package automatically; we do not need to explicitly import them.
+
 
 === Construction of Values
 
