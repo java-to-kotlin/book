@@ -231,10 +231,17 @@ Where a class does need multiple factory functions, as our Money class does, the
 IntelliJ does its bit to nudge one towards this style:
 it is much better at autosuggesting top-level functions than methods on a companion object.
 
-So, it would be more conventional if our Money class was created by expressions like `Money(...)` or, alternatively, like `moneyOf(...)`.
+So, it would be more conventional if our Money class was created by expressions like `Money(...)` or, alternatively, like `moneyOf(...)`, than like `Money.of(...)`.
 
 We've declared the Money constructor as private, so it looks like defining top-level `moneyOf` functions in the same source file as the Money class looks like the easiest option.
-However, those `moneyOf` functions would have to call the Money class' constructor, and so we would have to declare it as `internal`, rather than `private`.  Internal visibility would make the constructor visible to any Kotlin code in the same compilation unit (equivalent to a Gradle subproject or IntelliJ module), but prevent it being called by Kotlin code in other compilation units.  The compilation unit, rather than the class, would be responsible for guaranteeing the invariants of the Money class by never calling its constructor inappropriately.  That would be safe enough, if it wasn't for those parts of our system that we will continue to maintain in Java during our system's transition to Kotlin.  Java and the JVM does not have the concept of internal visibility.  The Kotlin compiler translates internal features of a class to a public features in the JVM classfiles it generates, and records the internal visibility as additional metadata that is processed by the Kotlin compiler but ignored by the Java compiler.  As a result, Kotlin features declared as internal appear to be public to the Java compiler and JVM, allowing us to accidentally create invalid Money values when we're working in the Java code of our project.
+However, those `moneyOf` functions would have to call the Money class' constructor, and so we would have to declare it as `internal`, rather than `private`.
+Internal visibility would make the constructor visible to any Kotlin code in the same compilation unit (equivalent to a Gradle subproject or IntelliJ module), but prevent it being called by Kotlin code in other compilation units.
+The compilation unit, rather than the class, would be responsible for guaranteeing the invariants of the Money class by never calling its constructor inappropriately.
+That would be safe enough, if it wasn't for those parts of our system that we will continue to maintain in Java during our system's transition to Kotlin.
+Java and the JVM does not have the concept of internal visibility.
+The Kotlin compiler translates internal features of a class to a public features in the JVM classfiles it generates, and records the internal visibility as additional metadata that is processed by the Kotlin compiler but ignored by the Java compiler.
+As a result, Kotlin features declared as internal appear to be public to the Java compiler and JVM, allowing us to accidentally create invalid Money values when we're working in the Java code of our project.
+That makes top-level `moneyOf` functions an unattractive option.
 
 Instead, we can lean on Kotlin's operator overloading again, defining the function call operator on the companion object to allow client code to create money values using the same syntax as if they were directly calling the constructor.
 
