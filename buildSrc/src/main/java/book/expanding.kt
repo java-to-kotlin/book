@@ -5,16 +5,17 @@ import java.io.File
 import kotlin.text.RegexOption.DOT_MATCHES_ALL
 import kotlin.text.RegexOption.MULTILINE
 
+private val noLogging : (String) -> Unit = {}
+private val log: (String) -> Unit = noLogging // ::println
+
 private data class SourceRoots(
     val workedExample: File,
     val digressionCode: File
 )
 
-private fun SourceRoots.sourceRootFor(version: String?): File {
-    return when (version) {
-        null -> digressionCode
-        else -> workedExample
-    }
+private fun SourceRoots.sourceRootFor(version: String?): File = when (version) {
+    null -> digressionCode
+    else -> workedExample
 }
 
 fun processFiles(
@@ -27,42 +28,46 @@ fun processFiles(
 }
 
 private fun processFiles(textRoot: File, sourceRoots: SourceRoots, abortOnFailure: Boolean) {
-    textRoot.walkTopDown().filter { it.name.endsWith(".ad") }.forEach { file ->
-        processFile(file, file, sourceRoots, abortOnFailure)
-    }
+    textRoot.walkTopDown()
+        .filter { it.name.endsWith(".ad") }
+        .forEach { file ->
+            processFile(file, file, sourceRoots, abortOnFailure)
+        }
 }
 
 private fun processFile(
     src: File,
     dest: File,
-    srcRoot: SourceRoots,
+    roots: SourceRoots,
     abortOnFailure: Boolean
 ) {
+    log("Processing $src")
     val text = src.readText()
-    val newText = expandCodeBlocks(text, lookupWithRoot(srcRoot, abortOnFailure))
+    val newText = expandCodeBlocks(text, lookupWithRoot(roots, abortOnFailure))
     if (newText != text)
         dest.writeText(newText)
 }
 
-private fun lookupWithRoot(sourceRoots: SourceRoots, abortOnFailure: Boolean) =
+private fun lookupWithRoot(roots: SourceRoots, abortOnFailure: Boolean) =
     fun(key: String): String {
-        val (versionedFile, tag) = key.parse(sourceRoots)
+        val (versionedFile, tag) = key.parse(roots)
         if (!versionedFile.exists()) {
             val message = "File not found for $versionedFile (${versionedFile.linesOrError.recover { it.message }})"
             if (abortOnFailure) {
                 error(message)
             } else {
+                log(message)
                 return message
             }
         }
         return FileSnippet(versionedFile, tag).rendered()
     }
 
-private fun String.parse(sourceRoots: SourceRoots): Pair<VersionedFile, String?> {
+private fun String.parse(roots: SourceRoots): Pair<VersionedFile, String?> {
     val (file, fragment) = this.trim().split("#").let { parts -> parts[0] to parts.getOrNull(1) }
     val (path, version) = file.split(":").let { parts -> parts.last() to parts.first().takeIf { parts.size == 2 } }
     val versionedFile = VersionedFile(
-        sourceRoot = sourceRoots.sourceRootFor(version),
+        sourceRoot = roots.sourceRootFor(version),
         relativePath = path,
         version = version
     )
@@ -121,16 +126,21 @@ data class VersionedFile(
         }
     }
 
-    val lines: List<String> get() =
-        linesOrError.recover { throw it }
+    val lines: List<String>
+        get() =
+            linesOrError.recover { throw it }
 
-    private fun readUnversioned() =
-        resultOf { file.readLines() }
+    private fun readUnversioned() = resultOf {
+        log("Reading $file")
+        file.readLines()
+    }
 
-    private fun readVersioned() =
-        "git show $version:${relativePath}"
+    private fun readVersioned(): Result<List<String>, Exception> {
+        log("Reading $file")
+        return "git show $version:${relativePath}"
             .runCommand(workingDir = sourceRoot)
             .map { it.lines() }
+    }
 
     fun exists(): Boolean = linesOrError is Success
 }
