@@ -13,20 +13,20 @@ So, we'll continue to make changes to the Java and to the Kotlin, until Kotlin h
 In the meantime, when both Kotlin _and_ Java use a Kotlin class, we'll ensure that the call sites in either language are conventional enough to not surprise the horses.
 
 
-=== User-Defined Operators
+=== Adding A User-Defined Operator
 
 Our Kotlin code that adds Money values is still rather clumsy:
 
 [source,kotlin]
 ----
-total = price.add(tax)
+final var total = price.add(tax)
 ----
 
-This is the best we can do in Java, but in Kotlin we can define arithmetic operators for our own classes, allowing us to write code like:
+This is the best we can do in Java, but in Kotlin we can define arithmetic operators for our own classes, allowing us to write that code as:
 
 [source,kotlin]
 ----
-total = price + tax
+val total = price + tax
 ----
 
 We give classes the `+` operator by writing an operator method or extension function called `plus`.
@@ -100,7 +100,8 @@ but on the other hand, because it's an operator method, our Kotlin code should o
 On balance, your authors think it's worth using the @JvmName annotation in this case,
 but it's something you will need to agree within your team.
 
-=== Calling Operators from Existing Kotlin Code
+
+=== Calling Our Operator from Existing Kotlin Code
 
 This still leaves us with a problem.
 At the time of writing, IntelliJ does not have an automated refactoring to replace all direct calls to an operator method with use of the respective operator.
@@ -188,6 +189,7 @@ Our codebase will then only use the `+` operator.
 
 // this refactoring combo is also used to introduce infix methods in the JSON DSL chapter -- ensure they are consistent and don't repeat themselves
 
+
 === Operators for existing Java classes
 
 While we're working on the `plus` method, we can also take the opportunity to use the `+` operator inside the method to add the amount values.
@@ -214,24 +216,25 @@ How is that possible?
 The Kotlin standard library includes extension functions that define operators for classes in the Java standard library: mathematical classes, such as `BigInteger` and `BigDecimal` and collections, such as `List<T>` or `Set<T>`.
 Because these extension functions are defined in the `kotlin` package, they are available to any package automatically; we do not need to explicitly import them.
 
-=== Construction of Values
 
-Another aspect of our Money class that breaks Kotlin conventions are the `of` functions on the companion object that are used to create Money values.
+=== Conventions for Denoting Values
 
-Java syntax distinguishes between instantiating an object with the `new` operator and obtaining one from a function.
+Another aspect of our Money class that breaks Kotlin conventions are the `of` functions on the companion object that are used to denote Money values.
+
+Java syntax distinguishes between instantiating a class with the `new` operator and obtaining an object as the result of a method call.
 A <<modern-java-style,Modern Java>> convention is that stateful objects, for which identity is significant, are constructed with the new operator, and values are denoted by calls to static factory functions.
 For example, the expression `new ArrayList<>()` constructs a new mutable list distinct from any other mutable list, while the expression `List.of("a","b","c")` denotes an immutable list value.
 
 Kotlin does not draw a distinction between constructing objects and calling functions: the syntax for instantiating a class is the same as that for calling a function.
 Nor are there coding conventions to distinguish between constructing new a stateful object that has a distinct identity, and denoting values that do not.
 
-Where a class does need multiple factory functions, as our Money class does, they are usually defined at the top level, not on the companion object of the class.
-IntelliJ also nudges one towards this style:
-it is much better at autosuggesting top-level functions than methods on a companion object, for example.
+Where a class does need multiple factory functions, as our Money class does, they are usually defined as top level functions, not on the companion object of the class.
+IntelliJ does its bit to nudge one towards this style:
+it is much better at autosuggesting top-level functions than methods on a companion object.
 
 So, it would be more conventional if our Money class was created by expressions like `Money(...)` or, alternatively, like `moneyOf(...)`.
 
-We've declared the Money constructor as private, so at first glance, defining top-level `moneyOf` functions in the same source file looks like the easiest option.
+We've declared the Money constructor as private, so it looks like defining top-level `moneyOf` functions in the same source file as the Money class looks like the easiest option.
 However, those `moneyOf` functions would have to call the Money class' constructor, and so we would have to declare it as `internal`, rather than `private`.  Internal visibility would make the constructor visible to any Kotlin code in the same compilation unit (equivalent to a Gradle subproject or IntelliJ module), but prevent it being called by Kotlin code in other compilation units.  The compilation unit, rather than the class, would be responsible for guaranteeing the invariants of the Money class by never calling its constructor inappropriately.  That would be safe enough, if it wasn't for those parts of our system that we will continue to maintain in Java during our system's transition to Kotlin.  Java and the JVM does not have the concept of internal visibility.  The Kotlin compiler translates internal features of a class to a public features in the JVM classfiles it generates, and records the internal visibility as additional metadata that is processed by the Kotlin compiler but ignored by the Java compiler.  As a result, Kotlin features declared as internal appear to be public to the Java compiler and JVM, allowing us to accidentally create invalid Money values when we're working in the Java code of our project.
 
 Instead, we can lean on Kotlin's operator overloading again, defining the function call operator on the companion object to allow client code to create money values using the same syntax as if they were directly calling the constructor.
