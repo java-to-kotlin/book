@@ -216,14 +216,27 @@ Because these extension functions are defined in the `kotlin` package, they are 
 
 === Construction of Values
 
-* Money.of(...) is not idiomatic Kotlin.
-** Money(...) or moneyOf(...) would be more conventional, or even extension methods on Currency.  E.g. GBP.of(10) or EUR.zero
+Another aspect of our Money class that breaks Kotlin conventions are the `of` functions on the companion object that are used to create Money values.
 
-To define a top-level `moneyOf` function we would have to declare the constructor as `internal`, rather than `private`, so that our function could call it.  This makes the constructor visible to any Kotlin code in the same compilation unit (equivalent to a Gradle subproject or IntelliJ module), but prevents it being called by Kotlin code in other compilation units.  The compilation unit, rather than the class, would then have to guarantee the invariants of the Money class by never calling its constructor inappropriately.   That would be safe enough, if it wasn't for parts of our system that continue to be written in Java, and that we will continue to maintain while translating our system to Kotlin.  Java and the JVM does not even have the concept of `internal` visiblity.  The Kotlin compiler must compile an internal feature to a public feature in the JVM classfile, and records that it has internal visibility in an additional metadata section.  The Kotlin compiler reads this metadata and enforces the internal visibility, but to the Java compiler and JVM it has public visibility.  As a result, it would be possible to accidentally create invalid Money values when we're working in the Java side of our project.  Let's take that option off the table.
+Java syntax distinguishes between instantiating an object with the `new` operator and obtaining one from a function.
+A <<modern-java-style,Modern Java>> convention is that stateful objects, for which identity is significant, are constructed with the new operator, and values are denoted by calls to static factory functions.
+For example, the expression `new ArrayList<>()` constructs a new mutable list distinct from any other mutable list, while the expression `List.of("a","b","c")` denotes an immutable list value.
 
-TODO: call forward to <<organising-code-by-domain>>?
+Kotlin does not draw a distinction between constructing objects and calling functions: the syntax for instantiating a class is the same as that for calling a function.
+Nor are there coding conventions to distinguish between constructing new a stateful object that has a distinct identity, and denoting values that do not.
 
-* Instead rename 'of' to 'invoke' and make it an operator function.  Now code creating objects as if with the constructor outside the class will call the Companion.invoke method, but inside the class will call the primary constructor.
+Where a class does need multiple factory functions, as our Money class does, they are usually defined at the top level, not on the companion object of the class.
+IntelliJ also nudges one towards this style:
+it is much better at autosuggesting top-level functions than methods on a companion object, for example.
+
+So, it would be more conventional if our Money class was created by expressions like `Money(...)` or, alternatively, like `moneyOf(...)`.
+
+We've declared the Money constructor as private, so at first glance, defining top-level `moneyOf` functions in the same source file looks like the easiest option.
+However, those `moneyOf` functions would have to call the Money class' constructor, and so we would have to declare it as `internal`, rather than `private`.  Internal visibility would make the constructor visible to any Kotlin code in the same compilation unit (equivalent to a Gradle subproject or IntelliJ module), but prevent it being called by Kotlin code in other compilation units.  The compilation unit, rather than the class, would be responsible for guaranteeing the invariants of the Money class by never calling its constructor inappropriately.  That would be safe enough, if it wasn't for those parts of our system that we will continue to maintain in Java during our system's transition to Kotlin.  Java and the JVM does not have the concept of internal visibility.  The Kotlin compiler translates internal features of a class to a public features in the JVM classfiles it generates, and records the internal visibility as additional metadata that is processed by the Kotlin compiler but ignored by the Java compiler.  As a result, Kotlin features declared as internal appear to be public to the Java compiler and JVM, allowing us to accidentally create invalid Money values when we're working in the Java code of our project.
+
+Instead, we can lean on Kotlin's operator overloading again, defining the function call operator on the companion object to allow client code to create money values using the same syntax as if they were directly calling the constructor.
+
+* Rename 'of' to 'invoke' and make it an operator function.  Now code creating objects as if with the constructor outside the class will call the Companion.invoke method, but inside the class will call the primary constructor.
 * The factory functions ensure invariants, but client code can treat the class as if it’s constructed normally
 * But: in Java, code would now look like `Money.invoke("200.00", EUR)`.  The `of` function has two roles: to enforce the invariant _and_ to be syntactic sugar that makes the code read well at the call site.
 * Use the same refactoring combo's we used to introduce the plus operator, this time to make the method be "operator invoke" in Kotlin and "of" in Java.
