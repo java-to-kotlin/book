@@ -243,33 +243,12 @@ The Kotlin compiler translates internal features of a class to a public features
 As a result, Kotlin features declared as internal appear to be public to the Java compiler and JVM, allowing us to accidentally create invalid Money values when we're working in the Java code of our project.
 That makes top-level `moneyOf` functions an unattractive option.
 
-Instead, we can lean on Kotlin's operator overloading again.  If we define the function call operator for the Money class' companion object, Kotlin code can create money values using the same syntax as if they were directly calling the constructor.
+Instead, we can lean on Kotlin's operator overloading again.
+If we define the function call operator for the Money class' companion object, Kotlin code can create money values using the same syntax as if they were directly calling the constructor.
+We implement the function call operator by defining by an operator function called `invoke`:
 
-We implement the function call operator by defining by an operator function called `invoke`, like so:
-
-//TODO: include this from the source
-[source,kotlin]
-----
-
-class Money
-    private constructor(val amount: BigDecimal, val currency: Currency)
-{
-    companion object {
-        @JvmStatic
-        operator fun invoke(amount: BigDecimal, currency: Currency) =
-            Money(
-              amount.setScale(currency.getDefaultMinorDigits()),
-              currency)
-    }
-}
-----
-
-This looks like it would cause an infinite loop, but the call to `Money(...)` inside the `invoke` function actually calls the private constructor.  Outside the class, a call to `Money(...)` calls the invoke operator of the companion object, because the private constructor is not visible.  We have the best of both worlds: consistent syntax for instantiating the class, and an encapsulation boundary that guarantees the class invariants when required.
-
-Just as we found when renaming the `add` method to `plus`, renaming `of` to `invoke` has a knock-on effect on our Java code.
-In this case, however, the effect is worse.
+Just as we found when renaming the `add` method to `plus`, merely renaming `of` to `invoke` will have a knock-on effect on our Java code.
 Java code that creates Money values changes from reading as `Money.of(100, EUR)` to `Money.invoke(100, EUR)`.
-
 The `of` methods had _two_ responsibilities: to enforce the class invariants when constructing money values, and to provide syntactic sugar in the caller that conforms to Modern Java conventions for denoting values.
 Renaming from `of` to `invoke` doesn't affect the former, but messes up the latter.
 
@@ -277,22 +256,143 @@ We can use the same combo of extract method, refactor the call to the extracted 
 
 First, extract the body of the `of` method as a method called `invoke`.
 
+// begin-insert: tags/value_types.19:src/main/java/travelator/money/Money.kt#money
+[source,kotlin]
+----
+class Money private constructor(
+    val amount: BigDecimal,
+    val currency: Currency
+) {
+    ...
+
+    companion object {
+        @JvmStatic
+        fun of(amount: BigDecimal, currency: Currency) =
+            invoke(amount, currency)
+
+        private fun invoke(amount: BigDecimal, currency: Currency) =
+            Money(
+                amount.setScale(
+                    currency.defaultFractionDigits,
+                    RoundingMode.UNNECESSARY
+                ),
+                currency
+            )
+
+        // ... and convenience overloads
+    }
+}
+----
+// end-insert
+
 Then make `invoke` a public operator method.
 
-Refactor the call to `invoke` to function call syntax.
+// begin-insert: tags/value_types.20:src/main/java/travelator/money/Money.kt#money
+[source,kotlin]
+----
+class Money private constructor(
+    val amount: BigDecimal,
+    val currency: Currency
+) {
+    ...
 
-Inline the `of` method to make any Kotlin callers use function call syntax.
+    companion object {
+        @JvmStatic
+        fun of(amount: BigDecimal, currency: Currency) =
+            invoke(amount, currency)
+        operator fun invoke(amount: BigDecimal, currency: Currency) =
+            Money(
+                amount.setScale(
+                    currency.defaultFractionDigits,
+                    RoundingMode.UNNECESSARY
+                ),
+                currency
+            )
 
-Repeat for the convenience overloads of the `of` method.
+        // ... and convenience overloads
+    }
+}
+----
+// end-insert:
 
+This looks as if the `invoke` method would overflow the call stack.
+However, inside the `invoke` method, the call to `Money(...)` is not a recursive call to `invoke` but actually calls the private `Money` constructor.
+Outside the class, a call to `Money(...)` calls the `invoke` operator of the companion object, because the private constructor is not visible.
+We have the best of both worlds: conventional syntax for instantiating the class, and an encapsulation boundary that guarantees the class invariants when required.
 
-[WARNING]
-.Avoid Operator Punning
-====
-E.g. using "/" to append URIs because the division operator looks like a path separator.
+To make existing Kotlin code use  that conventional syntax, we need to first  make the `of` method use function call syntax to call the `invoke` method.
 
-Remember Kotlin's grain: prefer explicitness.
-====
+// begin-insert: tags/value_types.21:src/main/java/travelator/money/Money.kt#money
+[source,kotlin]
+----
+class Money private constructor(
+    val amount: BigDecimal,
+    val currency: Currency
+) {
+    ...
+
+    companion object {
+        @JvmStatic
+        fun of(amount: BigDecimal, currency: Currency) =
+            this(amount, currency)
+
+        operator fun invoke(amount: BigDecimal, currency: Currency) =
+            Money(
+                amount.setScale(
+                    currency.defaultFractionDigits,
+                    RoundingMode.UNNECESSARY
+                ),
+                currency
+            )
+
+        // ... and convenience overloads
+    }
+}
+----
+// end-insert:
+
+Then, we inline the `of` method into the Kotlin code.
+Again, Java code will not be affected, and when no Java code is calling the `of` method, the IDE's inline method refactoring will remove it for us.
+
+Before the inline refactoring, Kotlin code that creates Money values looks like this:
+
+// begin-insert: tags/value_types.23:src/main/java/travelator/money/ExchangeRates.kt
+[source,kotlin]
+----
+interface ExchangeRates {
+    fun rate(fromCurrency: Currency, toCurrency: Currency): BigDecimal
+
+    @JvmDefault
+    fun convert(fromMoney: Money, toCurrency: Currency): CurrencyConversion {
+        val rate = rate(fromMoney.currency, toCurrency)
+        val toAmount = fromMoney.amount * rate
+        val toMoney = Money.of(toAmount, toCurrency)
+
+        return CurrencyConversion(fromMoney, toMoney)
+    }
+}
+----
+// end-insert:
+
+After the inline refactoring, it looks like this:
+
+// begin-insert: tags/value_types.24:src/main/java/travelator/money/ExchangeRates.kt
+[source,kotlin]
+----
+interface ExchangeRates {
+    fun rate(fromCurrency: Currency, toCurrency: Currency): BigDecimal
+
+    @JvmDefault
+    fun convert(fromMoney: Money, toCurrency: Currency): CurrencyConversion {
+        val rate = rate(fromMoney.currency, toCurrency)
+        val toAmount = fromMoney.amount * rate
+        val toMoney = Money(toAmount, toCurrency)
+
+        return CurrencyConversion(fromMoney, toMoney)
+    }
+}
+----
+// end-insert:
 
 
 === Conclusions
