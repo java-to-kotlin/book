@@ -49,7 +49,7 @@ private fun commaSeparated(element: Regex) =
     """$element(\s*,\s*$element)*""".toRegex()
 
 private val markerSyntax =
-    """\s*(?<directive>[a-z]+)(\s*:\s*(?<tags>${commaSeparated(tagSpec)}))?\s*(?:\[(?<replacement>[^]]+)]\s*)?""".toRegex()
+    """\s*(?<directive>[a-z]+)(\s*:\s*(?<tags>${commaSeparated(tagSpec)}))?\s*(?:\[(?<replacement>[^]]*)]\s*)?""".toRegex()
 
 private val markedLinePattern =
     """^(?<indent>\s*)///""".toRegex()
@@ -148,7 +148,7 @@ fun Iterable<String>.snipped(tagName: String?): List<String> {
                 }
             is Ellipsis ->
                 if (line.appliesToTag(tagName)) {
-                    result.add(line.replacementLine)
+                    if (line.ellipsis.isNotEmpty()) result.add(line.replacementLine)
                     if (line.mute) currentRegionIsSelected = false
                 }
             is Resume ->
