@@ -318,7 +318,6 @@ However, thanks to Kotlin type inference and our use of single-expression functi
 The code that _uses_ our syntactic sugar does not refer to the Map.Entry type at all.
 So, it's easy enough to change these by text editing.
 However, with a bit of refactoring-fu we can perform the transformation as a series of safe additions of temporary code and automated transformation steps without ever introducing a compilation error.
-I call this the _add-code-and-inline_ refactoring combination.
 
 First, we Alt-Enter on the "Entry" in `Map.Entry`, and select "add import for 'kotlin.collections.Map.Entry'".
 Now all references in the file to the Map.Entry type are via the unqualified name "Entry".
@@ -460,7 +459,7 @@ We must add the infix modifier to the prop function by hand.
 IntelliJ will then be able to refactor between infix and dotted method call syntax for a single call site, but doesn't automate the refactoring in bulk for _all_ uses of an infix function across the codebase.
 Going through every call site and refactoring them one by one sounds too tedious!
 
-Let's roll back and take another run at it: we'll try using the [class="combination"]_Add Code, Delegate and Inline_ combination we used to swap out the Map.Entry type for Pair.
+Let's roll back and take another run at it: we'll try using a similar combo of adding code, delegating and inlining that we used to swap out the Map.Entry type for Pair.
 We'll add new, infix functions called "of" and make the "prop" functions delegate to them.
 
 While we're adding new functions, let's also take the opportunity to start moving the implementation of our DSL out of the Json object.

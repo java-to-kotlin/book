@@ -24,22 +24,20 @@ Thanks to the design of the Kotlin language, the way it is mapped to the JVM pla
 Our experience has been that we can refactor Java to Kotlin without impacting productivity, and that as more of the codebase is converted to Kotlin, productivity accelerates.
 
 
-=== Refactoring Combinations
+=== We Minimise Text Edits
 
-In boxing, a "Combination" is a sequence of movements and strikes performed in quick succession, each building on the last and setting up those that follow.
-We've borrowed the term to describe sequences of refactoring steps.
 When the IDE does not have distinct user-interface actions for a large-scale transformation we wish to do, we have to perform it as a sequence of more granular refactorings.
 We use the IDE's automatic refactoring whenever we can, and fall back on text editing when the IDE does not automate a transformation we need.
 
 It's tedious and error prone to refactor by editing text.
 To reduce the risk, and our boredom, we minimise the amount of text editing we have to do.
 If we _must_ edit text, we prefer that edit to affect a single expression.
-So, we use automatic refactorings to transform the code so that is possible, edit the expression, and then use automatic refactorings to tidy back up to the final state we're aiming for.
-This is itself a type of refactoring combination.
-In the following chapters, we'll refer to it by the name [role="combination"]_Transform to Single-Expression Edit_.
+So, we use automatic refactorings to transform the code so that is possible, edit one expression, and then use automatic refactorings to tidy back up to the final state we're aiming for.
 
-The first time we describe a refactoring combination we'll go through it step by step and show how the code changes at each step, which takes quite a lot of space on the page, and will take a bit of reading time to follow.
-In practice, however, these combinations are pretty fast to perform -- typically a few seconds, a few minutes at most.
+The first time we describe a large-scale refactoring we'll go through it step by step, and show how the code changes at each step.
+This takes quite a lot of space on the page, and will take a bit of reading time to follow.
+In practice, however, these large refactorings are quick to apply.
+They typically take a few seconds, a few minutes at most.
 
 
 === We Assume Good Test Coverage
@@ -53,7 +51,7 @@ We do not cover how to write automated tests.
 Other authors have addressed these topics in more detail than we could in the book.  For example: [Freeman and Pryce], [Beck].
 However, we do show how to apply Kotlin features to simplify JUnit tests.
 
-As we walk through the refactoring combinations, do we always state when we run the tests.
+As we walk through multi-step code transformations, we do not always state when we run the tests.
 Assume we run our tests after every change, no matter how small.
 
 If your system does not already have good test coverage it can be difficult (and expensive) to retrofit tests to the code because the logic you want to test is entangled with other aspects of the system.
@@ -62,13 +60,18 @@ We do not cover how to retrofit tests to existing code.
 Again, other authors have addressed these topics in more detail than we could.  For example: [Feathers].
 
 
-[TIP]
-.Commit for Git Bisect
-====
-Imagine that you do, by accident, break something that is not caught by your test suite.
-You'll want to find the commit that introduced the fault and fix it as quick as you can.
-Git Bisect is a tool that finds the faulty commit: you write a test that demonstrates the error and Git Bisect does a binary search of the history to find the first commit that makes that test fail.
-If the commits in your history are a mish-mash of loosely related changes, Git Bisect cannot help as well: it can't tell you which of the changes within a commit introduced the error.
-If commits mix refactoring _and_ changes to behaviour, reverting a bad refactoring step can break _other_ behaviour in the system.
-Small, focused commits that separate refactorings from each other, and from changes to behaviour, make it easy to understand what changed and fix any erroneous change.
-====
+=== We Commit With Git Bisect In Mind
+
+Just as we don't explicitly state when we run our tests, nor do we explicitly state when we commit our changes.
+Assume we commit our changes whenever they have added value to the code, no matter how small.
+
+We know our test suite isn't perfect.
+If we do, by accident, break something that is not caught by our tests, we want to find the commit that introduced the fault and fix it as quick as we can.
+
+The `git bisect` command automates that search.
+We write a test that demonstrates the error and `git bisect` does a binary search of the history to find the first commit that makes that test fail.
+
+If the commits in our history contain a mish-mash of unrelated changes, `git bisect` is not much help: it cannot tell which of the changes within a commit introduced the error.
+If commits mix refactoring _and_ changes to behaviour, reverting a bad refactoring step is likely to break _other_ behaviour in the system.
+
+Therefore we commit small, focused changes that separate refactorings from each other, and from changes to behaviour, to make it easy to understand what changed and fix any erroneous change.

@@ -110,7 +110,7 @@ Even if we only called `Money.add` from Java code, we've still got a problem:
 IntelliJ will convert that code to Kotlin that calls 'Money.plus' as a method instead of using `+` operator.
 IntelliJ can automatically refactor each of those call sites from a method call to an operator, but we would have to go through them one by one, refactoring each one individually.
 
-To address these problems, we'll need to use a _refactoring combo_ to switch all our Kotlin code over to use the `+` operator, and leave a hook in our code to let us easily do that in bulk as we convert more Java classes to Kotlin.
+To address these problems, we'll use a sequence of refactoring steps to switch all our Kotlin code over to use the `+` operator, and leave a hook in our code to let us easily do that in bulk as we convert more Java classes to Kotlin.
 
 Let's revert our change again, and take yet another run at the conversion.
 
@@ -273,7 +273,7 @@ Java code that creates Money values changes from reading as `Money.of(100, EUR)`
 The `of` methods had _two_ responsibilities: to enforce the class invariants when constructing money values, and to provide syntactic sugar in the caller that conforms to Modern Java conventions for denoting values.
 Renaming from `of` to `invoke` doesn't affect the former, but messes up the latter.
 
-Luckily we can use the same "extract-and-inline" combo to avoid any negative effects on our Java code while we refactor to Kotlin conventions.
+We can use the same combo of extract method, refactor the call to the extracted method, and inline method to avoid any negative effects on our Java code as we refactor our Kotlin code to follow Kotlin conventions.
 
 First, extract the body of the `of` method as a method called `invoke`.
 
@@ -283,13 +283,12 @@ Refactor the call to `invoke` to function call syntax.
 
 Inline the `of` method to make any Kotlin callers use function call syntax.
 
-And repeat for the convenience overloads of the `of` method.
+Repeat for the convenience overloads of the `of` method.
 
 
 [WARNING]
+.Avoid Operator Punning
 ====
-.Avoid operator punning.
-
 E.g. using "/" to append URIs because the division operator looks like a path separator.
 
 Remember Kotlin's grain: prefer explicitness.
