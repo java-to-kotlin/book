@@ -285,74 +285,44 @@ class Money private constructor(
 ----
 // end-insert
 
-Then make `invoke` a public operator method.
+Then make `invoke` a public operator method:
 
-// begin-insert: tags/value_types.20:src/main/java/travelator/money/Money.kt#money
+// begin-insert: tags/value_types.20:src/main/java/travelator/money/Money.kt#delegation
 [source,kotlin]
 ----
-class Money private constructor(
-    val amount: BigDecimal,
-    val currency: Currency
-) {
-    ...
+@JvmStatic
+fun of(amount: BigDecimal, currency: Currency) =
+    invoke(amount, currency)
 
-    companion object {
-        @JvmStatic
-        fun of(amount: BigDecimal, currency: Currency) =
-            invoke(amount, currency)
-        operator fun invoke(amount: BigDecimal, currency: Currency) =
-            Money(
-                amount.setScale(
-                    currency.defaultFractionDigits,
-                    RoundingMode.UNNECESSARY
-                ),
-                currency
-            )
-
-        // ... and convenience overloads
-    }
-}
+operator fun invoke(amount: BigDecimal, currency: Currency) =
+    Money(
+        amount.setScale(
+            currency.defaultFractionDigits,
+            RoundingMode.UNNECESSARY
+        ),
+        currency
+    )
 ----
 // end-insert:
 
-This looks as if the `invoke` method would overflow the call stack.
-However, inside the `invoke` method, the call to `Money(...)` is not a recursive call to `invoke` but actually calls the private `Money` constructor.
-Outside the class, a call to `Money(...)` calls the `invoke` operator of the companion object, because the private constructor is not visible.
+This allows us to call the Money companion object as a function, so how come the call to `Money(...)` in the body of the `invoke` method does not overflow the call stack?
+Inside the `invoke` method, the call to `Money(...)` is not a recursive call to `invoke` but actually calls the private `Money` constructor.
+Outside the class, a call to `Money(...)` calls the companion object's `invoke` method, because the private constructor is not visible.
 We have the best of both worlds: conventional syntax for instantiating the class, and an encapsulation boundary that guarantees the class invariants when required.
 
-To make existing Kotlin code use  that conventional syntax, we need to first  make the `of` method use function call syntax to call the `invoke` method.
+To make existing Kotlin code use  that conventional syntax, we need to first  make the companion object's `of` method call itself as a function:
 
-// begin-insert: tags/value_types.21:src/main/java/travelator/money/Money.kt#money
+// begin-insert: tags/value_types.21:src/main/java/travelator/money/Money.kt#call_this
 [source,kotlin]
 ----
-class Money private constructor(
-    val amount: BigDecimal,
-    val currency: Currency
-) {
-    ...
-
-    companion object {
-        @JvmStatic
-        fun of(amount: BigDecimal, currency: Currency) =
-            this(amount, currency)
-
-        operator fun invoke(amount: BigDecimal, currency: Currency) =
-            Money(
-                amount.setScale(
-                    currency.defaultFractionDigits,
-                    RoundingMode.UNNECESSARY
-                ),
-                currency
-            )
-
-        // ... and convenience overloads
-    }
-}
+@JvmStatic
+fun of(amount: BigDecimal, currency: Currency) =
+    this(amount, currency)
 ----
 // end-insert:
 
-Then, we inline the `of` method into the Kotlin code.
-Again, Java code will not be affected, and when no Java code is calling the `of` method, the IDE's inline method refactoring will remove it for us.
+Then, we inline the `of` method into our Kotlin code.
+Again, Java code will not be affected, and when there is no Java code calling the `of` method, the IDE will remove it for us.
 
 Before the inline refactoring, Kotlin code that creates Money values looks like this:
 
