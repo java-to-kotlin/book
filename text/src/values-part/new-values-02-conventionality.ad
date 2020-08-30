@@ -8,8 +8,8 @@ it uses methods of a companion object to create values,
 and it uses methods, rather than operators, for arithmetic.
 
 In a monolingual codebase, it'd be pretty straightforward to address those issues.
-But when adopting Kotlin in a project that has a significant amount of Java, it's unlikely that we will translate all the Java in one big bang -- it involves too much up-front cost and risk.
-So, we'll continue to make changes to the Java and to the Kotlin, until Kotlin has edged Java out altogether.
+However, when adopting Kotlin in a project that has a significant amount of Java, it's unlikely that we will translate all the Java in one big bang -- it involves too much up-front cost and risk.
+We'll continue to make changes to the Java and to the Kotlin, until Kotlin has edged Java out altogether.
 In the meantime, when both Kotlin _and_ Java use a Kotlin class, we'll ensure that the call sites in either language are conventional enough to not surprise the horses.
 
 
@@ -96,9 +96,9 @@ operator fun plus(that: Money): Money {
 
 Whether this is desirable is a matter of opinion.
 It can be quite confusing to have the same method appear under different names in different parts of the same codebase,
-but on the other hand, because it's an operator method, our Kotlin code should only use the name "plus" in the definition of the method, and all uses of the method be via the `+` operator.
+but on the other hand, because it's an operator method, the name "plus" should only appear in the definition of the method, and all uses of the method be via the `+` operator. The phrase `operator fun plus` is more like a language keyword than a method name.
 On balance, your authors think it's worth using the @JvmName annotation in this case,
-but it's something you will need to agree within your team.
+but in general you will need to come to an agreement within your team about how you use the `@JvmName` annotation to adjust Kotlin classes to Java clients.
 
 
 === Calling Our Operator from Existing Kotlin Code
