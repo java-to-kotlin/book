@@ -2,8 +2,7 @@
 === Why _Refactor_ to Kotlin?
 
 Being responsible for business-critical systems means that we were never able to focus _only_ on converting our Java codebase to Kotlin.
-We always had to migrate code to Kotlin at the same time as changing the system to meet new business needs,
-maintaining a mixed Java/Kotlin codebase as we did so.
+We always had to migrate code to Kotlin at the same time as changing the system to meet new business needs, maintaining a mixed Java/Kotlin codebase as we did so.
 We managed the risk by working in small changes, making each easy to understand, and cheap to discard if we found out it broke something.
 Our process was to first convert Java code to Kotlin, giving us a Java-esque design in Kotlin syntax.
 We then incrementally applied Kotlin language features to make the code increasingly easier to understand, more type safe, more concise, and with a more compositional structure that is easier to change without unpleasant surprises.
@@ -23,7 +22,6 @@ Thanks to the design of the Kotlin language, the way it is mapped to the JVM pla
 
 Our experience has been that we can refactor Java to Kotlin without impacting productivity, and that as more of the codebase is converted to Kotlin, productivity accelerates.
 
-
 === We Minimise Text Edits
 
 When the IDE does not have distinct user-interface actions for a large-scale transformation we wish to do, we have to perform it as a sequence of more granular refactorings.
@@ -39,16 +37,16 @@ This takes quite a lot of space on the page, and will take a bit of reading time
 In practice, however, these large refactorings are quick to apply.
 They typically take a few seconds, a few minutes at most.
 
-
 === We Assume Good Test Coverage
 
-[quote, Martin Fowler, Refactoring (1999)]
+[quote,Martin Fowler,Refactoring (1999)]
 If you want to refactor, the essential precondition is having solid tests.
 
 Good test coverage ensures that the code transformations we want to merely improve design have not inadvertently changed our system's behaviour.
-In  this book, we assume that you have good test coverage.
+In this book, we assume that you have good test coverage.
 We do not cover how to write automated tests.
-Other authors have addressed these topics in more detail than we could in the book.  For example: [Freeman and Pryce], [Beck].
+Other authors have addressed these topics in more detail than we could in the book.
+For example: [Freeman and Pryce], [Beck].
 However, we do show how to apply Kotlin features to simplify JUnit tests.
 
 As we walk through multi-step code transformations, we do not always state when we run the tests.
@@ -57,8 +55,8 @@ Assume we run our tests after every change, no matter how small.
 If your system does not already have good test coverage it can be difficult (and expensive) to retrofit tests to the code because the logic you want to test is entangled with other aspects of the system.
 You're in a chicken and egg situation: you have refactor so that you can improve test coverage so that you can refactor.
 We do not cover how to retrofit tests to existing code.
-Again, other authors have addressed these topics in more detail than we could.  For example: [Feathers].
-
+Again, other authors have addressed these topics in more detail than we could.
+For example: [Feathers].
 
 === We Commit With Git Bisect In Mind
 
@@ -69,9 +67,10 @@ We know our test suite isn't perfect.
 If we do, by accident, break something that is not caught by our tests, we want to find the commit that introduced the fault and fix it as quick as we can.
 
 The `git bisect` command automates that search.
-We write a test that demonstrates the error and `git bisect` does a binary search of the history to find the first commit that makes that test fail.
+We write a new test that demonstrates the error and `git bisect` does a binary search of the history to find the first commit that makes that test fail.
 
-If the commits in our history contain a mish-mash of unrelated changes, `git bisect` is not much help: it cannot tell which of the changes within a commit introduced the error.
+If the commits in our history are large, and contain a mish-mash of unrelated changes, `git bisect` won't help as much as it could.
+It cannot tell which of the source changes within a commit introduced the error.
 If commits mix refactoring _and_ changes to behaviour, reverting a bad refactoring step is likely to break _other_ behaviour in the system.
 
-Therefore we commit small, focused changes that separate refactorings from each other, and from changes to behaviour, to make it easy to understand what changed and fix any erroneous change.
+Therefore, we commit small, focused changes that separate refactorings from each other, and from changes to behaviour, to make it easy to understand what changed and fix any erroneous change.
