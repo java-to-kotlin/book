@@ -7,7 +7,8 @@ Kotlin makes it practical to define the core application domain model entirely a
 
 === A Value Class Grouping Related Data
 
-Our users want to know what their trip will cost.  We show costs in the local currencies of the countries they are travelling through, and convert those costs to the user's currency to give them an idea of the total cost of the entire trip.
+Our users want to know what their trip will cost.
+We show costs in the local currencies of the countries they are travelling through, and convert those costs to the user's currency to give them an idea of the total cost of the entire trip.
 
 Here is the Java value type in our application that represents the result of a currency conversion.
 
@@ -130,9 +131,6 @@ It's not quite so easy in Kotlin: a class definition is organised thus: class na
 Coming from Java, I definitely found it harder to read classes at first, and although I got used to it eventually, I still find it hard at times to neatly format classes that have a primary constructor, a superclass, several interfaces, and properties that are defined outside the primary constructor.
 I'll happily diverge from the standard Kotlin coding conventions to add more blank lines between the primary constructor and the rest of the class definition if it makes it easier to distinguish different elements of the class.
 
-The `val` keyword is short for 'value' and marks a property that you cannot change once set - the equivalent of Java's `final`.
-We could (but almost always wouldn't) have used `var` for `variable`, in which case the property could be modified and the class would no longer have true value semantics.
-
 So far converting our value type to Kotlin has saved us 12 lines of code, but we aren't done yet.
 Value types like this are so useful but so tedious to get right and keep right that Kotlin supports them at a language level.
 Mark the class with the `data` modifier and the compiler will generate `equals`, `hashCode` and `toString` methods automatically, if they are not defined by the class.
@@ -153,7 +151,7 @@ When we add properties in the future we won't have to remember to update the gen
 
 We have JUnit tests for the value semantics of our CurrencyConversion class.
 We could convert these tests to Kotlin, but as we now have no logic of our own in the CurrencyConversion class, we have no need for the tests and instead can delete the entire test class.
-We have reduced the entire Money class and its tests to a single, declarative line of Kotlin.
+We have reduced the entire Money class and its tests to a single Kotlin declaration.
 
 Now that we have so little code, smaller syntactic differences between Java and Kotlin stand out.
 For example, there are no visibility modifiers.
@@ -163,7 +161,8 @@ Our experience working with Kotlin is that public by default works well with a d
 It's another example of Kotlin's grain nudging the design in a different direction from Java:
 modelling with objects that encapsulate mutable state needs more work than modelling with immutable values.
 
-We also use the CurrencyConversion class elsewhere in our production code.  For example, the ExchangeRates type creates CurrencyConversion values to represent the result of a currency conversion calculation:
+We also use the CurrencyConversion class elsewhere in _Travelator_.
+For example, the ExchangeRates type returns CurrencyConversion values from a currency exchange calculation:
 
 // begin-insert: tags/value_types.3:src/main/java/travelator/money/ExchangeRates.java
 [source,java]
@@ -182,7 +181,7 @@ public interface ExchangeRates {
 ----
 // end-insert: tags/value_types.3:src/main/java/travelator/money/ExchangeRates.java
 
-And the CostSummary class stores a list of CurrencyConversions representing costs in the local and user's currencies, and calculates the total amount in the user's currency:
+And the CostSummary class stores a list of CurrencyConversions representing costs in local and the user's currencies, and calculates the total amount in the user's currency:
 
 // begin-insert: tags/value_types.3:src/main/java/travelator/itinerary/CostSummary.java#use_of_currency_conversion
 [source,java]
@@ -219,15 +218,15 @@ These do not appear in the converted Kotlin source, but our Java can still call 
 The Kotlin compiler is not only generating the `equals` and `hashCode` methods we knew about, but also  `getFromMoney` and `getToMoney` -- `fromMoney` and `toMoney` are not fields in Kotlin, they are properties.
 Where Java code calls the `line.getToMoney()` method, Kotlin code accesses the property `line.toMoney`.
 In actual fact Kotlin will call the `getToMoney()` method that it has generated (or one supplied by a Java class) rather than accessing a field directly - so nothing has really changed except that we can drop the `get` and `()`.
-We'll have more to say about properties later, but for now if you think of them as a private field with a public getter and, if a `var` property, a public setter, you won't often be wrong.
-
+We'll have more to say about properties later, but for now if you think of them as a private field with a public getter (and if a `var` property, a public setter), you won't often be wrong.
 
 === A Value Class Implementing Domain Logic
 
 A CurrencyConversion is a very simple value.
 It holds two related data items that we want keep together and show to the user, but it has no operations of its own.
 Where our application uses CurrencyConversions, it performs calculations with its properties individually rather than treating the CurrencyConversion value as an atomic whole.
-This is not the normal case.  We usually define value types in order to abstract the representation of a concept in our application domain and define the operations on that abstraction.
+This is not the normal case.
+We usually define value types in order to abstract the representation of a concept in our application domain and define operations on that abstraction.
 An example of a value type with operations of its own is our `Money` class:
 
 // begin-insert: tags/value_types.4:src/main/java/travelator/money/Money.java#money
@@ -295,31 +294,39 @@ public class Money {
 Other classes obtain Money values by calling the static `Money.of` method, which guarantees that the scale of the amount is consistent with the number of minor units of the currency.
 Most currencies have 100 minor units (two digits), but some have fewer and some more: the Japanese Yen has no minor units, and the Jordanian Dinar has one thousand, for example.
 +
-The "of" method follows a coding convention of <<modern-java-style,Modern Java>> that draws a distinction in the source between objects with identity, which are constructed by the new operator, and values, which are obtained from static methods.  This convention is followed by the Java time API (for example `LocalDate.of(2020,8,17)`) and recent additions to the collections API (for example, `List.of(1,2,3)` creates an immutable list)
+The "of" method follows a coding convention of <<modern-java-style,Modern Java>> that draws a distinction in the source between objects with identity, which are constructed by the new operator, and values, which are obtained from static methods.
+This convention is followed by the Java time API (for example `LocalDate.of(2020,8,17)`) and recent additions to the collections API (for example, `List.of(1,2,3)` creates an immutable list)
 +
 The Money class provides some convenient overloads of the `of` method for String or int amounts.
 <2> It exposes the amount and currency properties using Java Bean conventions, even though, like CurrencyConversion, it is not actually a Java Bean.
 <3> The equals and hashCode methods implement value semantics.
-<4> The toString method returns a representation of its properties.  Unlike the CurrencyConversion class, Money returns a representation that is shown to the user, not just for debugging.
-<5> Money provides operations for calculating with money values.  For example, you can add monetary values together.  The add method constructs new Money values by calling the constructor directly, because the result of BigDecimal.add has the correct scale already and so we can avoid the overhead of setting the scale.
+<4> The toString method returns a representation of its properties.
+Unlike the CurrencyConversion class, Money returns a representation that is shown to the user, not just for debugging.
+<5> Money provides operations for calculating with money values.
+For example, you can add monetary values together.
+The add method constructs new Money values by calling the constructor directly, because the result of BigDecimal.add has the correct scale already and so we can avoid the overhead of setting the scale.
 
 [NOTE]
 ====
 .BigDecimal.setScale does not set the scale!
 
 The method `BigDecimal.setScale` is confusing.
-Although named like a Java Bean setter, it does not actually mutate the BigDecimal object.  Like our Money class, BigDecimal is an immutable value type, so `setScale` returns a BigDecimal value with the specified scale.
+Although named like a Java Bean setter, it does not actually mutate the BigDecimal object.
+Like our Money class, BigDecimal is an immutable value type, so `setScale` returns a BigDecimal value with the specified scale.
 
-Sun added the BigDecimal class to the standard library in Java 1.1.  This release also included the first version of the Java Beans API. The hype around the Beans API popularised the Java Beans coding conventions, and they were widely adopted, even for classes that, like BigDecimal, were not Java Beans (see <<bean-java-style>>). There were no Java conventions for value types.
+Sun added the BigDecimal class to the standard library in Java 1.1. This release also included the first version of the Java Beans API. The hype around the Beans API popularised the Java Beans coding conventions, and they were widely adopted, even for classes that, like BigDecimal, were not Java Beans (see <<bean-java-style>>).
+There were no Java conventions for value types.
 
-Today, we avoid the "set" prefix for methods that do not mutate their receiver and instead use names that emphasise when the method returns a transformation of the receiver.  One convention is to use the prefix "with" for transformations that affect a single property, which would make the code in our Money class read as:
+Today, we avoid the "set" prefix for methods that do not mutate their receiver and instead use names that emphasise when the method returns a transformation of the receiver.
+One convention is to use the prefix "with" for transformations that affect a single property, which would make the code in our Money class read as:
 
 [source,kotlin]
 ----
  amount.withScale(currency.getDefaultFractionDigits())
 ----
 
-In Kotlin we can write extension methods to fix such historical accidents.  If we were writing a lot of code that calculated with BigDecimals, it might be worth doing so to improve the clarity of the code:
+In Kotlin we can write extension methods to fix such historical accidents.
+If we were writing a lot of code that calculated with BigDecimals, it might be worth doing so to improve the clarity of the code:
 
 [source,kotlin]
 ----
@@ -382,30 +389,42 @@ private constructor(
 The Kotlin class still has a primary constructor, but that constructor is now marked private.
 The syntax for this is a little clunky.
 
-The static "of" functions are now methods on a companion object. IntelliJ noticed that they are called from our Java code, and annotated them as `@JvmStatic` to ensure they are compiled to static methods and the call sites in the Java code are unaffected.
+The static "of" functions are now methods on a companion object.
+IntelliJ noticed that they are called from our Java code, and annotated them as `@JvmStatic` to ensure they are compiled to static methods and the call sites in the Java code are unaffected.
 
 ****
-TODO: sidebar to explain @Jvm... annotations. Coordinate with what Duncan is writing.
+TODO: sidebar to explain @Jvm... annotations.
+Coordinate with what Duncan is writing.
 ****
 
 Can we also reduce the size of the class even further by making it a data class?
 
-When we change `class` to `data class`, IntelliJ highlights the `private` keyword of the primary constructor with a warning: "Private data class constructor is exposed via the generated 'copy' method."
+When we change `class` to `data class`, IntelliJ highlights the `private` keyword of the primary constructor with a warning:
+
+----
+Private data class constructor is exposed via the generated 'copy' method."
+----
 
 What's that all about?
 
 Kotlin generates a public `copy` method for data classes that creates a copy of an instance, replacing some of the field values.
 
-The constructor of the Money class is private because the class maintains an invariant between its properties, ensuring that the scale of the amount field is equal to the default number of minor currency digits of the currency field.  The `Money.of(BigDecimal,Currency)` method ensures the invariant for new Money values. The `add` method maintains the invariant because adding two BigDecimal values with the same scale produces a BigDecimal that also has the same scale. The add method therefore can call the constructor directly because doesn't need to recalculate the scale.  The constructor need only assign fields, safe in the knowledge that it is only called with parameters that meet the class invariant. and it is private to prevent code outside the Money class from creating values that violate the invariant.
+The constructor of the Money class is private because the class maintains an invariant between its properties, ensuring that the scale of the amount field is equal to the default number of minor currency digits of the currency field.
+The `Money.of(BigDecimal,Currency)` method ensures the invariant for new Money values.
+The `add` method maintains the invariant because adding two BigDecimal values with the same scale produces a BigDecimal that also has the same scale.
+The add method therefore can call the constructor directly because doesn't need to recalculate the scale.
+The constructor need only assign fields, safe in the knowledge that it is only called with parameters that meet the class invariant. and it is private to prevent code outside the Money class from creating values that violate the invariant.
 
-However, the public `copy` method of a data class _would_ allow client code to create Money values that violate the invariant.  Our Money class cannot be a data class.
+However, the public `copy` method of a data class _would_ allow client code to create Money values that violate the invariant.
+Our Money class cannot be a data class.
 
 [TIP]
 ====
 Don't define a value type as a data class if it must maintain invariants between its properties.
 ====
 
-We can still make the code more concise by applying other Kotlin features. We can define all the methods in single-expression form, and lean on Kotlin's flow-sensitive type inference to greatly simplify the `equals` method:
+We can still make the code more concise by applying other Kotlin features.
+We can define all the methods in single-expression form, and lean on Kotlin's flow-sensitive type inference to greatly simplify the `equals` method:
 
 // begin-insert: tags/value_types.7:src/main/java/travelator/money/Money.kt#money
 [source,kotlin]
@@ -451,18 +470,19 @@ class Money private constructor(
 // end-insert
 
 ifdef::todos[]
-TODO: Convert tests to Kotlin (??? is it worth showing? They don't look that different.)
+TODO: Convert tests to Kotlin (??? is it worth showing?
+They don't look that different.)
 endif::[]
 
 === Conclusions
 
 Because they require no boilerplate, it is much easier to define new value types in Kotlin than in Java.
 Your authors find they introduce new value classes far more frequently in Kotlin than in Java --
-to declare application-specific "micro-types" that wrap primitive values,
-to hold intermediate results of a calculation pipeline,
-or to pivot data into temporary structures that make it easier to write application logic.
+to declare application-specific "micro-types" that wrap primitive values, to hold intermediate results of a calculation pipeline, or to pivot data into temporary structures that make it easier to write application logic.
 
 Data classes greatly reduce the amount of boilerplate we need to implement value semantics.
 However, the limitations of data classes mean they are only applicable to values that do not maintain invariants between their properties.
 
-Kotlin's nudges towards immutability go much further than the ease with which we can define value types.  The standard library also makes it easy to program by transforming values in bulk.  We'll look at that in <<collections-and-transformation-pipelines>>, but first, let's see what we can do to make our Money class feel more natural in Kotlin code.
+Kotlin's nudges towards immutability go much further than the ease with which we can define value types.
+The standard library also makes it easy to program by transforming values in bulk.
+We'll look at that in <<collections-and-transformation-pipelines>>, but first, let's see what we can do to make our Money class feel more natural in Kotlin code.
