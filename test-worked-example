@@ -6,7 +6,7 @@ echo "testing with Kotlin $kotlin_version"
 
 "$(dirname "$0")"/retag-worked-example
 
-known_failures_dir=$(realpath buildSrc/known-failures)
+known_failures_dir=$(realpath buildSrc/known-failures/$kotlin_version)
 working_dir=$(realpath build/testing-history)
 cached_dir=$(realpath build/testing-history-cached)
 
@@ -56,14 +56,14 @@ for tag in $(git tag -l '*.[0-9]*' | sort -V); do
         tail -r > "$tag.log.tmp"
       mv "$tag.log.tmp" "$tag.log"
 
-      if diff "$tag.log" "$known_failures_dir/$tag.log"
+      if diff --side-by-side "$tag.log" "$known_failures_dir/$tag.log"
       then
         echo "Known failure"
         rm "$tag.log"
         touch "$cached"
       else
         echo "To record as a known failure:"
-        echo "    cp $(realpath "$tag.log") $known_failures_dir"
+        echo "    cp $(realpath "$tag.log") $known_failures_dir/"
         result=1
       fi
     fi
