@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
+kotlin_version=${1:-$(head -n 1 "$(dirname "$0")"/.kotlin-version)}
+echo "testing with Kotlin $kotlin_version"
+
 "$(dirname "$0")"/retag-worked-example
 
 known_failures_dir=$(realpath buildSrc/known-failures)
@@ -22,7 +25,7 @@ result=0
 for tag in $(git tag -l '*.[0-9]*' | sort -V); do
   msg=$(git show --no-patch --format="%s" "$tag")
   sha=$(git show-ref -s "$tag")
-  cached="$cached_dir/$sha"
+  cached="$cached_dir/$sha-$kotlin_version"
 
   printf "testing %s ... " "$msg"
 
@@ -32,7 +35,7 @@ for tag in $(git tag -l '*.[0-9]*' | sort -V); do
   else
     git checkout --detach "$tag" > /dev/null 2>&1
 
-    if ./gradlew clean test --no-parallel>"$tag.log" 2>&1
+    if ./gradlew -PKOTLIN_VERSION="$kotlin_version" clean test --no-parallel>"$tag.log" 2>&1
     then
       if [ -e "$known_failures_dir/$tag.log" ]
       then
