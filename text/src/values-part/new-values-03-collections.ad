@@ -62,6 +62,64 @@ Unfortunately the type system does not prevent us calling mutator methods on Ite
 Hopefully.
 
 
+The best we can do in Java is:
+
+// begin-insert: tags/collections.1:src/main/java/travelator/itinerary/Route.java#imperative_algorithm
+[source,java]
+----
+public List<Interchange> requiredStays() {
+    var results = new ArrayList<Interchange>();
+
+    for (int i = 1; i < journeys.size(); i++) {
+        var transfer =
+            Interchange.between(journeys.get(i - 1), journeys.get(i));
+
+        if (transfer.isStayRequired()) {
+            results.add(transfer);
+        }
+    }
+
+    return results;
+}
+----
+// end-insert
+
+Let's convert the class to Kotlin, and see how we can write the `requiredStays` logic then.
+
+// begin-insert: tags/collections.2:src/main/java/travelator/itinerary/Route.kt#route
+[source,kotlin]
+----
+class Route(journeys: List<Journey>) : Iterable<Journey> {
+    private val journeys: MutableList<Journey> // <1>
+    init {
+        this.journeys = java.util.List.copyOf(journeys) // <2>
+    }
+
+    override fun iterator(): MutableIterator<Journey> = // <3>
+        journeys.iterator()
+
+    val start: Location get() =
+        journeys[0].departsFrom
+
+    val destination: Location get() =
+        journeys[journeys.size - 1].arrivesAt
+
+    val duration: Duration get() =
+        Duration.between(
+            journeys[0].departureTime,
+            journeys[journeys.size - 1].arrivalTime)
+
+    fun cost(userCurrency: Currency, fx: ExchangeRates): CostSummary =
+        CostSummary.calculate(journeys, userCurrency, fx)
+
+    ...
+}
+----
+// end-insert
+
+
+
+
 TODO below here...
 
 ** Collections are immutable by default: getting rid of defensive copying
