@@ -1,7 +1,70 @@
 [[collections-and-transformation-pipelines]]
+
 == Collections and Transformation Pipelines
 
-* A type that contains a collection (Route)
+One of the core services of our Travelator application is route planning.
+A Route is a sequence of Journeys that can take the traveller from one location to another via a sequence Journeys. Each Journey in a route is a service provided by an Operator, via some mode of transport -- sea, train, bus, car, camel, etc. -- departing from one location at a specific time and arriving at another location some time later.
+The routing service suggests several possible routes, and our travellers can compare them by cost, duration, and so on, to choose the route they prefer.
+
+The journeys along a route do not necessarily all have convenient interchanges between them.
+Some services run once a day, or once a week, meaning that travellers have to book somewhere to stay between the end of one journey and the start of the next.
+The next feature we want to add to Travelator is to suggest places to stay along a route, and handle the booking of their preferred choices.
+
+The first step is to find every interchange between two journeys where an overnight stay is necessary.
+This gives us a good reason to convert our Route class to Kotlin.
+As we'll see, the only way to write this logic in Java is with verbose, imperative code,
+but Kotlin's standard library contains the functions we need to write this as a terse, declarative pipeline of transformations.
+
+But first, let's take a look at our Java Route class:
+
+// begin-insert: tags/collections.1:src/main/java/travelator/itinerary/Route.java#route
+[source,java]
+----
+public class Route implements Iterable<Journey> {
+    private final List<Journey> journeys;
+
+    public Route(List<Journey> journeys) {
+        this.journeys = List.copyOf(journeys); // <1>
+    }
+
+    @Override
+    public Iterator<Journey> iterator() { // <2>
+        return journeys.iterator();
+    }
+
+    public Location getStart() {
+        return journeys.get(0).getDepartsFrom();
+    }
+
+    public Location getDestination() {
+        return journeys.get(journeys.size() - 1).getArrivesAt();
+    }
+
+    public Duration getDuration() {
+        return Duration.between(
+            journeys.get(0).getDepartureTime(),
+            journeys.get(journeys.size() - 1).getArrivalTime());
+    }
+
+    public CostSummary cost(Currency userCurrency, ExchangeRates fx) {
+        return CostSummary.calculate(journeys, userCurrency, fx); // <3>
+    }
+
+    ...
+}
+----
+// end-insert
+
+A Route encapsulates a List of Journeys.
+Because Lists are mutable -- or, at least, the type system offers no guarantee that the List is _not_ mutable -- the constructor <1> takes a defensive copy of the list to avoid https://martinfowler.com/bliki/AliasingBug.html[_aliasing errors_].
+The `List.copyOf` method returns an immutable List, meaning that there is no need to make a defensive copy or wrap the list with a `Collections.unmodifiableList` when returning an Iterator over the list, or when passing the list as a parameter to another class.
+Although calls to mutator methods on Iterator or List will not be prevented by the type checker, they will throw `UnsupportedOperationException` so coding errors will most likely be caught pretty quickly by our tests.
+Hopefully.
+
+
+
+TODO below here...
+
 ** Collections are immutable by default: getting rid of defensive copying
 ** But first must make immutable
 * push immutability outwards towards entry points
@@ -9,6 +72,7 @@
 
 
 * Abstracting common transformations into extension methods
+** E.g. List<Journey>.interchanges()
 ** Factor out the middle of pipelines (useful transformations), rather than the downstream ends (tell-don't-ask).
 ** call forward to extension methods part
 
