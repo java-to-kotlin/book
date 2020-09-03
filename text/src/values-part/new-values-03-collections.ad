@@ -64,9 +64,8 @@ public class Route implements Iterable<Journey> {
 Because Lists are mutable -- or, at least, the type system offers no guarantee that the List is _not_ mutable -- the constructor takes a defensive copy of the list to avoid https://martinfowler.com/bliki/AliasingBug.html[_aliasing errors_].
 <2> Because `List.copyOf` method returns an immutable List, there is no need to make a defensive copy or wrap the list with a `Collections.unmodifiableList` when returning an Iterator over the list, or when passing the list as a parameter to another class.
 Unfortunately the type system does not prevent us calling mutator methods on Iterator or List, but doing so will throw `UnsupportedOperationException`, so coding errors will be caught pretty quickly by our tests.
-Hopefully.
 
-If we were to add a method to return the required stays, it would look like this:
+If we were to add a method to this class that returned the required stays, it would look like this:
 
 // begin-insert: tags/collections.1:src/main/java/travelator/itinerary/Route.java#imperative_algorithm
 [source,java]
@@ -226,9 +225,9 @@ But now, let's add the `requiredStays` method to our Kotlin class.
 Recall the logic we want to add: find every interchange in a Route where the traveller will need to stay one or more nights.  An interchange is created between two journeys, like this: `Interchange.between(journey1, journey2)`.  We can calculate all the interchanges in a route by sliding a two-element window along the list of journeys and call `Interchange.between` for each pair it encounters.  Then we filter the Interchanges to select those that require one or more overnight stays.
 
 In Java we would have had to implement this logic imperatively, with for loop and mutable list, because the collections and streams APIs do not have a method that implements a sliding window across the elements of a list.
-The imperative implementation inextricably intertwines the two aspects of the calculation: calculating the Interchanges of a list of Journeys, and selecting the Interchanges that require a stay.
+The imperative implementation inextricably intertwines the different aspects of the calculation: sliding a two-element window along the list, using the sliding window to create Interchanges from the list of Journeys, and selecting the Interchanges that require a stay.
 
-The Kotlin standard library contains higher order functions that do exactly what we want:
+In Kotlin, the standard library contains higher order functions that do exactly what we want:
 
 // begin-insert: tags/collections.6:src/main/java/travelator/itinerary/Route.kt#declarative_algorithm
 [source,kotlin]
