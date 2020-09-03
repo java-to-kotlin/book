@@ -6,16 +6,17 @@ One of the core services of our Travelator application is route planning.
 A Route is a sequence of Journeys that can take the traveller from one location to another via a sequence Journeys. Each Journey in a route is a service provided by an Operator, via some mode of transport -- sea, train, bus, car, camel, etc. -- departing from one location at a specific time and arriving at another location some time later.
 The routing service suggests several possible routes, and our travellers can compare them by cost, duration, and so on, to choose the route they prefer.
 
-The journeys along a route do not necessarily all have convenient interchanges between them.
-Some services run once a day, or once a week, meaning that travellers have to book somewhere to stay between the end of one journey and the start of the next.
-The next feature we want to add to Travelator is to suggest places to stay along a route, and handle the booking of their preferred choices.
+The journeys along a route do not always have a convenient interchange between them.
+Some services run only once a day, or once a week, so our travellers want to know when they will have to book somewhere to stay between the end of one journey and the start of the next.
+This will let us improve the cost estimate for a route, because we can suggest places to stay and include the cost in the overall cost of the route.
+We can make the feature earn its keep by booking their preferred choices and earning a commission.
 
-The first step is to find every interchange between two journeys where an overnight stay is necessary.
+The first step is to find every interchange in a Route where the traveller will need to stay one or more nights.
 This gives us a good reason to convert our Route class to Kotlin.
-As we'll see, the only way to write this logic in Java is with verbose, imperative code,
-but Kotlin's standard library contains the functions we need to write this as a terse, declarative pipeline of transformations.
+Writing this logic in Java requires verbose, imperative code.
+With Kotlin's standard library, we can write this as a concise, declarative pipeline of transformations.
 
-But first, let's take a look at our Java Route class:
+Let's take a look at our Java Route class.
 
 // begin-insert: tags/collections.1:src/main/java/travelator/itinerary/Route.java#route
 [source,java]
@@ -57,12 +58,11 @@ public class Route implements Iterable<Journey> {
 
 <1> A Route encapsulates a List of Journeys.
 Because Lists are mutable -- or, at least, the type system offers no guarantee that the List is _not_ mutable -- the constructor takes a defensive copy of the list to avoid https://martinfowler.com/bliki/AliasingBug.html[_aliasing errors_].
-<2> The `List.copyOf` method returns an immutable List, meaning that there is no need to make a defensive copy or wrap the list with a `Collections.unmodifiableList` when returning an Iterator over the list, or when passing the list as a parameter to another class.
-Unfortunately the type system does not prevent us calling mutator methods on Iterator or List, but doing so will throw `UnsupportedOperationException`, so coding errors will most likely be caught pretty quickly by our tests.
+<2> Because `List.copyOf` method returns an immutable List, there is no need to make a defensive copy or wrap the list with a `Collections.unmodifiableList` when returning an Iterator over the list, or when passing the list as a parameter to another class.
+Unfortunately the type system does not prevent us calling mutator methods on Iterator or List, but doing so will throw `UnsupportedOperationException`, so coding errors will be caught pretty quickly by our tests.
 Hopefully.
 
-
-The best we can do in Java is:
+If we were to add a method to return the required stays, it would look like this:
 
 // begin-insert: tags/collections.1:src/main/java/travelator/itinerary/Route.java#imperative_algorithm
 [source,java]
@@ -71,11 +71,11 @@ public List<Interchange> requiredStays() {
     var results = new ArrayList<Interchange>();
 
     for (int i = 1; i < journeys.size(); i++) {
-        var transfer =
+        var interchange =
             Interchange.between(journeys.get(i - 1), journeys.get(i));
 
-        if (transfer.isStayRequired()) {
-            results.add(transfer);
+        if (interchange.isStayRequired()) {
+            results.add(interchange);
         }
     }
 
@@ -84,7 +84,9 @@ public List<Interchange> requiredStays() {
 ----
 // end-insert
 
-Let's convert the class to Kotlin, and see how we can write the `requiredStays` logic then.
+Let's translate the class to Kotlin, tidy it up, and then see how we can write the `requiredStays` logic in Kotlin.
+
+Here's the class after IntelliJ has worked its translation magic:
 
 // begin-insert: tags/collections.2:src/main/java/travelator/itinerary/Route.kt#route
 [source,kotlin]
@@ -117,13 +119,95 @@ class Route(journeys: List<Journey>) : Iterable<Journey> {
 ----
 // end-insert
 
+The construction of the Route class is pretty convoluted, and has broken the type safety of our Java class.
+
+The constructor's List parameter is a _Kotlin_ List, which is unmodifiable.
+Our Route class makes an defensive, immutable copy by calling `java.util.List.copyOf`, which returns a `java.util.List`.
+Unlike a Kotlin List, a `java.util.List` does have methods for mutating the list, so the translated code store sthe result as a `MutableList` and exposes the iterator of that list as a `MutableIterator`.
+Although this doesn't break encapsulation -- nothing can actually change the list of journeys -- it does break type safety -- calling a mutator method would throw `UnsupportedOperationException` at runtime.
+
+TODO: explain the Kotlin/Java interop magic for collections implemented in the compiler?
+
+Simplifying the code will also restore its type safety.
+
+The class could make an  defensive, unmodifiable copy of the List in a Kotlin-esque way by calling `journeys.toList()`.
+However, in our Travelator system, that list only comes from two places: from a JSON deserialiser that does not hold a reference to the list after creating the Route, and from test code that creates immutable lists.
+This means that making a defensive copy is unnecessary work.
+The can just store the immutable list.
+We can do that succinctly by declaring the constructor parameter as a `val` and deleting the rest of the initialisation code.
+
+// begin-insert: tags/collections.3:src/main/java/travelator/itinerary/Route.kt#constructor
+[source,kotlin]
+----
+class Route(private val journeys: List<Journey>) : Iterable<Journey> {
+    ...
+}
+----
+// end-insert
+
+The Route class implements the `Iterable` interface by delegating to the `journeys` list.
+We can get the compiler to generate that delegation for us.
+
+// begin-insert: tags/collections.4:src/main/java/travelator/itinerary/Route.kt#route
+[source,kotlin]
+----
+class Route(private val journeys: List<Journey>) : Iterable<Journey> by journeys {
+    ...
+}
+----
+// end-insert
+
+The `destination` and `duration` accessors get the last journey in the list by calculating its integer index.
+The Kotlin standard library defines a `List.last()` extension that we can use instead.
+To make the code symmetrical, we'll use `List.first()` to get the first journey.
+
+// begin-insert: tags/collections.5:src/main/java/travelator/itinerary/Route.kt#use_first_and_last
+[source,kotlin]
+----
+val start: Location get() =
+    journeys.first().departsFrom
+
+val destination: Location get() =
+    journeys.last().arrivesAt
+
+val duration: Duration get() =
+    Duration.between(
+        journeys.first().departureTime,
+        journeys.last().arrivalTime)
+----
+// end-insert
+
+That leaves the Route class as:
+
+// begin-insert: tags/collections.5:src/main/java/travelator/itinerary/Route.kt#route
+[source,kotlin]
+----
+class Route(private val journeys: List<Journey>) : Iterable<Journey> by journeys {
+    val start: Location get() =
+        journeys.first().departsFrom
+
+    val destination: Location get() =
+        journeys.last().arrivesAt
+
+    val duration: Duration get() =
+        Duration.between(
+            journeys.first().departureTime,
+            journeys.last().arrivalTime)
+
+    fun cost(userCurrency: Currency, fx: ExchangeRates): CostSummary =
+        CostSummary.calculate(journeys, userCurrency, fx)
+
+    ...
+}
+----
+// end-insert
+
 
 
 
 TODO below here...
 
-** Collections are immutable by default: getting rid of defensive copying
-** But first must make immutable
+
 * push immutability outwards towards entry points
 * or inwards and never let mutability escape local variables of a single function (this is an optimisation or when stdlib doesn't have the right HOF)
 
