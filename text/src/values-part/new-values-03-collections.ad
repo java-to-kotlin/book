@@ -2,6 +2,8 @@
 
 == Collections and Transformation Pipelines
 
+TODO: something about grain of Java and Kotlin being very different when it comes to collections...
+
 One of the core services of our Travelator application is route planning.
 A Route is a sequence of Journeys that can take the traveller from one location to another via a sequence Journeys. Each Journey in a route is a service provided by an Operator, via some mode of transport -- sea, train, bus, car, camel, etc. -- departing from one location at a specific time and arriving at another location some time later.
 The routing service suggests several possible routes, and our travellers can compare them by cost, duration, and so on, to choose the route they prefer.
@@ -15,6 +17,8 @@ The first step is to find every interchange in a Route where the traveller will 
 This gives us a good reason to convert our Route class to Kotlin.
 Writing this logic in Java requires verbose, imperative code.
 With Kotlin's standard library, we can write this as a concise, declarative pipeline of transformations.
+
+=== A Class That Contains a Collection
 
 Let's take a look at our Java Route class.
 
@@ -205,23 +209,73 @@ class Route(private val journeys: List<Journey>) : Iterable<Journey> by journeys
 After all that, what is the Route class actually doing?
 
 In Java, the Route class encapsulated a mutable list to ensure that it couldn't be mutated.
-In Kotlin, the standard List type cannot be mutated, so there is nothing to encapsulate.
-In fact, there is no compelling reason to make the `journeys` field private.
+In Kotlin, the List type cannot be mutated, so there is nothing to encapsulate.
+There is no compelling reason to make the `journeys` field private.
 
 The Route class also provides accessors -- properties and query methods -- that return useful information about the route.
 Those accessors are used by different features of the application, but were originally defined on the Route class because they needed access to the private list of Journeys.
-If the list of journeys is not private, they could be defined as extension methods
+Were the list of journeys public, the accessors could be defined as extension methods -- except they are still called from Java.
+The accessors have another responsibility: to provide a convenient API for use by our Java code.
+When that Java code has been translated to Kotlin, we can revisit this class and see what we can do with extension methods.
+
+But now, let's add the `requiredStays` method to our Kotlin class.
 
 
-TODO below here...
+=== Adding a Transformation Pipeline
 
-* Mutability requires encapsulation, which attracts methods to objects that encapsulate the required data.
-* Immutability requires less encapsulation, and therefore frees us up to organise our logic in different ways. Logic no longer needs to be defined on the class that holds the private data that the logic needs.  We can separate
+Recall the logic we want to add: find every interchange in a Route where the traveller will need to stay one or more nights.  An interchange is created between two journeys, like this: `Interchange.between(journey1, journey2)`.  We can calculate all the interchanges in a route by sliding a two-element window along the list of journeys and call `Interchange.between` for each pair it encounters.  Then we filter the Interchanges to select those that require one or more overnight stays.
+
+In Java we would have had to implement this logic imperatively, with for loop and mutable list, because the collections and streams APIs do not have a method that implements a sliding window across the elements of a list.
+The imperative implementation inextricably intertwines the two aspects of the calculation: calculating the Interchanges of a list of Journeys, and selecting the Interchanges that require a stay.
+
+The Kotlin standard library contains higher order functions that do exactly what we want:
+
+// begin-insert: tags/collections.6:src/main/java/travelator/itinerary/Route.kt#declarative_algorithm
+[source,kotlin]
+----
+fun requiredStays() =
+    journeys.windowed(2)
+        .map { (j1, j2) -> Interchange.between(j1, j2) }
+        .filter { it.isStayRequired }
+----
+// end-insert
+
+We can make that logic more self-explanatory by extracting the code that calculates the interchanges into an extension function on List<Journey>:
+
+// begin-insert: tags/collections.7:src/main/java/travelator/itinerary/Route.kt#declarative_algorithm
+[source,kotlin]
+----
+fun requiredStays() =
+    interchanges().filter { it.isStayRequired }
+
+private fun interchanges() =
+    journeys
+        .windowed(2)
+        .map { (j1, j2) -> Interchange.between(j1, j2) }
+----
+// end-insert
 
 
-* Abstracting common transformations into extension methods
-** E.g. List<Journey>.interchanges()
-** Factor out the middle of pipelines (useful transformations), rather than the downstream ends (tell-don't-ask).
-** call forward to extension methods part
+=== Do We Even Need the Route Class?
 
-* Refactoring Java streams to Kotlin stdlib?
+TODO: with no uses from Java, we can replace Route class with a typealias and extension functions.
+
+=== Abstracting Part of the Transformation Pipeline
+
+TODO: `interchanges()` has to be an extension function on List<Journey>.
+This is a generally useful function, that we would want people to find serendipitously if they are working with routes and interchanges, so that they don't rewrite it.
+Therefore, let's make it public.  IntelliJ will then offer it as an autocomplete suggesstion on expressions of type List<Journey>.
+
+This abstracts the _middle_ of a transformation pipeline, and makes it seamlessly meld in with the existing transformations API. This is something that cannot be done in Java with the Streams API does not, but Kotlin makes trivialm, thanks to extension functions.
+
+TODO: Something about a general principle: factor out the middle of pipelines into useful transformations, rather than the downstream ends as you would do with tell-don't-ask OO design.
+
+
+=== Conclusions
+
+Mutability requires encapsulation, which "attracts" behaviour onto classes that encapsulate the data it requires.
+Immutable data requires less encapsulation, and therefore allows us to organise our logic in different ways.
+We can group all the logic required by a particular feature of the application, or group logic that bridges between different domains.
+We continue this train of thought in <<organising-code-by-domain>>.
+
+TODO: more...
