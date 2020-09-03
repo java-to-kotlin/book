@@ -145,7 +145,7 @@ class Route(private val journeys: List<Journey>) : Iterable<Journey> {
 ----
 // end-insert
 
-The Route class implements the `Iterable` interface by delegating to the `journeys` list.
+The Route class implements the `Iterable` interface by delegating to the `journeys` List.
 We can get the compiler to generate that delegation for us.
 
 // begin-insert: tags/collections.4:src/main/java/travelator/itinerary/Route.kt#route
@@ -159,7 +159,7 @@ class Route(private val journeys: List<Journey>) : Iterable<Journey> by journeys
 
 The `destination` and `duration` accessors get the last journey in the list by calculating its integer index.
 The Kotlin standard library defines a `List.last()` extension that we can use instead.
-To make the code symmetrical, we'll use `List.first()` to get the first journey.
+To make the code symmetrical, we'll also use the `List.first()` extension to get the first journey.
 
 // begin-insert: tags/collections.5:src/main/java/travelator/itinerary/Route.kt#use_first_and_last
 [source,kotlin]
@@ -202,14 +202,21 @@ class Route(private val journeys: List<Journey>) : Iterable<Journey> by journeys
 ----
 // end-insert
 
+After all that, what is the Route class actually doing?
 
+In Java, the Route class encapsulated a mutable list to ensure that it couldn't be mutated.
+In Kotlin, the standard List type cannot be mutated, so there is nothing to encapsulate.
+In fact, there is no compelling reason to make the `journeys` field private.
+
+The Route class also provides accessors -- properties and query methods -- that return useful information about the route.
+Those accessors are used by different features of the application, but were originally defined on the Route class because they needed access to the private list of Journeys.
+If the list of journeys is not private, they could be defined as extension methods
 
 
 TODO below here...
 
-
-* push immutability outwards towards entry points
-* or inwards and never let mutability escape local variables of a single function (this is an optimisation or when stdlib doesn't have the right HOF)
+* Mutability requires encapsulation, which attracts methods to objects that encapsulate the required data.
+* Immutability requires less encapsulation, and therefore frees us up to organise our logic in different ways. Logic no longer needs to be defined on the class that holds the private data that the logic needs.  We can separate
 
 
 * Abstracting common transformations into extension methods

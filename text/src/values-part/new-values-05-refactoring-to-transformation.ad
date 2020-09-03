@@ -2,12 +2,19 @@
 
 * refactoring loops and mutation to value types and transformations using the stdlib
 ** CostSummary.calculate example
-** Aggregation into intermediate form.  Example of the following design process:
-*** Transform inputs into outputs.
-*** If you can't do that easily in one step, transform inputs into an intermediate representation from which it is easy to transform into outputs.
-*** Can't do _that_ easily in one step? Repeat until you can.
+** Aggregate data into intermediate form, calculate result from intermediate form.
+
+Example of the following design process:
+
+* Transform inputs into outputs.
+* If you can't do that easily in one step, transform inputs into an intermediate representation from which it is easy to transform into outputs.
+* Can't do _that_ easily in one step? Repeat until you can.
 
 
-* Converting imperative Java code to Kotlin to make it easier to write in a transformational style
-** Add new functionality: report required stays on a Route
-** needs a zip, impossible with Streams
+Where does mutation go?
+
+* push mutation outwards towards the entry points
+* or inwards and never let mutability escape local variables of a single function (this is an optimisation or when stdlib doesn't have the right HOF)
+** a function can be referentially transparent to callers even if its implementation is not.
+** In fact, that's how most of the HOFs in the standard library are implemented
+
