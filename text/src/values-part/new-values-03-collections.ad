@@ -67,6 +67,7 @@ Unfortunately the type system does not prevent us calling mutator methods on Ite
 
 If we were to add a method to this class that returned the required stays, it would look like this:
 
+[[required-stays-imperative]]
 // begin-insert: tags/collections.1:src/main/java/travelator/itinerary/Route.java#imperative_algorithm
 [source,java]
 ----
@@ -205,52 +206,26 @@ class Route(private val journeys: List<Journey>) : Iterable<Journey> by journeys
 ----
 // end-insert
 
-After all that, what is the Route class actually doing?
-
-In Java, the Route class encapsulated a mutable list to ensure that it couldn't be mutated.
-In Kotlin, the List type cannot be mutated, so there is nothing to encapsulate.
-There is no compelling reason to make the `journeys` field private.
-
-The Route class also provides accessors -- properties and query methods -- that return useful information about the route.
-Those accessors are used by different features of the application, but were originally defined on the Route class because they needed access to the private list of Journeys.
-Were the list of journeys public, the accessors could be defined as extension methods -- except they are still called from Java.
-The accessors have another responsibility: to provide a convenient API for use by our Java code.
-When that Java code has been translated to Kotlin, we can revisit this class and see what we can do with extension methods.
-
-But now, let's add the `requiredStays` method to our Kotlin class.
+Now, let's add the `requiredStays` method to our Kotlin class.
 
 
-=== Adding a Transformation Pipeline
+=== Plugging Together a Transformation Pipeline
 
 Recall the logic we want to add: find every interchange in a Route where the traveller will need to stay one or more nights.  An interchange is created between two journeys, like this: `Interchange.between(journey1, journey2)`.  We can calculate all the interchanges in a route by sliding a two-element window along the list of journeys and call `Interchange.between` for each pair it encounters.  Then we filter the Interchanges to select those that require one or more overnight stays.
 
-In Java we would have had to implement this logic imperatively, with for loop and mutable list, because the collections and streams APIs do not have a method that implements a sliding window across the elements of a list.
+In Java we would have had to implement this logic imperatively, <<required-stays-imperative,as shown above>>, with a for loop and mutable list, because the Java collection and streams APIs do not implement a sliding window across the elements of a list.
 The imperative implementation inextricably intertwines the different aspects of the calculation: sliding a two-element window along the list, using the sliding window to create Interchanges from the list of Journeys, and selecting the Interchanges that require a stay.
 
-In Kotlin, the standard library contains higher order functions that do exactly what we want:
+In Kotlin, the standard library provides operations on List that do exactly what we want, allowing us to express each aspect of the calculation as an independent concept:
 
 // begin-insert: tags/collections.6:src/main/java/travelator/itinerary/Route.kt#declarative_algorithm
 [source,kotlin]
 ----
 fun requiredStays() =
-    journeys.windowed(2)
-        .map { (j1, j2) -> Interchange.between(j1, j2) }
-        .filter { it.isStayRequired }
-----
-// end-insert
-
-We can make that logic more self-explanatory by extracting the code that calculates the interchanges into an extension function on List<Journey>:
-
-// begin-insert: tags/collections.7:src/main/java/travelator/itinerary/Route.kt#declarative_algorithm
-[source,kotlin]
-----
-fun requiredStays() =
-    interchanges().filter { it.isStayRequired }
-
-private fun interchanges() =
     journeys
         .windowed(2)
         .map { (j1, j2) -> Interchange.between(j1, j2) }
+        .filter { it.isStayRequired }
 ----
 // end-insert
 
