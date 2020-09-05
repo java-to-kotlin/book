@@ -290,6 +290,23 @@ typealias Route = List<Journey>
 ----
 // end-insert
 
+How can we refactor to that without breaking all the code that uses Route?
+
+1. Replace the class definition with the typealias and definitions that emulate the API of the class but can be inlined into the Kotlin code.
++
+// begin-insert: tags/collections.8:src/main/java/travelator/itinerary/Route.kt#compatibility
+[source,kotlin]
+----
+typealias Route = List<Journey>
+fun Route(journeys: List<Journey>) = journeys
+val Route.journeys get() = this
+----
+// end-insert
++
+The `Route` function ensures the calls to the constructor still compile.
+The `Route.journeys` extension property ensures that references to the `journeys` property of the Route class still compile when a Route is a List of Journeys.
+2. Inline the `Route` function and journeys` extension property.  Now all our code uses a Route as a List.
+
 
 === Abstracting Part of the Transformation Pipeline
 
