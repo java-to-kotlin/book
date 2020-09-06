@@ -144,6 +144,9 @@ We can do that succinctly by declaring the constructor parameter as a `val` and 
 [source,kotlin]
 ----
 class Route(private val journeys: List<Journey>) : Iterable<Journey> {
+    override fun iterator(): Iterator<Journey> = // <3>
+        journeys.iterator()
+
     ...
 }
 ----
@@ -310,7 +313,8 @@ The `Route.journeys` extension property ensures that references to the `journeys
 
 === Abstracting Part of the Transformation Pipeline
 
-TODO: `interchanges()` has to be an extension function on List<Journey>.
+TODO: extract `interchanges()` as an extension function on List<Journey>.
+
 This is a generally useful function, that we would want people to find serendipitously if they are working with routes and interchanges, so that they don't rewrite it.
 Therefore, let's make it public.  IntelliJ will then offer it as an autocomplete suggesstion on expressions of type List<Journey>.
 
