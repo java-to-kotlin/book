@@ -293,9 +293,10 @@ typealias Route = List<Journey>
 ----
 // end-insert
 
-How can we refactor to that without breaking all the code that uses Route?
+However, replacing the class definition with a typealias will break code that constructs Routes and refers to the `journeys` property.
+We need to refactor from the class to the typealias without breaking the code that uses Routes.
 
-1. Replace the class definition with the typealias and definitions that emulate the API of the class but can be inlined into the Kotlin code.
+To do so, we add temporary functions that emulate the API of the class but, can be inlined into code that uses Routes.
 +
 // begin-insert: tags/collections.8:src/main/java/travelator/itinerary/Route.kt#compatibility
 [source,kotlin]
@@ -308,7 +309,12 @@ val Route.journeys get() = this
 +
 The `Route` function ensures the calls to the constructor still compile.
 The `Route.journeys` extension property ensures that references to the `journeys` property of the Route class still compile when a Route is a List of Journeys.
-2. Inline the `Route` function and journeys` extension property.  Now all our code uses a Route as a List.
+
+Code in different packages will need to import these definitions.
+IntelliJ will help us find and fix these cases.
+
+After confirming that the code still compiles and passes its tests, we can inline the `Route` function and journeys` extension property.
+Now all our code uses a Route as a List.
 
 
 === Abstracting Part of the Transformation Pipeline
