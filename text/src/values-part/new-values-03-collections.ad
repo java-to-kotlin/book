@@ -274,31 +274,24 @@ val Route.duration: Duration get() =
 
 fun Route.cost(userCurrency: Currency, fx: ExchangeRates): CostSummary =
     CostSummary.calculate(journeys, userCurrency, fx)
-
-fun Route.requiredStays() =
-    journeys
-        .windowed(2)
-        .map { (j1, j2) -> Interchange.between(j1, j2) }
-        .filter { it.isStayRequired }
 ----
 // end-insert
 
 Now it is quite obvious that a Route is nothing more than a list of Journeys.
 In Kotlin, we can express that directly, with a `typealias`:
 
-// begin-insert: tags/collections.8:src/main/java/travelator/itinerary/Route.kt#typealias
+// begin-insert: tags/collections.13:src/main/java/travelator/itinerary/Route.kt#class
 [source,kotlin]
 ----
 typealias Route = List<Journey>
 ----
 // end-insert
 
-However, replacing the class definition with a typealias will break code that constructs Routes and refers to the `journeys` property.
-We need to refactor from the class to the typealias without breaking the code that uses Routes.
+However, replacing the class definition with a typealias will break code that constructs Route objects or refers to the `journeys` property.
+We need to refactor our definition of `Route` from a class to a typealias without breaking the code that depends on it.
+The way we'll do this is to replace the class with a typealias _and_ temporary definitions that emulate the API of the class.
 
-To do so, we add temporary functions that emulate the API of the class but, can be inlined into code that uses Routes.
-+
-// begin-insert: tags/collections.8:src/main/java/travelator/itinerary/Route.kt#compatibility
+// begin-insert: tags/collections.12:src/main/java/travelator/itinerary/Route.kt#class
 [source,kotlin]
 ----
 typealias Route = List<Journey>
@@ -306,15 +299,102 @@ fun Route(journeys: List<Journey>) = journeys
 val Route.journeys get() = this
 ----
 // end-insert
-+
+
 The `Route` function ensures the calls to the constructor still compile.
 The `Route.journeys` extension property ensures that references to the `journeys` property of the Route class still compile when a Route is a List of Journeys.
 
-Code in different packages will need to import these definitions.
-IntelliJ will help us find and fix these cases.
+Then we can inline those temporary definitions, leaving the code that used them working with Lists of Journeys.
 
-After confirming that the code still compiles and passes its tests, we can inline the `Route` function and journeys` extension property.
-Now all our code uses a Route as a List.
+However, the replacement of the class definition with a typealias and temporary functions requires a manual edit.
+Replacing the `journeys` property defined on the `Route` class with a `Route.journeys` extension property will break all the code that uses the `journeys` property, because a property on a class does not need to be imported, but an extension does.
+We must refactor the class, and the code that depends on it, into a form in which the manual edit does not break any code.
+In this case, this means converting the `journeys` property defined on the class into an extension property that is imported by the files that depend on it, before we replace it with the definition above.
+We can do so with a sequence of automated refactoring steps.
+
+We'll apply the "Move to class body" refactoring to the declaration of the `journeys` property in the primary constructor definition.
+
+// begin-insert: tags/collections.8:src/main/java/travelator/itinerary/Route.kt#class
+[source,kotlin]
+----
+class Route(journeys: List<Journey>) : Iterable<Journey> by journeys {
+    val journeys = journeys
+}
+----
+// end-insert
+
+We'll then apply the "Introduce backing property" refactoring to the `journeys` property in the class body.
+
+// begin-insert: tags/collections.9:src/main/java/travelator/itinerary/Route.kt#class
+[source,kotlin]
+----
+class Route(journeys: List<Journey>) : Iterable<Journey> by journeys {
+    private val _journeys = journeys
+    val journeys: List<Journey>
+        get() = _journeys
+}
+----
+// end-insert
+
+This refactoring has made the `journeys` property virtual, allowing us to turn it into an extension property on Route that is correctly imported into every file that refers to it.
+We'll make the `_journeys` property internal.
+
+// begin-insert: tags/collections.10:src/main/java/travelator/itinerary/Route.kt#class
+[source,kotlin]
+----
+class Route(journeys: List<Journey>) : Iterable<Journey> by journeys {
+    internal val _journeys = journeys
+    val journeys: List<Journey>
+        get() = _journeys
+}
+----
+// end-insert
+
+Then we'll apply the `Convert to extension` refactoring to the `journeys` property.
+
+// begin-insert: tags/collections.11:src/main/java/travelator/itinerary/Route.kt#class
+[source,kotlin]
+----
+class Route(journeys: List<Journey>) : Iterable<Journey> by journeys {
+    internal val _journeys = journeys
+}
+
+val Route.journeys: List<Journey>
+    get() = _journeys
+----
+// end-insert
+
+Now we can manually replace the Route class with the typealias, `Route` function and `Route.journeys` extension property:
+
+// begin-insert: tags/collections.12:src/main/java/travelator/itinerary/Route.kt#class
+[source,kotlin]
+----
+typealias Route = List<Journey>
+fun Route(journeys: List<Journey>) = journeys
+val Route.journeys get() = this
+----
+// end-insert
+
+Finally, we inline the `Route` function and `journeys` extension property.
+
+// begin-insert: tags/collections.13:src/main/java/travelator/itinerary/Route.kt#class
+[source,kotlin]
+----
+typealias Route = List<Journey>
+----
+// end-insert
+
+Now a Route _is_ a List of Journeys, across our entire codebase.
+
+// begin-insert: tags/collections.13:src/main/java/travelator/rooms/Route_RequiredStays.kt
+[source,kotlin]
+----
+fun Route.requiredStays() =
+    this
+        .windowed(2)
+        .map { (j1, j2) -> Interchange.between(j1, j2) }
+        .filter { it.isStayRequired }
+----
+// end-insert
 
 
 === Abstracting Part of the Transformation Pipeline
