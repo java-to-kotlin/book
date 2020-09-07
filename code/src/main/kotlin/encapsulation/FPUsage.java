@@ -1,13 +1,11 @@
 package encapsulation;
 
-import kotlin.Unit;
-import kotlin.jvm.functions.Function1;
-
 import java.net.InetAddress;
 import java.util.function.Consumer;
-import java.util.function.Function;
+
+import static encapsulation.EncapsulationKt.inetAddress;
+import static encapsulation.EncapsulationKt.sendEmail;
 import static encapsulation.FPUsageLambda.createEmailSender;
-import static encapsulation.EncapsulationKt.*;
 
 public class FPUsage {
     /// begin: foo
@@ -57,4 +55,6 @@ class FPUsageLambda {
     }
     /// end: FPUsageLambda
 }
+
+
 

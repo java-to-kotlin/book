@@ -61,6 +61,7 @@ object B {
     }
     /// end: createEmailSender2
 }
+
 object C {
     /// begin: createEmailSender3
     fun createEmailSender(
