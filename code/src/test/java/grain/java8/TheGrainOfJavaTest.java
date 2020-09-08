@@ -1,16 +1,9 @@
 package grain.java8;
 
-import grain.java5.Function1;
-import grain.java5.Function2;
-import grain.java5.Lists;
 import junit.framework.TestCase;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.StreamSupport;
 
 import static java.util.stream.Collectors.toList;
 
