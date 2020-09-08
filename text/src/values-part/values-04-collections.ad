@@ -16,17 +16,14 @@ One of the core services of our Travelator application is route planning.
 
 A Route is a sequence of Journeys that can take the traveller from one location to another.
 Each Journey in a route is a service provided by an Operator, via some mode of transport -- ship, train, bus, camel, etc. -- departing from one location at a specific time and arriving at another location some time later.
-The routing service suggests several possible routes, and our travellers can compare them by cost, duration, and so on, to choose the route they prefer.
+Our routing service finds several possible routes, and our travellers can compare them by cost, duration, and so on, to choose the route they prefer.
 
 The journeys along a route do not always have a convenient interchange between them.
 Some services run only once a day, or once a week, so our travellers want to know when they will have to book somewhere to stay between the end of one journey and the start of the next.
 This will let us improve the cost estimate for a route, because we can suggest places to stay and include the cost in the overall cost of the route.
 We can make the feature earn its keep by booking their preferred choices and earning a commission.
 
-The first step is to find every interchange in a Route where the traveller will need to stay one or more nights.
-This gives us a good reason to convert our Route class to Kotlin.
-Writing this logic in Java requires verbose, imperative code.
-With Kotlin's standard library, we can write this as a concise, declarative pipeline of transformations.
+Fundamental to this feature is the ability to find every interchange in a Route where the traveller will need to find somewhere to stay.
 
 Let's take a look at our Java Route class.
 
@@ -73,7 +70,11 @@ Because Lists are mutable -- or, at least, the type system offers no guarantee t
 <2> Because `List.copyOf` method returns an immutable List, there is no need to make a defensive copy or wrap the list with a `Collections.unmodifiableList` when returning an Iterator over the list, or when passing the list as a parameter to another class.
 Unfortunately the type system does not prevent us calling mutator methods on Iterator or List, but doing so will throw `UnsupportedOperationException`, so coding errors will be caught pretty quickly by our tests.
 
-If we were to add a method to this class that returned the required stays, it would look like this:
+
+To calculate the interchanges that require a stay, we will slide a two-element window along the list of journeys, mapping each pair of Journeys to an Interchange between the end of the first journey and the start of the second.
+Then we will filter the Interchanges to select only those that require one or more overnight stays.
+
+In Java we have to implement this logic imperatively, with a for loop and mutable list, because the Java collection and stream APIs do not provide a sliding window operation.
 
 [[required-stays-imperative]]
 // begin-insert: tags/collections.1:src/main/java/travelator/itinerary/Route.java#imperative_algorithm
@@ -96,7 +97,23 @@ public List<Interchange> requiredStays() {
 ----
 // end-insert
 
-Let's translate the class to Kotlin, tidy it up, and then see how we can write the `requiredStays` logic in Kotlin.
+The imperative implementation inextricably intertwines the different aspects of the calculation.
+
+In Kotlin, the standard library provides operations on List that do exactly what we want.
+We can write the logic as a concise, declarative pipeline of transformations where wach phase in the pipeline corresponds to a step in our description of the logic, above,
+
+// begin-insert: tags/collections.6:src/main/java/travelator/itinerary/Route.kt#declarative_algorithm
+[source,kotlin]
+----
+fun requiredStays() =
+    journeys
+        .windowed(2)
+        .map { (j1, j2) -> Interchange.between(j1, j2) }
+        .filter { it.isStayRequired }
+----
+// end-insert
+
+This gives us a good reason to convert the Route class to Kotlin before starting to implement this feature.
 
 Here's the class after IntelliJ has worked its translation magic:
 
@@ -217,31 +234,7 @@ class Route(private val journeys: List<Journey>) : Iterable<Journey> by journeys
 ----
 // end-insert
 
-Now, let's add the `requiredStays` method to our Kotlin class.
-
-
-=== Plugging Together a Transformation Pipeline
-
-Recall the logic we want to add: find every interchange in a Route where the traveller will need to stay one or more nights.
-An interchange is between two journeys is denoted by: `Interchange.between(journey1, journey2)`.
-We can calculate all the interchanges in a route by sliding a two-element window along the list of journeys and calling `Interchange.between` for each pair it encounters.
-Then we must filter the Interchanges to select only those that require one or more overnight stays.
-
-In Java we would have had to implement this logic imperatively, <<required-stays-imperative,as shown above>>, with a for loop and mutable list, because the Java collection and streams APIs do not implement a sliding window across the elements of a list.
-The imperative implementation inextricably intertwines the different aspects of the calculation.
-
-In Kotlin, the standard library provides operations on List that do exactly what we want, allowing us to clearly express each step of the calculation:
-
-// begin-insert: tags/collections.6:src/main/java/travelator/itinerary/Route.kt#declarative_algorithm
-[source,kotlin]
-----
-fun requiredStays() =
-    journeys
-        .windowed(2)
-        .map { (j1, j2) -> Interchange.between(j1, j2) }
-        .filter { it.isStayRequired }
-----
-// end-insert
+Now, we are ready to add the `requiredStays` method to our Kotlin class.
 
 
 === Do We Even Need the Route Class?
