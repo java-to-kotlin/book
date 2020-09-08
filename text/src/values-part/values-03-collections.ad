@@ -3,17 +3,19 @@
 == Collections and Transformation Pipelines
 
 The grain of Java and Kotlin are very different when it comes to collections.
-Java's mutable collections force you to encapsulate collections within classes to avoid accidental aliasing.
-Kotlin's collections default to being immutable, which reduces the need for new classes that encapsulate.
-Kotlin's standard library contains more useful higher-order functions than Java's collection and stream APIs.
+Java's collection interfaces are fundamentally mutable and so force you to encapsulate collections within classes to avoid accidental aliasing.
+Kotlin's collections default to being immutable, which reduces the need such encapsulation.
+Kotlin's standard library contains many more useful higher-order functions than Java's collection and stream APIs.
 This reduces the need for imperative programming when processing collections.
 These two forces encourage designs in which many free-standing functions transform a few generic collection types.
 
 
-=== A Class That Contains a Collection
+=== A Class That Encapsulates a Collection
 
 One of the core services of our Travelator application is route planning.
-A Route is a sequence of Journeys that can take the traveller from one location to another via a sequence Journeys. Each Journey in a route is a service provided by an Operator, via some mode of transport -- sea, train, bus, car, camel, etc. -- departing from one location at a specific time and arriving at another location some time later.
+
+A Route is a sequence of Journeys that can take the traveller from one location to another.
+Each Journey in a route is a service provided by an Operator, via some mode of transport -- ship, train, bus, camel, etc. -- departing from one location at a specific time and arriving at another location some time later.
 The routing service suggests several possible routes, and our travellers can compare them by cost, duration, and so on, to choose the route they prefer.
 
 The journeys along a route do not always have a convenient interchange between them.
