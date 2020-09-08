@@ -258,7 +258,8 @@ Those accessors support different parts of the application, but were defined in 
 With the list of journeys public, we can defined those as extension methods, and move them into the part of the application that uses them.
 Except, while we still have Java that uses Routes, those accessors have another responsibility: to provide a convenient API for use by our Java code.
 
-As we translate the Java code using the Route class into Kotlin, we can convert the instance methods to extensions.
+As we translate the Java code using the Route class into Kotlin, we will get to the point where methods and properties are only called from Kotlin.
+At that point we can convert the class features to extensions and, where it makes sense, move them into the module that uses them.
 IntelliJ can do this automatically.
 
 When no more Java code depends on Route, it looks like:
@@ -281,6 +282,17 @@ val Route.duration: Duration get() =
 
 fun Route.cost(userCurrency: Currency, fx: ExchangeRates): CostSummary =
     CostSummary.calculate(journeys, userCurrency, fx)
+----
+// end-insert
+
+// begin-insert: tags/collections.7:src/main/java/travelator/rooms/Route_RequiredStays.kt
+[source,kotlin]
+----
+fun Route.requiredStays() =
+    journeys
+        .windowed(2)
+        .map { (j1, j2) -> Interchange.between(j1, j2) }
+        .filter { it.isStayRequired }
 ----
 // end-insert
 
@@ -418,9 +430,15 @@ TODO: Something about a general principle: factor out the middle of pipelines in
 
 === Conclusions
 
-Mutability requires encapsulation, which "attracts" behaviour onto classes that encapsulate the data it requires.
-Immutable data requires less encapsulation, and therefore allows us to organise our logic in different ways.
+In Java, the justifiable fear of aliasing errors leads one to encapsulate collections of data in classes.
+This tends to "attract" behaviour to the classes that encapsulate the data the behaviour requires.
+However, by doing this we _reduce_ the operations available for us to work with the data to only those defined by the encapsulating class.
+
+Immutable data does not require encapsulation.
+We don't need to ensure that state changes always go through the class' interface because there are no state changes.
+When our domain model _is_ the appropriate data structure, rather than encapsulating and hiding the data structure behind a class boundary, we _increase_ the operations available for us to work with the data.
+We have all the operations defined for the collection, and can extend it with our own application-specific operations.
+
+Immutable collections and extensions allow us to organise our code in different ways.
 We can group all the logic required by a particular feature of the application, or group logic that bridges between different domains.
 We continue this train of thought in <<organising-code-by-domain>>.
-
-TODO: more...
