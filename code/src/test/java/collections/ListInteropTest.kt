@@ -5,7 +5,7 @@ import junit.framework.TestCase
 class ListInteropTest : TestCase() {
     fun testJavaCodeCanRemoveElementFromKotlin_Unmodifiable_List() {
         val l = listOf(1,2,3,4).toList()
-        UseList.removeElement(l, 1)
+        FromJava.removeElement(l, 1)
         assertEquals(listOf(1,3,4), l)
     }
 
@@ -13,7 +13,7 @@ class ListInteropTest : TestCase() {
         val l = listOf(1,2,3,4).toList()
         val i = l.iterator()
         i.next()
-        UseList.removeElement(i)
+        FromJava.removeElement(i)
         assertEquals(listOf(2,3,4), l)
     }
 }

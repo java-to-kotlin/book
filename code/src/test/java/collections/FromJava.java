@@ -3,7 +3,7 @@ package collections;
 import java.util.Iterator;
 import java.util.List;
 
-public class UseList {
+public class FromJava {
     public static <T> void removeElement(List<T> list, int index) {
         list.remove(index);
     }
