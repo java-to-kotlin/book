@@ -42,7 +42,7 @@ object EmailSenderInvoke {
     ) : ISendEmail,
         (Email) -> Unit // <1>
     {
-        override fun invoke(email: Email) = send(email) // <2>
+        override operator fun invoke(email: Email) = send(email) // <2>
 
         override fun send(email: Email) {
             sendEmail(email, serverAddress, username, password)
