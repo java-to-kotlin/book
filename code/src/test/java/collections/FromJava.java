@@ -11,4 +11,8 @@ public class FromJava {
     public static <T> void removeElement(Iterator<T> i) {
         i.remove();
     }
+
+    public static <T> void setElement(List<T> list, int index, T newValue) {
+        list.set(index, newValue);
+    }
 }

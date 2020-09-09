@@ -16,4 +16,12 @@ class ListInteropTest : TestCase() {
         FromJava.removeElement(i)
         assertEquals(listOf(2,3,4), l)
     }
+
+    fun testJavaCodeCanSetElementOfListArrayWrapper() {
+        val l = listOf(1,2,3,4)
+
+        FromJava.setElement(l, 1, 99)
+
+        assertEquals(listOf(1, 99, 3, 4), l)
+    }
 }
