@@ -1,4 +1,5 @@
-== Refactoring _to_ Data Transformation
+[[mutation-to-transformation]]
+== From Mutation to Transformation
 
 Recall the function that calculated the cost of a Route:
 
@@ -15,7 +16,8 @@ fun Route.cost(userCurrency: Currency, fx: ExchangeRates): CostSummary {
 ----
 // end-insert
 
-It uses a mutable object, the CostSummaryCalculator, to compute the cost summary for the journeys in a route, given the traveller's preferred currency and a source of exchange rates.
+// suppress inspection "GrazieInspection"
+The function uses a mutable object, the CostSummaryCalculator, to compute the cost summary for the journeys in a route, given the traveller's preferred currency and a source of exchange rates.
 
 // begin-insert: tags/transformations.1:src/main/java/travelator/itinerary/CostSummaryCalculator.java
 [source,java]
@@ -51,7 +53,7 @@ public class CostSummaryCalculator {
 ----
 // end-insert
 
-As the Route.cost function adds journeys to the CostSummaryCalculator, the calculator keeps a running total of prices by currency.  When asked for a summary, it converts those totals to the traveller's preferred currency and adds the conversion results to the `CostSummary`.
+The CostSummaryCalculator keeps a running total of prices by currency as the Route.cost function adds journeys.  When asked for a summary, it converts those totals to the traveller's preferred currency and adds the conversion results to the `CostSummary`.   The CostSummary maintains a running total of the cost in the traveller's preferred currency as the CostSummaryCalculator adds the conversion results.
 
 // begin-insert: tags/transformations.1:src/main/java/travelator/itinerary/CostSummary.java
 [source,java]
@@ -80,13 +82,11 @@ public class CostSummary {
 ----
 // end-insert
 
-As the CostSummaryCalculator adds CurrencyConversions to the CostSummary, the CostSummary maintains a running total of the cost in the traveller's preferred currency.
 
 
 
 
 TODO:
-
 
 * refactoring loops and mutation to value types and transformations using the stdlib
 ** CostSummary.calculate example
