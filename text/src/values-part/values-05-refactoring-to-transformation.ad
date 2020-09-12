@@ -54,7 +54,10 @@ public class CostSummaryCalculator {
 ----
 // end-insert
 
-The CostSummaryCalculator keeps a running total of prices by currency as the Route.cost function adds journeys.  When asked for a summary, it converts those totals to the traveller's preferred currency and adds the conversion results to the `CostSummary`.   The CostSummary maintains a running total of the cost in the traveller's preferred currency as the CostSummaryCalculator adds the conversion results.
+The full calculation of the summary is split between two classes.
+The CostSummaryCalculator keeps a running total of prices by currency as the Route.cost function adds journeys.
+When asked for a summary, it converts those totals to the traveller's preferred currency and adds the conversion results to the `CostSummary`.
+The CostSummary maintains a running total of the cost in the traveller's preferred currency as the CostSummaryCalculator adds the conversion results.
 
 // begin-insert: tags/mutations.0:src/main/java/travelator/itinerary/CostSummary.java
 [source,java]
@@ -83,7 +86,6 @@ public class CostSummary {
 ----
 // end-insert
 
-Thus, the full calculation of the summary is split between the two classes.
 The CostCurrencyCalculator has three responsibilities:
 it holds the user's currency and source of ExchangeRates for the currency conversions,
 calculates the total amount per currency before doing the currency conversions, to minimise rounding errors,
@@ -92,10 +94,20 @@ The CostSummary has two responsibilities: it calculates the total amount,
 and it reports the lines and total so that they can be displayed to the user.
 
 
+Red flag: the name "CostCurrencyCalculator" indicates that the class is merely a "doer" class.
+Another red flag is the data that the class holds.
+The user's currency and ExchangeRates are the _context_ for the calculation, and are managed elsewhere in the application.
+They are held in the CostCurrencyCalculator so that we do not have to pass them around individually.
+The other field is the mutable map of `currencyTotals`, which are intermediate results of the calculation.
+The class isn't the _owner_ of any data it uses.
+It doesn't represent a information about our application domain, but a function that we perform _upon_ the domain model.
+
+In Kotlin, we usually implement functions as, well,  _functions_, not classes.
+
+
 TODO:
 
 * refactoring loops and mutation to value types and transformations using the stdlib
-** CostSummary.calculate example
 ** Aggregate data into intermediate form, calculate result from intermediate form.
 
 Example of the following design process:
