@@ -1,14 +1,14 @@
 [[mutation-to-transformation]]
 == From Mutation to Transformation
 
-Recall the function that calculated the cost of a Route:
+Recall the cost function we ended up with, after the refactoring in <<collections-and-transformation-pipelines>>:
 
-// begin-insert: tags/transformations.1:src/main/java/travelator/itinerary/Route.kt#route_cost
+// begin-insert: tags/mutations.0:src/main/java/travelator/money/Cost.kt
 [source,kotlin]
 ----
-fun Route.cost(userCurrency: Currency, fx: ExchangeRates): CostSummary {
-    val calculator = CostSummaryCalculator(userCurrency, fx)
-    for (p in this) {
+fun ExchangeRates.cost(userCurrency: Currency, items: Iterable<Priced>): CostSummary {
+    val calculator = CostSummaryCalculator(userCurrency, this)
+    items.forEach { p ->
         calculator.addItem(p)
     }
     return calculator.summarise()
@@ -19,7 +19,7 @@ fun Route.cost(userCurrency: Currency, fx: ExchangeRates): CostSummary {
 // suppress inspection "GrazieInspection"
 The function uses a mutable object, the CostSummaryCalculator, to compute the cost summary for the journeys in a route, given the traveller's preferred currency and a source of exchange rates.
 
-// begin-insert: tags/transformations.1:src/main/java/travelator/itinerary/CostSummaryCalculator.java
+// begin-insert: tags/mutations.0:src/main/java/travelator/itinerary/CostSummaryCalculator.java
 [source,java]
 ----
 public class CostSummaryCalculator {
@@ -41,12 +41,13 @@ public class CostSummaryCalculator {
     }
 
     public CostSummary summarise() {
-        CostSummary summary = new CostSummary(userCurrency);
+        var totals = new ArrayList<>(currencyTotals.values());
+        totals.sort(comparing(m -> m.getCurrency().getCurrencyCode()));
 
-        for (var total : currencyTotals.values()) {
+        CostSummary summary = new CostSummary(userCurrency);
+        for (var total : totals) {
             summary.addLine(exchangeRates.convert(total, userCurrency));
         }
-
         return summary;
     }
 }
@@ -55,7 +56,7 @@ public class CostSummaryCalculator {
 
 The CostSummaryCalculator keeps a running total of prices by currency as the Route.cost function adds journeys.  When asked for a summary, it converts those totals to the traveller's preferred currency and adds the conversion results to the `CostSummary`.   The CostSummary maintains a running total of the cost in the traveller's preferred currency as the CostSummaryCalculator adds the conversion results.
 
-// begin-insert: tags/transformations.1:src/main/java/travelator/itinerary/CostSummary.java
+// begin-insert: tags/mutations.0:src/main/java/travelator/itinerary/CostSummary.java
 [source,java]
 ----
 public class CostSummary {
@@ -82,8 +83,13 @@ public class CostSummary {
 ----
 // end-insert
 
-
-
+Thus, the full calculation of the summary is split between the two classes.
+The CostCurrencyCalculator has three responsibilities:
+it holds the user's currency and source of ExchangeRates for the currency conversions,
+calculates the total amount per currency before doing the currency conversions, to minimise rounding errors,
+and orders the summary lines by the original currency.
+The CostSummary has two responsibilities: it calculates the total amount,
+and it reports the lines and total so that they can be displayed to the user.
 
 
 TODO:
