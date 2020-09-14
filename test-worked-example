@@ -6,6 +6,8 @@ echo "testing with Kotlin $kotlin_version"
 
 "$(dirname "$0")"/retag-worked-example
 
+clean_log=$(realpath "$(dirname "$0")"/clean-log)
+
 known_failures_dir=$(realpath buildSrc/known-failures/$kotlin_version)
 working_dir=$(realpath build/testing-history)
 cached_dir=$(realpath build/testing-history-cached)
@@ -19,6 +21,8 @@ fi
 mkdir -p "$cached_dir"
 
 cd "$working_dir"
+
+rm -f *.log
 
 result=0
 
@@ -48,18 +52,14 @@ for tag in $(git tag -l '*.[0-9]*' | sort -V); do
       fi
     else
       # Delete the last two lines of Gradle output because they are not stable between runs
-      tail -r "$tag.log" | \
-        sed -e '1,2d' | \
-        sed -Ee 's/ ((FROM-CACHE)|(NO-SOURCE)|(UP-TO-DATE)|((FAILED)))$//' | \
-        sed -Ee "s|$working_dir/||" | \
-        sort | uniq | \
-        tail -r > "$tag.log.tmp"
-      mv "$tag.log.tmp" "$tag.log"
+      mv "$tag.log" "$tag.orig.log"
+      "$clean_log" "$tag.orig.log" > "$tag.log"
 
       if diff --side-by-side "$tag.log" "$known_failures_dir/$tag.log"
       then
         echo "Known failure"
         rm "$tag.log"
+        rm "$tag.orig.log"
         touch "$cached"
       else
         echo "To record as a known failure:"
@@ -73,10 +73,7 @@ done
 if [ $result != 0 ]
 then
   echo '*** FAILED ***'
-  for f in $(realpath "*.log")
-  do
-    basename $f .log
-  done
+  find . -type f -name "*.log" -not -name '*.orig.log' -exec basename {} .log \;
 else
   echo '*** PASSED ***'
 fi
