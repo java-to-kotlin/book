@@ -225,20 +225,35 @@ class CostSummary(userCurrency: Currency, val lines: List<CurrencyConversion>) {
 ----
 // end-insert
 
-To be continued...
-
 We can apply a similar process to the CostSummaryCalculator.
 In this case we won't add a secondary constructor.
 Instead we will pass the items to the `summarise` method.
 This draws a distinction between the context of cost summary calculations, which is passed to the constructor, and the arguments to a specific calculation, which are passed to the `summarise` method.
 
-// begin-insert: tags/mutations.4:src/main/java/travelator/itinerary/CostSummary.kt
+// begin-insert: tags/mutations.4:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
 [source,kotlin]
 ----
-class CostSummary(userCurrency: Currency, val lines: List<CurrencyConversion>) {
-    val total = lines
-        .map { it.toMoney }
-        .fold(Money.zero(userCurrency), Money::add)
+class CostSummaryCalculator(
+    private val userCurrency: Currency,
+    private val exchangeRates: ExchangeRates
+) {
+    private val currencyTotals = mutableMapOf<Currency, Money>()
+
+    fun summarise(items: Iterable<Priced>): CostSummary {
+        items.forEach(::addItem)
+        return summarise()
+    }
+
+    fun addItem(item: Priced) {
+        val price = item.price
+        currencyTotals.merge(price.currency, price, Money::add)
+    }
+
+    fun summarise() = CostSummary(
+        userCurrency,
+        currencyTotals.values
+            .sortedBy { it.currency.currencyCode }
+            .map { exchangeRates.convert(it, userCurrency) })
 }
 ----
 // end-insert
@@ -257,6 +272,9 @@ fun ExchangeRates.cost(userCurrency: Currency, items: Iterable<Priced>): CostSum
 
 The function is starting to look too trivial to be useful, but let's finish our refactoring of the CostSummaryCalculator, and then have a think about what to do with this function.
 
+
+
+To be continued...
 
 TODO:
 
