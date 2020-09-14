@@ -212,7 +212,6 @@ fun summarise() = CostSummary(
 ----
 // end-insert
 
-In our codebase, the CostSummaryCalculator is the only class that creates or modifies CostSummary objects.
 This allows us to remove mutation from the CostSummary class:
 
 // begin-insert: tags/mutations.3:src/main/java/travelator/itinerary/CostSummary.kt
@@ -227,6 +226,37 @@ class CostSummary(userCurrency: Currency, val lines: List<CurrencyConversion>) {
 // end-insert
 
 To be continued...
+
+We can apply a similar process to the CostSummaryCalculator.
+In this case we won't add a secondary constructor.
+Instead we will pass the items to the `summarise` method.
+This draws a distinction between the context of cost summary calculations, which is passed to the constructor, and the arguments to a specific calculation, which are passed to the `summarise` method.
+
+// begin-insert: tags/mutations.4:src/main/java/travelator/itinerary/CostSummary.kt
+[source,kotlin]
+----
+class CostSummary(userCurrency: Currency, val lines: List<CurrencyConversion>) {
+    val total = lines
+        .map { it.toMoney }
+        .fold(Money.zero(userCurrency), Money::add)
+}
+----
+// end-insert
+
+The CostSummaryCalculator is now used like this:
+
+// begin-insert: tags/mutations.4:src/main/java/travelator/money/Cost.kt
+[source,kotlin]
+----
+fun ExchangeRates.cost(userCurrency: Currency, items: Iterable<Priced>): CostSummary {
+    val calculator = CostSummaryCalculator(userCurrency, this)
+    return calculator.summarise(items)
+}
+----
+// end-insert
+
+The function is starting to look too trivial to be useful, but let's finish our refactoring of the CostSummaryCalculator, and then have a think about what to do with this function.
+
 
 TODO:
 
