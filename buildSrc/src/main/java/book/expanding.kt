@@ -5,8 +5,45 @@ import java.io.File
 import kotlin.text.RegexOption.DOT_MATCHES_ALL
 import kotlin.text.RegexOption.MULTILINE
 
-private val noLogging : (String) -> Unit = {}
+private val noLogging: (String) -> Unit = {}
 private val log: (String) -> Unit = noLogging // ::println
+
+
+data class VersionedFile(
+    val sourceRoot: File,
+    val relativePath: String,
+    val version: String?
+) {
+    val file = sourceRoot.resolve(relativePath)
+
+    override fun toString() =
+        (version?.let { "$it:" } ?: "") + sourceRoot.resolve(relativePath).canonicalPath
+
+    val linesOrError: Result<List<String>, Exception> by lazy {
+        when (version) {
+            null -> readUnversioned()
+            else -> readVersioned()
+        }
+    }
+
+    val lines: List<String>
+        get() =
+            linesOrError.recover { throw it }
+
+    private fun readUnversioned() = resultOf {
+        log("Reading $file")
+        file.readLines()
+    }
+
+    private fun readVersioned(): Result<List<String>, Exception> {
+        log("Reading $file")
+        return "git show $version:${relativePath}"
+            .runCommand(workingDir = sourceRoot)
+            .map { it.lines() }
+    }
+
+    fun exists(): Boolean = linesOrError is Success
+}
 
 private data class SourceRoots(
     val workedExample: File,
@@ -43,16 +80,16 @@ private fun processFile(
 ) {
     log("Processing $src")
     val text = src.readText()
-    val newText = expandCodeBlocks(text, lookupWithRoot(roots, abortOnFailure))
+    val newText = expandCodeBlocks(text, lookupWithRoot(src, roots, abortOnFailure))
     if (newText != text)
         dest.writeText(newText)
 }
 
-private fun lookupWithRoot(roots: SourceRoots, abortOnFailure: Boolean) =
+private fun lookupWithRoot(src: File, roots: SourceRoots, abortOnFailure: Boolean) =
     fun(key: String): String {
         val (versionedFile, tag) = key.parse(roots)
         if (!versionedFile.exists()) {
-            val message = "File not found for $versionedFile (${versionedFile.linesOrError.recover { it.message }})"
+            val message = "${src.canonicalPath}: inserted file $versionedFile not found (${versionedFile.linesOrError.recover { it.message }})"
             if (abortOnFailure) {
                 error(message)
             } else {
@@ -112,38 +149,6 @@ data class FileSnippet(val versionedFile: VersionedFile, val fragment: String?) 
             }
 }
 
-data class VersionedFile(
-    val sourceRoot: File,
-    val relativePath: String,
-    val version: String?
-) {
-    val file = sourceRoot.resolve(relativePath)
-
-    val linesOrError: Result<List<String>, Exception> by lazy {
-        when (version) {
-            null -> readUnversioned()
-            else -> readVersioned()
-        }
-    }
-
-    val lines: List<String>
-        get() =
-            linesOrError.recover { throw it }
-
-    private fun readUnversioned() = resultOf {
-        log("Reading $file")
-        file.readLines()
-    }
-
-    private fun readVersioned(): Result<List<String>, Exception> {
-        log("Reading $file")
-        return "git show $version:${relativePath}"
-            .runCommand(workingDir = sourceRoot)
-            .map { it.lines() }
-    }
-
-    fun exists(): Boolean = linesOrError is Success
-}
 
 fun <R> resultOf(f: () -> R): Result<R, Exception> =
     try {
