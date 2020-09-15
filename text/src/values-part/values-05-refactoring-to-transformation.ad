@@ -1,14 +1,14 @@
 [[mutation-to-transformation]]
 == From Mutation to Transformation
 
-Recall the cost function we ended up with, after the refactoring in <<collections-and-transformation-pipelines>>:
+Our Route class has a function to calculate it's cost, which we didn't show while refactoring the Route class in <<collections-and-transformation-pipelines>>:
 
-// begin-insert: tags/mutations.0:src/main/java/travelator/money/Cost.kt
+// begin-insert: tags/mutations.0:src/main/java/travelator/itinerary/Route_Cost.kt
 [source,kotlin]
 ----
-fun ExchangeRates.cost(userCurrency: Currency, items: Iterable<Priced>): CostSummary {
-    val calculator = CostSummaryCalculator(userCurrency, this)
-    items.forEach { p ->
+fun Route.cost(userCurrency: Currency, fx: ExchangeRates): CostSummary {
+    val calculator = CostSummaryCalculator(userCurrency, fx)
+    for (p in journeys) {
         calculator.addItem(p)
     }
     return calculator.summarise()
@@ -227,7 +227,7 @@ class CostSummary(userCurrency: Currency, val lines: List<CurrencyConversion>) {
 
 We can apply a similar process to the CostSummaryCalculator.
 In this case we won't add a secondary constructor.
-Instead we will pass the items to the `summarise` method.
+Instead, we will add an overload of the `summarise` method that takes the items, calls `addItem` for each one, and then returns the result of the original `summarise` method.
 This draws a distinction between the context of cost summary calculations, which is passed to the constructor, and the arguments to a specific calculation, which are passed to the `summarise` method.
 
 // begin-insert: tags/mutations.4:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
@@ -272,7 +272,64 @@ fun ExchangeRates.cost(userCurrency: Currency, items: Iterable<Priced>): CostSum
 
 The function is starting to look too trivial to be useful, but let's finish our refactoring of the CostSummaryCalculator, and then have a think about what to do with this function.
 
+We must change all uses of the CostSummaryCalculator pass the items to our new override of the `summarise` method.
 
+TODO: mutable accumulator to fold over chained sequences.  E.g. Itinerary has both Route and Stays
+
+Now the only method called on the CostSummaryCalculator is the overload of summarise that takes the Items as an argument.
+We can move logic from `addItems` and `summarise()` into that method:
+
+// begin-insert: tags/mutations.5:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
+[source,kotlin]
+----
+class CostSummaryCalculator(
+    private val userCurrency: Currency,
+    private val exchangeRates: ExchangeRates
+) {
+    fun summarise(items: Iterable<Priced>): CostSummary {
+        val currencyTotals = items
+            .map { it.price }
+            .groupingBy { it.currency }
+            .reduce { _, a, b -> a + b }
+
+        val lines = currencyTotals.values
+            .sortedBy { it.currency.currencyCode }
+            .map { exchangeRates.convert(it, userCurrency) }
+
+        return CostSummary(userCurrency, lines)
+    }
+}
+----
+// end-insert
+
+
+Now we can see quite clearly that we have a pure function over a collection of priced items, that executes in a context made up of the exchange rates and user's preferred currency.
+The class is not a calculator any more -- it's the context for the pricing calculation.
+
+Let's refactor to show that:
+
+// begin-insert: tags/mutations.8:src/main/java/travelator/itinerary/PricingContext.kt
+[source,kotlin]
+----
+data class PricingContext(
+    val userCurrency: Currency,
+    val exchangeRates: ExchangeRates
+)
+
+fun PricingContext.summarise(items: Iterable<Priced>): CostSummary {
+    return CostSummary(
+        userCurrency,
+        items
+            .map { it.price }
+            .groupingBy { it.currency }
+            .reduce { _, a, b -> a + b }
+            .values
+            .sortedBy { it.currency.currencyCode }
+            .map { exchangeRates.convert(it, userCurrency) }
+    )
+}
+----
+// end-insert
 
 To be continued...
 

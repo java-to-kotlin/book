@@ -58,14 +58,6 @@ public class Route implements Iterable<Journey> {
             journeys.get(journeys.size() - 1).getArrivalTime());
     }
 
-    public CostSummary cost(Currency userCurrency, ExchangeRates fx) {
-        CostSummaryCalculator calculator = new CostSummaryCalculator(userCurrency, fx);
-        for (var p : journeys) {
-            calculator.addItem(p);
-        }
-        return calculator.summarise();
-    }
-
     ...
 }
 ----
@@ -145,14 +137,6 @@ class Route(journeys: List<Journey>) : Iterable<Journey> {
         Duration.between(
             journeys[0].departureTime,
             journeys[journeys.size - 1].arrivalTime)
-
-    fun cost(userCurrency: Currency, fx: ExchangeRates): CostSummary {
-        val calculator = CostSummaryCalculator(userCurrency, fx)
-        for (p in journeys) {
-            calculator.addItem(p)
-        }
-        return calculator.summarise()
-    }
 
     ...
 }
@@ -237,14 +221,6 @@ class Route(private val journeys: List<Journey>) : Iterable<Journey> by journeys
             journeys.first().departureTime,
             journeys.last().arrivalTime)
 
-    fun cost(userCurrency: Currency, fx: ExchangeRates): CostSummary {
-        val calculator = CostSummaryCalculator(userCurrency, fx)
-        for (p in journeys) {
-            calculator.addItem(p)
-        }
-        return calculator.summarise()
-    }
-
     ...
 }
 ----
@@ -288,14 +264,6 @@ val Route.duration: Duration get() =
     Duration.between(
         journeys.first().departureTime,
         journeys.last().arrivalTime)
-
-fun Route.cost(userCurrency: Currency, fx: ExchangeRates): CostSummary {
-    val calculator = CostSummaryCalculator(userCurrency, fx)
-    for (p in journeys) {
-        calculator.addItem(p)
-    }
-    return calculator.summarise()
-}
 ----
 // end-insert
 
