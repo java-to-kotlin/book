@@ -3,8 +3,8 @@
 
 One of the most important things our travellers want to know is how much will their travels cost.
 International travel makes this rather complicated.
-A trip will involve costs in multiple currencies, as it wends its way across borders, but the user wants to be able to compare overall costs to make decisions about routes and where to stay.
-Therefore, Travelator summarises costs by local currency _and_ the user's preferred currency, and shows the the overall total in the user's preferred currency.
+A trip will involve costs in multiple currencies, as it wends its way across borders, but the traveller wants to be able to compare overall costs to make decisions about routes and where to stay.
+Therefore, Travelator summarises costs by local currency _and_ the traveller's preferred currency, and shows the the overall total in the traveller's preferred currency.
 It does this using the `CostSummary` and `CostSummaryCalculator` classes.
 Let's take a look at how they are used, and then we'll look at their implementation.
 
@@ -43,7 +43,7 @@ fun Route.addCostsTo(calculator: CostSummaryCalculator) {
 // end-insert
 
 The logic is essentially the same because the process of summarising costs relies upon side effects that accumulate mutable state in the `CostSummaryCalculator`.
-To obtain a `CostSummary` for a `Route`, Travelator creates a `CostSummaryCalculator` with the user's preferred currency and a source of currency exchange rates.
+To obtain a `CostSummary` for a `Route`, Travelator creates a `CostSummaryCalculator` with the traveller's preferred currency and a source of currency exchange rates.
 It passes the calculator to the Route's `addCostsTo` method and, when that method returns, calls the calculator's `summarise` method to calculate the `CostSummary`.
 
 The benefit of this model is that we can use the calculator to summarise any composite object that contains elements that incur costs.
@@ -149,9 +149,9 @@ The two classes intertwine the following responsibilities:
 
 * Hold information from the context of the calculation that is needed to compute the summary
 * Calculate per-currency totals, so the calculation doesn't accumulate rounding errors
-* Convert costs to the user's preferred currency
-* Calculate the grand total in the user's preferred currency
-* Represent the summary of the currency conversions and total that the application reports to the user.
+* Convert costs to the travellers's preferred currency
+* Calculate the grand total in the travellers's preferred currency
+* Represent the summary of the currency conversions and total that the application reports to the traveller.
 * Sort the lines of the summary in alphabetical order of the original currency code.
 
 This intertwingling of responsibilities is a common outcome of using mutation of shared state.
@@ -163,7 +163,7 @@ It's a "doer" class.
 Linguistically, the class name is an _agent noun_, derived from a verb and meaning no more than an entity that performs the action identified by the verb.
 
 Another clue is in the data that the class holds.
-The user's currency and ExchangeRates are the context for the calculation.
+The traveller's currency and ExchangeRates are the context for the calculation.
 They are created elsewhere in the application and held by `CostCurrencyCalculator` so that it can use them in its calculations.
 The other field is the mutable map of `currencyTotals` -- transient, intermediate results of the calculation that are discarded when the calculation is complete.
 The class doesn't have any long-lived data of its own.
@@ -369,7 +369,8 @@ class CostSummaryCalculator(
 // end-insert
 
 
-Now we can see quite clearly that we have a pure function over a collection of costs, that executes in a context made up of the exchange rates and user's preferred currency.
+Now we can see quite clearly that we have a pure function over a collection of costs, the exchange rates and traveller's preferred currency.
+The latter two are the context in which the function is evaluated.
 The class is not a calculator any more -- it's the context for pricing calculations we do for a specific traveller.
 
 Let's refactor to show that:
