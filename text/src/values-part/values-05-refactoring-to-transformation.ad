@@ -291,7 +291,7 @@ class CostSummary(userCurrency: Currency, val lines: List<CurrencyConversion>) {
 
 We can apply a similar process to the CostSummaryCalculator.
 In this case we won't add a secondary constructor.
-Instead, we will add an overload of the `summarise` method that takes the items, calls `addItem` for each one, and then returns the result of the original `summarise` method.
+Instead, we will add an overload of the `summarise` method that takes the costs, calls `addCost` for each one, and then returns the result of the original `summarise` method.
 
 // begin-insert: tags/mutations.4:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
 [source,kotlin]
@@ -326,7 +326,23 @@ class CostSummaryCalculator(
 
 This draws a distinction between the context of cost summary calculations, which is passed to the constructor, and the arguments to a specific calculation, which are passed to the `summarise` method.
 
-To switch over to using the new `summarise` method, we'll have to report the costs of the entities we want to summarise, rather than add their costs to the mutable calculator:
+To switch over to using the new `summarise` method, we'll have to query the costs of the entities we want to summarise, rather than add their costs to a mutable calculator.
+We'll end up using the calculator like this:
+
+// begin-insert: tags/mutations.4:src/test/java/travelator/itinerary/Route_CostTest.kt#calculation
+[source,kotlin]
+----
+val fx: ExchangeRates = ...
+val userCurrency: Currency = ...
+
+val calculator = CostSummaryCalculator(userCurrency, fx)
+
+fun costSummary(r: Route): CostSummary =
+    calculator.summarise(r.costs())
+----
+// end-insert
+
+And we'll report the costs from our domain models like this:
 
 // begin-insert: tags/mutations.4:src/main/java/travelator/itinerary/Route_Cost.kt
 [source,kotlin]
@@ -343,8 +359,9 @@ fun Itinerary.costs() =
 ----
 // end-insert
 
-Now the only method called on the CostSummaryCalculator is the overload of summarise that takes the Items as an argument.
-We can move logic from `addItems` and `summarise()` into that method:
+
+Now the only method called on the CostSummaryCalculator is the overload of summarise that takes the costs as an argument.
+We can move the calculation of the `currencyTotals` and `CostSummary` into that method:
 
 // begin-insert: tags/mutations.5:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
 [source,kotlin]
@@ -369,24 +386,22 @@ class CostSummaryCalculator(
 // end-insert
 
 
-Now we can see quite clearly that we have a pure function over a collection of costs, the exchange rates and traveller's preferred currency.
-The latter two are the context in which the function is evaluated.
-The class is not a calculator any more -- it's the context for pricing calculations we do for a specific traveller.
-
+This clearly shows us that we have a pure function that is applied to a collection of costs, and is evaluated in a context comprised of the exchange rates and traveller's preferred currency.
+The class is not a calculator any more -- it holds the context for pricing calculations we do for a specific traveller.
 Let's refactor to show that:
 
 To be continued...
 
 TODO:
 
-* refactoring loops and mutation to value types and transformations using the stdlib
-** Aggregate data into intermediate form, calculate result from intermediate form.
+We can see the shape of the calculation more clearly now.
+It first aggregates data into intermediate form, and then calculates the final result from that intermediate form.
 
-Example of the following design process:
+This is an example of the following design process:
 
 * Transform inputs into outputs.
 * If you can't do that easily in one step, transform inputs into an intermediate representation from which it is easy to transform into outputs.
-* Can't do _that_ easily in one step? Repeat until you can.
+* If you can't do _that_ easily in one step? Repeat until you can.
 
 
 Where does mutation go?
