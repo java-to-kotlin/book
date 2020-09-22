@@ -11,6 +11,26 @@ Let's take a look at how they are used, and then we'll look at their implementat
 One of the things for which our application calculates a cost summary is a Route.
 We didn't show it during the refactoring in <<collections-and-transformation-pipelines>>,
 but our `Route` class has an operation for summarising its costs with a CostSummaryCalculator.
+It is used like this:
+
+// begin-insert: tags/value_types.0:src/test/java/travelator/itinerary/RouteCostTest.java#calculation
+[source,java]
+----
+ExchangeRates fx = ...
+
+Currency userCurrency = ...
+
+CostSummaryCalculator calculator =
+    new CostSummaryCalculator(userCurrency, fx);
+
+public CostSummary costSummary(Route r) {
+    r.addCostsTo(calculator);
+    return calculator.summarise();
+}
+----
+// end-insert
+
+And implemented like this:
 
 // begin-insert: tags/value_types.0:src/main/java/travelator/itinerary/Route.java#costs
 [source,java]
@@ -42,7 +62,7 @@ fun Route.addCostsTo(calculator: CostSummaryCalculator) {
 ----
 // end-insert
 
-The logic is essentially the same because the process of summarising costs relies upon side effects that accumulate mutable state in the `CostSummaryCalculator`.
+The logic is essentially the same because it relies upon side effects that accumulate costs in mutable state of the `CostSummaryCalculator`.
 To obtain a `CostSummary` for a `Route`, Travelator creates a `CostSummaryCalculator` with the traveller's preferred currency and a source of currency exchange rates.
 It passes the calculator to the Route's `addCostsTo` method and, when that method returns, calls the calculator's `summarise` method to calculate the `CostSummary`.
 
