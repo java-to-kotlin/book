@@ -46,11 +46,11 @@ The logic is essentially the same because the process of summarising costs relie
 To obtain a `CostSummary` for a `Route`, Travelator creates a `CostSummaryCalculator` with the user's preferred currency and a source of currency exchange rates.
 It passes the calculator to the Route's `addCostsTo` method and, when that method returns, calls the calculator's `summarise` method to calculate the `CostSummary`.
 
-The benefit of this model is that the calculator can be used with any object that contains elements that incur costs.
+The benefit of this model is that we can use the calculator to summarise any composite object that contains elements that incur costs.
 For example, a Route is made up of Journeys that each have a cost, and an Itinerary is made up of a Route and a collection of hotel stays that each have a cost.
-The object is responsible for adding costs to the CostSummaryCalculator, and so its internal state remains encapsulated.
+The method or function that adds costs to the CostSummaryCalculator decouples the code that uses the summary  from the internal structure of the composite object.
 
-// TODO: use a code snippet
+// begin-insert: tags/mutations.0:src/main/java/travelator/itinerary/Itinerary.kt
 [source,kotlin]
 ----
 data class Itinerary(
@@ -63,9 +63,16 @@ fun Itinerary.addCostsTo(calculator: CostSummaryCalculator) {
     stays.forEach { stay -> calculator.addCost(stay.price) }
 }
 ----
+// end-insert
 
+However, this use of mutable state has two significant disadvantages.
 
-Here is the CostSummaryCalculator class:
+Firstly, it introduces the possibility of aliasing errors.
+... explain ...
+
+Secondly, it duplicates logic that is already implemented by the standard library, and does so in a way that makes that duplication hard to notice.
+
+To see how, let's take a look at the `CostSummaryCalculator` class:
 
 // begin-insert: tags/mutations.0:src/main/java/travelator/itinerary/CostSummaryCalculator.java
 [source,java]
@@ -140,35 +147,36 @@ public class CostSummary {
 
 The two classes intertwine the following responsibilities:
 
-* Hold information about the context of the calculation needed to compute its result
-* Calculate per-currency totals, so we don't accumulate rounding errors
+* Hold information from the context of the calculation that is needed to compute the summary
+* Calculate per-currency totals, so the calculation doesn't accumulate rounding errors
 * Convert costs to the user's preferred currency
-* Calculate the total in the user's preferred currency
-* Create a summary of the currency conversions and total, so that the application can report the summary to the user.
+* Calculate the grand total in the user's preferred currency
+* Represent the summary of the currency conversions and total that the application reports to the user.
 * Sort the lines of the summary in alphabetical order of the original currency code.
 
 This intertwingling of responsibilities is a common outcome of using mutation of shared state.
-We want to disentangle the responsibilities, but what's our end goal?
+We'd like to disentangle the responsibilities and implement them with existing functions in the standard library.
+What is final shape of the code we should aim for with this refactoring?
 
-A clue is in the name of the "CostCurrencyCalculator" class, or rather the "or" suffix.
+One clue is in the name of the "CostCurrencyCalculator" class, or rather its "...or" suffix.
 It's a "doer" class.
 Linguistically, the class name is an _agent noun_, derived from a verb and meaning no more than an entity that performs the action identified by the verb.
 
 Another clue is in the data that the class holds.
-The user's currency and ExchangeRates are the _context_ for the calculation.
-They are created elsewhere in the application and passed to the CostCurrencyCalculator's constructor so that it can use them in its calculations.
-The other field is the mutable map of `currencyTotals`, which are transient, intermediate results of the calculation.
-The class doesn't own any long-lived data.
+The user's currency and ExchangeRates are the context for the calculation.
+They are created elsewhere in the application and held by `CostCurrencyCalculator` so that it can use them in its calculations.
+The other field is the mutable map of `currencyTotals` -- transient, intermediate results of the calculation that are discarded when the calculation is complete.
+The class doesn't have any long-lived data of its own.
 
-It doesn't represent a concept in our application domain model, but a _function_ that we perform upon entities of our the domain model.
-In Kotlin, we usually implement functions not with classes but with, well,  _functions_.
+The `CostCurrencyCalculator` class doesn't represent a concept in our application domain model, but a _function_ that we perform upon elements of our domain model.
+In Kotlin, we usually implement functions not with classes but with, well, functions.
 
 Let's refactor the calculation from mutable classes to functions that work with immutable data.
 
 
 === Converting to Kotlin
 
-Let's convert the two classes to idiomatic Kotlin:
+Convert the two classes to idiomatic Kotlin leaves us with "Java in Kotlin syntax", a starting point from which we can start refactoring away the mutability.
 
 // begin-insert: tags/mutations.1:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
 [source,kotlin]
@@ -204,13 +212,13 @@ class CostSummaryCalculator(
 // begin-insert: tags/mutations.1:src/main/java/travelator/itinerary/CostSummary.kt
 [source,kotlin]
 ----
-class CostSummary(userCurrency: Currency?) {
+class CostSummary(userCurrency: Currency) {
     private val _lines: MutableList<CurrencyConversion> = ArrayList()
 
     private val lines: List<CurrencyConversion>
         get() = _lines.toList()
 
-    var total: Money = Money.zero(userCurrency!!)
+    var total: Money = Money.zero(userCurrency)
         private set
 
     fun addLine(line: CurrencyConversion) {
@@ -221,21 +229,22 @@ class CostSummary(userCurrency: Currency?) {
 ----
 // end-insert
 
+From here, we'll work from the inside, gradually pushing immutability outwards.
 We'll start by making CostSummary an immutable value type, and then see what we can do about the CostSummaryCalculator.
 
-If CostSummary was immutable, client code would have to pass the list of lines to its constructor instead of calling `addLine`.
+If CostSummary was immutable, client code would have to pass the list of lines to its constructor instead of calling its `addLine` method.
 We can baby-step our way there by adding a secondary constructor to the CostSummary class that takes a list of lines and calls addLine for each one:
 
 // begin-insert: tags/mutations.2:src/main/java/travelator/itinerary/CostSummary.kt
 [source,kotlin]
 ----
-class CostSummary(userCurrency: Currency?) {
+class CostSummary(userCurrency: Currency) {
     private val _lines: MutableList<CurrencyConversion> = ArrayList()
 
     private val lines: List<CurrencyConversion>
         get() = _lines.toList()
 
-    var total: Money = Money.zero(userCurrency!!)
+    var total: Money = Money.zero(userCurrency)
         private set
 
     constructor(
@@ -254,7 +263,7 @@ class CostSummary(userCurrency: Currency?) {
 // end-insert
 
 Now we can change the `CostSummaryCalculator.summarise` method to call the new constructor, treating the `CostSummary` class as if it was an immutable value type.
-While we are about it, we'll use Kotlin's `List.sortedBy` function, instead of a mutable ArrayList and Java's in-place sort, to sort the totals by currency code.
+While we are about it, we'll sort the totals by currency code with Kotlin's `List.sortedBy` function, instead of a mutable ArrayList and Java's in-place sort.
 
 // begin-insert: tags/mutations.2:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise
 [source,kotlin]
@@ -283,7 +292,6 @@ class CostSummary(userCurrency: Currency, val lines: List<CurrencyConversion>) {
 We can apply a similar process to the CostSummaryCalculator.
 In this case we won't add a secondary constructor.
 Instead, we will add an overload of the `summarise` method that takes the items, calls `addItem` for each one, and then returns the result of the original `summarise` method.
-This draws a distinction between the context of cost summary calculations, which is passed to the constructor, and the arguments to a specific calculation, which are passed to the `summarise` method.
 
 // begin-insert: tags/mutations.4:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
 [source,kotlin]
@@ -316,7 +324,9 @@ class CostSummaryCalculator(
 ----
 // end-insert
 
-The CostSummaryCalculator is now used like this:
+This draws a distinction between the context of cost summary calculations, which is passed to the constructor, and the arguments to a specific calculation, which are passed to the `summarise` method.
+
+To switch over to using the new `summarise` method, we'll have to report the costs of the entities we want to summarise, rather than add their costs to the mutable calculator:
 
 // begin-insert: tags/mutations.4:src/main/java/travelator/itinerary/Route_Cost.kt
 [source,kotlin]
@@ -325,19 +335,13 @@ fun Route.costs() = map { it.price }
 ----
 // end-insert
 
-We must change all uses of the CostSummaryCalculator pass the items to our new override of the `summarise` method.
-
-// begin-insert: tags/mutations.5:src/main/java/travelator/itinerary/Route_Cost.kt
+// begin-insert: tags/mutations.4:src/main/java/travelator/itinerary/Itinerary.kt#costs
 [source,kotlin]
 ----
-fun Route.costs() = map { it.price }
+fun Itinerary.costs() =
+    route.costs() + stays.map { it.price }
 ----
 // end-insert
-
-The function is starting to look too trivial to be useful, but let's finish our refactoring of the CostSummaryCalculator, and then have a think about what to do with this function.
-
-
-TODO: mutable accumulator to fold over chained sequences.  E.g. Itinerary has both Route and Stays
 
 Now the only method called on the CostSummaryCalculator is the overload of summarise that takes the Items as an argument.
 We can move logic from `addItems` and `summarise()` into that method:
@@ -349,8 +353,8 @@ class CostSummaryCalculator(
     private val userCurrency: Currency,
     private val exchangeRates: ExchangeRates
 ) {
-    fun summarise(items: Iterable<Money>): CostSummary {
-        val currencyTotals = items
+    fun summarise(costs: Iterable<Money>): CostSummary {
+        val currencyTotals = costs
             .groupingBy { it.currency }
             .reduce { _, a, b -> a + b }
 
@@ -365,7 +369,7 @@ class CostSummaryCalculator(
 // end-insert
 
 
-Now we can see quite clearly that we have a pure function over a collection of priced items, that executes in a context made up of the exchange rates and user's preferred currency.
+Now we can see quite clearly that we have a pure function over a collection of costs, that executes in a context made up of the exchange rates and user's preferred currency.
 The class is not a calculator any more -- it's the context for pricing calculations we do for a specific traveller.
 
 Let's refactor to show that:
