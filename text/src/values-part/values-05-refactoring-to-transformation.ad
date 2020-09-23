@@ -19,15 +19,14 @@ It is used like this:
 [source,java]
 ----
 ExchangeRates fx = ...
-
 Currency userCurrency = ...
 
 CostSummaryCalculator calculator =
-    new CostSummaryCalculator(userCurrency, fx);
+    new CostSummaryCalculator(userCurrency, fx); // <1>
 
 public CostSummary costSummary(Route r) {
-    r.addCostsTo(calculator);
-    return calculator.summarise();
+    r.addCostsTo(calculator); // <2>
+    return calculator.summarise(); // <3>
 }
 ----
 // end-insert
@@ -143,7 +142,6 @@ public class CostSummaryCalculator {
 The full calculation of the summary is split between two classes.
 The CostSummaryCalculator keeps a running total of costs in each currency as the Route.cost function adds journeys.
 When asked for a summary, it converts those totals to the traveller's preferred currency and adds the conversion results to the `CostSummary`.
-The `CostSummary` maintains a running total of the cost in the traveller's preferred currency as the CostSummaryCalculator adds the conversion results.
 
 // begin-insert: tags/mutations.0:src/main/java/travelator/itinerary/CostSummary.java
 [source,java]
@@ -171,6 +169,8 @@ public class CostSummary {
 }
 ----
 // end-insert
+
+The `CostSummary` maintains a running total of the cost in the traveller's preferred currency as the CostSummaryCalculator adds the conversion results.
 
 The two classes intertwine the following responsibilities:
 
