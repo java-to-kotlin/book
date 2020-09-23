@@ -10,9 +10,11 @@ Let's take a look at how they are used, and then we'll look at their implementat
 
 One of the things for which our application calculates a cost summary is a Route.
 We didn't show it during the refactoring in <<collections-and-transformation-pipelines>>,
-but our `Route` class has an operation for summarising its costs with a CostSummaryCalculator.
+but our `Route` class has an operation for summarising its costs with a `CostSummaryCalculator`.
+
 It is used like this:
 
+[[cost-summary-calculator-usage]]
 // begin-insert: tags/value_types.0:src/test/java/travelator/itinerary/RouteCostTest.java#calculation
 [source,java]
 ----
@@ -30,7 +32,12 @@ public CostSummary costSummary(Route r) {
 ----
 // end-insert
 
-And implemented like this:
+<1> Travelator creates a `CostSummaryCalculator` with the traveller's preferred currency and a source of currency exchange rates.
+<2> It tells the Route to add its costs to the calculator.  The Route adds the cost of each journey.
+<3> When `r.addCostsTo(calculator)` returns, Travelator calls the calculator's `summarise` method to obtain the `CostSummary`.
+
+
+The `Route.addCostsTo` method was implemented in Java as follows:
 
 // begin-insert: tags/value_types.0:src/main/java/travelator/itinerary/Route.java#costs
 [source,java]
@@ -51,7 +58,7 @@ public class Route implements Iterable<Journey> {
 ----
 // end-insert
 
-By the end of <<collections-and-transformation-pipelines>>, it had been refactored to an extension method on `Route` which was a typealias of `List<Journey>`:
+By the end of <<collections-and-transformation-pipelines>>, it had been refactored to an extension method on `Route` which is now a typealias of `List<Journey>`:
 
 // begin-insert: tags/mutations.0:src/main/java/travelator/itinerary/Route_Cost.kt
 [source,kotlin]
@@ -62,13 +69,10 @@ fun Route.addCostsTo(calculator: CostSummaryCalculator) {
 ----
 // end-insert
 
-The logic is essentially the same because it relies upon side effects that accumulate costs in mutable state of the `CostSummaryCalculator`.
-To obtain a `CostSummary` for a `Route`, Travelator creates a `CostSummaryCalculator` with the traveller's preferred currency and a source of currency exchange rates.
-It passes the calculator to the Route's `addCostsTo` method and, when that method returns, calls the calculator's `summarise` method to calculate the `CostSummary`.
+The logic is essentially the same because it relies upon side effects that accumulate costs in the mutable state of the `CostSummaryCalculator`.
 
-The benefit of this model is that we can use the calculator to summarise any composite object that contains elements that incur costs.
-For example, a Route is made up of Journeys that each have a cost, and an Itinerary is made up of a Route and a collection of hotel stays that each have a cost.
-The method or function that adds costs to the CostSummaryCalculator decouples the code that uses the summary  from the internal structure of the composite object.
+The benefit of this approach is that we can use the calculator to summarise the costs of any entity in our domain model without coupling code that uses the CostSummary to the structure of that entity.
+For example, a Route contains Journeys that each have a cost, and an Itinerary contains a Route and a collection of hotel stays that each have a cost.
 
 // begin-insert: tags/mutations.0:src/main/java/travelator/itinerary/Itinerary.kt
 [source,kotlin]
@@ -88,9 +92,12 @@ fun Itinerary.addCostsTo(calculator: CostSummaryCalculator) {
 However, this use of mutable state has two significant disadvantages.
 
 Firstly, it introduces the possibility of aliasing errors.
-... explain ...
+If we reuse a calculator to summarise the costs of multiple entities, we have to reset its state between each calculation to stop costs collected during one calculation being included in the next.
+The type system cannot help us avoid this mistake.
+In fact, the example code on <<cost-summary-calculator-usage>> makes this error.
+The calculator is not local to the `costSummary` method, but `costSummary` does not reset the calculator before each calculation.
 
-Secondly, it duplicates logic that is already implemented by the standard library, and does so in a way that makes that duplication hard to notice.
+Secondly, the stateful computation duplicates _logic_ that is already implemented by the standard library, but makes that duplication hard to spot because the _code_ looks so different.
 
 To see how, let's take a look at the `CostSummaryCalculator` class:
 
