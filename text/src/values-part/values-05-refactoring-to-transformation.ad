@@ -337,7 +337,7 @@ class CostSummary(val lines: List<CurrencyConversion>, total: Money) {
 ----
 // end-insert
 
-Then auto-correct on the total property to move its definition into the constructor:
+Then Alt-Enter on the total property to move its definition into the constructor:
 
 // begin-insert: tags/new_mutations.5:src/main/java/travelator/itinerary/CostSummary.kt
 [source,kotlin]
@@ -395,42 +395,15 @@ In this case we won't add a secondary constructor.
 Instead, we will add an overload of the `summarise` method that takes the costs, calls `addCost` for each one, and then returns the result of the original `summarise` method.
 This will draw a distinction between the context of cost summary calculations, which will be passed to the constructor, and the arguments to a specific calculation, which will be passed to the `summarise` method.
 
-We'll pass the costs as a lazily evaluated `Sequence<Money>` to avoid copying between collections when reporting costs from composite entities.
+We'll pass the costs as a lazily evaluated `Sequence<Money>` to avoid copying between collections multiple times when reporting costs from composite entities.
 
-// begin-insert: tags/new_mutations.7:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
+// begin-insert: tags/new_mutations.7:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise_overload
 [source,kotlin]
 ----
-class CostSummaryCalculator(
-    private val userCurrency: Currency,
-    private val exchangeRates: ExchangeRates
-) {
-    private val currencyTotals = mutableMapOf<Currency, Money>()
-
-    fun summarise(costs: Sequence<Money>): CostSummary {
-        reset()
-        costs.forEach(::addCost)
-        return summarise()
-    }
-
-    fun addCost(cost: Money) {
-        currencyTotals.merge(cost.currency, cost, Money::plus)
-    }
-
-    fun summarise(): CostSummary {
-        val lines = currencyTotals.values
-            .sortedBy { it.currency.currencyCode }
-            .map { exchangeRates.convert(it, userCurrency) }
-
-        val total = lines
-            .map { it.toMoney }
-            .fold(Money.zero(userCurrency), Money::add)
-
-        return CostSummary(lines, total)
-    }
-
-    fun reset() {
-        currencyTotals.clear()
-    }
+fun summarise(costs: Sequence<Money>): CostSummary {
+    reset()
+    costs.forEach(::addCost)
+    return summarise()
 }
 ----
 // end-insert
@@ -500,20 +473,47 @@ class CostSummaryCalculator(
 === Separating Context from Specifics
 
 This clearly shows us that we have a pure function that is applied to a collection of costs, and is evaluated in a context comprised of the exchange rates and the traveller's preferred currency.
-There are other calculations in our application that also use exchange rates and the traveller's preferred currency.
-By separating the calculation of the cost summary from the context of that calculation, we have discovered a useful abstraction that we can use more widely to simplify code elsewhere in the application.
+It's not the only calculations in our application that depends upon exchange rates and the traveller's preferred currency.
+For example, while the user is browsing hotel rooms, we show the cost of each room in both local and preferred currencies.
 
-For example, we show the cost of individual items in both the local and preferred currency.
-The CostSummaryCalculator also converts the cost of individual items in order to summarise them.
-We can expose that functionality as a method, and remove duplicate logic elsewhere in the application.
+The CostSummaryCalculator converts the cost of individual items in order to summarise them.
+If we expose that functionality as a public function, we can remove duplicate logic elsewhere in the application.
 
-The class is not a summary calculator any more -- it holds the context for pricing calculations we do for a specific traveller.
+So, by separating the calculation of the cost summary from the context of that calculation, we have discovered a useful abstraction that we can use more widely to simplify code elsewhere in the application.
+The class is no longer a summary calculator -- it holds the context for any pricing calculations we do for a specific traveller.
 Let's rename the class to make that explicit.
-I can't think of a better name than PricingContext at the moment.
+At the moment, I can't think of a better name than "PricingContext".
 It's a bit too generic for my tastes, but will do until we think of something better.
 At least it's not misleading.
 Because renames are cheap, even in a mixed Java/Kotlin codebase, a small incremental improvement is better than no improvement.
 
+Here's the result of renaming the class and converting the `summarise` method into an extension function:
+
+// begin-insert: tags/new_mutations.10:src/main/java/travelator/itinerary/PricingContext.kt
+[source,kotlin]
+----
+data class PricingContext(
+    val userCurrency: Currency,
+    val exchangeRates: ExchangeRates
+)
+
+fun PricingContext.summarise(costs: Sequence<Money>): CostSummary {
+    val currencyTotals = costs
+        .groupingBy { it.currency }
+        .reduce { _, a, b -> a + b }
+
+    val lines = currencyTotals.values
+        .sortedBy { it.currency.currencyCode }
+        .map { exchangeRates.convert(it, userCurrency) }
+
+    val total = lines
+        .map { it.toMoney }
+        .fold(Money(0, userCurrency), Money::add)
+
+    return CostSummary(lines, total)
+}
+----
+// end-insert
 
 TODO...
 
