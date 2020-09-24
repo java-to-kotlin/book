@@ -470,32 +470,76 @@ class CostSummaryCalculator(
 ----
 // end-insert
 
+We can see the shape of the `summarise` calculation more clearly now.
+It is a pure function that is applied to a collection of costs, and evaluated in a context comprised of the exchange rates and the traveller's preferred currency.
+The function first transforms the costs into an intermediate form, the total for each currency, and then calculates the final result, the `CostSummary`, from that intermediate form.
+
+This is an example of the following design process:
+
+. Transform the inputs into outputs.
+. If you can't do that easily in one step, transform the inputs into an intermediate representation from which it is easy to transform into outputs.
+. If you can't do _that_ easily in one step, repeat step 2 until you can.
+
+
 === Separating Context from Specifics
 
-This clearly shows us that we have a pure function that is applied to a collection of costs, and is evaluated in a context comprised of the exchange rates and the traveller's preferred currency.
-It's not the only calculations in our application that depends upon exchange rates and the traveller's preferred currency.
+Generating a summary of costs is not the only calculation in our application that depends upon exchange rates and the traveller's preferred currency.
 For example, while the user is browsing hotel rooms, we show the cost of each room in both local and preferred currencies.
+The CostSummaryCalculator also converts individual costs in order to summarise them.
+If we expose that functionality as a public method, called `toUserCurrency`, say, we can remove duplicate logic elsewhere in the application.
 
-The CostSummaryCalculator converts the cost of individual items in order to summarise them.
-If we expose that functionality as a public function, we can remove duplicate logic elsewhere in the application.
+// begin-insert: tags/new_mutations.10:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
+[source,kotlin]
+----
+class CostSummaryCalculator(
+    private val userCurrency: Currency,
+    private val exchangeRates: ExchangeRates
+) {
+    fun toUserCurrency(it: Money) =
+        exchangeRates.convert(it, userCurrency)
 
-So, by separating the calculation of the cost summary from the context of that calculation, we have discovered a useful abstraction that we can use more widely to simplify code elsewhere in the application.
-The class is no longer a summary calculator -- it holds the context for any pricing calculations we do for a specific traveller.
-Let's rename the class to make that explicit.
+    fun summarise(costs: Sequence<Money>): CostSummary {
+        val currencyTotals = costs
+            .groupingBy { it.currency }
+            .reduce { _, a, b -> a + b }
+
+        val lines = currencyTotals.values
+            .sortedBy { it.currency.currencyCode }
+            .map(::toUserCurrency)
+
+        val total = lines
+            .map { it.toMoney }
+            .fold(Money(0, userCurrency), Money::add)
+
+        return CostSummary(lines, total)
+    }
+}
+----
+// end-insert
+
+By separating the calculation of the cost summary from the context of that calculation, we have discovered a useful abstraction that we can use more widely to simplify code elsewhere in the application.
+
+However, the class is no longer used only to calculate cost summaries.
+It holds the context for any pricing we do for a specific traveller.
+Its name is not appropriate any more, so let's rename it to reflect its new-found responsibility.
 At the moment, I can't think of a better name than "PricingContext".
 It's a bit too generic for my tastes, but will do until we think of something better.
 At least it's not misleading.
 Because renames are cheap, even in a mixed Java/Kotlin codebase, a small incremental improvement is better than no improvement.
 
-Here's the result of renaming the class and converting the `summarise` method into an extension function:
+We'll also separate the core abstraction of `PricingContext` from how we use it for specific use cases in our application.
+We'll implement the core abstraction as properties and methods of the class, and specific use cases as extension methods defined close to where they are used.
 
-// begin-insert: tags/new_mutations.10:src/main/java/travelator/itinerary/PricingContext.kt
+// begin-insert: tags/new_mutations.12:src/main/java/travelator/itinerary/PricingContext.kt
 [source,kotlin]
 ----
-data class PricingContext(
+class PricingContext(
     val userCurrency: Currency,
     val exchangeRates: ExchangeRates
-)
+) {
+    fun toUserCurrency(it: Money) =
+        exchangeRates.convert(it, userCurrency)
+}
 
 fun PricingContext.summarise(costs: Sequence<Money>): CostSummary {
     val currencyTotals = costs
@@ -504,7 +548,7 @@ fun PricingContext.summarise(costs: Sequence<Money>): CostSummary {
 
     val lines = currencyTotals.values
         .sortedBy { it.currency.currencyCode }
-        .map { exchangeRates.convert(it, userCurrency) }
+        .map(::toUserCurrency)
 
     val total = lines
         .map { it.toMoney }
@@ -515,29 +559,10 @@ fun PricingContext.summarise(costs: Sequence<Money>): CostSummary {
 ----
 // end-insert
 
-TODO...
-
-What does the code look like if we turn summarise into an extension function?
-IntelliJ can automatically convert the method into an extension function and back again.
-However, at the moment, the properties of CostSummaryCalculator are private, and so would be inaccessible to an extension function.
-We could make them public -- they are immutable, so that wouldn't be a terrible change.
-However, the class only uses them in one place: the conversion of a cost to the traveller's preferred currency.
-If we extract that as a public method, `summarise` can be made an extension method:
-
-
-
 
 === Conclusion
 
-We can see the shape of the calculation more clearly now.
-It first aggregates data into intermediate form, and then calculates the final result from that intermediate form.
-
-This is an example of the following design process:
-
-* Transform inputs into outputs.
-* If you can't do that easily in one step, transform inputs into an intermediate representation from which it is easy to transform into outputs.
-* If you can't do _that_ easily in one step? Repeat until you can.
-
+We converted computation that relied on shared, mutable state into a sequence of transformations applied to collections of immutable data.
 
 Where does mutation go?
 
