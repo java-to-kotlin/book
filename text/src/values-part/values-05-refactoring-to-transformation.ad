@@ -517,9 +517,16 @@ class CostSummaryCalculator(
 ----
 // end-insert
 
-By separating the calculation of the cost summary from the context of that calculation, we have discovered a useful abstraction that we can use more widely to simplify code elsewhere in the application.
+By drawing a distinction between the calculation of a cost summary from the context of that calculation, we have discovered a useful abstraction that we can use more widely to simplify code elsewhere in the application.
+However, we don't want our CostSummaryCalculator to become full of methods for lots of different use cases.
+We want a way to separate that core abstraction we discovered from how we use it in specific use cases in our application.
+Extension methods give us that.
+We'll define the core abstraction as properties and methods of the class, and support specific use cases with extension methods defined close to where they are used.
+In our case, the core abstraction is the conversion of Money values to the traveller's preferred currency.
+Specific use cases include summarising costs of journeys or itineraries.
+So we'll keep the `toUserCurrency` method on the class and make `summarise` an extension method.
 
-However, the class is no longer used only to calculate cost summaries.
+The class is no longer used only to calculate cost summaries.
 It holds the context for any pricing we do for a specific traveller.
 Its name is not appropriate any more, so let's rename it to reflect its new-found responsibility.
 At the moment, I can't think of a better name than "PricingContext".
@@ -527,8 +534,6 @@ It's a bit too generic for my tastes, but will do until we think of something be
 At least it's not misleading.
 Because renames are cheap, even in a mixed Java/Kotlin codebase, a small incremental improvement is better than no improvement.
 
-We'll also separate the core abstraction of `PricingContext` from how we use it for specific use cases in our application.
-We'll implement the core abstraction as properties and methods of the class, and specific use cases as extension methods defined close to where they are used.
 
 // begin-insert: tags/new_mutations.12:src/main/java/travelator/itinerary/PricingContext.kt
 [source,kotlin]
