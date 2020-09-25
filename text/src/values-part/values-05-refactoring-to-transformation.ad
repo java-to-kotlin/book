@@ -328,7 +328,7 @@ If we push the total calculation out as a constructor parameter, we could make t
 
 Then we'll select the expression to the right of the equals sign, and push it out as a constructor parameter:
 
-// begin-insert: tags/new_mutations.4:src/main/java/travelator/itinerary/CostSummary.kt
+// begin-insert: tags/mutations.4:src/main/java/travelator/itinerary/CostSummary.kt
 [source,kotlin]
 ----
 class CostSummary(val lines: List<CurrencyConversion>, total: Money) {
@@ -339,7 +339,7 @@ class CostSummary(val lines: List<CurrencyConversion>, total: Money) {
 
 Then Alt-Enter on the total property to move its definition into the constructor:
 
-// begin-insert: tags/new_mutations.5:src/main/java/travelator/itinerary/CostSummary.kt
+// begin-insert: tags/mutations.5:src/main/java/travelator/itinerary/CostSummary.kt
 [source,kotlin]
 ----
 class CostSummary(val lines: List<CurrencyConversion>, val total: Money)
@@ -349,7 +349,7 @@ class CostSummary(val lines: List<CurrencyConversion>, val total: Money)
 Now we can make `CostSummary` a data class.
 Its sole responsibility is to hold the results of the calculation for display to the user.
 
-// begin-insert: tags/new_mutations.6:src/main/java/travelator/itinerary/CostSummary.kt
+// begin-insert: tags/mutations.6:src/main/java/travelator/itinerary/CostSummary.kt
 [source,kotlin]
 ----
 data class CostSummary(val lines: List<CurrencyConversion>, val total: Money)
@@ -358,7 +358,7 @@ data class CostSummary(val lines: List<CurrencyConversion>, val total: Money)
 
 That leaves our `CostSummaryCalculator` looking like this:
 
-// begin-insert: tags/new_mutations.6:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
+// begin-insert: tags/mutations.6:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
 [source,kotlin]
 ----
 class CostSummaryCalculator(
@@ -397,7 +397,7 @@ This will draw a distinction between the context of cost summary calculations, w
 
 We'll pass the costs as a lazily evaluated `Sequence<Money>` to avoid copying between collections multiple times when reporting costs from composite entities.
 
-// begin-insert: tags/new_mutations.7:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise_overload
+// begin-insert: tags/mutations.7:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise_overload
 [source,kotlin]
 ----
 fun summarise(costs: Sequence<Money>): CostSummary {
@@ -411,7 +411,7 @@ fun summarise(costs: Sequence<Money>): CostSummary {
 To switch over to using the new `summarise` method, we'll have to query the costs of the entities we want to summarise, rather than add their costs to a mutable calculator.
 We'll end up using the calculator like this:
 
-// begin-insert: tags/new_mutations.8:src/test/java/travelator/itinerary/Route_CostTest.kt#calculation
+// begin-insert: tags/mutations.8:src/test/java/travelator/itinerary/Route_CostTest.kt#calculation
 [source,kotlin]
 ----
 val fx: ExchangeRates = ...
@@ -426,7 +426,7 @@ fun costSummary(r: Route) =
 
 And we'll report the costs from our domain models like this:
 
-// begin-insert: tags/new_mutations.8:src/main/java/travelator/itinerary/Route_Cost.kt
+// begin-insert: tags/mutations.8:src/main/java/travelator/itinerary/Route_Cost.kt
 [source,kotlin]
 ----
 fun Route.costs(): Sequence<Money> =
@@ -434,7 +434,7 @@ fun Route.costs(): Sequence<Money> =
 ----
 // end-insert
 
-// begin-insert: tags/new_mutations.8:src/main/java/travelator/itinerary/Itinerary.kt#costs
+// begin-insert: tags/mutations.8:src/main/java/travelator/itinerary/Itinerary.kt#costs
 [source,kotlin]
 ----
 fun Itinerary.costs(): Sequence<Money> =
@@ -444,7 +444,7 @@ fun Itinerary.costs(): Sequence<Money> =
 
 When our application only uses the new `summarise` method, we can move the calculation of the `currencyTotals` and `CostSummary` into that method, and delete the `addCost` and no-argument `summarise` methods:
 
-// begin-insert: tags/new_mutations.9:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
+// begin-insert: tags/mutations.9:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
 [source,kotlin]
 ----
 class CostSummaryCalculator(
@@ -488,7 +488,7 @@ For example, while the user is browsing hotel rooms, we show the cost of each ro
 The CostSummaryCalculator also converts individual costs in order to summarise them.
 If we expose that functionality as a public method, called `toUserCurrency`, say, we can remove duplicate logic elsewhere in the application.
 
-// begin-insert: tags/new_mutations.10:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
+// begin-insert: tags/mutations.10:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
 [source,kotlin]
 ----
 class CostSummaryCalculator(
@@ -530,7 +530,7 @@ The class is no longer a calculator of cost summaries -- it holds the context fo
 So let's rename it to reflect its new-found responsibility.
 At the moment, I can't think of a better name than "PricingContext".
 
-// begin-insert: tags/new_mutations.12:src/main/java/travelator/itinerary/PricingContext.kt
+// begin-insert: tags/mutations.12:src/main/java/travelator/itinerary/PricingContext.kt
 [source,kotlin]
 ----
 class PricingContext(
@@ -565,7 +565,7 @@ Renames are cheap, even in a mixed Java/Kotlin codebase, so a small incremental 
 
 This leaves the code that used to use the CostSummaryCalculator looking like this:
 
-// begin-insert: tags/new_mutations.12:src/test/java/travelator/itinerary/Route_CostTest.kt#calculation
+// begin-insert: tags/mutations.12:src/test/java/travelator/itinerary/Route_CostTest.kt#calculation
 [source,kotlin]
 ----
 val fx: ExchangeRates = ...
