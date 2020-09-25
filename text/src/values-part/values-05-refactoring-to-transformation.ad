@@ -526,14 +526,9 @@ In our case, the core abstraction is the conversion of Money values to the trave
 Specific use cases include summarising costs of journeys or itineraries.
 So we'll keep the `toUserCurrency` method on the class and make `summarise` an extension method.
 
-The class is no longer used only to calculate cost summaries.
-It holds the context for any pricing we do for a specific traveller.
-Its name is not appropriate any more, so let's rename it to reflect its new-found responsibility.
+The class is no longer a calculator of cost summaries -- it holds the context for any pricing we do for a specific traveller.
+So let's rename it to reflect its new-found responsibility.
 At the moment, I can't think of a better name than "PricingContext".
-It's a bit too generic for my tastes, but will do until we think of something better.
-At least it's not misleading.
-Because renames are cheap, even in a mixed Java/Kotlin codebase, a small incremental improvement is better than no improvement.
-
 
 // begin-insert: tags/new_mutations.12:src/main/java/travelator/itinerary/PricingContext.kt
 [source,kotlin]
@@ -564,15 +559,50 @@ fun PricingContext.summarise(costs: Sequence<Money>): CostSummary {
 ----
 // end-insert
 
+It's a bit too generic for my tastes, but will do until we think of something better.
+At least it's not misleading.
+Renames are cheap, even in a mixed Java/Kotlin codebase, so a small incremental improvement is better than no improvement.
 
-=== Conclusion
+This leaves the code that used to use the CostSummaryCalculator looking like this:
 
-We converted computation that relied on shared, mutable state into a sequence of transformations applied to collections of immutable data.
+// begin-insert: tags/new_mutations.12:src/test/java/travelator/itinerary/Route_CostTest.kt#calculation
+[source,kotlin]
+----
+val fx: ExchangeRates = ...
+val userCurrency = ...
 
-Where does mutation go?
+val pricing = PricingContext(userCurrency, fx)
 
-* push mutation outwards towards the entry points
-* or inwards and never let mutability escape local variables of a single function (this is an optimisation or when stdlib doesn't have the right HOF)
-** a function can be referentially transparent to callers even if its implementation is not.
-** In fact, that's how most of the HOFs in the standard library are implemented
+fun costSummary(r: Route) =
+    pricing.summarise(r.costs())
+----
+// end-insert
+
+
+=== Conclusions
+
+We started this chapter with a calculation that relied on shared, mutable state.
+It duplicated logic from the standard library and introduced the risk of aliasing errors.
+By the end of the chapter, we had refactored the same calculation to a transformation of immutable data.
+While doing so, we disentangled data dependencies and the logic of the calculation,
+and uncovered a useful abstraction that allowed us to further simplify our system.
+
+We moved mutation out of our code in two directions: outwards and inwards.
+Outwards was obvious - we made the CostSummary class an immutable value and adjusted the CostSummaryCalculator to fit,
+then made the CostSummaryCalculator immutable, and adjusted its callers to fit.
+But inwards?
+We replaced the imperative code that mutated collections and fields with calls to standard higher-order functions, like `groupingBy`, `fold` and `reduce`.
+Under the hood those functions do mutate state, but they hide that mutation from their callers.
+From outside, the functions are referentially transparent.
+
+We can use the same approach in our own code when we need to.
+Sometimes it is easier to use a mutable collection.
+The standard library does not always have a higher-order function that pivots the data the way we need.
+If we do need a mutable collection, we can hide that mutation inside a referentially transparent function to limit the blast radius of any potential aliasing errors.
+However, every release adds more functions to the standard library, so the need diminishes over time.
+
+Functional programming does not eliminate mutable state but instead _makes it the responsibility of the runtime_.
+A functional program declares what the runtime should calculate, and lets the runtime be responsible for to compute that calculation.
+Kotlin is not a pure functional language, but we get a lot of benefits by following that principle where we can.
+
 
