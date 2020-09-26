@@ -587,8 +587,6 @@ fun costSummary(r: Route) =
 We started this chapter with a calculation that relied on shared, mutable state.
 It duplicated logic from the standard library and introduced the risk of aliasing errors.
 By the end of the chapter, we had refactored the same calculation to a transformation of immutable data.
-While doing so, we disentangled data dependencies and the logic of the calculation,
-and uncovered a useful abstraction that allowed us to further simplify our system.
 
 We moved mutation out of our code in two directions: outwards and inwards.
 Outwards was obvious - we made the `CostSummary` class an immutable value and adjusted the `CostSummaryCalculator` to fit,
@@ -608,4 +606,8 @@ Functional programming does not eliminate mutable state but instead _makes it th
 A functional program declares what the runtime should calculate, and lets the runtime be responsible for to compute that calculation.
 Kotlin is not a pure functional language, but we get a lot of benefits by following that principle where we can.
 
-
+Eliminating mutable state disentangled the data dependencies and logic of the calculation,
+and uncovered a useful abstraction that we can use to simplify other parts of our system.
+We could separate our model into a core abstraction, defined as a class with properties and methods,
+and context specific uses of that abstraction, defined as extension functions close the point of use.
+We explore further how Kotlin gives us different options for organising our code in <<organising-code-by-domain>>.
