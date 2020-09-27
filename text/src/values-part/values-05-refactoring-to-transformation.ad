@@ -162,7 +162,7 @@ public class CostSummary {
     private Money total;
 
     public CostSummary(Currency userCurrency) {
-        this.total = Money.zero(userCurrency);
+        this.total = Money.of(0, userCurrency);
     }
 
     public void addLine(CurrencyConversion line) {
@@ -256,7 +256,7 @@ class CostSummary(userCurrency: Currency) {
     private val lines: List<CurrencyConversion>
         get() = _lines.toList()
 
-    var total: Money = Money.zero(userCurrency)
+    var total: Money = Money(0, userCurrency)
         private set
 
     fun addLine(line: CurrencyConversion) {
@@ -282,7 +282,7 @@ class CostSummary(userCurrency: Currency) {
     private val lines: List<CurrencyConversion>
         get() = _lines.toList()
 
-    var total: Money = Money.zero(userCurrency)
+    var total: Money = Money(0, userCurrency)
         private set
 
     constructor(
@@ -322,7 +322,7 @@ This allows us to remove mutation from the CostSummary class:
 class CostSummary(userCurrency: Currency, val lines: List<CurrencyConversion>) {
     val total = lines
         .map { it.toMoney }
-        .fold(Money.zero(userCurrency), Money::add)
+        .fold(Money(0, userCurrency), Money::add)
 }
 ----
 // end-insert
@@ -381,7 +381,7 @@ class CostSummaryCalculator(
 
         val total = lines
             .map { it.toMoney }
-            .fold(Money.zero(userCurrency), Money::add)
+            .fold(Money(0, userCurrency), Money::add)
 
         return CostSummary(lines, total)
     }
