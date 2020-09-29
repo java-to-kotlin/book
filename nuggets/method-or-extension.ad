@@ -1,0 +1,38 @@
+
+Nat goes with extension function, but Duncan would go with method, as it is
+
+. Generally applicable
+. More efficient?
+. More likely to show when we could not expose public fields in the class
+. Could be lazy
+
+Nat: My leaning is to prefer top-level functions unless there’s a reason not to.
+
+My rules of thumb are:
+
+* Feature of the core abstraction? Method
+* Needs to be polymorphic? Method
+* Used only in one area of the app? Extension
+
+If you need to return the same type as the receiver, it has to be an extension
+
+Another reason: extensions mean you can replace a class definition with a typealias when that is beneficial
+
+
+Duncan: I would argue that 2, 3, 4 were reasons, given 1
+
+Nat: You’d have to convince me that there is a significant difference in performance between a non-polymorphic method and a function
+
+3 is more important when you have mutable state.
+
+4 — I’d rather have compute over lazy sequences than have lazy properties in my domain model, because lazy properties make debugging a PITA (edited)
+
+Duncan: I don’t see any advantages in the extension function unless you are trying not to pollute an object with not generally relevant operations.
+It’s a hard sell to Java devs.
+
+Nat: That’s a good reason.  Keep the class minimal, with only the fundamental properties and operations.
+
+It can’t be that hard a sell to Java decs, because they’re used to having a standard library made up of fundamental operations with no convenience functions
+I remember when Java 8 stdlib contained some convenience functions … it was a culture shock.
+I felt like a Python programmer
+
