@@ -1,1 +1,0 @@
-Add @Override annotation to Registration.register in initial commit
