@@ -484,17 +484,22 @@ This is an example of the following design process:
 . If you can't do _that_ easily in one step, repeat step 2 until you can.
 
 
-=== Separating Context from Specifics
+=== Enriching the Abstraction We Discovered
 
-Generating a summary of costs is not the only calculation in our application that depends upon exchange rates and the traveller's preferred currency.
+Our application does more with exchange rates and the traveller's preferred currency than summarise costs.
 For example, while the user is browsing hotel rooms, we show the cost of each room in both local and preferred currencies.
-The CostSummaryCalculator also converts individual costs in order to summarise them.
-If we expose that functionality as a public method, called `toUserCurrency`, say, we can remove duplicate logic elsewhere in the application.
+That is, the hotel room browser performs a currency conversion on an individual cost.
+The CostSummaryCalculator also has to performs currency conversions on individual costs in order to calculate a summary.
+If we extract that functionality as a public method, called `toUserCurrency`, say, we can initialise the hotel room browser with a CostSummaryCalculator, instead of passing it both the exchange rates and preferred currency, and remove the currency conversion calculation from the hotel room browser that we now see is duplicated code.
 
-// begin-insert: tags/mutations.10:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
+At that point, the class is no longer a calculator of cost summaries -- it holds the context for any pricing we do for an individual traveller.
+So let's rename it to reflect its new-found responsibility.
+At the moment, I can't think of a better name than "PricingContext", which leaves our class looking like this:
+
+// begin-insert: tags/mutations.11:src/main/java/travelator/itinerary/PricingContext.kt
 [source,kotlin]
 ----
-class CostSummaryCalculator(
+class PricingContext(
     private val userCurrency: Currency,
     private val exchangeRates: ExchangeRates
 ) {
@@ -520,55 +525,13 @@ class CostSummaryCalculator(
 ----
 // end-insert
 
-By drawing a distinction between the calculation of a cost summary from the context of that calculation, we have discovered a useful abstraction that we can use more widely to simplify code elsewhere in the application.
-However, we don't want our CostSummaryCalculator to become full of methods for lots of different use cases.
-We want a way to separate that core abstraction we discovered from how we use it in specific use cases in our application.
-Extension methods give us that.
-We'll define the core abstraction as properties and methods of the class, and support specific use cases with extension methods defined close to where they are used.
-In our case, the core abstraction is the conversion of Money values to the traveller's preferred currency.
-Specific use cases include summarising costs of journeys or itineraries.
-So we'll keep the `toUserCurrency` method on the class and make `summarise` an extension method.
-
-The class is no longer a calculator of cost summaries -- it holds the context for any pricing we do for a specific traveller.
-So let's rename it to reflect its new-found responsibility.
-At the moment, I can't think of a better name than "PricingContext".
-
-// begin-insert: tags/mutations.12:src/main/java/travelator/itinerary/PricingContext.kt
-[source,kotlin]
-----
-class PricingContext(
-    val userCurrency: Currency,
-    val exchangeRates: ExchangeRates
-) {
-    fun toUserCurrency(it: Money) =
-        exchangeRates.convert(it, userCurrency)
-}
-
-fun PricingContext.summarise(costs: Sequence<Money>): CostSummary {
-    val currencyTotals = costs
-        .groupingBy { it.currency }
-        .reduce { _, a, b -> a + b }
-
-    val lines = currencyTotals.values
-        .sortedBy { it.currency.currencyCode }
-        .map(::toUserCurrency)
-
-    val total = lines
-        .map { it.toMoney }
-        .fold(Money(0, userCurrency), Money::add)
-
-    return CostSummary(lines, total)
-}
-----
-// end-insert
-
-It's a bit too generic for my tastes, but will do until we think of something better.
+The name is a bit too generic for my tastes, but will do until we think of something better.
 At least it's not misleading.
 Renames are cheap, even in a mixed Java/Kotlin codebase, so a small incremental improvement is better than no improvement.
 
 This leaves the code that used to use the CostSummaryCalculator looking like this:
 
-// begin-insert: tags/mutations.12:src/test/java/travelator/itinerary/Route_CostTest.kt#calculation
+// begin-insert: tags/mutations.11:src/test/java/travelator/itinerary/Route_CostTest.kt#calculation
 [source,kotlin]
 ----
 val fx: ExchangeRates = ...
@@ -581,6 +544,12 @@ fun costSummary(r: Route) =
 ----
 // end-insert
 
+Now we have this concept in our codebase, it's easy to find other parts of our application that can use it.
+We can move logic from those parts onto the PricingContext, making it a one-stop shop for operations that need to convert monetary amounts into the traveller's preferred currency.
+However, the drawback is that the PricingContext ends up full of methods for lots of different use cases.
+We want a way to separate that core abstraction we discovered from how we use it in specific use cases in our application.
+Extension methods are a way to achieve that.
+We explore how we use extension methods and other Kotlin features to organise our code in <<organising-code-by-domain>>.
 
 === Conclusions
 
@@ -588,9 +557,8 @@ We started this chapter with a calculation that relied on shared, mutable state.
 It duplicated logic from the standard library and introduced the risk of aliasing errors.
 By the end of the chapter, we had refactored the same calculation to a transformation of immutable data.
 
-We moved mutation out of our code in two directions: outwards and inwards.
-Outwards was obvious - we made the `CostSummary` class an immutable value and adjusted the `CostSummaryCalculator` to fit,
-then made the `CostSummaryCalculator` immutable, and adjusted its callers to fit.
+To do so, we moved mutation out of our code in two directions: outwards and inwards.
+Outwards was obvious: we made the `CostSummaryCalculator` treat the `CostSummary` class as an immutable value type and then made `CostSummary` immutable, then we made users of `CostSummaryCalculator` treat it as an immutable context to a calculation, and then made `CostSummaryCalculator` immutable.
 But inwards?
 We replaced the imperative code that mutated collections and fields with calls to standard higher-order functions, like `groupingBy`, `fold` and `reduce`.
 Under the hood those functions do mutate state, but they hide that mutation from their callers.
@@ -605,9 +573,3 @@ However, every release adds more functions to the standard library, so the need 
 Functional programming does not eliminate mutable state but instead _makes it the responsibility of the runtime_.
 A functional program declares what the runtime should calculate, and lets the runtime be responsible for to compute that calculation.
 Kotlin is not a pure functional language, but we get a lot of benefits by following that principle where we can.
-
-Eliminating mutable state disentangled the data dependencies and logic of the calculation,
-and uncovered a useful abstraction that we can use to simplify other parts of our system.
-We could separate our model into a core abstraction, defined as a class with properties and methods,
-and context specific uses of that abstraction, defined as extension functions close the point of use.
-We explore further how Kotlin gives us different options for organising our code in <<organising-code-by-domain>>.
