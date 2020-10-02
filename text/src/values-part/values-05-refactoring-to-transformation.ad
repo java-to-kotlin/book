@@ -475,14 +475,16 @@ class CostSummaryCalculator(
 
 We can see the shape of the `summarise` calculation more clearly now.
 It is a pure function that is applied to a collection of costs, and evaluated in a context comprised of the exchange rates and the traveller's preferred currency.
-The function first transforms the costs into an intermediate form, the total for each currency, and then calculates the final result, the `CostSummary`, from that intermediate form.
+The function transforms entities from our domain model into a flat sequence of costs, then transforms the sequence of costs into a map of the total for each currency, transforms the totals for each currency into a list of currency conversions, and finally transforms the list of currency conversions into a `CostSummary`.
 
-This is an example of the following design process:
+[TIP]
+====
+A functional program transforms its inputs into outputs.
 
-. Transform the inputs into outputs.
-. If you can't do that easily in one step, transform the inputs into an intermediate representation from which it is easy to transform into outputs.
-. If you can't do _that_ easily in one step, repeat step 2 until you can.
+If you can't write that easily in one step, transform the inputs into an intermediate representation that is easy to transform into the outputs.
 
+Introduce intermediate forms and transformations until you have a pipeline of simple transformations and intermediate forms that compose to transform the inputs that you have to the outputs that you want.
+====
 
 === Enriching the Abstraction We Discovered
 
