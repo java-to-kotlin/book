@@ -1,8 +1,244 @@
-[[conventionality]]
-== Supporting Java and Kotlin Conventions
+[[methods-to-operators]]
+== Methods to Operators
 
-In <<value-types>> we translated our Money class from Kotlin to Java.
-However, it still looks sort of "Java-ish".
+We usually define value types in order to abstract the representation of a concept in our application domain and define operations on that abstraction.
+An example of a value type with operations of its own is our `Money` class:
+
+// begin-insert: tags/value_types.4:src/main/java/travelator/money/Money.java#money
+[source,java]
+----
+public class Money {
+    private final BigDecimal amount;
+    private final Currency currency;
+
+    private Money(BigDecimal amount, Currency currency) { // <1>
+        this.amount = amount;
+        this.currency = currency;
+    }
+
+    public static Money of(BigDecimal amount, Currency currency) { // <1>
+        return new Money(
+            amount.setScale(currency.getDefaultFractionDigits()),
+            currency);
+    }
+
+    // ... and convenience overloads
+
+    public BigDecimal getAmount() { // <2>
+        return amount;
+    }
+
+    public Currency getCurrency() { // <3>
+        return currency;
+    }
+
+    @Override
+    public boolean equals(Object o) { // <3>
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Money money = (Money) o;
+        return amount.equals(money.amount) &&
+            currency.equals(money.currency);
+    }
+
+    @Override
+    public int hashCode() { // <3>
+        return Objects.hash(amount, currency);
+    }
+
+    @Override
+    public String toString() { // <4>
+        return amount.toString() + " " + currency.getCurrencyCode();
+    }
+
+    public Money add(Money that) { // <5>
+        if (!this.currency.equals(that.currency)) {
+            throw new IllegalArgumentException(
+                "cannot add Money values of different currencies");
+        }
+
+        return new Money(this.amount.add(that.amount), this.currency);
+    }
+}
+----
+// end-insert
+
+<1> The constructor is private.
+Other classes obtain Money values by calling the static `Money.of` method, which guarantees that the scale of the amount is consistent with the number of minor units of the currency.
+Most currencies have 100 minor units (two digits), but some have fewer and some more: the Japanese Yen has no minor units, and the Jordanian Dinar has one thousand, for example.
++
+The "of" method follows a coding convention of <<modern-java-style,Modern Java>> that draws a distinction in the source between objects with identity, which are constructed by the new operator, and values, which are obtained from static methods.
+This convention is followed by the Java time API (for example `LocalDate.of(2020,8,17)`) and recent additions to the collections API (for example, `List.of(1,2,3)` creates an immutable list)
++
+The Money class provides some convenient overloads of the `of` method for String or int amounts.
+<2> It exposes the amount and currency properties using Java Bean conventions, even though, like CurrencyConversion, it is not actually a Java Bean.
+<3> The equals and hashCode methods implement value semantics.
+<4> The toString method returns a representation of its properties.
+Unlike the CurrencyConversion class, Money returns a representation that is shown to the user, not just for debugging.
+<5> Money provides operations for calculating with money values.
+For example, you can add monetary values together.
+The add method constructs new Money values by calling the constructor directly, because the result of BigDecimal.add has the correct scale already and so we can avoid the overhead of setting the scale.
+
+[NOTE]
+====
+.BigDecimal.setScale does not set the scale!
+
+The method `BigDecimal.setScale` is confusing.
+Although named like a Java Bean setter, it does not actually mutate the BigDecimal object.
+Like our Money class, BigDecimal is an immutable value type, so `setScale` returns a BigDecimal value with the specified scale.
+
+Sun added the BigDecimal class to the standard library in Java 1.1. This release also included the first version of the Java Beans API. The hype around the Beans API popularised the Java Beans coding conventions, and they were widely adopted, even for classes that, like BigDecimal, were not Java Beans (see <<bean-java-style>>).
+There were no Java conventions for value types.
+
+Today, we avoid the "set" prefix for methods that do not mutate their receiver and instead use names that emphasise when the method returns a transformation of the receiver.
+One convention is to use the prefix "with" for transformations that affect a single property, which would make the code in our Money class read as:
+
+[source,kotlin]
+----
+ amount.withScale(currency.getDefaultFractionDigits())
+----
+
+In Kotlin we can write extension methods to fix such historical accidents.
+If we were writing a lot of code that calculated with BigDecimals, it might be worth doing so to improve the clarity of the code:
+
+[source,kotlin]
+----
+inline fun BigDecimal.withScale(int scale, RoundingMode mode) =
+    setScale(scale, mode)
+----
+====
+
+Converting Money to Kotlin produces the following code:
+
+// begin-insert: tags/value_types.5:src/main/java/travelator/money/Money.kt#money
+[source,kotlin]
+----
+class Money
+private constructor(
+    val amount: BigDecimal,
+    val currency: Currency
+) {
+    override fun equals(o: Any?): Boolean {
+        if (this === o) return true
+        if (o == null || javaClass != o.javaClass) return false
+        val money = o as Money
+        return amount == money.amount && currency == money.currency
+    }
+
+    override fun hashCode(): Int {
+        return Objects.hash(amount, currency)
+    }
+
+    override fun toString(): String {
+        return amount.toString() + " " + currency.currencyCode
+    }
+
+    fun add(that: Money): Money {
+        require(currency == that.currency) {
+            "cannot add Money values of different currencies"
+        }
+
+        return Money(amount.add(that.amount), currency)
+    }
+
+    companion object {
+        @JvmStatic
+        fun of(amount: BigDecimal, currency: Currency): Money {
+            return Money(
+                amount.setScale(currency.defaultFractionDigits),
+                currency
+            )
+        }
+
+        // ... and convenience overloads
+    }
+}
+----
+// end-insert
+
+The Kotlin class still has a primary constructor, but that constructor is now marked private.
+The syntax for this is a little clunky.
+
+The static "of" functions are now methods on a companion object.
+IntelliJ noticed that they are called from our Java code, and annotated them as `@JvmStatic` to ensure they are compiled to static methods and the call sites in the Java code are unaffected.
+
+****
+TODO: sidebar to explain @Jvm... annotations.
+Coordinate with what Duncan is writing.
+****
+
+Can we also reduce the size of the class even further by making it a data class?
+
+When we change `class` to `data class`, IntelliJ highlights the `private` keyword of the primary constructor with a warning:
+
+----
+Private data class constructor is exposed via the generated 'copy' method."
+----
+
+What's that all about⸮
+
+Kotlin generates a public `copy` method for data classes that creates a copy of an instance, replacing some of the field values.
+
+The constructor of the Money class is private because the class maintains an invariant between its properties, ensuring that the scale of the amount field is equal to the default number of minor currency digits of the currency field.
+The `Money.of(BigDecimal,Currency)` method ensures the invariant for new Money values.
+The `add` method maintains the invariant because adding two BigDecimal values with the same scale produces a BigDecimal that also has the same scale.
+The add method therefore can call the constructor directly because doesn't need to recalculate the scale.
+The constructor need only assign fields, safe in the knowledge that it is only called with parameters that meet the class invariant. and it is private to prevent code outside the Money class from creating values that violate the invariant.
+
+However, the public `copy` method of a data class _would_ allow client code to create Money values that violate the invariant.
+Our Money class cannot be a data class.
+
+[TIP]
+====
+Don't define a value type as a data class if it must maintain invariants between its properties.
+====
+
+We can still make the code more concise by applying other Kotlin features.
+We can define all the methods in single-expression form, and lean on Kotlin's flow-sensitive type inference to greatly simplify the `equals` method:
+
+// begin-insert: tags/value_types.7:src/main/java/travelator/money/Money.kt#money
+[source,kotlin]
+----
+class Money private constructor(
+    val amount: BigDecimal,
+    val currency: Currency
+) {
+    override fun equals(other: Any?) =
+        this === other ||
+            other is Money &&
+            amount == other.amount &&
+            currency == other.currency
+
+    override fun hashCode() =
+        Objects.hash(amount, currency)
+
+    override fun toString() =
+        amount.toString() + " " + currency.currencyCode
+
+    fun add(that: Money): Money {
+        require(currency == that.currency) {
+            "cannot add Money values of different currencies"
+        }
+
+        return Money(amount.add(that.amount), currency)
+    }
+
+    companion object {
+        @JvmStatic
+        fun of(amount: BigDecimal, currency: Currency) = Money(
+            amount.setScale(currency.defaultFractionDigits),
+            currency
+        )
+
+        // ... and convenience overloads
+    }
+}
+----
+// end-insert
+
+== Supporting Both Java and Kotlin Conventions
+
+Our `Money` class still looks sort of "Java-ish".
 It follows conventions for value types that are common in <<modern-java-style,Modern Java>>, but are not the way things are usually done in Kotlin:
 it uses methods of a companion object to create values,
 and it uses methods, rather than operators, for arithmetic.
