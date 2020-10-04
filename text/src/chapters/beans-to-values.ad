@@ -1,0 +1,145 @@
+[[beans-to-values]]
+= Beans to Values
+
+JavaBeans were introduced to allow the development of drag-and-drop GUI builders in the Visual Basic style.
+A developer could drop a button onto a form, change its title and icon and then wire in an on-click handler.
+Behind the scenes code the GUI builder would write code to instantiate a button object and then call setters for the properties that the developer had changed.
+
+To define a bean, a class needs a default (no-argument) constructor, getters for its properties and setters for its mutable properties.footnote:[We'll gloss over the `Serializable` requirement as even Sun never really took this seriously]
+This makes a lot of sense for objects that have a lot of properties.
+GUI components typically have foreground and background colors, font, label, borders, size, alignments, paddings etc.
+Mostly the defaults for these properties are fine, so calling setters for just the special values minimizes the amount of code to be generated.
+In fact, if we were to write a GUI toolkit today, I think we'd probably still opt for a similar mutable component model.
+
+When JavaBeans were introduced though, we thought of most objects as mutable, not just UI components.
+I mean, why not⸮ - the point of objects was to encapsulate properties and manage the relationships between them.
+They were _designed_ to solve problems like updating the width of a component when its bounds are changed, or the total of a shopping cart as items are added.
+Java was quite radical at the time in having an immutable `String` class, although it couldn't help itself and still plumped for a mutable `Date`.
+
+We have a more sophisticated understanding these days, speaking as both your authors and the industry.
+We appreciate that we can use objects to represent different types of things - values, entities, services, actions, transactions etc.
+And yet the default Java pattern for an object is still the JavaBean - an object with a default constructor and getters and setters for its properties.
+Although it may be appropriate for a UI toolkit, this not a good default pattern.
+For most things that we want to represent with objects, a value would be better.
+
+== What is a Value?
+
+Value is a much overloaded term in English.
+In computing we say that variables, parameters and fields have values.
+In Java those values may be a primitive like `7`, or a reference to an object.
+In this book though we don't consider all objects as values.
+In later chapters we'll look at finer distinctions , but for now, let's just define a value to be an immutable piece of data.
+
+So `7` is a value, `"banana"` is a value (in Java, where ``String``s are immutable), a `URI` is a value (because ``URI``'s are immutable), but a `java.util.Date` is not a value (because we can call `setYear` on the date).
+
+An instance of an immutable `DBConnectionInfo` is a value, but an instance of `Database` is not a value, even if all its properties are immutable, because it is not a piece of data, it is a means of accessing pieces of data. <<data-to-code>> discusses the difference between data and other immutable objects.
+
+Are JavaBeans values?
+Well a bean can certainly be the value of a variable or field, but in this book we use the term value to refer to immutable data.
+It is certainly possible to create immutable beans - just don't define any setter methods - but if you combine a default constructor with no mutation you have just a single possible state for every instance of the bean.footnote:[Barring side-effects]
+Whilst this is useful in many circumstances it isn't helpful for representing state, so let's just say that the JavaBeans model is a fundamentally mutable one.
+
+What about POJOs - Plain Old Java Objects?
+This term refers to classes that don't have to extend from framework types in order to be useful.
+Simple JavaBeans (apart from the serialization requirement) are POJOs.
+Many POJOs though will not have a default constructor, but instead define constructors to initialize properties that don't have sensible defaults.
+Because of this, immutable POJOs are common, unlike immutable beans, and where they just represent data they are values.
+Mutable POJOs still seem to be the default though, so much so that many people consider that object-oriented programming is synonymous with mutable objects.
+Mutable POJOs are not values.
+
+Beans to Values is a snappy title, but in this chapter we're really looking at migrating from mutable to immutable data, so mutable POJOs are also in scope.
+
+== Why Should We Prefer Values?
+
+We prefer immutable objects because they are much easier to reason about.
+We can put them into sets or use them as map keys.
+We never have to worry about a collection changing as we examine its contents.
+We can explore different scenarios without having to deep-copy initial states, and simply implement undo and redo.
+This is before we consider the issues with managing mutable state between different threads or different processes.
+
+The advantages of plain data over more active objects are more nuanced and are discussed in detail in <<todo>>, <<todo>>, <<todo>>.
+
+== Migrating Beans to Values
+
+Preferences in the Travelator mobile app are represented by a `UserPreferences` bean class.
+
+// begin-insert: tags/beans-to-values.0:src/main/java/travelator/mobile/UserPreferences.java
+[source,java]
+----
+public class UserPreferences {
+    private String greeting;
+    private Locale locale;
+    private Currency currency;
+
+    public UserPreferences() {
+        this("Hello", Locale.UK, Currency.getInstance(Locale.UK));
+    }
+
+    public UserPreferences(String greeting, Locale locale, Currency currency) {
+        this.greeting = greeting;
+        this.locale = locale;
+        this.currency = currency;
+    }
+
+    public String getGreeting() {
+        return greeting;
+    }
+
+    public void setGreeting(String greeting) {
+        this.greeting = greeting;
+    }
+
+    public Locale getLocale() {
+        return locale;
+    }
+
+    public void setLocale(Locale locale) {
+        this.locale = locale;
+    }
+
+    public Currency getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(Currency currency) {
+        this.currency = currency;
+    }
+}
+----
+// end-insert
+
+
+The `Application` has a `UserPreferences` property, which it passes to views that need it.
+
+// begin-insert: tags/beans-to-values.0:src/main/java/travelator/mobile/Application.java
+[source,java]
+----
+public class Application {
+    private final UserPreferences preferences;
+
+    public Application(UserPreferences preferences) {
+        this.preferences = preferences;
+    }
+
+    public void showWelcome() {
+        new WelcomeView(preferences).show();
+    }
+
+    public void editPreferences() {
+        new PreferencesView(preferences).show();
+    }
+}
+----
+// end-insert
+
+
+TO BE WOVEN IN
+
+Variable, parameters and fields are defined not only with their `java.lang.reflect.Type`, but also whether or not they themselves are reassignable.
+In Java the default is that all can be assigned a new value, unless marked `final`.
+Kotlin distinguishes with `var` variables and fields, which can be reassigned, and ``val``s, which cannot.
+In Kotlin parameters can never be reassigned.
+
+So we have mutable and immutable types, and mutable and immutable named slots to hold things of those types.
+The more things are mutable the more easy it is to become confused, but our software ultimately needs to reflect changes, so should we favour mutable slots or mutable types.
+
