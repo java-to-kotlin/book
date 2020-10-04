@@ -1,7 +1,6 @@
 [[mutation-to-transformation]]
 == Mutation to Transformation
 
-In the last few chapters we have seen how, compared to Java, Kotlin makes it easier to work with immutable values, optional values and collections of values.
 Because it is so arduous in Java to define value types and to transform values, even with the Streams API, Java programmers usually program in terms of objects and shared mutable state.
 In this chapter we'll look at how to translate from Java code that relies upon mutable objects and side effects to Kotlin code that transforms immutable values.
 
@@ -14,8 +13,7 @@ Therefore, Travelator summarises costs by local currency _and_ the traveller's p
 It does this using the `CostSummary` and `CostSummaryCalculator` classes.
 Let's take a look at how they are used, and then we'll look at their implementation.
 
-We didn't show it during the refactoring in <<encapsulated-collection-to-typealias>>,
-but our `Route` class has an operation for summarising its costs with a `CostSummaryCalculator`.
+Our `Route` class has an operation for summarising its costs with a `CostSummaryCalculator`.
 
 Our Java code used it like this:
 
@@ -36,11 +34,13 @@ public CostSummary costSummary(Route r) {
 ----
 // end-insert
 
-<1> create a `CostSummaryCalculator` with the traveller's preferred currency and a source of currency exchange rates.
-<2> tell the Route to add its costs to the calculator.  The Route adds the cost of each journey.
-<3> when all the costs have been collected, call the calculator's `summarise` method to obtain the `CostSummary`.
+This code:
 
-The `Route.addCostsTo` method was implemented in Java as follows:
+<1> Creates a `CostSummaryCalculator` with the traveller's preferred currency and a source of currency exchange rates.
+<2> Tells the Route to add its costs to the calculator.  In response, the Route adds the cost of each of its journeys.
+<3> Calls the calculator's `summarise` method to obtain the `CostSummary`, after all the costs have been collected.
+
+In Java, we implemented the `Route.addCostsTo` method as follows:
 
 // begin-insert: tags/value_types.0:src/main/java/travelator/itinerary/Route.java#costs
 [source,java]
