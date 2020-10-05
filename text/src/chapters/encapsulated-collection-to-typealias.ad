@@ -3,14 +3,15 @@
 
 The grain of Java and Kotlin are very different when it comes to collections.
 Java's collection interfaces are fundamentally mutable and so force you to encapsulate collections within classes to avoid accidental aliasing.
-Kotlin's collections default to being unmodifiable, and their APIs return transformed copies rather than mutating in place, reducing the need such encapsulation.
+Kotlin's collections default to being unmodifiable, with APIs that return transformed copies rather than mutating in place, reducing the need such encapsulation.
 Kotlin's standard library contains many more useful higher-order functions than Java's collection and stream APIs.
 This reduces the need for imperative programming when processing collections.
 These two forces encourage designs in which many free-standing functions transform a few generic collection types.
 
 The different grains of the two languages bump up against one another at the interop boundary.
-The interop between Java and Kotlin collections is made virtually seamless by some compiler magic.
+The interop between Java and Kotlin collections is virtually seamless, thanks to some compiler magic.
 However, you need to be aware of that magic and its limitations to avoid confusing bugs.
+
 
 === A Class That Encapsulates a Collection
 
@@ -229,7 +230,7 @@ class Route(private val journeys: List<Journey>) : Iterable<Journey> by journeys
 We are now ready to add the `requiredStays` method to our Kotlin class.
 
 
-=== Do We Even Need the Route Class?
+=== Do We Need to Encapsulate the Collection?
 
 [quote,Alan Perlis,Epigrams in Programming]
 It is better to have 100 functions operate on one data structure than 10 functions on 10 data structures.
