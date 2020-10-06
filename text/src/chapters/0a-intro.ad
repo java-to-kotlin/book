@@ -16,3 +16,438 @@ Now you need to ensure that the transition goes smoothly and doesn't destabilise
 
 This book is not an introduction to Kotlin language features.
 Instead, we explore how to adapt your design approach to take advantage of those features, and how you can do so safely in a mixed Java/Kotlin codebase by refactoring to Kotlin.
+
+=== About the Authors (TODO)
+
+Something about our histories, working apart and together, our different approaches to code.
+How we came to Java, then Kotlin, why we wrote this book
+
+=== How This Book is Organised
+
+To that end, the book is divided into parts that each explore where the grain of Kotlin and Java differ in significant ways: maybe Kotlin makes easier an approach that was difficult in Java, or Kotlin makes difficult an approach that is common in Java, to guide design in a direction that is less error prone, more concise, and more tool-friendly.
+Each topic covers both how the grain affects Kotlin design differently, and what to do to gradually refactor from Java to Kotlin while maintaining a mixed Java/Kotlin codebase.
+
+The topics are in no way exhaustive: we cannot cover every way in which the languages differ.
+We cover the areas that we found most notable as we adopted Kotlin.
+Your experience is likely to vary, but hopefully the topics we explore are enough to give you an instinct for what to consider when designing systems.
+
+[[grain]]
+=== Working with the Grain of Kotlin
+
+[[what-is-grain]]
+==== The Grain of a Programming Language
+
+All programming languages have a grain that makes some things are easier to write, and other things more difficult.
+This affects the way we design programs in that language.
+
+For example, it has always been possible write to Java code in a functional style, but few programmers did before Java 8 -- for good reasons.
+Look what was required in Java 1 to do something as simple as calculating the sum of a list of numbers by reducing them with the addition operator.
+
+Java 1 did not have first-class functions, so you would have had to define your own interfaces for function types:
+
+// begin-insert: src/main/java/grain/java1/Function2.java
+[source,java]
+----
+public interface Function2 {
+    Object apply(Object arg1, Object arg2);
+}
+----
+// end-insert
+
+Then you would have had to write the `reduce` higher-order function, hiding the iteration and mutation required by the Vector class.
+(The Java standard library didn't include the collections framework yet).
+
+// begin-insert: src/main/java/grain/java1/Vectors.java#reduce
+[source,java]
+----
+public class Vectors {
+    public static Object reduce(Vector l, Object initial, Function2 f) {
+        Object result = initial;
+        for (int i = 0; i < l.size(); i++) {
+            result = f.apply(result, l.get(i));
+        }
+        return result;
+    }
+
+    ...
+}
+----
+// end-insert
+
+You would have had to define a separate class for every function you wanted to pass to your `reduce` function.
+The addition operator couldn't be passed around as a value, and the language had no method references, lambdas or closures back then, not even inner classes.
+Nor did Java 1 have generics or autoboxing -- you would have had to cast the arguments to the expected type and write the boxing between reference types and primitives.
+
+// begin-insert: src/main/java/grain/java1/AddIntegers.java
+[source,java]
+----
+public class AddIntegers implements Function2 {
+    public Object apply(Object arg1, Object arg2) {
+        int i1 = ((Integer) arg1).intValue();
+        int i2 = ((Integer) arg2).intValue();
+        return new Integer(i1 + i2);
+    }
+}
+----
+// end-insert
+
+And _finally_ you could use all that to calculate the sum:
+
+// begin-insert: src/test/java/grain/java1/TheGrainOfJavaTest.java#reduce
+[source,java]
+----
+int sum = ((Integer) Vectors.reduce(counts, new Integer(0), new AddIntegers()))
+    .intValue();
+----
+// end-insert
+
+That's a lot of effort for what can be achieved, in modern languages, with a single expression.
+But that's not the end of it.
+Because Java had no standard function types, you couldn't easily combine different libraries written in a functional style.
+You had to write adapter classes to map between the function types defined in different libraries.
+And because the virtual machine had no JIT and a simple garbage collector, functional code would have worse performance than the imperative alternative.
+
+There was just not enough pay-off.
+Java programmers found it easier to write imperative code that iterated over collections and mutated state.
+
+// begin-insert: src/test/java/grain/java1/TheGrainOfJavaTest.java#reduce_iteratively
+[source,java]
+----
+int sum = 0;
+for (int i = 0; i < counts.size(); i++) {
+    sum += ((Integer)counts.get(i)).intValue();
+}
+----
+// end-insert
+
+Writing functional code _went against the grain_ of Java.
+
+Every programming language has a grain.
+It's easier to work with the grain of a language.
+Going against the grain involves constant effort with an uncertain pay-off.
+A language's grain forms over time as its designers and users build a common understanding of how language features interact and encode their understanding and preferences in libraries that others build upon.
+The grain influences the way that programmers write code in the language, which influences the evolution of the language, its libraries and programming tools, changing the grain, altering the way that programmers write code in the language, on and on in a continual cycle of mutual feedback and evolution.
+
+For example, Java 1.1 added anonymous inner classes to the language, and Java 2 added the collections framework to the standard library.
+Anonymous inner classes meant that you didn't need to write a named class for each function you wanted to pass to your `reduce` function, but the resulting code was arguably harder to read.
+
+// begin-insert: src/test/java/grain/java2/TheGrainOfJavaTest.java#reduce
+[source,java]
+----
+int sum = ((Integer) Lists.reduce(counts, new Integer(0),
+    new Function2() {
+        public Object apply(Object arg1, Object arg2) {
+            int i1 = ((Integer) arg1).intValue();
+            int i2 = ((Integer) arg2).intValue();
+            return new Integer(i1 + i2);
+        }
+    })).intValue();
+----
+// end-insert
+
+Functional idioms still went against the grain of Java 2.
+
+Java 5 was the next release that significantly changed the language.  It added generics and autoboxing, which improved type safety and reduced boilerplate code:
+
+// begin-insert: src/main/java/grain/java5/Function2.java
+[source,java]
+----
+public interface Function2<A,B,R> {
+    R apply(A arg1, B arg2);
+}
+----
+// end-insert
+
+// begin-insert: src/test/java/grain/java5/TheGrainOfJavaTest.java#reduce
+[source,java]
+----
+int sum = Lists.reduce(counts, 0,
+    new Function2<Integer, Integer, Integer>() {
+        @Override
+        public Integer apply(Integer arg1, Integer arg2) {
+            return arg1 + arg2;
+        }
+    });
+----
+// end-insert
+
+https://github.com/google/guava[Google's Guava library] included some common higher-order functions over collections, although `reduce` was not among them.
+Even the authors of Guava recommended writing imperative code where possible, because it had better performance and was usually easier to read.
+
+Functional programming still went largely against the grain of Java 5, but you could see the start of a trend.
+
+Java 8 added anonymous functions (aka "lambda expressions") and method references to the language, and the Streams API to the standard library.
+The compiler and virtual machine optimised lambdas to avoid the performance overhead of anonymous inner classes.
+The Streams API fully embraced functional idioms.
+
+// begin-insert: src/test/java/grain/java8/TheGrainOfJavaTest.java#reduce
+[source,java]
+----
+int sum = counts.stream().reduce(0, Integer::sum);
+----
+// end-insert
+
+Still, it wasn't entirely plain sailing.
+You still couldn't treat the addition operator as a value, but did define the standard library function `Integer::sum` that does the same thing.
+Java's type system still created awkward edge cases because of its distinction between reference and primitive types.
+The Streams API was missing some common higher-order functions that you'd reach for if coming from a functional language (or even Ruby).
+Checked exceptions don't play well with the Streams API and functional programming in general.
+And making immutable classes with value semantics still involves a lot of boilerplate code.
+But with Java 8, Java had fundamentally changed to make a functional style work, if not completely with the grain, at least not completely against it.
+
+In the case of Java, the grain of the language, and the way programmers adapted to it, evolved through several distinct programming styles.
+Kotlin has features designed specifically to simplify interoperability (interop) with code written in these styles.
+We'll refer to these styles as a shorthand when explaining why these features exist, and when to use or avoid them.
+
+[[java-programming-style]]
+==== An opinionated history of Java programming style
+
+Like ancient poets, we divide the development of Java programming style into four distinct ages: the Primeval Age, the Beans Age, the Enterprise Age, and the Modern Age.
+We'll use these names as a convenient shorthand when discussing Kotlin's interop features.
+
+[[primeval-java-style]]
+===== Primeval Style
+
+Originally intended for use in domestic appliances and interactive TV, Java only took off when Netscape adopted Java applets in their hugely popular Navigator browser.
+Sun released the Java development kit 1.0, Microsoft included Java in Internet Explorer, and suddenly everyone with a web browser had a Java runtime environment.
+Interest in Java as a programming language exploded.
+
+The fundamentals of Java were in place by this time:
+the Java virtual machine and its bytecode and classfile format; primitive and reference types; null references; garbage collection; classes and interfaces; methods and control flow statements; checked exceptions for error handling; the abstract windowing toolkit; classes for networking with Internet and web protocols; and the loading and linking of code at runtime, sandboxed by a security manager.
+However, Java wasn’t yet ready for general purpose programming: the JVM was slow, and the standard library sparse.
+
+Java looked like a cross between C++ and Smalltalk, and those two languages influenced the Java programming style of the time.
+The "getFoo/setFoo" and "AbstractSingletonProxyFactoryBean" conventions that programmers of other languages poke fun at were not yet widespread.
+
+One of Java's unsung innovations was an official coding convention that spelled out how programmers should name packages, classes, methods, and variables.
+C and C++ programmers followed a seemingly infinite variety of coding conventions, and code that combined multiple libraries ended up looking [.line-through]#like a right dog's dinner# somewhat inconsistent.
+Java's one true coding convention meant that Java programmers could seamlessly integrate strangers' libraries into their programs, and encouraged widespread use of open source libraries in the Java community.
+
+[[bean-java-style]]
+===== Bean Style
+
+After its initial success, Sun set out to make Java a practical tool for building applications.
+Java 1.1 (1996) added to the language (most notably inner classes), improved the runtime (most notably just-in-time compilation and reflection), and extended the standard library.
+Java 1.2 (1998) added a standard collections API and the Swing cross-platform GUI framework, which ensured Java applications looked and felt equally awkward on every desktop operating system.
+
+At this time, Sun was eyeing Microsoft and Borland's domination of corporate software development.
+Java had the potential to be a strong competitor to Visual Basic and Delphi.
+Sun added a slew of APIs that were heavily inspired by Microsoft APIs:
+JDBC for data base access (equivalent to Microsoft's ODBC); Swing for desktop GUI programming (equivalent to Microsoft's MFC); and the API that had the greatest influence on Java programming style: Java Beans.
+
+Java Beans was Sun's attempt to compete with Microsoft's ActiveX component model for low-code, graphical, drag-and-drop programming.
+Programmers could use ActiveX components in their Visual Basic programs, or embed them in office documents, or in web pages on their corporate intranet.
+It was notoriously difficult to write an ActiveX component.
+Java Beans were much easier: you merely had to follow some additional coding conventions for your class to be considered a "bean" that could be instantiated and configured in a graphical designer.
+
+For a class to be a Java Bean, it had to have a constructor that took no arguments, be serializable, and expose an interface made up of public properties that could be read and optionally written, methods that could be invoked, and events that objects of the class would emit.
+In an application designer, programmers could instantiate beans, set their properties, and connect a bean's events to the methods of other beans.
+By default, the Beans API defined properties by methods with names that started with "get" and "set".
+This default could be overridden, but doing so required additional classes of boilerplate code.
+Programmers usually went to the effort when retrofitting existing classes to act as Java Beans.
+In new code, it was much easier to go with the grain.
+
+The drawback of Beans style is that it relies heavily on mutable state, and requires more of that state to be public than plain ol' Java objects because you cannot pass parameters to an object's constructor.
+Object state must be mutable so that it can be set after construction and objects must often be instantiated in an invalid state -- with required properties initialised to null, for example -- and then put into a valid state by setting their public properties.
+User interface components work well as beans, because they can safely be initialised with default content and styling and adjusted after construction.
+Treating other components of a system, that have no reasonable defaults, in the same way is error prone, and the type checker can't ensure they have been fully initialised.
+The Beans conventions make writing correct code harder and changes in dependencies can silently break client code.
+
+In the end, graphical composition of Java beans never became mainstream, but the coding conventions stuck.
+Java programmers followed the Java Bean conventions even when they had no intention of their class being used as a Java Bean.
+Beans had an enormous, lasting, and not entirely positive, influence on Java programming style.
+
+[[enterprise-java-style]]
+===== Enterprise Style
+
+Java did eventually spread through the enterprise.
+It didn't replace Visual Basic on the corporate desktop as expected, but unseated C++ as the server-side language of choice.
+In 1998, Sun released Java 2 Enterprise Edition (J2EE, later rebranded as JavaEE), a suite of standard APIs for programming server-side, transaction processing systems.
+
+
+The J2EE APIs suffer from _abstraction inversion_.
+The Java Beans and applets APIs also suffer from abstraction inversion -- they both disallow passing parameters to constructors, for example -- but it is far more severe in J2EE.
+J2EE applications don't have a single entry point.
+They are comprised of many small components whose lifetime is managed by an "application container", and are exposed to one another through a JNDI name service.
+Applications need a lot of boilerplate code and mutable state to look up and store the resources they depend on.
+Programmers responded by inventing [role="pattern"]_dependency injection_ (DI) frameworks that did all the resource look up and binding and managed lifetimes.
+The most successful of these is Spring.
+It builds upon the Java Beans coding conventions, and uses reflection to compose applications from "beans".
+
+[[abstraction-inversion]]
+.Abstraction Inversion
+****
+[role="antipattern"]_Abstraction inversion_ is an architectural flaw in which a software platform prevents client code from using lower level mechanisms that it requires.
+This forces programmers to reimplement those lower level mechanisms using the higher-level facilities exposed by the platform's API, which in turn use the very features being reimplemented.
+The end result is unnecessary code, poor performance, and additional maintenance and testing costs.
+****
+
+In terms of programming style, DI encourages programmers to avoid direct use of the `new` keyword, and rely on the DI framework to instantiate objects.
+(We count Android APIs in these as well: they also exhibit abstraction inversion, and Android programmers also turn to DI frameworks to help them write to the APIs).
+DI frameworks focus on mechanism over domain modelling lead to "enterprisey" class names, such as Spring's infamous `AbstractSingletonProxyFactoryBean`.
+
+On the plus side, though, 1999 saw the release of Java 5, which added generics and autoboxing to the language, the most significant change to date. This era also saw a massive uptake of Open Source libraries in the Java community, powered by the Maven Central package repository.
+The availability of top-notch open source libraries fueled the adoption of Java for business critical application development, and led to more open source libraries, in a virtuous circle.
+This was followed by best in class development tools, including IntelliJ which we use in this book.
+
+[[modern-java-style]]
+===== Modern Style
+
+Java 8 brought the next big change to the language -- lambdas -- and significant additions to the standard library to take advantage of them.
+The Streams API encouraged a functional programming style, in which processing is performed by transforming streams of immutable values rather than changing the state of mutable objects.
+A new date/time API ignored Java Beans coding conventions for property accessors, and followed coding conventions common to the Primeval Style.
+
+The growth of the cloud platforms meant that programmers didn't need to deploy their servers into JavaEE application containers.
+Lightweight web application frameworks let programmers write a `main` function to compose their applications.
+Many server-side programmers stopped using DI frameworks -- function and object composition were good enough -- and DI frameworks released greatly simplified APIs to stay relevant.
+With no DI framework or mutable state, there's less need to follow Java Bean coding conventions.
+Within a single codebase, exposing fields of immutable values works fine, because the IDE can encapsulate a field behind accessors in an instant if they're needed.
+
+Java 11 introduced modules, but so far they have not seen widespread adoption outside the JDK itself.
+The most exciting thing about recent Java releases has been the modularisation of the JDK and removal of seldom-used modules, such as CORBA, from the JDK into optional extensions.
+
+[[future-java-style]]
+===== The future
+
+The future of Java promises more features to make Modern Style easier to apply: records, pattern matching, user defined value types, and eventually the unification of primitive and reference types into a uniform type system.
+
+However, this is a challenging effort that will take many years to complete.
+Java started off with some deep-seated inconsistencies and edge cases that are hard to unify into clean abstractions while staying backwards-compatible.
+Kotlin has the benefit of 25 years of hindsight, and a clean slate from which to start afresh.
+
+[[grain-of-kotlin]]
+==== The Grain of Kotlin
+
+Kotlin is a young language, but it clearly has a different grain to Java.
+
+The https://kotlinlang.org/#why-kotlin["Why Kotlin"] section of https://kotlinlang.org[kotlinlang.org] lists four design goals: "Concise", "Safe", "Interoperable", and "Tool-friendly".
+The designers of the language and its standard library also encoded implicit preferences that contribute to these design goals.
+
+Kotlin prefers the transformation of immutable data to mutation of state.::
+Data classes make it easy to define new types with value semantics.
+The standard library makes it easier and more concise to transform collections of immutable data than iterate and mutate data in place.
+
+Kotlin prefers behaviour to be explicit.::
+For example, there is no implicit coercion between types, even from smaller to larger range.
+Java implicitly converts int values to long values, because there is no loss of precision.
+In Kotlin you have to explicitly call `Int.toLong()`.
+The preference for explicitness is especially strong when it comes to control flow.
+Although you can overload arithmetic and comparison operators for your own types, you cannot overload the shortcut logical operators (`&&` and `||`), because that would allow you to define different control flow.
+Polymorphism is opt-in, not opt-out.
+
+Kotlin prefers static over dynamic binding.::
+Kotlin encourages a type-safe, compositional coding style.
+Extension functions are bound statically.
+By default, classes are not extensible and methods are not polymorphic.
+You must explicitly opt in to polymorphism and inheritance.
+If you want to use reflection, you have to add a platform-specific library dependency.
+Kotlin is designed from the get-go to be used with a language aware editor that statically analyses the code to guide the programmer automate navigation and automate program transformation.
+
+Kotlin doesn't like special cases.::
+Compared to Java, Kotlin has fewer special cases that interact in unpredictable ways.
+There is no distinction between primitive and reference types.  There is no void type for functions that return but do not return a value -- functions in Kotlin either return a value, or never return at all.
+Extension functions allow you to add new operations to existing types, that look the same at the call point.
+You can write new control structures as inline functions and the break, continue and return statements act the same as they do in built-in control structures.
+
+Kotlin breaks its own rules to make migration easier.::
+The Kotlin language has features to allow idiomatic Java and Kotlin code to coexist in the same codebase.
+Some of those features remove guarantees provided by type checker, and should _only_ be used to interop with legacy Java.
+For example, lateinit opens a hole in the type system so that Java dependency injection frameworks that initialise objects by reflection can inject values through the encapsulation boundaries that are normally enforced by the compiler.
+If you declare a property as `lateinit var`, it's up to you to ensure the code initialises the property before reading it -- the compiler will not catch your mistakes.
+
+
+==== Adapting to the Grain
+
+When we look back on the earliest code we wrote in Kotlin, it tends to look like Java dressed in Kotlin syntax. We came to Kotlin after years writing a lot of Java, and had ingrained habits that affected how we wrote Kotlin code.
+We wrote unnecessary boilerplate, didn't make good use of the standard library, and avoided using null because we weren't yet used to the type checker enforcing null safety.
+The Scala programmers on our team went too far the other way -- their code looked like Kotlin cosplaying as Scala cosplaying as Haskell.
+None of us had yet found the sweet spot that comes with working with the grain of Kotlin.
+
+The path to idiomatic Kotlin complicated by the Java code we have to keep working along the way.
+In practice, it is not enough to just learn Kotlin.
+We have to work with the different grains of Java _and_ Kotlin, being sympathetic to both as we gradually transition from one to the other.
+
+
+[[intro-refactoring-to-kotlin]]
+=== Refactoring to Kotlin
+
+[[why-refactor-to-kotlin]]
+==== Why _Refactor_ to Kotlin?
+
+Being responsible for business-critical systems means that we were never able to focus _only_ on converting our Java codebase to Kotlin.
+We always had to migrate code to Kotlin at the same time as changing the system to meet new business needs, maintaining a mixed Java/Kotlin codebase as we did so.
+We managed the risk by working in small changes, making each easy to understand, and cheap to discard if we found out it broke something.
+Our process was to first convert Java code to Kotlin, giving us a Java-esque design in Kotlin syntax.
+We then incrementally applied Kotlin language features to make the code increasingly easier to understand, more type safe, more concise, and with a more compositional structure that is easier to change without unpleasant surprises.
+
+Small, safe, reversible changes that improved the design: we _refactored_ from idiomatic Java to idomatic Kotlin.
+
+These days most projects are multilingual.
+A "Java" web app, for example, will involve code written in Java, HTML, CSS, JavaScript, at least one templating language, maybe more if you have templating on the server and in the browser, JSX if you're using React, and one or more query languages (SQL, etc).
+It’s common to refactor logic between these languages: persistence logic from Java into a query language or vice versa, browser-side presentation between Javascript code and CSS rules or HTML elements as browsers evolve, or between JavaScript code manipulating the DOM and browser-side templating; server-side presentation between the template language and functions or objects in the host language; and so on.
+
+Refactoring _between_ languages is usually harder than refactoring _within_ a single language because refactoring tools do not work well across the boundaries between the languages, if they work at all.
+Porting logic from one language to another must be done manually, which takes longer and introduces more risk.
+Once multiple languages are in use, the language boundary impedes refactoring because when you refactor code in one language, the IDE does not update dependent code written in other languages to be compatible.
+
+What makes the combination of Java and Kotlin unique is how seamless is the boundary between the two languages.
+Thanks to the design of the Kotlin language, the way it is mapped to the JVM platform, and JetBrains' investment in developer tooling, refactoring Java to Kotlin and refactoring a combined Java/Kotlin codebase is almost as easy as refactoring in a single codebase.
+
+Our experience has been that we can refactor Java to Kotlin without impacting productivity, and that as more of the codebase is converted to Kotlin, productivity accelerates.
+
+==== We Minimise Text Edits
+
+When the IDE does not have distinct user-interface actions for a large-scale transformation we wish to do, we have to perform it as a sequence of more granular refactorings.
+We use the IDE's automatic refactoring whenever we can, and fall back on text editing when the IDE does not automate a transformation we need.
+
+It's tedious and error prone to refactor by editing text.
+To reduce the risk, and our boredom, we minimise the amount of text editing we have to do.
+If we _must_ edit text, we prefer that edit to affect a single expression.
+So, we use automatic refactorings to transform the code so that is possible, edit one expression, and then use automatic refactorings to tidy back up to the final state we're aiming for.
+
+The first time we describe a large-scale refactoring we'll go through it step by step, and show how the code changes at each step.
+This takes quite a lot of space on the page, and will take a bit of reading time to follow.
+In practice, however, these large refactorings are quick to apply.
+They typically take a few seconds, a few minutes at most.
+
+==== We Assume Good Test Coverage
+
+[quote,Martin Fowler,Refactoring (1999)]
+If you want to refactor, the essential precondition is having solid tests.
+
+Good test coverage ensures that the code transformations we want to merely improve design have not inadvertently changed our system's behaviour.
+In this book, we assume that you have good test coverage.
+We do not cover how to write automated tests.
+Other authors have addressed these topics in more detail than we could in the book.
+For example: [Freeman and Pryce], [Beck].
+However, we do show how to apply Kotlin features to simplify JUnit tests.
+
+As we walk through multi-step code transformations, we do not always state when we run the tests.
+Assume we run our tests after every change, no matter how small.
+
+If your system does not already have good test coverage it can be difficult (and expensive) to retrofit tests to the code because the logic you want to test is entangled with other aspects of the system.
+You're in a chicken and egg situation: you have refactor so that you can improve test coverage so that you can refactor.
+We do not cover how to retrofit tests to existing code.
+Again, other authors have addressed these topics in more detail than we could.
+For example: [Feathers].
+
+==== We Commit With Git Bisect In Mind
+
+Just as we don't explicitly state when we run our tests, nor do we explicitly state when we commit our changes.
+Assume we commit our changes whenever they have added value to the code, no matter how small.
+
+We know our test suite isn't perfect.
+If we do, by accident, break something that is not caught by our tests, we want to find the commit that introduced the fault and fix it as quick as we can.
+
+The `git bisect` command automates that search.
+We write a new test that demonstrates the error and `git bisect` does a binary search of the history to find the first commit that makes that test fail.
+
+If the commits in our history are large, and contain a mish-mash of unrelated changes, `git bisect` won't help as much as it could.
+It cannot tell which of the source changes within a commit introduced the error.
+If commits mix refactoring _and_ changes to behaviour, reverting a bad refactoring step is likely to break _other_ behaviour in the system.
+
+Therefore, we commit small, focused changes that separate refactorings from each other, and from changes to behaviour, to make it easy to understand what changed and fix any erroneous change.
+
+=== What are we working on?
+
+TODO: a description of the worked example system and codebase, and (eventually) where the reader can check it out for themselves.
