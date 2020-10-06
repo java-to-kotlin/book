@@ -5,7 +5,7 @@ JavaBeans were introduced to allow the development of drag-and-drop GUI builders
 A developer could drop a button onto a form, change its title and icon and then wire in an on-click handler.
 Behind the scenes the GUI builder would write code to instantiate a button object and then call setters for the properties that the developer had changed.
 
-To define a bean, a class needs a default (no-argument) constructor, getters for its properties and setters for its mutable properties.footnote:[We'll gloss over the `Serializable` requirement as even Sun never really took this seriously]
+To define a JavaBean, a class needs a default (no-argument) constructor, getters for its properties and setters for its mutable properties.footnote:[We'll gloss over the `Serializable` requirement as even Sun never really took this seriously]
 This makes a lot of sense for objects that have a lot of properties.
 GUI components typically have foreground and background colors, font, label, borders, size, alignments, paddings etc.
 Mostly the defaults for these properties are fine, so calling setters for just the special values minimizes the amount of code to be generated.
@@ -14,42 +14,47 @@ In fact, if we were to write a GUI toolkit today, I think we'd probably still op
 When JavaBeans were introduced though, we thought of most objects as mutable, not just UI components.
 I mean, why not⸮ - the point of objects was to encapsulate properties and manage the relationships between them.
 They were _designed_ to solve problems like updating the width of a component when its bounds are changed, or the total of a shopping cart as items are added.
-Java was quite radical at the time in having an immutable `String` class, although it couldn't help itself and still plumped for a mutable `Date`.
+Objects were the solution to the problem of managing mutable state.
+Java was quite radical at the time in having an immutable `String` class (although it couldn't help itself and still plumped for a mutable `Date`).
 
 We have a more sophisticated understanding these days, speaking as both your authors and the industry.
 We appreciate that we can use objects to represent different types of things - values, entities, services, actions, transactions etc.
-And yet the default Java pattern for an object is still the JavaBean - an object with a default constructor and getters and setters for its properties.
+And yet the default pattern for a Java object is still the JavaBean - a mutable object with getters and setters for its properties.
 Although it may be appropriate for a UI toolkit, this not a good default pattern.
 For most things that we want to represent with objects, a value would be better.
 
 === What is a Value?
 
 Value is a much overloaded term in English.
-In computing we say that variables, parameters and fields have values.
-In Java those values may be a primitive like `7`, or a reference to an object.
-In this book though we don't consider all objects as values.
-In later chapters we'll look at finer distinctions, but for now, let's just define a value to be an immutable piece of data.
+In computing we say that variables, parameters and fields have values - the primitive or reference that they are bound to.
+When we refer to _a value_ in this book we are referring to a specific type of primitive or reference - those with value semantics.
+An object has value semantics if only its value is significant in its interactions, not its identity.
+Java primitives all have value semantics, every '7' is equal to every other '7'.
+The objects that are the targets of references may or may not have value semantics though, in particular mutable objects do not.
+In later chapters we'll look at finer distinctions, but for now, let's just define _a  value_ to be an immutable piece of data, and a _value type_ to be a type that defines the behaviour of an immutable piece of data.
 
-So `7` is a value, `"banana"` is a value (because ``String``s are immutable), a `URI` is a value (because ``URI``'s are immutable), but a `java.util.Date` is not a value (because we can call `setYear` etc on the date).
+So `7` is a value, and the boxed `Integer` is a value type (because boxed types are immutable). "banana"` is a value (because ``String``s are immutable), a `URI` is a value (because ``URI``'s are immutable), but `java.util.Date` is not a value type (because we can call `setYear` etc on the date).
 
 An instance of an immutable `DBConnectionInfo` is a value, but an instance of `Database` is not a value, even if all its properties are immutable, because it is not a piece of data, it is a means of accessing pieces of data. <<data-to-code>> discusses the difference between data and other immutable objects.
 
 Are JavaBeans values?
-Well a bean can certainly be the _value_ of a variable or field, but in this book we use the term value to refer to _immutable_ data.
-It is certainly possible to create immutable beans - just don't define any setter methods - but if you combine a default constructor with no mutation you have just a single possible state for every instance of the bean.footnote:[Barring side-effects]
-Whilst this is useful in many circumstances it isn't helpful for representing state, so let's just say that the JavaBeans model is a fundamentally mutable one, and so JavaBeans are not usually values as we define it here.
+In the case of UI components JavaBeans are not values - they don't represent just data - two otherwise identical buttons have different identities.
+In the case of beans used to represent plain data, it will depend on whether they are immutable.
+It is possible to create immutable beans - just don't define any setter methods and add the ability to initialise the properties in at least one non-default constructor.
+This is (serialization aside) technically a bean, but most developers would think of it more as a POJO, a Plain Old Java Object.
 
-What about POJOs - Plain Old Java Objects?
-This term refers to classes that don't have to extend from framework types in order to be useful.
+Are POJOs values?
+The term was coined to refer to classes that don't have to extend from framework types in order to be useful.
 They usually represent data and conform to the JavaBeans conventions for accessor methods.
-Simple JavaBeans (apart from the serialization requirement) are POJOs.
-Many POJOs though will not have a default constructor, but instead define constructors to initialize properties that don't have sensible defaults.
-Because of this, immutable POJOs are common, unlike immutable beans, and where they just represent data we would consider them values.
+Many POJOs will not have a default constructor, but instead define constructors to initialize properties that don't have sensible defaults.
+Because of this, immutable POJOs are common, and may have value semantics.
 Mutable POJOs still seem to be the default though, so much so that many people consider that object-oriented programming in Java is synonymous with mutable objects.
 Mutable POJOs are not values.
 
-_Beans to Values_ is a snappy title, but in this chapter we're really looking at migrating from mutable to immutable data, so maybe we should have called it__ Mutable to Immutable POJOs__.
-We hope you'll forgive the clickbait.
+In summary, a bean could technically be a value, but rarely is.
+POJOs more often have value semantics, especially in the modern Java age.
+So whilst _Beans to Values_ is snappy, in this chapter we're really looking at migrating from mutable objects to immutable data, so maybe we should have called it __Mutable POJOs to Values__.
+We hope you'll forgive the clickbait chapter title.
 
 === Why Should We Prefer Values?
 
