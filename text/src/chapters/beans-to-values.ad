@@ -28,34 +28,40 @@ Value is a much overloaded term in English.
 In computing we say that variables, parameters and fields have values.
 In Java those values may be a primitive like `7`, or a reference to an object.
 In this book though we don't consider all objects as values.
-In later chapters we'll look at finer distinctions , but for now, let's just define a value to be an immutable piece of data.
+In later chapters we'll look at finer distinctions, but for now, let's just define a value to be an immutable piece of data.
 
-So `7` is a value, `"banana"` is a value (in Java, where ``String``s are immutable), a `URI` is a value (because ``URI``'s are immutable), but a `java.util.Date` is not a value (because we can call `setYear` on the date).
+So `7` is a value, `"banana"` is a value (because ``String``s are immutable), a `URI` is a value (because ``URI``'s are immutable), but a `java.util.Date` is not a value (because we can call `setYear` etc on the date).
 
 An instance of an immutable `DBConnectionInfo` is a value, but an instance of `Database` is not a value, even if all its properties are immutable, because it is not a piece of data, it is a means of accessing pieces of data. <<data-to-code>> discusses the difference between data and other immutable objects.
 
 Are JavaBeans values?
-Well a bean can certainly be the value of a variable or field, but in this book we use the term value to refer to immutable data.
+Well a bean can certainly be the _value_ of a variable or field, but in this book we use the term value to refer to _immutable_ data.
 It is certainly possible to create immutable beans - just don't define any setter methods - but if you combine a default constructor with no mutation you have just a single possible state for every instance of the bean.footnote:[Barring side-effects]
-Whilst this is useful in many circumstances it isn't helpful for representing state, so let's just say that the JavaBeans model is a fundamentally mutable one.
+Whilst this is useful in many circumstances it isn't helpful for representing state, so let's just say that the JavaBeans model is a fundamentally mutable one, and so JavaBeans are not usually values as we define it here.
 
 What about POJOs - Plain Old Java Objects?
 This term refers to classes that don't have to extend from framework types in order to be useful.
+They usually represent data and conform to the JavaBeans conventions for accessor methods.
 Simple JavaBeans (apart from the serialization requirement) are POJOs.
 Many POJOs though will not have a default constructor, but instead define constructors to initialize properties that don't have sensible defaults.
-Because of this, immutable POJOs are common, unlike immutable beans, and where they just represent data they are values.
-Mutable POJOs still seem to be the default though, so much so that many people consider that object-oriented programming is synonymous with mutable objects.
+Because of this, immutable POJOs are common, unlike immutable beans, and where they just represent data we would consider them values.
+Mutable POJOs still seem to be the default though, so much so that many people consider that object-oriented programming in Java is synonymous with mutable objects.
 Mutable POJOs are not values.
 
-Beans to Values is a snappy title, but in this chapter we're really looking at migrating from mutable to immutable data, so mutable POJOs are also in scope.
+_Beans to Values_ is a snappy title, but in this chapter we're really looking at migrating from mutable to immutable data, so maybe we should have called it__ Mutable to Immutable POJOs__.
+We hope you'll forgive the clickbait.
 
 === Why Should We Prefer Values?
 
-We prefer immutable objects because they are much easier to reason about.
-We can put them into sets or use them as map keys.
-We never have to worry about a collection changing as we iterate over its contents.
-We can explore different scenarios without having to deep-copy initial states, and simply implement undo and redo.
-This is before we consider the issues with managing mutable state between different threads or different processes.
+A value is immutable data.
+So this comes down to why we should prefer immutable objects to mutable objects, and objects that represent data to other types of object.
+This is a theme that we will visit time and again in this book.
+But for now, we prefer immutable objects because they are much easier to reason about.
+
+* We can put them into sets or use them as map keys.
+* We never have to worry about an immutable collection changing as we iterate over its contents.
+* We can explore different scenarios without having to deep-copy initial states, and simply implement undo and redo.
+* We can safely share immutable objects between different threads or different processes.
 
 The advantages of plain data over more active objects are more nuanced and are discussed in detail in <<todo>>, <<todo>>, <<todo>>.
 
@@ -106,21 +112,6 @@ public class UserPreferences {
 
     public void setCurrency(Currency currency) {
         this.currency = currency;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        UserPreferences that = (UserPreferences) o;
-        return greeting.equals(that.greeting) &&
-            locale.equals(that.locale) &&
-            currency.equals(that.currency);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(greeting, locale, currency);
     }
 }
 ----
@@ -231,29 +222,17 @@ class UserPreferences @JvmOverloads constructor(
     var greeting: String = "Hello",
     var locale: Locale = Locale.UK,
     var currency: Currency = Currency.getInstance(Locale.UK)
-) {
-    override fun equals(o: Any?): Boolean {
-        if (this === o) return true
-        if (o == null || javaClass != o.javaClass) return false
-        val that = o as UserPreferences
-        return greeting == that.greeting && locale == that.locale && currency == that.currency
-    }
-
-    override fun hashCode(): Int {
-        return Objects.hash(greeting, locale, currency)
-    }
-}
+)
 ----
 // end-insert
 
 That `@JVMOverloads` annotation tells the compiler to generate constructors allowing combinations of `greeting`, `locale` or `currency` to be defaulted - which wasn't what our original Java did - it had just two constructors.
 Arguably the conversion is more flexible, but it is unnecessary complication, so let's simplify.
-At the same time we can implement `equals` and `hashCode` automatically by making it a data class.
 
 // begin-insert: tags/beans-to-values.2:src/main/java/travelator/mobile/UserPreferences.kt
 [source,kotlin]
 ----
-data class UserPreferences(
+class UserPreferences(
     var greeting: String,
     var locale: Locale,
     var currency: Currency
@@ -266,10 +245,6 @@ data class UserPreferences(
 }
 ----
 // end-insert
-
-Why not make `Application` a data class too?
-Well it didn't have equality and hashCode defined in Java version - it's unlikely that we are going to be treating ``Application``s as things to be put into collections.
-It's best to save the `data` annotation for when it helps communicate our intent or reduces the amount of code we have to maintain.
 
 At this stage we haven't changed the functioning of our application, just simplified its expression.
 Those `var` (as opposed to `val`) properties are the sign that we have mutable data.
@@ -288,7 +263,7 @@ So entry points (`main` and event handlers) are at the top of the system, code c
 Confusingly Java stack traces show the entry point at the bottom, but we seem to be able to cope.
 
 Nat apparently thinks more outside-in.
-For him both entry points and exit points (say database calls or other IO) are at a high level.
+For him both entry points and exit points (say database calls or other IO) are at an outer level.
 Raw CPU is the inner level.
 No, I don't get it either.
 
@@ -377,15 +352,27 @@ class PreferencesView(
     }
 
     protected fun onGreetingChange() {
-        preferences = preferences.copy(greeting = greetingPicker.greeting)
+        preferences = UserPreferences(
+            greetingPicker.greeting,
+            preferences.locale,
+            preferences.currency
+        )
     }
 
     protected fun onLocaleChange() {
-        preferences = preferences.copy(locale = localePicker.locale)
+        preferences = UserPreferences(
+            preferences.greeting,
+            localePicker.locale,
+            preferences.currency
+        )
     }
 
     protected fun onCurrencyChange() {
-        preferences = preferences.copy(currency = currencyPicker.currency)
+        preferences = UserPreferences(
+            preferences.greeting,
+            preferences.locale,
+            currencyPicker.currency
+        )
     }
     ...
 }
@@ -406,7 +393,11 @@ data class UserPreferences(
 ----
 // end-insert
 
-What have we achieved?
+The eagle-eyed reader will notice that we sneakily made `UserPreferences` a data class.
+We didn't do that before now, because it was mutable, and while Kotlin allows mutable data classes they are suspect, because equality is complicated.
+<<pojos-to-data-classes>> discusses this in more detail.
+
+What have we achieved so far?
 We've replaced two immutable references to a mutable value, with two mutable references to immutable values.
 Now we can see at a glance which views can update the preferences, and if we had to manage updates across threads we could do that at the application level.
 Having a mutable reference in `PreferencesView` is a bit irritating, we can fix that by not holding a reference at all, but instead passing the preferences into `showModal`.
@@ -467,6 +458,5 @@ If we had more exacting liveness requirements, shared objects with change events
 
 === See Also
 
-TODO Relationship to other chapters.
-
+<<pojos-to-data-classes>> - continues this discussion?
 
