@@ -12,7 +12,7 @@ Mostly the defaults for these properties are fine, so calling setters for just t
 In fact, if we were to write a GUI toolkit today, I think we'd probably still opt for a similar mutable component model.
 
 When JavaBeans were introduced though, we thought of most objects as mutable, not just UI components.
-I mean, why not⸮ - the point of objects was to encapsulate properties and manage the relationships between them.
+I mean, why not? - the point of objects was to encapsulate properties and manage the relationships between them.
 They were _designed_ to solve problems like updating the width of a component when its bounds are changed, or the total of a shopping cart as items are added.
 Objects were the solution to the problem of managing mutable state.
 Java was quite radical at the time in having an immutable `String` class (although it couldn't help itself and still plumped for a mutable `Date`).
@@ -29,16 +29,16 @@ Value is a much overloaded term in English.
 In computing we say that variables, parameters and fields have values - the primitive or reference that they are bound to.
 When we refer to _a value_ in this book we are referring to a specific type of primitive or reference - those with value semantics.
 An object has value semantics if only its value is significant in its interactions, not its identity.
-Java primitives all have value semantics, every '7' is equal to every other '7'.
-The objects that are the targets of references may or may not have value semantics though, in particular mutable objects do not.
+Java primitives all have value semantics: every '7' is equal to every other '7'.
+The objects that are the targets of references may or may not have value semantics though; in particular, mutable objects do not.
 In later chapters we'll look at finer distinctions, but for now, let's just define _a  value_ to be an immutable piece of data, and a _value type_ to be a type that defines the behaviour of an immutable piece of data.
 
-So `7` is a value, and the boxed `Integer` is a value type (because boxed types are immutable). "banana"` is a value (because ``String``s are immutable), a `URI` is a value (because ``URI``'s are immutable), but `java.util.Date` is not a value type (because we can call `setYear` etc on the date).
+So `7` is a value, and the boxed `Integer` is a value type (because boxed types are immutable). `banana` is a value (because ``String``s are immutable), a `URI` is a value (because ``URI``'s are immutable), but `java.util.Date` is not a value type (because we can call `setYear` etc on the date).
 
-An instance of an immutable `DBConnectionInfo` is a value, but an instance of `Database` is not a value, even if all its properties are immutable, because it is not a piece of data, it is a means of accessing pieces of data. <<data-to-code>> discusses the difference between data and other immutable objects.
+An instance of an immutable `DBConnectionInfo` is a value, but an instance of `Database` is not a value, even if all its properties are immutable. This is because it is not a piece of data, it is a means of accessing pieces of data. <<code-to-data>> discusses the difference between data and other immutable objects.
 
 Are JavaBeans values?
-In the case of UI components JavaBeans are not values - they don't represent just data - two otherwise identical buttons have different identities.
+In the case of UI components JavaBeans are not values. UI components aren't just data - two otherwise identical buttons have different identities.
 In the case of beans used to represent plain data, it will depend on whether they are immutable.
 It is possible to create immutable beans - just don't define any setter methods and add the ability to initialise the properties in at least one non-default constructor.
 This is (serialization aside) technically a bean, but most developers would think of it more as a POJO, a Plain Old Java Object.
@@ -59,9 +59,9 @@ We hope you'll forgive the clickbait chapter title.
 === Why Should We Prefer Values?
 
 A value is immutable data.
-So this comes down to why we should prefer immutable objects to mutable objects, and objects that represent data to other types of object.
+Why we should prefer immutable objects to mutable objects, and objects that represent data to other types of object.
 This is a theme that we will visit time and again in this book.
-But for now, we prefer immutable objects because they are much easier to reason about.
+But for now, we prefer immutable objects because they are much easier to reason about:
 
 * We can put them into sets or use them as map keys.
 * We never have to worry about an immutable collection changing as we iterate over its contents.
@@ -72,7 +72,7 @@ The advantages of plain data over more active objects are more nuanced and are d
 
 === Migrating Beans to Values
 
-Lets look at migrating a use of a mutable bean or POJO to a value.
+Let's look at migrating a use of a mutable bean or POJO to a value.
 
 We represent preferences in the Travelator mobile app with a `UserPreferences` JavaBean.
 
@@ -186,7 +186,7 @@ public class PreferencesView extends View {
 ----
 // end-insert
 
-This design, whilst simple, is fraught with complications typical of mutable data.
+This design, whilst simple, is fraught with complications typical of mutable data, such as:
 
 * If the `PreferencesView` and `WelcomeView` are both active, the `WelcomeView` can get out of sync with the current values.
 * `UserPreferences` equality and hashCode depend on the values of its properties, which may be changed.
@@ -196,7 +196,7 @@ If it accidentally changed a value that would probably be a defect.
 * Errors in the `PreferencesView` could lead to data corruption, especially if there is coupling between preference properties, or between preferences and other application data.
 * If reading and writing occur on different threads we have to manage synchronisation at the preference property level.
 
-Before we refactor to using an immutable value, let's convert `Application` and `UserPreferences` to Kotlin, which will help us see the nature of our model. `Application` is simple
+Before we refactor to using an immutable value, let's convert `Application` and `UserPreferences` to Kotlin, which will help us see the nature of our model. `Application` is simple:
 
 // begin-insert: tags/beans-to-values.1:src/main/java/travelator/mobile/Application.kt#foo
 [source,kotlin]
@@ -217,7 +217,7 @@ class Application(
 // end-insert
 
 `UserPreferences` is more complicated.
-At the time of writing, IntelliJ yields this
+At the time of writing, IntelliJ yields this:
 
 // begin-insert: tags/beans-to-values.1:src/main/java/travelator/mobile/UserPreferences.kt
 [source,kotlin]
@@ -230,7 +230,7 @@ class UserPreferences @JvmOverloads constructor(
 ----
 // end-insert
 
-That `@JVMOverloads` annotation tells the compiler to generate constructors allowing combinations of `greeting`, `locale` or `currency` to be defaulted - which wasn't what our original Java did - it had just two constructors.
+That `@JVMOverloads` annotation tells the compiler to generate constructors allowing combinations of `greeting`, `locale` or `currency` to be defaulted. This wasn't what our original Java did - it had just two constructors.
 Arguably the conversion is more flexible, but it is unnecessary complication, so let's simplify.
 
 // begin-insert: tags/beans-to-values.2:src/main/java/travelator/mobile/UserPreferences.kt
@@ -261,11 +261,11 @@ The answer is to move the mutation.
 
 .Directions in Code
 ****
-Your authors disagree about the orientation of our software systems.
+Your authors disagree about the orientation of our software systems - how we visualize them.
 
-Duncan (who is writing this) thinks mainly in terms of call stacks, which confusingly grow downwards.
+Duncan (who is writing this) thinks mainly in terms of call stacks, which grow downwards.
 So entry points (`main` and event handlers) are at the top of the system, code called from there is at a lower level, which calls still-lower level code and so on until we reach CPU instructions and finally microcode.
-Confusingly Java stack traces show the entry point at the bottom, but we seem to be able to cope.
+As if stacks growing downwards wasn't confusing enough, Java stack traces show the entry point at the bottom.
 
 Nat apparently thinks more outside-in.
 For him both entry points and exit points (say database calls or other IO) are at an outer level.
@@ -281,7 +281,7 @@ Which is to say, towards the entry point, or into the higher-level, more applica
 Instead of mutating the preferences, we are going to update the reference in the `Application`.
 The reference we're going to use will be an updated copy returned by `PreferencesView`.
 
-Instead of making all the changes at once, let's start by converting `PreferencesView` to Kotlin and return the existing mutable preferences from a `showModal` method
+Instead of making all the changes at once, let's start by converting `PreferencesView` to Kotlin and return the existing mutable preferences from a `showModal` method:
 
 // begin-insert: tags/beans-to-values.3:src/main/java/travelator/mobile/PreferencesView.kt#foo
 [source,kotlin]
@@ -317,7 +317,7 @@ class PreferencesView(
 ----
 // end-insert
 
-Now make `Application.preferences` a mutable property, set from the result of `showModal()`
+Now make `Application.preferences` a mutable property, set from the result of `showModal`:
 
 // begin-insert: tags/beans-to-values.3:src/main/java/travelator/mobile/Application.kt#foo
 [source,kotlin]
@@ -399,13 +399,12 @@ data class UserPreferences(
 // end-insert
 
 The eagle-eyed reader will notice that we sneakily made `UserPreferences` a data class.
-We didn't do that before now, because it was mutable, and while Kotlin allows mutable data classes they are suspect, because equality is complicated.
-<<pojos-to-data-classes>> discusses this in more detail.
+We didn't do that before now, because it was mutable, and while Kotlin allows mutable data classes they are suspect, because the meaning of equality is then much more complicated.
 
 What have we achieved so far?
 We've replaced two immutable references to a mutable value, with two mutable references to immutable values.
 Now we can see at a glance which views can update the preferences, and if we had to manage updates across threads we could do that at the application level.
-Having a mutable reference in `PreferencesView` is a bit irritating, we can fix that by not holding a reference at all, but instead passing the preferences into `showModal`.
+Having a mutable reference in `PreferencesView` is a bit irritating though. We can fix that by not holding a reference at all, but instead passing the preferences into `showModal`.
 In this scheme there is no point in updating the individual preference properties when their respective pickers update.
 
 // begin-insert: tags/beans-to-values.6:src/main/java/travelator/mobile/PreferencesView.kt#foo
@@ -459,7 +458,7 @@ We've seen how to migrate mutation upwards (towards our applications entry point
 The end result is that less of our code has to deal with the consequences and complications of mutability.
 
 That said, JavaBeans were designed for use in user-interface frameworks, and UIs are in many ways the last bastion of mutable objects.
-If we had more exacting liveness requirements, shared objects with change events might be a better pattern than immutable values.
+If we had more exacting liveness requirements, for example updating a `WelcomeView` when the greeting preference changed, shared objects with change events might be a better pattern than immutable values.
 
 === See Also
 
