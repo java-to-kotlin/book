@@ -1,8 +1,178 @@
-= Refactoring Actions
+[[actions-to-calculations]]
+== Actions to Calculations
+
+In his excellent book https://www.manning.com/books/grokking-simplicity[Grokking Simplicity], Eric Normand develops the idea that we can categorise our code into data, calculations, and actions.
+
+In this chapter we'll look at why we might prefer calculations to actions.
+<<code-to-data>> examines why data may be a better default than either.
+
+=== Calculations
+
+Calculations are mappings from input values to output values: they are functions.
+We specify their working in code (or some other formal notation).
+We call them calculations, rather than functions, because many programming languages refer to any named procedure as a function; but to be a calculation, a function must always return the same value given the same input.
+You may also see them referred to as _pure_ functions, code with no side-effects.
+What is a side-effect? - we'll get on to them in the next section.
+
+This function:
+
+[source,kotlin]
+----
+fun fullName(customer: Customer) = "${customer.givenName} ${customer.familyName}"
+----
+
+is a calculation, as it will always return the same value when supplied the same `Customer`.
+This is true only if `Customer` is immutablefootnote:[or at least `givenName` and `secondName` are immutable].
+To keep things simple, we'll say that calculations can only have value (as defined in <<beans-to-values>>) parameters.
+
+Methods, and the disguised methods that are member-properties, can also be calculations:
+
+[source,kotlin]
+----
+data class Customer(
+    val givenName: String,
+    val familyName: String
+) {
+    fun upperCaseGivenName() = givenName.toUpperCase()
+
+    val fullName get() = "$givenName $familyName"
+}
+----
+
+To see when they are, we consider any data accessed via `this` to be an input to the function, so both methods are calculations because `givenName` and `familyName` are both values.
+
+By extension (pun only retrospectively intended) an extension function or property:
+
+[source,kotlin]
+----
+fun Customer.fullName() = "$givenName $familyName"
+
+val Customer.fullName get() = "$givenName $familyName"
+----
+
+can also be a calculation if the data it depends on is a value.
+
+.Computed Property or Function?
+****
+You may have wondered when to define a computed property and when to have a function that returns a value.
+Computed properties are really confusing if they can return different values at different types, at least when defined on values types.
+And you'll discover that we consider that most of our types should be value types.
+So a good rule of thumb is only to use computed properties when they are calculations, and functions for any results that depend on side effects or mutable data.
+****
+
+=== Actions
+
+Code that does not define a value, or specify a pure calculation, is an action.
+Actions depend on when and/or how many times they are run.
+This will happen if they change something in their environment, or their environment affects their result - the side effects that calculations don't have.
+
+[source,kotlin]
+----
+class Customers {
+    fun save(data: CustomerData) {
+        ...
+    }
+    fun find(id: String): Customer? {
+        ...
+    }
+}
+----
+
+Both `save` and `find` are actions, as find's result depends on whether it is run before or after a customer with that id has been saved.
+
+[source,kotlin]
+----
+fun email(itinerary: Itinerary) {
+    ...
+}
+----
+
+is an action, because if we run it twice the customer will get two emails, which is different from if we run it once, which is different from if we don't run it at all.
+Functions returning `void` or `Unit` are a dead giveaway for actions, because if they do anything they have to do it by side effect.
+
+Functions that have no parameters (so this doesn't include methods or extension functions) must also either be returning a constant; or be reading from some other source and so be categorised as actions.
+So we can deduce that the top-level function
+
+[source,kotlin]
+----
+fun requestRate(): Double {
+    ...
+}
+----
+
+is probably an action, reading from some global mutable state, whereas
+
+[source,kotlin]
+----
+class Metrics(
+   ...
+) {
+
+    fun requestRate(): Double {
+        ...
+    }
+}
+----
+
+is probably a calculation, provided `Metrics` is immutable.
+We say probably, because in languages that allow IO or mutating data from any code (like Java or Kotlin), there is no way to be sure if a function represents a value, calculation or action short of examining it.
+We'll return to that problem soon.
+
+== Why Should We Care?
+
+We should obviously pay special attention to some actions in our software.
+Sending the same email to every user twice is a bug, as is not sending it at all.
+We care exactly how many times it is sent, and probably when it is sent too, maybe down to the minute, so that our offer for a free first-class upgrade is at the top of our customer's inbox when they read their email over breakfast.
+
+Other seemingly innocuous actions may be more nocuous than we think.
+Changing the order of read and write actions causes concurrency bugs.
+Error handling is much more complicated if the second of two related actions fails.
+Fundamentally, actions prevent us having free-reign to refactor in ways which change when or whether they are invoked.
+
+Calculations on the other hand can be invoked at any time, with no consequences except a waste of time and energy.
+If we are refactoring code and find that you don't need the result of a calculation, we can safely not invoke it.
+If it is an expensive calculation, we can safely cache its result; if it is not expensive, we can safely recalculate it on demand if that simplifies things.
+It is this feeling of safety that puts the smug smile on the faces of functional programmers.
+We'll, that and knowing that a monad is just a monoid in the category of endofunctors, if not actually why.
+
+Values, well they just are.
+Simply accessing immutable data takes even less reasoning than calculations.
+We don't have to drill down through source code, or write tests, to determine their behaviour.
+Calculations can fail for various reasons, but the main error that we have to consider with data is what to do in its absence, and, at least in the case of Kotlin, we have language support for that.
+The more code we can move into the values category the simpler our life will be.
+
+.Procedural Code
+****
+Nat and Duncan are both old enough to have learned to program in Sinclair BASIC. This dialect had no local variables, no immutable data, and no concept of defining a function with parameters that could return values.
+It requires real discipline to programme in such a system, because practically every line of code is an action, and hence potentially affects the functioning of every other statement.
+
+This is in fact very close to the way that our computers actually work, with mutable values held in registers and global memory, manipulated by machine-code actions.
+The evolution of programming languages has been a process of restricting the ultimate flexibility of this model, in order that humans can better reason with the code that they create.
+****
+
+== Combining Categories
+
+The categories - values, calculations and actions, do not overlap.
+If code depends on when or whether you run it, it is an action and not a calculation.
+If it doesn't, but isn't just accessing immutable data, it is a calculation.
+Otherwise, the code is expressing a value.
+
+If you have code which is simply accessing a value, and you change it to invoke a calculation, it becomes a calculation itself, as we now have to interpret code to work out what it is doing.
+Similarly, any calculation which invokes an action becomes an action itself, as it is now subject to time.
+We see a similar situation with errors - code inherits the most tainted level of all of its dependencies.
+
+As with the susceptibility to errors, if we value the lack of taint, we must strive to pull the boundary between impure and pure code to the outer layers of our system.
+If we succeed, then a significant proportion of our code can be values and calculations, and hence easily tested, reasoned-with, and refactored.
+
+If we don't succeed in keeping actions at the top of our call-stack, we can fix things with refactoring.
+
+SOMETHING ABOUT THE GRAIN OF JAVA AND KOTLIN WRT ACTIONS
+
+=== Migrating Actions to Calculations
 
 Let's have a look at recognising and refactoring actions in existing code.
 
-== Existing Code
+==== Existing Code
 
 There is an HTTP endpoint in Travelator that allows the client app to fetch information about the customers current trip.
 
@@ -172,7 +342,7 @@ Is having to inject a clock https://dhh.dk/2014/test-induced-design-damage.html[
 In some ways it is.
 Dependency injection, and in particular mocks, have allowed us to solve testing problems that would otherwise have forced a rethink that might lead to a better design.
 
-== A Better Desigh
+==== A Better Desigh
 
 What would a better design look like here?
 
@@ -460,7 +630,7 @@ public class TrackingTests {
 ----
 // end-insert
 
-== End Game
+==== End Game
 
 We're nearly almost done now (refactoring is never completely done).
 Now that neither of our `currentTripFor` methods fetch the time, leaving that to the handler,
@@ -514,3 +684,8 @@ Categorising our code into values, calculations and actions has helped us see th
 Lastly, it is worth noting that one place in which Kotlin makes this categorisation easier is in its default use of immutable data.
 When you see `List` in Java you have to find the places in which it is created or referenced in order to establish its mutability, and hence the likelihood that code accessing it can be an action.
 In Kotlin when you see `MutableList` you can infer an action, although as we have seen with `InMemoryTrips`, exposing a mutable collection with a read-only alias can lead to actions pretending to be calculations.
+
+
+=== See Also
+
+Categorising code into data, calculations and actions is a formalism introduced by Eric Normand in his book https://www.manning.com/books/grokking-simplicity[Grokking Simplicity].
