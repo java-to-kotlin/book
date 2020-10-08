@@ -8,7 +8,7 @@ In this chapter we'll look at why we might prefer calculations to actions.
 
 === Calculations
 
-Calculations are mappings from input values to output values: they are functions.
+_Calculations_ are mappings from input values to output values: they are functions.
 We specify their working in code (or some other formal notation).
 We call them calculations, rather than functions, because many programming languages refer to any named procedure as a function; but to be a calculation, a function must always return the same value given the same input.
 You may also see them referred to as _pure_ functions, code with no side-effects.
@@ -41,7 +41,7 @@ data class Customer(
 
 To see when they are, we consider any data accessed via `this` to be an input to the function, so both methods are calculations because `givenName` and `familyName` are both values.
 
-By extension (pun only retrospectively intended) an extension function or property:
+An extension function or property:
 
 [source,kotlin]
 ----
@@ -62,9 +62,13 @@ So a good rule of thumb is only to use computed properties when they are calcula
 
 === Actions
 
-Code that does not define a value, or specify a pure calculation, is an action.
+Code that does not define a value, or specify a pure calculation, is an _action_.
 Actions depend on when and/or how many times they are run.
-This will happen if they change something in their environment, or their environment affects their result - the side effects that calculations don't have.
+This will happen if they change something in their environment, or their environment affects their result.
+In software we call these _side-effects_, which isn't a very good name, because unlike drugs, they are often exactly the thing that we want to happen.
+Maybe _outside-effect_ would be a better name, to emphasise that they are external to a procedure's parameters, local variables and return value.
+
+In our `Customers` service:
 
 [source,kotlin]
 ----
@@ -90,8 +94,8 @@ fun email(itinerary: Itinerary) {
 is an action, because if we run it twice the customer will get two emails, which is different from if we run it once, which is different from if we don't run it at all.
 Functions returning `void` or `Unit` are a dead giveaway for actions, because if they do anything they have to do it by side effect.
 
-Functions that have no parameters (so this doesn't include methods or extension functions) must also either be returning a constant; or be reading from some other source and so be categorised as actions.
-So we can deduce that the top-level function
+Functions that have no parameters (so this doesn't include methods or extension functions which can have implicit parameters accessed via `this`) must also either be returning a constant, or be reading from some other source and so be categorised as actions.
+So we can deduce that the top-level function:
 
 [source,kotlin]
 ----
@@ -130,21 +134,15 @@ Error handling is much more complicated if the second of two related actions fai
 Fundamentally, actions prevent us having free-reign to refactor in ways which change when or whether they are invoked.
 
 Calculations on the other hand can be invoked at any time, with no consequences except a waste of time and energy.
-If we are refactoring code and find that you don't need the result of a calculation, we can safely not invoke it.
+If we are refactoring code and find that we don't need the result of a calculation, we can safely not invoke it.
 If it is an expensive calculation, we can safely cache its result; if it is not expensive, we can safely recalculate it on demand if that simplifies things.
 It is this feeling of safety that puts the smug smile on the faces of functional programmers.
 We'll, that and knowing that a monad is just a monoid in the category of endofunctors, if not actually why.
 
-Values, well they just are.
-Simply accessing immutable data takes even less reasoning than calculations.
-We don't have to drill down through source code, or write tests, to determine their behaviour.
-Calculations can fail for various reasons, but the main error that we have to consider with data is what to do in its absence, and, at least in the case of Kotlin, we have language support for that.
-The more code we can move into the values category the simpler our life will be.
-
 .Procedural Code
 ****
 Nat and Duncan are both old enough to have learned to program in Sinclair BASIC. This dialect had no local variables, no immutable data, and no concept of defining a function with parameters that could return values.
-It requires real discipline to programme in such a system, because practically every line of code is an action, and hence potentially affects the functioning of every other statement.
+It requires real discipline to program in such a system, because practically every line of code is an action, and hence potentially affects the functioning of every other statement.
 
 This is in fact very close to the way that our computers actually work, with mutable values held in registers and global memory, manipulated by machine-code actions.
 The evolution of programming languages has been a process of restricting the ultimate flexibility of this model, in order that humans can better reason with the code that they create.
