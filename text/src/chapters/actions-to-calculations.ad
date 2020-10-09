@@ -22,7 +22,7 @@ fun fullName(customer: Customer) = "${customer.givenName} ${customer.familyName}
 ----
 
 is a calculation, as it will always return the same value when supplied the same `Customer`.
-This is true only if `Customer` is immutablefootnote:[or at least `givenName` and `secondName` are immutable].
+This is true only if `Customer` is immutable.footnote:[or at least `givenName` and `secondName` are immutable]
 To keep things simple, we'll say that calculations can only have value (as defined in <<beans-to-values>>) parameters.
 
 Methods, and the disguised methods that are member-properties, can also be calculations:
@@ -104,7 +104,7 @@ fun requestRate(): Double {
 }
 ----
 
-is probably an action, reading from some global mutable state, whereas
+is probably an action, reading from some global mutable state, whereas:
 
 [source,kotlin]
 ----
@@ -118,7 +118,7 @@ class Metrics(
 }
 ----
 
-is probably a calculation, provided `Metrics` is immutable.
+is probably a calculation with an explicit parameter that is a property of `Metrics`.footnote:[provided `Metrics` is immutable.]
 We say probably, because in languages that allow IO or mutating data from any code (like Java or Kotlin), there is no way to be sure if a function represents a value, calculation or action short of examining it.
 We'll return to that problem soon.
 
@@ -126,18 +126,19 @@ We'll return to that problem soon.
 
 We should obviously pay special attention to some actions in our software.
 Sending the same email to every user twice is a bug, as is not sending it at all.
-We care exactly how many times it is sent, and probably when it is sent too, maybe down to the minute, so that our offer for a free first-class upgrade is at the top of our customer's inbox when they read their email over breakfast.
+We care exactly how many times it is sent.
+We may even care that it is sent at exactly 8:07am, so that our offer for a free first-class upgrade is at the top of our customer's inbox when they read their email over breakfast.
 
 Other seemingly innocuous actions may be more nocuous than we think.
 Changing the order of read and write actions causes concurrency bugs.
-Error handling is much more complicated if the second of two related actions fails.
+Error handling is much more complicated if the second of two sequential actions fails after the first succeeded.
 Fundamentally, actions prevent us having free-reign to refactor in ways which change when or whether they are invoked.
 
 Calculations on the other hand can be invoked at any time, with no consequences except a waste of time and energy.
 If we are refactoring code and find that we don't need the result of a calculation, we can safely not invoke it.
 If it is an expensive calculation, we can safely cache its result; if it is not expensive, we can safely recalculate it on demand if that simplifies things.
 It is this feeling of safety that puts the smug smile on the faces of functional programmers.
-We'll, that and knowing that a monad is just a monoid in the category of endofunctors, if not actually why.
+We'll, that and knowing that a monad is just a monoid in the category of endofunctors.
 
 .Procedural Code
 ****
@@ -148,23 +149,19 @@ This is in fact very close to the way that our computers actually work, with mut
 The evolution of programming languages has been a process of restricting the ultimate flexibility of this model, in order that humans can better reason with the code that they create.
 ****
 
-== Combining Categories
+== Why Prefer Calculations?
 
-The categories - values, calculations and actions, do not overlap.
-If code depends on when or whether you run it, it is an action and not a calculation.
-If it doesn't, but isn't just accessing immutable data, it is a calculation.
-Otherwise, the code is expressing a value.
-
-If you have code which is simply accessing a value, and you change it to invoke a calculation, it becomes a calculation itself, as we now have to interpret code to work out what it is doing.
-Similarly, any calculation which invokes an action becomes an action itself, as it is now subject to time.
-We see a similar situation with errors - code inherits the most tainted level of all of its dependencies.
-
-As with the susceptibility to errors, if we value the lack of taint, we must strive to pull the boundary between impure and pure code to the outer layers of our system.
-If we succeed, then a significant proportion of our code can be values and calculations, and hence easily tested, reasoned-with, and refactored.
+Ultimately our software needs to have an effect in the world, so we really need actions.
+But at the same time calculations are so much easier to work with.
+There is no overlap though, code can't be an action and a calculation.
+If we take some code that defines a calculation and have it invoke an action, then it becomes an action,
+because it will now depend on when or whether it is called.footnote:[Technically it _could_ read from global state and discard the result and stay a calculation.]
+We can think of calculations as the purer code, where code inherits the most tainted level of all of its dependencies.
+We see the same thing with susceptibility to errors <<exceptions-to-errors>> and partial functions <<partial-to-total-functions>>.
+As with these other taints, if we value purity (which in all these cases brings ease of reasoning and refactoring), we must strive to pull the boundary between impure and pure code to the outer layers of our system - those closest to the entry points.
+If we succeed, then a significant proportion of our code can be calculations, and hence easily tested, reasoned-with, and refactored.
 
 If we don't succeed in keeping actions at the top of our call-stack, we can fix things with refactoring.
-
-SOMETHING ABOUT THE GRAIN OF JAVA AND KOTLIN WRT ACTIONS
 
 === Migrating Actions to Calculations
 
@@ -683,6 +680,7 @@ Lastly, it is worth noting that one place in which Kotlin makes this categorisat
 When you see `List` in Java you have to find the places in which it is created or referenced in order to establish its mutability, and hence the likelihood that code accessing it can be an action.
 In Kotlin when you see `MutableList` you can infer an action, although as we have seen with `InMemoryTrips`, exposing a mutable collection with a read-only alias can lead to actions pretending to be calculations.
 
+=== Conclusions
 
 === See Also
 
