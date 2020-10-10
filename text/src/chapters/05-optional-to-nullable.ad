@@ -6,7 +6,7 @@ We won't start by rehashing the arguments around why this is such a good idea, b
 Prior to Java 8, Java relied on convention, documentation, and intuition to distinguish between references that could or could not be null.
 We can deduce that methods that return an item from a collection must be able to return `null`, but can `addressLine3` be `null`, or do we use an empty string when there is no information?
 
-Your authors settled down into a convention where Java references are assumed non-null, unless otherwise flagged.
+Over the years, your authors and their Java colleagues settled into a convention where Java references are assumed non-null, unless otherwise flagged.
 So we might name a field `addressLine3OrNull`, or a method `previousAddressOrNull`.
 Within a codebase this worked well enough; even if it is a little verbose, and requires eternal vigilance to avoid the scourge of `NullPointerExceptions`.
 
@@ -23,7 +23,7 @@ Depending on its age, your Java code may use some or all of these strategies for
 It is certainly possible to have a codebase in which `NullPointerExceptions` are practically never seen, but the reality is that this is hard work.
 Java is weighed down by null, and embarrassed by its half-hearted `Optional` type.
 
-In contrast Kotlin embraces null.
+In contrast, Kotlin embraces null.
 Making optionality a part of the typesystem, rather than the standard library, means that Kotlin codebases have refreshing uniformity in their treatment of missing values.
 It isn't all perfect:
 `Map<K, V>.get(key)` returns a nullable `V?`
@@ -32,7 +32,7 @@ if there is no value for `key`; but
 when there is no value at `index`.
 Likewise `Iterable<T>.first()` throws `NoSuchElementException`
 rather than returning `null`.
-These cases though were forced on the designers to give backwards compatibility with Java.
+Largely though the imperfections were forced on the designers to give backwards compatibility with Java.
 
 Where Kotlin has its own APIs they are generally good examples of how to safely use null to represent optional properties, parameters and return values.
 Returning to languages without this support feels unsafe.
@@ -49,7 +49,7 @@ In contrast, `T` is not a subtype of `Optional<T>`.
 If we have a String and we want to assign it to an optional variable, we have first to wrap it in an `Optional`.
 Worse, if we have a function that returns an `Optional<String>` and later discover a way to always return a result, changing the return type to `String` will break all our clients.
 Had our return type been `T?`, then we could have strengthed it to `T` whilst maintaining compatibility.
-The same applies to properties of data structures, we easily migrate from optional to non-optional with nullability, but not, ironically, with `Optional`.
+The same applies to properties of data structures: we easily migrate from optional to non-optional with nullability, but not, ironically, with `Optional`.
 
 It's safe to say then that your authors love Kotlin's support for nullablity, and have learned to lean on it to solve many problems.
 It takes a while to wean yourself off of avoiding nulls, but once you have, there is literally a whole new dimension of expressiveness to explore and exploit.
@@ -59,8 +59,8 @@ to Kotlin and nullable.
 
 === Migrating from Optional to Nullable
 
-Travelator has the concept of trip `Legs`.
-Here is one of the utility functions we've found in the code, designed to help find legs which we might make less strenuous.
+Travelator trips are divided into ++Leg++s, where each `Leg` is an unbroken journey.
+Here is one of the utility functions we've found in the code, designed to find legs over a given duration.
 
 // begin-insert: tags/nullability.0:src/main/java/travelator/Legs.java
 [source,java]
@@ -85,7 +85,7 @@ public class Legs {
 ----
 // end-insert
 
-Here are the tests.
+The tests not only check the code works as intended, but allow us to see its behaviour at a glance:
 
 // begin-insert: tags/nullability.0:src/test/java/travelator/LongestLegOverTests.java#foo
 [source,java]
@@ -141,7 +141,7 @@ public class LongestLegOverTests {
 // end-insert
 
 Let's see what we can do to make things better in Kotlin.
-Converting `Legs.java` to Kotlin gives us this (after a little reformatting)
+Converting `Legs.java` to Kotlin gives us this (after a little reformatting):
 
 // begin-insert: tags/nullability.2:src/main/java/travelator/Legs.kt
 [source,kotlin]
@@ -220,11 +220,11 @@ class LongestLegOverTests {
 ----
 // end-insert
 
-Actually (when we wrote this) the converted code didn't compile, but what's the odd import between friends?
+Actually (when we wrote this) the converted code didn't compile, but what's the odd import between friends? Alt-Enter does the needful.
 
 Now to migrate gradually, we're going to need two versions of `findLongestLegOver`, the existing `Optional`-returning one, and a new one that returns `Leg?`.
 We can do that by extracting the guts of the current implementation.
-We can't give it the same name, so we use `longestLegOver`
+We can't give it the same name, so we use `longestLegOver`.
 
 // begin-insert: tags/nullability.4:src/main/java/travelator/Legs.kt#foo
 [source,kotlin]
@@ -342,8 +342,7 @@ fun `is longest leg when more than one match`() {
 ----
 // end-insert
 
-We've converted the first this way, but it suffers from failing the test with a thrown `NullPointerException`
-rather than a nice diagnostic.
+We've converted the first of the non-null-returning tests this way, but it suffers from failing the test with a thrown `NullPointerException` rather than a nice diagnostic.
 In the second case we've solved that problem with `?.` - so that if the leg is `null` the error will be
 
 ----
@@ -356,7 +355,7 @@ which is much nicer.
 We can work this refactoring through our clients, converting them to Kotlin and then to using `longestLegOver`.
 Once we have converted all of them we delete the `Optional`-returning `findLongestLegOver`, and move its replacement `longestLegOver`
 out of the `Legs` object scope into the top-level.
-= Unfortunately this refactoring is not automated - we describe the steps in detail in <<prefix-syntax-to-infix-syntax>>.
+Unfortunately this refactoring is not automated - we describe the steps in detail in <<static-methods-to-free-standing-functions>>.
 
 We now have just a top-level Kotlin function, plus a supporting function that we converted to an extension function because, well, it just reads better that way.
 
@@ -388,14 +387,14 @@ Can we find a nice way to refactor it?
 
 The only suggestion IntelliJ gives is to replace `compareTo` with `>`, so let's do that first.
 Once we have, `isLongerThan` isn't really pulling its weight, so we inline it.
+At this point we run out of refactoring talent (you may be more inspired) and decide to rewrite the function from scratch.
 
-Then we're forced to think, "What is the code trying to do?"
-
-Actually, let's not think; let's just read the name of the function - `longestLegOver`!
-In order to implement this, we can find the longest leg, and if it is longer than duration, return it, otherwise null.
+In order to do so, we ask ourselves, "What is the code trying to do?"
+The answer is helpfully in the name of the function - `longestLegOver`.
+In order to implement this calculation, we can find the longest leg, and if it is longer than duration, return it, otherwise null.
 Typing `legs.` at the beginning of the function we look at the suggestions and find `maxBy` - our longestLeg is going to be `legs.maxBy(Leg::plannedDuration)`.
 This API helpfully returns `Leg?` to remind us that it can't give a result if `legs` is empty.
-So we write the thing that we can write with least thinking at this stage.
+Converting our algorithm "find the longest leg, and if it is longer than duration, return it, otherwise null" to code directly we have:
 
 // begin-insert: tags/nullability.8:src/main/java/travelator/Legs.kt
 [source,kotlin]
@@ -509,7 +508,7 @@ fun longestLegOver(
 // end-insert
 
 Depending on the team's experience with Kotlin, that may be too subtle?
-Nat thinks it's fine, but Duncan touched it last, so the `when` version gets to stay.
+Nat thinks it's fine, but we're going to err on the side of explicit, so the `when` version gets to stay, at least until the next time someone refactors here.
 
 Finally, let's make `legs` the receiver in an extension function, allowing us finally to get rid of our accidental double-entendre.
 
@@ -585,7 +584,8 @@ adds noise to pretty much every line of the method.
 
 === Conclusions
 
-The absence or otherwise of information is inescapable in our code:
-by raising it to first-class status, Kotlin makes sure that we are take account of it when we have to, but are not overwhelmed by it when we don't.
+The absence or presence of information is inescapable in our code: by raising it to first-class status, Kotlin makes sure that we are take account of it when we have to, but are not overwhelmed by it when we don't. In comparison, Java's `Optional` type feels clumsy. Luckily we can easily migrate from `Optional` to nullable, and support both simultaneously when we are not ready to convert all our code to Kotlin.
 
 === See Also
+
+<<functions-to-extension-functions>> discusses extension functions, which can usefully be defined on nullable type.
