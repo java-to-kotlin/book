@@ -2,7 +2,7 @@
 == Methods to Operators
 
 Most of the value types in our application domain model are _abstract data types_.
-An abstract data type represents a concept in our application domain, but hides how it represents that concept behind an API.
+An abstract data type represents a concept in our application domain, and hides how it represents that concept behind an API.
 The API defines the only operations that the rest of the program can use to work with values of the abstract data type, and guarantees that the hidden representation is always correct.
 
 Kotlin's data classes greatly reduce the amount of boilerplate we need to write to implement value semantics.
@@ -190,15 +190,16 @@ When we change `class` to `data class`, IntelliJ highlights the `private` keywor
 Private data class constructor is exposed via the generated 'copy' method."
 ----
 
-What's that all about⸮
+What's that all about?
 
 Kotlin generates a public `copy` method for data classes that creates a copy of an instance, replacing some of the field values.
 
 The constructor of the Money class is private because the class maintains an invariant between its properties, ensuring that the scale of the amount field is equal to the default number of minor currency digits of the currency field.
 The `Money.of(BigDecimal,Currency)` method ensures the invariant for new Money values.
 The `add` method maintains the invariant because adding two BigDecimal values with the same scale produces a BigDecimal that also has the same scale.
-The add method therefore can call the constructor directly because doesn't need to recalculate the scale.
-The constructor need only assign fields, safe in the knowledge that it is only called with parameters that meet the class invariant. and it is private to prevent code outside the Money class from creating values that violate the invariant.
+The add method therefore can call the constructor directly because it doesn't need to recalculate the scale.
+The private constructor prevents code outside the Money class from creating values that violate the invariant.
+The constructor, therefore, need only assign fields, safe in the knowledge that it is never called with parameters that violate the class invariant.
 
 However, the public `copy` method of a data class _would_ allow client code to create Money values that violate the invariant.
 Our Money class cannot be a data class.
@@ -361,7 +362,7 @@ Even if we only called `Money.add` from Java code, we still have a problem:
 IntelliJ will convert Java that calls `Money.add` into Kotlin that calls 'Money.plus' as a method instead of using `+` operator.
 IntelliJ can automatically refactor each of those call sites from a method call to an operator, but we would have to go through them one by one, refactoring each one individually.
 
-To address these problems, we'll use a sequence of refactoring steps to switch all our Kotlin code over to use the `+` operator, and leave a hook in our code to let us easily do that in bulk as we convert more Java classes to Kotlin.
+To address these problems, we'll use a sequence of refactoring steps to switch _all_ our Kotlin code over to use the `+` operator, and leave in the code the capability to easily do those steps again as we convert more Java classes to Kotlin.
 
 Let's revert our change again, and take yet another run at the conversion.
 
@@ -476,7 +477,7 @@ A <<modern-java-style,Modern Java>> convention is that stateful objects, for whi
 For example, the expression `new ArrayList<>()` constructs a new mutable list distinct from any other mutable list, while the expression `List.of("a","b","c")` denotes an immutable list value.
 
 Kotlin does not draw a distinction between constructing objects and calling functions: the syntax for instantiating a class is the same as that for calling a function.
-Nor are there coding conventions to distinguish between constructing new a stateful object that has a distinct identity, and denoting values that do not.
+Nor are there coding conventions to distinguish between constructing a new stateful object that has a distinct identity, and denoting values that do not.
 
 NOTE: Although the Kotlin code for calling a function and instantiating a class look the same, they are implemented by different JVM bytecode.  A source-compatible change between a class and a function will not be binary-compatible.
 
