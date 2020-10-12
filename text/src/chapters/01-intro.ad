@@ -19,12 +19,9 @@ This book is not an introduction to Kotlin language features.
 Instead, we explore how to adapt your design approach to take advantage of those features, and how you can do so safely in a mixed codebase by gradually migrating from Java to Kotlin.
 
 [[grain]]
-=== Working with the Grain of Kotlin
+=== The Grain of a Programming Language
 
-[[what-is-grain]]
-==== The Grain of a Programming Language
-
-Every programming language has a _grain_, a smooth direction. If you go with the grain, things go smoothly, against the grain things are more difficult.
+Every programming language has a _grain_ -- if you work with the grain, things go smoothly, go against the grain things are more difficult.
 This affects the way we design programs in that language.
 
 For example, it has always been possible write to Java code in a functional style, but few programmers did before Java 8 -- for good reasons.
@@ -88,8 +85,8 @@ int sum = ((Integer) Vectors.reduce(counts, new Integer(0), new AddIntegers()))
 ----
 // end-insert
 
-That's a lot of effort for what can be achieved, in modern languages, with a single expression.
-But that's not the end of it.
+That's a lot of effort for what can be achieved with a single expression in a modern language,
+but that's not the end of it.
 Because Java had no standard function types, we couldn't easily combine different libraries written in a functional style.
 We had to write adapter classes to map between the function types defined in different libraries.
 And because the virtual machine had no JIT and a simple garbage collector, functional code would have worse performance than the imperative alternative.
@@ -116,7 +113,7 @@ A language's grain forms over time as its designers and users build a common und
 The grain influences the way that programmers write code in the language, which influences the evolution of the language, its libraries and programming tools, changing the grain, altering the way that programmers write code in the language, on and on in a continual cycle of mutual feedback and evolution.
 
 For example, Java 1.1 added anonymous inner classes to the language, and Java 2 added the collections framework to the standard library.
-Anonymous inner classes meant that we didn't need to write a named class for each function you wanted to pass to your `reduce` function, but the resulting code was arguably harder to read.
+Anonymous inner classes meant that we wouldn't need to write a named class for each function we wanted to pass to our `reduce` function, but the resulting code would arguably be harder to read.
 
 // begin-insert: src/test/java/grain/java2/TheGrainOfJavaTest.java#reduce
 [source,java]
@@ -161,7 +158,7 @@ int sum = Lists.reduce(counts, 0,
 https://github.com/google/guava[Google's Guava library] included some common higher-order functions over collections, although `reduce` was not among them.
 Even the authors of Guava recommended writing imperative code where possible, because it had better performance and was usually easier to read.
 
-Functional programming still went largely against the grain of Java 5, but we can see the start of a trend.
+Functional programming still went largely against the grain of Java 5, but we could see the start of a trend.
 
 Java 8 added anonymous functions (aka "lambda expressions") and method references to the language, and the Streams API to the standard library.
 The compiler and virtual machine optimised lambdas to avoid the performance overhead of anonymous inner classes.
@@ -175,25 +172,24 @@ int sum = counts.stream().reduce(0, Integer::sum);
 // end-insert
 
 Still, it wasn't entirely plain sailing.
-We still can't treat the addition operator as a value, but we do have the standard library function `Integer::sum` that does the same thing.
+We still could not pass the addition operator as a parameter to our `reduce` function, but we now had have the standard library function `Integer::sum` that did the same thing.
 Java's type system still created awkward edge cases because of its distinction between reference and primitive types.
-The Streams API was missing some common higher-order functions that we would reach for if coming from a functional language (or even Ruby).
-Checked exceptions don't play well with the Streams API and functional programming in general.
-And making immutable classes with value semantics still involves a lot of boilerplate code.
+The Streams API was missing some common higher-order functions that we would expect to find if coming from a functional language (or even Ruby).
+Checked exceptions didn't play well with the Streams API and functional programming in general.
+And making immutable classes with value semantics still involved a lot of boilerplate code.
 But with Java 8, Java had fundamentally changed to make a functional style work, if not completely with the grain, at least not against it.
 
 In the case of Java, the grain of the language, and the way programmers adapted to it, evolved through several distinct programming styles.
-Kotlin has features designed specifically to simplify interoperability (interop) with code written in these styles.
-We'll refer to these styles as a shorthand when explaining why these features exist, and when to use or avoid them.
+Kotlin has features designed specifically to simplify interoperability with code written in these styles.
 
 [[java-programming-style]]
-==== An opinionated history of Java programming style
+=== An opinionated history of Java programming style
 
 Like ancient poets, we divide the development of Java programming style into four distinct ages: the Primeval Age, the Beans Age, the Enterprise Age, and the Modern Age.
 We'll use these names as a convenient shorthand when discussing Kotlin's interop features.
 
 [[primeval-java-style]]
-===== Primeval Style
+==== Primeval Style
 
 Originally intended for use in domestic appliances and interactive TV, Java only took off when Netscape adopted Java applets in their hugely popular Navigator browser.
 Sun released the Java development kit 1.0, Microsoft included Java in Internet Explorer, and suddenly everyone with a web browser had a Java runtime environment.
@@ -211,7 +207,7 @@ C and C++ programmers followed a seemingly infinite variety of coding convention
 Java's one true coding convention meant that Java programmers could seamlessly integrate strangers' libraries into their programs, and encouraged widespread use of open source libraries in the Java community.
 
 [[bean-java-style]]
-===== Bean Style
+==== Bean Style
 
 After its initial success, Sun set out to make Java a practical tool for building applications.
 Java 1.1 (1996) added to the language (most notably inner classes), improved the runtime (most notably just-in-time compilation and reflection), and extended the standard library.
@@ -245,7 +241,7 @@ Java programmers followed the Java Bean conventions even when they had no intent
 Beans had an enormous, lasting, and not entirely positive, influence on Java programming style.
 
 [[enterprise-java-style]]
-===== Enterprise Style
+==== Enterprise Style
 
 Java did eventually spread through the enterprise.
 It didn't replace Visual Basic on the corporate desktop as expected, but unseated C++ as the server-side language of choice.
@@ -277,7 +273,7 @@ The availability of top-notch open source libraries fueled the adoption of Java 
 This was followed by best in class development tools, including IntelliJ which we use in this book.
 
 [[modern-java-style]]
-===== Modern Style
+==== Modern Style
 
 Java 8 brought the next big change to the language -- lambdas -- and significant additions to the standard library to take advantage of them.
 The Streams API encouraged a functional programming style, in which processing is performed by transforming streams of immutable values rather than changing the state of mutable objects.
@@ -293,7 +289,7 @@ Java 11 introduced modules, but so far they have not seen widespread adoption ou
 The most exciting thing about recent Java releases has been the modularisation of the JDK and removal of seldom-used modules, such as CORBA, from the JDK into optional extensions.
 
 [[future-java-style]]
-===== The Future
+==== The Future
 
 The future of Java promises more features to make Modern Style easier to apply: records, pattern matching, user defined value types, and eventually the unification of primitive and reference types into a uniform type system.
 
@@ -302,7 +298,7 @@ Java started off with some deep-seated inconsistencies and edge cases that are h
 Kotlin has the benefit of 25 years of hindsight, and a clean slate from which to start afresh.
 
 [[grain-of-kotlin]]
-==== The Grain of Kotlin
+=== The Grain of Kotlin
 
 Kotlin is a young language, but it clearly has a different grain to Java.
 
@@ -341,7 +337,7 @@ Some of those features remove guarantees provided by type checker, and should _o
 For example, `lateinit` opens a hole in the type system so that Java dependency injection frameworks that initialise objects by reflection can inject values through the encapsulation boundaries that are normally enforced by the compiler.
 If you declare a property as `lateinit var`, it's up to you to ensure the code initialises the property before reading it -- the compiler will not catch your mistakes.
 
-==== Adapting to the Grain
+=== Adapting to Kotlin's Grain
 
 When we look back on the earliest code we wrote in Kotlin, it tends to look like Java dressed in Kotlin syntax. We came to Kotlin after years writing a lot of Java, and had ingrained habits that affected how we wrote Kotlin code.
 We wrote unnecessary boilerplate, didn't make good use of the standard library, and avoided using null because we weren't yet used to the type checker enforcing null safety.
@@ -354,9 +350,6 @@ We have to work with the different grains of Java _and_ Kotlin, being sympatheti
 
 [[intro-refactoring-to-kotlin]]
 === Refactoring to Kotlin
-
-[[why-refactor-to-kotlin]]
-==== Why _Refactor_ to Kotlin?
 
 When we started our journey to Kotlin we were responsible for maintaining and enhancing business-critical systems.
 So we were never able to focus _only_ on converting our Java codebase to Kotlin.
@@ -416,7 +409,7 @@ We do not cover how to retrofit tests to existing code.
 Again, other authors have addressed these topics in more detail than we could.
 For example: [Feathers].
 
-==== We Commit With Git Bisect In Mind
+==== We Commit For Git Bisect
 
 Just as we don't explicitly state when we run our tests, nor do we explicitly state when we commit our changes.
 Assume we commit our changes whenever they have added value to the code, no matter how small.
