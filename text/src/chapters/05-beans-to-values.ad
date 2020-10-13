@@ -258,25 +258,8 @@ Kotlin embraces the beans naming convention.
 How now do we make `UserPreferences` immutable?
 After all, we do want the preferences seen in the app to reflect any changes the user makes.
 The answer is to move the mutation.
-
-.Directions in Code
-****
-Your authors disagree about the orientation of our software systems - how we visualize them.
-
-Duncan (who is writing this) thinks mainly in terms of call stacks, which grow downwards.
-So entry points (`main` and event handlers) are at the top of the system, code called from there is at a lower level, which calls still-lower level code and so on until we reach CPU instructions and finally microcode.
-As if stacks growing downwards wasn't confusing enough, Java stack traces show the entry point at the bottom.
-
-Nat apparently thinks more outside-in.
-For him both entry points and exit points (say database calls or other I/O) make up the outer boundary of the process.  That boundary mediates between the abstractions that exist inside the process and the outside world.
-No, I don't get it either.
-
-In this section at least, we're going with my interpretation.
-With luck, by the time we finish the book, we'll have settled on some wording that we can both agree on.
-****
-
 In common with many of the refactorings in this book, we're going to move the problematic thing (in this case mutation) up.
-Which is to say, towards the entry point, or into the higher-level, more application-specific code.
+Which is to say, towards the entry point, or into the higher-level, more application-specific code (see <<directions-in-code>>).
 Instead of mutating the preferences, we are going to update the reference in the `Application`.
 The reference we're going to use will be an updated copy returned by `PreferencesView`.
 
