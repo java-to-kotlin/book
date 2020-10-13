@@ -471,22 +471,17 @@ fun Money(amount: String, currency: Currency) =
 [[directions-in-code]]
 ===  Directions in Code
 
-There are lots of places in this book where we show moving code, or some aspect of code, from one place to another.
+There are lots of places in this book where show how to move code, or some aspect of code, from one place to another.
 For example in <<beans-to-values>>, we talk about moving the mutability in an interaction from a mutable class to a mutable property.
 We'd like to have a shorthand for the direction of these changes, but there are many ways to think about the orientation of code: base or super classes, layer diagrams, onion architecture, hexagaonal architecture etc.
 In some cases our execution paths are top-down, some bottom up, some outside in, some outside to inside to outside to inside to outside.
 
-Unless stated otherwise, we will refer to direction in terms of call stacks, which grow downwards.
-So entry points (`main` and event handlers) are at the top of the system, code called from there is at a lower level, which calls still-lower level code and so on until we reach CPU instructions and finally microcode.
-We write high-level code. It depends on lower-level code that we also write, which eventually depends on still lower-level library code that we didn't write.
-We are able to refactor within the layers that we have written.
-If we say that we are moving functionality or mutability or IO or error handling up, it means towards the top of the call-stack and hence the entry point.
+Unless stated otherwise, we will refer to direction in terms of dependencies, with the entry points (`main` and event handlers) at the top of the system.
+This top-level code should be at the highest level of abstraction, and will be built with types and functions provided by lower-level code, which will eventually depend on the core Kotlin and Java runtimes, until at the bottom we reach code provided by the operating system and chipset.
 
-The reality of software is that this metaphor will often fail us.
-Our entry points are invoked by code that our application brings in as a dependency, our HTTP framework say.
-Our code will then turn around and call code provided by that framework to interpret the event.
-The dynamic (call stack) and static (library dependency tree) views of the situation are at odds here.
-The same applies when we invoke a low-level higher-order function like `map`, passing it our high level code.
+Unless we are specifically writing a library to be depended on by other systems, we are usually writing the top-level code in a system, and some of the layers beneath it.
+We are only able to refactor within the layers that are able to change.
+If we say that we are moving something (functionality or mutability or IO or error handling) up, it means towards the top of the call-stack and hence the entry point - in the direction of the code with the most dependencies.
+
+The reality of software is that this metaphor will sometimes fail us.
 In these cases we hope to make ourselves clear in context.
-
-Note that Java stack traces show the entry point at the bottom, so that they are upside down in terms of our levels metaphor.
