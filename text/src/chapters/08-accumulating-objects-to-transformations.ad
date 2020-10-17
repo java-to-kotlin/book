@@ -18,6 +18,7 @@ Our `Route` class has an operation for summarising its costs with a `CostSummary
 Our Java code used it like this:
 
 [[cost-summary-calculator-usage]]
+.Calculating a Cost Summary
 // begin-insert: tags/value_types.0:src/test/java/travelator/itinerary/RouteCostTest.java#calculation
 [source,java]
 ----
@@ -100,7 +101,7 @@ However, our use of mutable state has two significant disadvantages.
 Firstly, it introduces the possibility of aliasing errors.
 If we reuse a calculator to summarise the costs of multiple entities, we have to reset its state between each calculation to stop costs collected during one calculation being included in the next.
 The type system cannot help us avoid this mistake.
-The example code on <<cost-summary-calculator-usage,page>> may make this error.
+The example code on <<cost-summary-calculator-usage>> may make this error.
 The calculator is not local to the `costSummary` method, but `costSummary` does not reset the calculator before each calculation.
 We can't tell if this is a problem or not merely by looking at the `costSummary` method.
 We have to understand how that method is used in its wider context, and
