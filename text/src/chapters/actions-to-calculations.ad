@@ -1,10 +1,10 @@
 [[actions-to-calculations]]
 == Actions to Calculations
 
-In his excellent book https://www.manning.com/books/grokking-simplicity[Grokking Simplicity], Eric Normand develops the idea that we can categorise our code into data, calculations, and actions.
+Neither Java nor Kotlin make any formal distinction between imperative and functional code, although Kotlin's emphasis on immutability and expressions generally lead to more functional programs.
+Can we improve our code by making more of it functional?
 
-In this chapter we'll look at why we might prefer calculations to actions.
-<<code-to-data>> examines why data may be a better default than either.
+In his excellent book https://www.manning.com/books/grokking-simplicity[Grokking Simplicity], Eric Normand develops the idea that we can categorise our code into data, calculations, and actions.
 
 === Calculations
 
@@ -202,7 +202,7 @@ public class CurrentTripsHandler {
 // end-insert
 
 Actions are code that is sensitive to time, so words like _current_ are a dead give-away.
-Our handler is an action, and that's OK, things on the edge of our systems often are.
+Our handler is an action, and that's OK: things on the edge of our systems often are.
 
 The handler delegates to some business logic, implemented in `Tracking`.
 
@@ -266,7 +266,7 @@ That definitely depends on when we call it.
 
 Even if we were to not proceed with the rest of this refactoring, there is one change that we should make now.
 Once you start to differentiate actions from calculations, it makes sense not to throw a random action into an otherwise pure calculation.
-We have discussed values, calculations and actions as applying to named blocks of code, but they also apply at the expression level.
+We have discussed calculations and actions as applying to named blocks of code, but they also apply at the expression level.
 Let's pull the action out so that the remainder of the expression is pure.
 
 // begin-insert: tags/effects.1:src/test/java/travelator/InMemoryTrips.java#foo
@@ -284,7 +284,7 @@ public Set<Trip> currentTripsFor(String customerId) {
 
 That one simple act has allowed us to see that we were previously comparing every trip against a slightly different time!
 Was that a problem?
-Probably not here, but you've probably worked on systems where it would be.
+Probably not here, but you may have worked on systems where it would be.
 Duncan for one has recently finished diagnosing an issue where half of a transaction could be accounted for in one day, and the other half in the next.
 
 As well as making it harder to refactor our code, actions make it harder to test too.
@@ -322,7 +322,7 @@ public class TrackingTests {
 
 In order to give predictable results we have had to use a fake clock, injected into `InMemoryTrips`.
 Having said that `clock.instant()` definitely depends on when we call it, in our tests it doesn't (at least not in the same way).
-The alternative would been to have set up trips relative to the time that the tests are being run - you can do this, but things get ugly quickly.
+The alternative would have been to have set up trips relative to the time that the tests are being run - you can do this, but things get ugly quickly.
 
 .2015 was the End of Time
 ****
@@ -337,7 +337,7 @@ Is having to inject a clock https://dhh.dk/2014/test-induced-design-damage.html[
 In some ways it is.
 Dependency injection, and in particular mocks, have allowed us to solve testing problems that would otherwise have forced a rethink that might lead to a better design.
 
-==== A Better Desigh
+==== A Better Design
 
 What would a better design look like here?
 
@@ -685,3 +685,6 @@ In Kotlin when you see `MutableList` you can infer an action, although as we hav
 === See Also
 
 Categorising code into data, calculations and actions is a formalism introduced by Eric Normand in his book https://www.manning.com/books/grokking-simplicity[Grokking Simplicity].
+
+<<code-to-data>> examines why data may be a better default than either actions or calculations.
+
