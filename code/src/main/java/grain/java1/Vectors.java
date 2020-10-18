@@ -12,7 +12,7 @@ public class Vectors {
         return result;
     }
 
-    /// mute: reduce
+    /// mute: reduce [// ... and other operations on vectors]
     public static Vector map(Vector l, Function1 f) {
         Vector result = new Vector();
         for (int i = 0; i < l.size(); i++) {
