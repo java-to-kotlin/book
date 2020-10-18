@@ -5,7 +5,7 @@ In Java we often define types to limit the operations that can be performed on a
 Kotlin's immutable collections don't have this problem - what if we were to replace our Java types with typealiases?
 
 The grain of Java and Kotlin are very different when it comes to collections.
-Java's collection interfaces are fundamentally mutable and so force you to encapsulate collections within classes to avoid accidental aliasing.
+Java's collection interfaces, in keeping with its object-oriented roots, are fundamentally mutable and so force you to encapsulate collections within classes to avoid accidental aliasing.
 Kotlin's collections default to being unmodifiable, with APIs that return transformed copies rather than mutating in place, reducing the need such encapsulation.
 Kotlin's standard library contains many more useful higher-order functions than Java's collection and stream APIs.
 This reduces the need for imperative programming when processing collections.
@@ -30,6 +30,8 @@ This will let us improve the cost estimate for a route, because we can suggest p
 We can make the feature earn its keep by booking their preferred choices and earning a commission.
 
 Fundamental to this feature is the ability to find every interchange in a Route where the traveller will need to find somewhere to stay.
+Currently, our Route class does not have that capability.
+How best to add it?
 
 Let's take a look at our Java Route class.
 
@@ -73,10 +75,10 @@ Because Lists are mutable -- or, at least, the type system offers no guarantee t
 Unfortunately the type system does not prevent us calling mutator methods on Iterator or List, but doing so will throw `UnsupportedOperationException`, so coding errors will be caught pretty quickly by our tests.
 
 
-To calculate the interchanges that require a stay, we will slide a two-element window along the list of journeys, mapping each pair of Journeys to an Interchange between the end of the first journey and the start of the second.
-Then we will filter the Interchanges to select only those that require one or more overnight stays.
+To calculate the interchanges that require a stay, we will map every two contiguous Journeys in the Route to an Interchange between the end of the first journey and the start of the second, and filter the Interchanges to select only those that require one or more overnight stays.
 
-In Java we have to implement this logic imperatively, with a for loop and mutable list, because the Java collection and stream APIs do not provide a sliding window operation.
+In Java, neither the collection nor stream APIs provide an operation to return all the contiguous pairs of a collection.
+If we wrote this logic in Java we would have to implement it imperatively, with a for loop and mutable list, like this:
 
 [[required-stays-imperative]]
 // begin-insert: tags/collections.1:src/main/java/travelator/itinerary/Route.java#imperative_algorithm
@@ -99,10 +101,9 @@ public List<Interchange> requiredStays() {
 ----
 // end-insert
 
-The imperative implementation inextricably intertwines the different aspects of the calculation.
-
 In Kotlin, the standard library provides operations on List that do exactly what we want.
-We can write the logic as a concise, declarative pipeline of transformations where each phase in the pipeline corresponds to a step in our description of the logic, above,
+In Kotlin we can write the logic as a concise, declarative pipeline of transformations where each phase in the pipeline corresponds to a step in our description of the logic, above.
+We can rely on the authors of the standard library functions to consider edge cases and avoid fence-post errors, allowing us to focus on our application's domain model and business rules.
 
 // begin-insert: tags/collections.6:src/main/java/travelator/itinerary/Route.kt#declarative_algorithm
 [source,kotlin]
@@ -115,7 +116,7 @@ fun requiredStays() =
 ----
 // end-insert
 
-This gives us a good reason to convert the Route class to Kotlin before starting to implement this feature.
+This is reason enough to convert the Route class to Kotlin before starting to implement this feature.
 
 Here's the class after IntelliJ has worked its translation magic:
 
