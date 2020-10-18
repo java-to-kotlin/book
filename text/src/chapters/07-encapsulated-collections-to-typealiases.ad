@@ -199,9 +199,10 @@ val duration
 ----
 // end-insert
 
+We are now ready to add the `requiredStays` method to our Kotlin class.
 That leaves the Route class as:
 
-// begin-insert: tags/collections.4:src/main/java/travelator/itinerary/Route.kt#route
+// begin-insert: tags/collections.5:src/main/java/travelator/itinerary/Route.kt#route
 [source,kotlin]
 ----
 class Route(private val journeys: List<Journey>) {
@@ -222,12 +223,16 @@ class Route(private val journeys: List<Journey>) {
             journeys.last().arrivalTime
         )
 
+    fun requiredStays() =
+        journeys
+            .windowed(2)
+            .map { (j1, j2) -> Interchange.between(j1, j2) }
+            .filter { it.isStayRequired }
+
     ...
 }
 ----
 // end-insert
-
-We are now ready to add the `requiredStays` method to our Kotlin class.
 
 
 === Do We Need to Encapsulate the Collection?
