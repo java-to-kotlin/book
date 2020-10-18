@@ -13,13 +13,12 @@ import javax.xml.transform.stream.StreamResult
 fun main() {
     val inFile = File("/Users/duncan/Downloads/a337be3acd1c47b0e117f650/book.html")
     val cssFile = File("buildSrc/src/main/java/book/html.css")
-    val calloutsDir = File("text/src/callouts")
     val outDir = File("./build/gdocs-import")
 
-    render(inFile, cssFile, calloutsDir, outDir)
+    render(inFile, cssFile, outDir)
 }
 
-fun render(inFile: File, cssFile: File, calloutsDir: File, outDir: File) {
+fun render(inFile: File, cssFile: File, outDir: File) {
     val xml = inFile.readLines(Charsets.UTF_8).fixBrokenTags()
     val doc = xml.joinToString("\n").toDocument().fixupHeadings()
     val newContentLines = doc.rendered().lines().fixCodeIndent()
@@ -34,12 +33,6 @@ fun render(inFile: File, cssFile: File, calloutsDir: File, outDir: File) {
         },
         overwrite = true
     )
-    calloutsDir.copyRecursively(
-        outDir.resolve("text/src/callouts").apply {
-            parentFile.mkdirs()
-        },
-        overwrite = true
-    )
 }
 
 private fun Document.fixupHeadings() = apply {
@@ -49,11 +42,17 @@ private fun Document.fixupHeadings() = apply {
     renameNonTopLevelElements("h1", "h2")
 }
 
+private val imgRegex = """<img src="text/src/callouts/(.*?)" (.*?)>""".toRegex()
+
 private fun List<String>.fixBrokenTags(): List<String> = map { line ->
     when {
         line.trimStart().startsWith("<link ") -> line + "</link>"
         line.trimStart().startsWith("<meta ") -> line + "</meta>"
-        line.contains("<img ") -> line.replace("<img (.*?)>".toRegex(), "<img $1 />")
+        line.contains("<img ") -> {
+            line.replace(
+                imgRegex,
+                """<img src="http://oneeyedmen.com/book/callouts/$1" $2/>""")
+        }
         else -> line
     }
 }
