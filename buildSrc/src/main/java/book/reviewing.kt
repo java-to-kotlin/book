@@ -13,12 +13,13 @@ import javax.xml.transform.stream.StreamResult
 fun main() {
     val inFile = File("/Users/duncan/Downloads/a337be3acd1c47b0e117f650/book.html")
     val cssFile = File("buildSrc/src/main/java/book/html.css")
+    val calloutsDir = File("text/src/callouts")
     val outDir = File("./build/gdocs-import")
 
-    render(inFile, cssFile, outDir)
+    render(inFile, cssFile, calloutsDir, outDir)
 }
 
-fun render(inFile: File, cssFile: File, outDir: File) {
+fun render(inFile: File, cssFile: File, calloutsDir: File, outDir: File) {
     val xml = inFile.readLines(Charsets.UTF_8).fixBrokenTags()
     val doc = xml.joinToString("\n").toDocument().fixupHeadings()
     val newContentLines = doc.rendered().lines().fixCodeIndent()
@@ -33,15 +34,19 @@ fun render(inFile: File, cssFile: File, outDir: File) {
         },
         overwrite = true
     )
+    calloutsDir.copyRecursively(
+        outDir.resolve("text/src/callouts").apply {
+            parentFile.mkdirs()
+        },
+        overwrite = true
+    )
 }
 
 private fun Document.fixupHeadings() = apply {
-    renameAllElements("h6", "h7")
-    renameAllElements("h5", "h6")
     renameAllElements("h4", "h5")
     renameAllElements("h3", "h4")
     renameAllElements("h2", "h3")
-    renameNonChapterElements("h1", "h2")
+    renameNonTopLevelElements("h1", "h2")
 }
 
 private fun List<String>.fixBrokenTags(): List<String> = map { line ->
@@ -59,10 +64,11 @@ private fun String.toDocument(): Document =
         .newDocumentBuilder()
         .parse(byteInputStream())
 
-private fun Document.renameNonChapterElements(from: String, to: String) {
+private fun Document.renameNonTopLevelElements(from: String, to: String) {
+    val topLevelSections = listOf("chapter", "copyright-page", "titlepage", "preface")
     getElementsByTagName(from).toList().forEach() {
         val parentTypeAttribute = it.parentNode.attributes.getNamedItem("data-type")?.nodeValue
-        if (parentTypeAttribute != "chapter")
+        if (!(parentTypeAttribute in topLevelSections))
             renameNode(it, null, to)
     }
 }
@@ -76,15 +82,30 @@ private fun Document.rendered(): String {
 }
 
 private fun List<String>.fixCodeIndent(): List<String> = sequence {
-    val iterator = iterator()
-    while (iterator.hasNext()) {
-        val line = iterator.next()
-        when {
-            line.trimStart().startsWith("<pre data-code-language=") -> {
-                yield(line.trimStart())
-                yield(iterator.next().trimStart())
+    var skipWindow = false
+    windowed(2, 1).forEach { window: List<String> ->
+        require(window.size == 2)
+        val first = window.first()
+        val second = window.last()
+        if (skipWindow) {
+            skipWindow = false
+        } else {
+            when {
+                // fix first line of pre being indented
+                first.trimStart().startsWith("<pre data-code-language=") -> {
+                    yield(first.trimStart())
+                    yield(second.trimStart())
+                    skipWindow = true
+                }
+                // fix last line of pre being blank indented
+                first.endsWith("</code>") && second.trim() == "</pre>"-> {
+                    yield(first + second.trim())
+                    skipWindow = true
+                }
+                else -> {
+                    yield(first)
+                }
             }
-            else -> yield(line)
         }
     }
 }.toList()
