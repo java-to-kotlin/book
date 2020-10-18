@@ -1,7 +1,7 @@
 [[encapsulated-collections-to-typealiases]]
 == Encapsulated Collections to Type Aliases
 
-In Java we often define types to limit the operations that can be performed on a collection of items, usually because the Java collection interfaces otherwise allow mutation.
+In Java, we often define types to limit the operations that can be performed on a collection of items, usually because the Java collection interfaces otherwise allow mutation.
 Kotlin's immutable collections don't have this problem - what if we were to replace our Java types with typealiases?
 
 The grain of Java and Kotlin are very different when it comes to collections.
@@ -38,30 +38,33 @@ Let's take a look at our Java Route class.
 // begin-insert: tags/collections.1:src/main/java/travelator/itinerary/Route.java#route
 [source,java]
 ----
-public class Route implements Iterable<Journey> {
-    private final List<Journey> journeys;
+public class Route {
+    private final List<Journey> journeys; // <1>
 
     public Route(List<Journey> journeys) {
-        this.journeys = List.copyOf(journeys); // <1>
+        this.journeys = journeys; // <2>
     }
 
-    @Override
-    public Iterator<Journey> iterator() { // <2>
-        return journeys.iterator();
+    public int size() { // <3>
+        return journeys.size();
     }
 
-    public Location getStart() {
-        return journeys.get(0).getDepartsFrom();
+    public Journey get(int index) { // <3>
+        return journeys.get(index);
     }
 
-    public Location getDestination() {
-        return journeys.get(journeys.size() - 1).getArrivesAt();
+    public Location getDepartsFrom() { // <4>
+        return get(0).getDepartsFrom();
     }
 
-    public Duration getDuration() {
+    public Location getArrivesAt() { // <4>
+        return get(size() - 1).getArrivesAt();
+    }
+
+    public Duration getDuration() { // <4>
         return Duration.between(
-            journeys.get(0).getDepartureTime(),
-            journeys.get(journeys.size() - 1).getArrivalTime());
+            get(0).getDepartureTime(),
+            get(size() - 1).getArrivalTime());
     }
 
     ...
@@ -70,10 +73,14 @@ public class Route implements Iterable<Journey> {
 // end-insert
 
 <1> A Route encapsulates a List of Journeys.
-Because Lists are mutable -- or, at least, the type system offers no guarantee that the List is _not_ mutable -- the constructor takes a defensive copy of the list to avoid https://martinfowler.com/bliki/AliasingBug.html[_aliasing errors_].
-<2> Because `List.copyOf` method returns an immutable List, there is no need to make a defensive copy or wrap the list with a `Collections.unmodifiableList` when returning an Iterator over the list, or when passing the list as a parameter to another class.
-Unfortunately the type system does not prevent us calling mutator methods on Iterator or List, but doing so will throw `UnsupportedOperationException`, so coding errors will be caught pretty quickly by our tests.
-
+<2> To fully encapsulate the list, the constructor should take a defensive copy of the `journeys` parameter.
+    However, we know that our system only creates Route objects in the JSON deserialiser or in tests, neither of which hold onto the list of journeys after creating the Route that uses it.
+     There is, therefore, no risk of https://martinfowler.com/bliki/AliasingBug.html[_aliasing errors_], and we can save the cost of a copy whenever we create a Route.
+<3> Because Lists are mutable -- or, at least, the type system offers no guarantee that the List is _not_ mutable -- the `Route` class does not expose the `journeys` list to code using `Route` objects.
+    Instead it provides accessors for getting the size and individual elements of the `journeys` list.
+    This is used in out front-end code that displays the route to the user.
+<4> The `Route` class also provides operations that perform application logic by calculating values from the contents of the encapsulated list.
+    We will add another operation to report any accomodation required along the route.
 
 To calculate the interchanges that require a stay, we will map every two contiguous Journeys in the Route to an Interchange between the end of the first journey and the start of the second, and filter the Interchanges to select only those that require one or more overnight stays.
 
@@ -102,10 +109,9 @@ public List<Interchange> requiredStays() {
 // end-insert
 
 In Kotlin, the standard library provides operations on List that do exactly what we want.
-In Kotlin we can write the logic as a concise, declarative pipeline of transformations where each phase in the pipeline corresponds to a step in our description of the logic, above.
-We can rely on the authors of the standard library functions to consider edge cases and avoid fence-post errors, allowing us to focus on our application's domain model and business rules.
+We can write the logic as a concise pipeline of transformations where each phase in the pipeline corresponds to a step in our description of the logic, above.
 
-// begin-insert: tags/collections.6:src/main/java/travelator/itinerary/Route.kt#declarative_algorithm
+// begin-insert: tags/collections.5:src/main/java/travelator/itinerary/Route.kt#declarative_algorithm
 [source,kotlin]
 ----
 fun requiredStays() =
@@ -116,115 +122,105 @@ fun requiredStays() =
 ----
 // end-insert
 
-This is reason enough to convert the Route class to Kotlin before starting to implement this feature.
+By writing the logic like this, we focus on our application's domain model and business rules, relying on the authors of the standard library functions to handle the edge cases and avoid fence-post errors.
 
+First, we have to convert the Route class to Kotlin.
 Here's the class after IntelliJ has worked its translation magic:
 
 // begin-insert: tags/collections.2:src/main/java/travelator/itinerary/Route.kt#route
 [source,kotlin]
 ----
-class Route(journeys: List<Journey>) : Iterable<Journey> {
-    private val journeys: MutableList<Journey>
-    init {
-        this.journeys = java.util.List.copyOf(journeys)
+class Route(private val journeys: List<Journey>) {
+    fun size(): Int {
+        return journeys.size
     }
 
-    override fun iterator(): MutableIterator<Journey> =
-        journeys.iterator()
+    operator fun get(index: Int): Journey {
+        return journeys[index]
+    }
 
-    val start: Location get() =
-        journeys[0].departsFrom
+    val departsFrom: Location
+        get() = get(0).departsFrom
 
-    val destination: Location get() =
-        journeys[journeys.size - 1].arrivesAt
+    val arrivesAt: Location
+        get() = get(size() - 1).arrivesAt
 
-    val duration: Duration get() =
-        Duration.between(
-            journeys[0].departureTime,
-            journeys[journeys.size - 1].arrivalTime)
-
-    ...
-}
-----
-// end-insert
-
-The construction of the Route class is pretty convoluted, and has broken the type safety of our Java class.
-
-The constructor's List parameter is a _Kotlin_ List, which is unmodifiable.
-Our Route class makes an defensive, immutable copy by calling `java.util.List.copyOf`, which returns a `java.util.List`.
-Unlike a Kotlin List, a `java.util.List` does have methods for mutating the list, so the translated code stores the result as a `MutableList` and exposes the iterator of that list as a `MutableIterator`.
-Although this doesn't break encapsulation -- nothing can actually change the list of journeys -- it does break type safety -- calling a mutator method would throw `UnsupportedOperationException` at runtime.
-
-TODO: explain the Kotlin/Java interop magic for collections implemented in the compiler?
-
-Simplifying the code will also restore its type safety.
-
-The class could make an  defensive, unmodifiable copy of the List in a Kotlin-esque way by calling `journeys.toList()`.
-However, in our Travelator system, that list only comes from two places: from a JSON deserialiser that does not hold a reference to the list after creating the Route, and from test code that creates immutable lists.
-This means that making a defensive copy is unnecessary work.
-The can just store the immutable list.
-We can do that succinctly by declaring the constructor parameter as a `val` and deleting the rest of the initialisation code.
-
-// begin-insert: tags/collections.3:src/main/java/travelator/itinerary/Route.kt#constructor
-[source,kotlin]
-----
-class Route(private val journeys: List<Journey>) : Iterable<Journey> {
-    override fun iterator(): Iterator<Journey> =
-        journeys.iterator()
+    val duration: Duration
+        get() = Duration.between(
+            get(0).departureTime,
+            get(size() - 1).arrivalTime
+        )
 
     ...
 }
 ----
 // end-insert
 
-The Route class implements the `Iterable` interface by delegating to the `journeys` List.
-We can get the compiler to generate that delegation for us.
+Note that IntelliJ has helpfully translated the Java `get` method to an operator method, allowing Kotlin code to get elements with the more concise indexing syntax.
+We can apply some automatic fixes to make the code even more concise and conventional Kotlin.
 
-// begin-insert: tags/collections.4:src/main/java/travelator/itinerary/Route.kt#route
+In Kotlin, collections usually report their size as a read-only property, not a method:
+
+// begin-insert: tags/collections.3:src/main/java/travelator/itinerary/Route.kt#size_property
 [source,kotlin]
 ----
-class Route(private val journeys: List<Journey>) : Iterable<Journey> by journeys {
-    ...
-}
+val size
+    get() = journeys.size
+----
+// end-insert
+
+The get method with block syntax can be transformed to single-expression syntax.
+
+// begin-insert: tags/collections.3:src/main/java/travelator/itinerary/Route.kt#get_single_expression
+[source,kotlin]
+----
+operator fun get(index: Int) = journeys[index]
 ----
 // end-insert
 
 The `destination` and `duration` accessors get the last journey in the list by calculating its integer index.
-The Kotlin standard library defines a `List.last()` extension that we can use instead.
+The Kotlin standard library defines a `List.last()` extension method that we can use instead to express the intent of the code more clearly.
 To make the code symmetrical, we'll also use the `List.first()` extension to get the first journey.
 
-// begin-insert: tags/collections.5:src/main/java/travelator/itinerary/Route.kt#use_first_and_last
+// begin-insert: tags/collections.4:src/main/java/travelator/itinerary/Route.kt#use_first_and_last
 [source,kotlin]
 ----
-val start: Location get() =
-    journeys.first().departsFrom
+val departsFrom
+    get() = journeys.first().departsFrom
 
-val destination: Location get() =
-    journeys.last().arrivesAt
+val arrivesAt
+    get() = journeys.last().arrivesAt
 
-val duration: Duration get() =
-    Duration.between(
+val duration
+    get() = Duration.between(
         journeys.first().departureTime,
-        journeys.last().arrivalTime)
+        journeys.last().arrivalTime
+    )
 ----
 // end-insert
 
 That leaves the Route class as:
 
-// begin-insert: tags/collections.5:src/main/java/travelator/itinerary/Route.kt#route
+// begin-insert: tags/collections.4:src/main/java/travelator/itinerary/Route.kt#route
 [source,kotlin]
 ----
-class Route(private val journeys: List<Journey>) : Iterable<Journey> by journeys {
-    val start: Location get() =
-        journeys.first().departsFrom
+class Route(private val journeys: List<Journey>) {
+    val size
+        get() = journeys.size
 
-    val destination: Location get() =
-        journeys.last().arrivesAt
+    operator fun get(index: Int) = journeys[index]
 
-    val duration: Duration get() =
-        Duration.between(
+    val departsFrom
+        get() = journeys.first().departsFrom
+
+    val arrivesAt
+        get() = journeys.last().arrivesAt
+
+    val duration
+        get() = Duration.between(
             journeys.first().departureTime,
-            journeys.last().arrivalTime)
+            journeys.last().arrivalTime
+        )
 
     ...
 }
@@ -245,8 +241,8 @@ There is no compelling reason for the `journeys` field to be private.
 
 The Route class also provides accessors -- properties and query methods -- that return useful information about the route.
 Those accessors support different parts of the application, but were defined in the Route class because they used the private list of Journeys.
-With the list of journeys public, we can defined those as extension methods, and move them into the part of the application that uses them.
-Except, while we still have Java that uses Routes, those accessors have another responsibility: to provide a convenient API for use by our Java code.
+With the list of journeys public, we could define those as extension methods, and move them into the part of the application that uses them.
+However, while we still have Java that uses Routes, those accessors have another responsibility: to provide a convenient API for use by our Java code.
 
 As we translate the Java code using the Route class into Kotlin, we will get to the point where methods and properties are only called from Kotlin.
 At that point we can convert the class features to extensions and, where it makes sense, move them into the module that uses them.
@@ -257,18 +253,24 @@ When no more Java code depends on Route, it looks like:
 // begin-insert: tags/collections.7:src/main/java/travelator/itinerary/Route.kt
 [source,kotlin]
 ----
-class Route(val journeys: List<Journey>) : Iterable<Journey> by journeys
+class Route(val journeys: List<Journey>)
 
-val Route.start: Location get() =
-    journeys.first().departsFrom
+val Route.size: Int
+    get() = journeys.size
 
-val Route.destination: Location get() =
-    journeys.last().arrivesAt
+operator fun Route.get(index: Int) = journeys[index]
 
-val Route.duration: Duration get() =
-    Duration.between(
+val Route.departsFrom
+    get() = journeys.first().departsFrom
+
+val Route.arrivesAt
+    get() = journeys.last().arrivesAt
+
+val Route.duration
+    get() = Duration.between(
         journeys.first().departureTime,
-        journeys.last().arrivalTime)
+        journeys.last().arrivalTime
+    )
 ----
 // end-insert
 
@@ -311,29 +313,31 @@ The `Route.journeys` extension property ensures that references to the `journeys
 
 Then we can inline those temporary definitions, leaving the code that used them working with Lists of Journeys.
 
-However, the replacement of the class definition with a typealias and temporary functions requires a manual edit.
-Replacing the `journeys` property defined on the `Route` class with a `Route.journeys` extension property will break all the code that uses the `journeys` property, because a property on a class does not need to be imported, but an extension does.
-We must refactor the class, and the code that depends on it, into a form in which the manual edit does not break any code.
-In this case, this means converting the `journeys` property defined on the class into an extension property that is imported by the files that depend on it, before we replace it with the definition above.
-We can do so with a sequence of automated refactoring steps.
+However, IntelliJ cannot automatically replace a class definition with a typealias and temporary extensions.
+It has to be done by manual editing.
+But those edits will prevent code that refers to the `journeys` property from compiling, because the extension of Route  must now be imported.
 
-We'll apply the "Move to class body" refactoring to the declaration of the `journeys` property in the primary constructor definition.
+So, wee must refactor the class, and the code that depends on it, into a form that allows us to perform the manual edit without breaking any code.
+In this case, this means converting the `journeys` property defined on the class into an extension property that is imported by the files that depend on it, before we replace it with the definition above.
+We can do this with a sequence of automated refactoring steps.
+
+First, we apply the "Move to class body" refactoring to the declaration of the `journeys` property in the primary constructor definition.
 
 // begin-insert: tags/collections.8:src/main/java/travelator/itinerary/Route.kt#class
 [source,kotlin]
 ----
-class Route(journeys: List<Journey>) : Iterable<Journey> by journeys {
+class Route(journeys: List<Journey>) {
     val journeys = journeys
 }
 ----
 // end-insert
 
-We'll then apply the "Introduce backing property" refactoring to the `journeys` property in the class body.
+Then we apply the "Introduce backing property" refactoring to the `journeys` property in the class body.
 
 // begin-insert: tags/collections.9:src/main/java/travelator/itinerary/Route.kt#class
 [source,kotlin]
 ----
-class Route(journeys: List<Journey>) : Iterable<Journey> by journeys {
+class Route(journeys: List<Journey>) {
     private val _journeys = journeys
     val journeys: List<Journey>
         get() = _journeys
@@ -341,13 +345,14 @@ class Route(journeys: List<Journey>) : Iterable<Journey> by journeys {
 ----
 // end-insert
 
-This refactoring has made the `journeys` property virtual, allowing us to turn it into an extension property on Route that is correctly imported into every file that refers to it.
-We'll make the `_journeys` property internal.
+Now `journeys` is a calculated property, without a backing field, that can be refactored into an extension property on Route that is correctly imported into every file that refers to it.
+
+We'll have to temporarily increase the visibility of the `_journeys` property so that it extensions of `Route` can refer to it.
 
 // begin-insert: tags/collections.10:src/main/java/travelator/itinerary/Route.kt#class
 [source,kotlin]
 ----
-class Route(journeys: List<Journey>) : Iterable<Journey> by journeys {
+class Route(journeys: List<Journey>) {
     internal val _journeys = journeys
     val journeys: List<Journey>
         get() = _journeys
@@ -355,12 +360,12 @@ class Route(journeys: List<Journey>) : Iterable<Journey> by journeys {
 ----
 // end-insert
 
-Then we'll apply the `Convert to extension` refactoring to the `journeys` property.
+Then we apply the `Convert to extension` refactoring to the `journeys` property.
 
 // begin-insert: tags/collections.11:src/main/java/travelator/itinerary/Route.kt#class
 [source,kotlin]
 ----
-class Route(journeys: List<Journey>) : Iterable<Journey> by journeys {
+class Route(journeys: List<Journey>) {
     internal val _journeys = journeys
 }
 
@@ -381,22 +386,29 @@ val Route.journeys get() = this
 // end-insert
 
 Finally, we inline the `Route` function and `journeys` extension property.
+Now a Route _is_ a List of Journeys, across our entire codebase.
 
-// begin-insert: tags/collections.13:src/main/java/travelator/itinerary/Route.kt#class
+// begin-insert: tags/collections.13:src/main/java/travelator/itinerary/Route.kt
 [source,kotlin]
 ----
 typealias Route = List<Journey>
+
+val Route.departsFrom
+    get() = first().departsFrom
+
+val Route.arrivesAt
+    get() = last().arrivesAt
+
+val Route.duration
+    get() = Duration.between(first().departureTime, last().arrivalTime)
 ----
 // end-insert
-
-Now a Route _is_ a List of Journeys, across our entire codebase.
 
 // begin-insert: tags/collections.13:src/main/java/travelator/rooms/Route_RequiredStays.kt
 [source,kotlin]
 ----
 fun Route.requiredStays() =
-    this
-        .windowed(2)
+    this.windowed(2)
         .map { (j1, j2) -> Interchange.between(j1, j2) }
         .filter { it.isStayRequired }
 ----
