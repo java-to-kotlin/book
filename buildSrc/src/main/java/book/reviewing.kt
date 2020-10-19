@@ -82,10 +82,7 @@ private fun Document.rendered(): String {
 
 private fun List<String>.fixCodeIndent(): List<String> = sequence {
     var skipWindow = false
-    windowed(2, 1).forEach { window: List<String> ->
-        require(window.size == 2)
-        val first = window.first()
-        val second = window.last()
+    windowed(2).forEach { (first, second)  ->
         if (skipWindow) {
             skipWindow = false
         } else {
