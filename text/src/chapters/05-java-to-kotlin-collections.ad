@@ -1,0 +1,118 @@
+[[java-to-kotlin-collections]]
+== Java To Kotlin Collections
+
+On the face of it, Java and Kotlin have very similar collections libraries, they certainly interoperate suspiciously seamlessly.
+What are the differences, what motivates them, and where do we have to take care as we move from Java to Kotlin collections?
+
+In the last chapter <<beans-to-values>>, we discussed how Java grew up in the days when we saw objects as fundamentally stateful and mutable.
+This was particularly true for collections - I mean, what is the point of a list of things if you can't add to it?
+We built collections by creating an empty one and adding to it.
+Need to remove an item from a shopping cart? - mutate the list.
+Mutable collections mirror our real world experience - we wouldn't create a new paper list of TODOs every time we remembered we need milk or took the cat to the vets.
+
+=== Java 1.0 Collections
+
+On its release, the quality of its built-in collections was a major reason to adopt Java.
+In those days many languages had no resizable collections, and even C++ had no standard Map class.
+Object encapsulation was the technology that allowed us to build mutable collections safely.
+It was only natural to make use of this superpower now it had been given to us, and we went ahead and used `Vector` and `HashTable` as Sun intended.
+
+Java 1.0 had no generics, a `Vector` was a collection of ++Object++s which had to be downcast to be useful.
+So we learned to wrap this in a class that would downcast for us:
+
+// begin-insert: tags/java-to-kotlin-collections.0:src/main/java/travelator/Route.java
+[source,java]
+----
+public class Route {
+    private final Vector journeys = new Vector();
+
+    public int size() {
+        return journeys.size();
+    }
+
+    public Journey elementAt(int index) {
+        return (Journey) journeys.elementAt(index);
+    }
+
+    public void addJourney(Journey journey) {
+        journeys.add(journey);
+    }
+
+    public Location getDepartsFrom() {
+        return elementAt(0).getDepartsFrom();
+    }
+}
+----
+// end-insert
+
+As well as providing the downcast, this wrapper class was helpful in two other ways.
+Firstly, it allowed us to restrict the mutability of the collection.
+In the Route example, a raw `Vector` would have exposed operations like `insertElementAt` and `removeElement` which might not be appropriate to our abstraction.
+If a `Route` should be immutable, we could supply all its ++Journey++s to the constructor and not provide any mutators.
+Secondly, the wrapper is a convenient place to define operations like `getDepartsFrom`.
+This isn't applicable to a `Vector` of any ++Object++s, just ++Journey++s.
+Armed with a variable of type `Route`, even the early Java IDEs were smart enough to pop up the messages that could be sent.
+This is a major selling point of statically-typed object orientation - the code practically writes itself.
+
+=== Java 2 Collections
+
+Java 2 footnote:[which was known as 1.2 until Java had to compete with C# version numbers] introduced generics, and with them a revised collections library.
+Generics removed the need to downcast objects retrieved from a collection.
+
+// begin-insert: tags/java-to-kotlin-collections.1:src/main/java/travelator/Route.java
+[source,java]
+----
+public class Route {
+    private final List<Journey> journeys = new ArrayList<>(); // <1>
+
+    public int size() {
+        return journeys.size();
+    }
+
+    public Journey elementAt(int index) {
+        return journeys.get(index); // <2>
+    }
+
+    public void addJourney(Journey journey) {
+        journeys.add(journey);
+    }
+
+    public Location getDepartsFrom() {
+        return elementAt(0).getDepartsFrom();
+    }
+}
+----
+// end-insert
+
+<1> The diamond `<>` was only added by Java 7
+<2> We don't have to cast the result of `get`
+
+This might have removed the need for a wrapper class, except that we still needed a place to add operations like `getDepartsFrom`, and a way to restrict the mutability to `addJourney`.
+In fact, if we have subclasses of Journey, using `List<Journey>` becomes worse in many ways because of issues of co- and contra-variance.
+We'll skip over the details here, but the net result of the design of Java generics is that users of a collection have to decide whether to treat it as read-only or write-only.
+In the read-only case we can pass a `List<TrainJourney>` to a function expecting a `List<? extends Journey>`, but inside the function the list can only ever be read from.
+In the write-only case we can pass a `List<Journey>` to a function expecting `List<? super TrainJourney>`, which can only ever write to the list.
+The problem is that `List` has both read and write operations, the compiler error messages are cryptic, and the poor user of the collections API is left to decide rather than the author of the API.
+
+These issues: where to define specific operations; how to restrict mutability; and banging one's head against the variance wall in a vain attempt to get something, anything, to compile; led to it being the exception rather than the rule for Java developers to write functions that used raw collections.
+Which is a shame, because very often we do just want to treat a route as a `List<Journey>` and so be able to examine its contents.
+
+TBC
+
+
+Introductory material on
+
+* Java and Kotlin Collections
+* The advantages of immutable collections
+* The problems of not immutable collection
+* Java and Kotlin collection interop
+* Java collections say they are mutable, but are often immutable, Kotlin vv
+* Kotlin exposing its mutability to Java
+
+=== Migrating Java Collections to Kotlin
+
+=== Conclusions
+
+=== See Also
+
+
