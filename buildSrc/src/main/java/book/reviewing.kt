@@ -40,6 +40,7 @@ private fun Document.fixupHeadings() = apply {
     renameAllElements("h3", "h4")
     renameAllElements("h2", "h3")
     renameNonTopLevelElements("h1", "h2")
+    numberChapterHeaders()
 }
 
 private val imgRegex = """<img src="text/src/callouts/(.*?)" (.*?)>""".toRegex()
@@ -65,11 +66,21 @@ private fun String.toDocument(): Document =
 
 private fun Document.renameNonTopLevelElements(from: String, to: String) {
     val topLevelSections = listOf("chapter", "copyright-page", "titlepage", "preface")
-    getElementsByTagName(from).toList().forEach() {
-        val parentTypeAttribute = it.parentNode.attributes.getNamedItem("data-type")?.nodeValue
-        if (!(parentTypeAttribute in topLevelSections))
+    getElementsByTagName(from).toList()
+        .filterNot { it.sectionType() in topLevelSections }
+        .forEach() {
             renameNode(it, null, to)
-    }
+        }
+}
+
+private fun Node.sectionType() = parentNode.attributes.getNamedItem("data-type")?.nodeValue
+
+private fun Document.numberChapterHeaders() {
+    getElementsByTagName("h1").toList()
+        .filter { it.sectionType() == "chapter" }
+        .forEachIndexed { index, element ->
+            element.textContent = "${index + 1}. ${element.textContent}"
+        }
 }
 
 private fun Document.rendered(): String {
