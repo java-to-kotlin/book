@@ -59,16 +59,22 @@ fun processFiles(
     textRoot: File,
     workedExampleSrcRoot: File,
     digressionSrcRoot: File,
-    abortOnFailure: Boolean
+    abortOnFailure: Boolean,
+    kotlinVersion: String
 ) {
-    processFiles(textRoot, SourceRoots(workedExampleSrcRoot, digressionSrcRoot), abortOnFailure)
+    processFiles(
+        textRoot,
+        SourceRoots(workedExampleSrcRoot, digressionSrcRoot),
+        abortOnFailure,
+        kotlinVersion
+    )
 }
 
-private fun processFiles(textRoot: File, sourceRoots: SourceRoots, abortOnFailure: Boolean) {
+private fun processFiles(textRoot: File, sourceRoots: SourceRoots, abortOnFailure: Boolean, kotlinVersion: String) {
     textRoot.walkTopDown()
         .filter { it.name.endsWith(".ad") }
         .forEach { file ->
-            processFile(file, file, sourceRoots, abortOnFailure)
+            processFile(file, file, sourceRoots, abortOnFailure, kotlinVersion)
         }
 }
 
@@ -76,16 +82,20 @@ private fun processFile(
     src: File,
     dest: File,
     roots: SourceRoots,
-    abortOnFailure: Boolean
+    abortOnFailure: Boolean,
+    kotlinVersion: String
 ) {
     log("Processing $src")
     val text = src.readText()
-    val newText = expandCodeBlocks(text, lookupWithRoot(src, roots, abortOnFailure))
+    val newText = expandCodeBlocks(
+        text,
+        lookupWithRoot(src, roots, abortOnFailure, kotlinVersion)
+    )
     if (newText != text)
         dest.writeText(newText)
 }
 
-private fun lookupWithRoot(src: File, roots: SourceRoots, abortOnFailure: Boolean) =
+private fun lookupWithRoot(src: File, roots: SourceRoots, abortOnFailure: Boolean, kotlinVersion: String) =
     fun(key: String): String {
         val (versionedFile, tag) = key.parse(roots)
         if (!versionedFile.exists()) {
@@ -97,7 +107,7 @@ private fun lookupWithRoot(src: File, roots: SourceRoots, abortOnFailure: Boolea
                 return message
             }
         }
-        return FileSnippet(versionedFile, tag).rendered()
+        return FileSnippet(versionedFile, tag, kotlinVersion).rendered()
     }
 
 private fun String.parse(roots: SourceRoots): Pair<VersionedFile, String?> {
@@ -125,7 +135,7 @@ private val expandedCodeBlockFinder =
     """^(?<intro>// begin-insert: (?<key>.*?)$)(.*?)^(?<outro>// end-insert.*?)$"""
         .toRegex(setOf(DOT_MATCHES_ALL, MULTILINE))
 
-data class FileSnippet(val versionedFile: VersionedFile, val fragment: String?) {
+data class FileSnippet(val versionedFile: VersionedFile, val fragment: String?, val kotlinVersion: String) {
     fun rendered() = (listOf(
         "[source,$sourceType]",
         "----"
@@ -141,10 +151,10 @@ data class FileSnippet(val versionedFile: VersionedFile, val fragment: String?) 
 
     private fun filter(lines: List<String>) =
         lines
-            .snipped(fragment)
+            .snipped(fragment, kotlinVersion)
             .also {
                 if (it.isEmpty()) {
-                    error("$versionedFile is empty after filtering with $fragment")
+                    error("tag $fragment not found in $versionedFile")
                 }
             }
 }

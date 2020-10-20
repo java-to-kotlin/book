@@ -2,6 +2,7 @@ package book
 
 import book.Line.Marker.*
 import book.Line.Text
+import java.io.File
 
 typealias TagCriteria = (String?) -> Boolean
 
@@ -116,7 +117,7 @@ private fun parseTags(parts: MatchGroupCollection): TagCriteria {
     }
 }
 
-fun Iterable<String>.snipped(tagName: String?): List<String> {
+fun Iterable<String>.snipped(tagName: String?, kotlinVersion: String): List<String> {
     val result = mutableListOf<String>()
 
     var currentRegionIsSelected = tagName == null
@@ -133,7 +134,11 @@ fun Iterable<String>.snipped(tagName: String?): List<String> {
         when (line) {
             is Text ->
                 if (currentRegionIsSelected && !shouldSkip(line)) {
-                    result.add(line.highlightedText(tagName).removePrefix(exdent))
+                    result.add(line
+                        .highlightedText(tagName)
+                        .removePrefix(exdent)
+                        .replace("\$KOTLIN_VERSION", kotlinVersion)
+                    )
                     inPreamble = false
                 }
             is Begin ->
@@ -161,6 +166,9 @@ fun Iterable<String>.snipped(tagName: String?): List<String> {
     return result.dropLastWhile { it.isBlank() }
 }
 
+val kotlinVersion by lazy {
+    File(".kotlin-version").readText().trim()
+}
 
 private fun Text.highlightedText(tagName: String?) =
     annotationPattern.replace(text) { matchResult ->

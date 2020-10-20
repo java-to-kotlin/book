@@ -15,7 +15,8 @@ tasks {
                 textRoot = project.projectDir,
                 workedExampleSrcRoot = project.rootProject.projectDir.resolve("../refactoring-to-kotlin-code"),
                 digressionSrcRoot = project.rootProject.projectDir.resolve("code"),
-                abortOnFailure = true
+                abortOnFailure = true,
+                kotlinVersion = project.projectDir.parentFile.resolve(".kotlin-version").readText().trim()
             )
         }
     }
