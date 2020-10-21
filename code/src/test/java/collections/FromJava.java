@@ -1,5 +1,6 @@
 package collections;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -14,5 +15,9 @@ public class FromJava {
 
     public static <T> void setElement(List<T> list, int index, T newValue) {
         list.set(index, newValue);
+    }
+
+    public static List<String> listOfString() {
+        return new ArrayList<>(List.of("zero", "one"));
     }
 }

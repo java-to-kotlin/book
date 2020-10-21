@@ -19,9 +19,18 @@ class ListInteropTest : TestCase() {
 
     fun testJavaCodeCanSetElementOfListArrayWrapper() {
         val l = listOf(1,2,3,4)
-
         FromJava.setElement(l, 1, 99)
-
         assertEquals(listOf(1, 99, 3, 4), l)
+    }
+
+    fun testKotlinCanAcceptJavaListAsImmutableList() {
+        val l: List<String> = FromJava.listOfString()
+        assertEquals(listOf("zero", "one"), l)
+    }
+
+    fun testKotlinCanAcceptJavaListAsMutableList() {
+        val l: MutableList<String> = FromJava.listOfString()
+        l.removeAt(1)
+        assertEquals(listOf("zero"), l)
     }
 }
