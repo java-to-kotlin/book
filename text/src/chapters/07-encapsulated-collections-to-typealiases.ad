@@ -1,20 +1,22 @@
 [[encapsulated-collections-to-typealiases]]
 == Encapsulated Collections to Type Aliases
 
-In Java, we often define types to limit the operations that can be performed on a collection of items, usually because the Java collection interfaces otherwise allow mutation.
-Kotlin's immutable collections don't have this problem - what if we were to replace our Java types with typealiases?
+As we saw in <<java-to-kotlin-collections>>, the grain of Java and Kotlin are very different when it comes to collections.
+Java's collection interfaces, in keeping with its object-oriented roots, are fundamentally mutable.
+As a result, the fear of aliasing errors leads us to encapsulate those mutable collections within classes.
+If we want value semantics, we encapsulate collections to prevent the collection being mutated.
+If the class is mutable, we encapsulate collections to ensure that the class can maintain its state invariants, or always fires notifications when it changes state.
 
-The grain of Java and Kotlin are very different when it comes to collections.
-Java's collection interfaces, in keeping with its object-oriented roots, are fundamentally mutable and so force you to encapsulate collections within classes to avoid accidental aliasing.
-Kotlin's collections default to being unmodifiable, with APIs that return transformed copies rather than mutating in place, reducing the need such encapsulation.
-Kotlin's standard library contains many more useful higher-order functions than Java's collection and stream APIs.
-This reduces the need for imperative programming when processing collections.
-These two forces encourage designs in which many free-standing functions transform a few generic collection types.
+When we encapsulate a collection in a class, that class starts to "attract" behaviour.
+We add operations to the class to process the data in the collection.
+However, by doing this we _reduce_ the operations available for us to work with the data to only those defined by the encapsulating class.
+Whenever we want to process that data in a new way, we have to add new operations to the class.
+It's easy for encapsulation to end up _increasing_ the coupling between different parts of our application.
 
-The different grains of the two languages bump up against one another at the interop boundary.
-The interop between Java and Kotlin collections is virtually seamless, thanks to some compiler magic.
-However, you need to be aware of that magic and its limitations to avoid confusing bugs.
-
+In contrast, immutable collections do not require encapsulation.
+We don't need to ensure that state changes always go through the class' interface because there are no state changes.
+If we make our domain model _be_ the appropriate data structure, rather than encapsulate and hide it behind a class boundary, we _extend_ the operations available for us to work with the data.
+We have all the operations defined for the collection, and the operations we have defined for our application.
 
 === A Class That Encapsulates a Collection
 
@@ -320,7 +322,7 @@ However, IntelliJ cannot automatically replace a class definition with a typeali
 It has to be done by manual editing.
 But those edits will prevent code that refers to the `journeys` property from compiling, because the extension of Route  must now be imported.
 
-So, wee must refactor the class, and the code that depends on it, into a form that allows us to perform the manual edit without breaking any code.
+So, we must refactor the class, and the code that depends on it, into a form that allows us to perform the manual edit without breaking any code.
 In this case, this means converting the `journeys` property defined on the class into an extension property that is imported by the files that depend on it, before we replace it with the definition above.
 We can do this with a sequence of automated refactoring steps.
 
@@ -420,14 +422,11 @@ fun Route.requiredStays() =
 
 === Conclusions
 
-In Java, the justifiable fear of aliasing errors leads one to encapsulate collections of data in classes.
-This tends to "attract" behaviour to the classes that encapsulate the data the behaviour requires.
-However, by doing this we _reduce_ the operations available for us to work with the data to only those defined by the encapsulating class.
+We started this chapter with a Java class that encapsulated a mutable collection so it could guarantee value semantics.
+As we translated more of our code to Kotlin, we could rely on Kotlin's type system to prevent the collection being modified, and no longer needed to encapsulate it within the class.
+That allowed us to convert operations from methods to extensions, and move their definitions close to where they are used.
+Because our class encapsulated a single collection, we were able to eliminate the class altogether, and replace it with a typealias.
 
-Immutable data does not require encapsulation.
-We don't need to ensure that state changes always go through the class' interface because there are no state changes.
-When our domain model _is_ the appropriate data structure, rather than encapsulating and hiding the data structure behind a class boundary, we _increase_ the operations available for us to work with the data.
-We have all the operations defined for the collection, and can extend it with our own application-specific operations.
 
 === See Also
 
