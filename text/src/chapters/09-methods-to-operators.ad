@@ -1,14 +1,15 @@
 [[methods-to-operators]]
 == Methods to Operators
 
-Most of the value types in our application domain model are _abstract data types_.
-An abstract data type represents a concept in our application domain, and hides how it represents that concept behind an API.
-The API defines the only operations that the rest of the program can use to work with values of the abstract data type, and guarantees that the hidden representation is always correct.
-
 Kotlin's data classes greatly reduce the amount of boilerplate we need to write to implement value semantics.
-However, a data class cannot be an abstract data type, because Kotlin generates a copy method that can bypass any other operations you might define for the data and break any correctness guarantees those operations provide.
+However, most of the value types in our application domain model are _abstract data types_, and a data class cannot be an abstract data type.
 
-In this chapter we translate a Java class that implements an abstract data type into Kotlin.
+An abstract data type represents a concept in our application, and hides the representation of that concept behind an API.
+The API defines the only operations that the rest of the program can use to work with values of the abstract data type, and guarantees that the hidden representation is always correct.
+However, a data class allows direct access to its fields.
+Kotlin generates a constructor and copy method that can bypass any other operations you might define for the data and break any correctness guarantees those operations provide.
+
+In this chapter we translate a Java class is an abstract data type into Kotlin.
 We will support idiomatic usage in both languages while our project is in transition from one to the other.
 
 
@@ -624,4 +625,3 @@ We don't want our use of Kotlin to have a negative effect on our Java, or leave 
 Using annotations and delegation we can ensure that both Kotlin and Java code remains conventional during the transition to Kotlin.
 The "extract-and-inline" refactoring combo makes this cheap to introduce, and to eliminate when no longer needed.
 
-Now let's take a look at how the grain of the two languages differs when working with optional data and collections.
