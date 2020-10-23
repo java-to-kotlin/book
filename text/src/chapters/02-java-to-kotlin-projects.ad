@@ -3,13 +3,14 @@
 
 What is the first step of the journey from pure Java to a mixed and then increasingly Kotlin codebase?
 
-The first time we were faced with introducing Kotlin to an existing Java codebase was in a small team that included six developers, building a relatively greenfield project.
-We had already deployed some web applications with Kotlin, but the enterprise architects insisted that we write the new system in Java 8. This was shortly after Kotlin 1.0 had been released but before Google announced that Kotlin was an official language for Android, so it was understandable that the architects were wary about committing to a language with an uncertain future for a strategic system that they expected to be around for decades.
+The first time we introduced Kotlin to a Java codebase, we were a small team that included six developers, building a relatively greenfield project.
+We had already deployed some web applications with Kotlin, but our enterprise architects insisted that we write the new system in Java 8.
+This was shortly after Kotlin 1.0 had been released, but before Google announced that Kotlin was an official language for Android, so the architects were understandably wary about committing to a language with an uncertain future for a strategic system that they expected to be around for decades.
 
 In Java, we leaned towards a functional approach, designing the core application domain model as immutable data types transformed by pipelines.
 However, we kept bumping into Java's limitations: the verbosity required to implement immutable value types, the distinction between primitive and reference types, null references, Streams lacking common higher-order functions.
-Around this time, Google made their announcement that Kotlin was now an official language for Android development.
-Kotlin was being adopted at an ever-increasing rate across the industry and within the company, so we decided to start converting our Java codebase to Kotlin.
+Meanwhile, we could see Kotlin being adopted at an ever-increasing rate across the industry, and even within the company.
+When we saw Google's announcement, we decided to start converting our Java to Kotlin.
 
 Our judgement was that starting in the core domain model would give us the biggest bang for our buck.
 Kotlin's data classes shrunk the code significantly, in some cases replacing hundreds of lines of code with a single declaration.
@@ -25,12 +26,12 @@ This simplified our code and gave us greater confidence in its null safety.
 
 Another project in the company adopted Kotlin for a different reason.
 They had a mature Java system that was built on Spring.
-The developers found that the reliance on reflection and annotations made the code difficult to understand and navigate in the IDE.
+The developers found that the use of reflection and annotations made the code difficult to understand and navigate in the IDE.
 Kotlin's lightweight syntax for closures offered a way to define the structure of their application and distinguish between object graphs instantiated for the whole application, for each HTTP request, or each database transaction.
 They gradually refactored the underpinnings of their system from a framework that obscured the architecture to a compositional style in which the architecture was visible in the code.
 This work became the https://http4k.org[HTTP4K] HTTP toolkit.
 
-As these two examples show, the choice of starting point depends on a number of factors: why is the team adopting Kotlin, how large is the codebase, how frequently is it changed, … and you probably have reasons aren't in this list.
+As these two examples show, the choice of starting point depends on a number of factors: why is the team adopting Kotlin, how large is the codebase, how frequently is it changed, ... You probably have reasons aren't in this list.
 
 If you are choosing Kotlin for its language features it makes sense to convert the classes you are working in most frequently, as we did in the first example above.
 If you are choosing Kotlin to use a specific library then it makes sense to start writing Kotlin against the API, annotate it to make your Kotlin code convenient to the Java code in the rest of the app, and continue from there.
@@ -42,14 +43,14 @@ So it may be worth starting with a small sub-team working in one area of the sys
 Once there are some established conventions, you can expand the effort to the rest of the team and other parts of the system.
 
 In the rest of this book we will examine in detail how to progress, how to keep your Java code maintainable while you are introducing Kotlin that it depends upon, how to take advantage of Kotlin's features to further simplify the code after IntelliJ has performed its conversion magic.
+But all that follows the first small step.
 
-=== Migrating A Java Build to Kotlin
+=== Migrating a Java Build to Kotlin
 
-If we want to refactor our Java codebase to Kotlin, the first change we must make is to give ourselves the ability to write Kotlin code in our existing codebase.
-
+If we want to refactor our Java to Kotlin, the first change we must make is to give ourselves the ability to write Kotlin code in our codebase.
 Happily, the Kotlin build tools and IDE make this very straightforward.
-It takes a few additional lines in our Gradle build configuration for it to compile Kotlin code as well as Java.
-And the IntelliJ IDE will pick up that configuration when we resync the build file, allowing us to navigate, autocomplete and refactor across both languages almost seamlessly.
+It takes a few additional lines in our Gradle build configuration for it to compile Kotlin as well as Java.
+The IntelliJ IDE will pick up that configuration when we resync the build file, allowing us to navigate, autocomplete and refactor across both languages almost seamlessly.
 
 To add Kotlin to our Gradle build we need to add the Kotlin plugin.
 There is a different plugin for each target that Kotlin supports (JVM, JavaScript and native code), and a plugin for building multiplatform projects.
@@ -59,7 +60,7 @@ We also need to add the Kotlin standard library to our dependencies, and specify
 Our project targets JDK 11 (the latest LTS at the time of writing).
 At the time of writing, the Kotlin compiler can generate bytecode compatible with JDK 1.6 or JDK 1.8. JDK 1.8 bytecode is more efficient and runs fine on JDK 11, so we will pick that.
 
-Here is our Gradle build file before changes.
+Here are the relevant parts of our Gradle build file before changes.
 
 // begin-insert: tags/baseline.0:build.gradle#java_build
 [source,groovy]
@@ -132,12 +133,12 @@ compileTestKotlin {
 Given those changes, we can rerun our build, and see that ...
 
 ...
-the build still works!
 
-We can also resync the Gradle project in IntelliJ, and after waiting a while for IntelliJ to do some indexing, we can run our tests and programs from within the IDE.
+... the build still works!
 
-Cool!
-We haven't broken anything, but neither have we proved that we can use Kotlin in our project.
+We can also resync the Gradle project in IntelliJ, and after waiting a while for IntelliJ to do some indexing, we can run our tests and programs within the IDE.
+
+Our tests still pass, so we haven't broken anything, but neither have we proved that we can use Kotlin in our project.
 Let's test that by writing a hello world program in the root package of our Java source tree:
 
 .HelloWorld.kt
@@ -174,8 +175,6 @@ Adding Kotlin to a Java build is straightforward, even if we expect the instruct
 
 Devising a strategy for moving code from Java to Kotlin is more complicated and context-specific.
 Individual projects should examine where Java is and isn’t working for them, and where using Kotlin would alleviate problems and improve the code.
-=== See Also
-
-<<java-to-kotlin-classes>> for first steps on how to convert Java code to Kotlin.
+In <<java-to-kotlin-classes>>, we'll look at what is involved in converting an existing Java class to Kotlin.
 
 
