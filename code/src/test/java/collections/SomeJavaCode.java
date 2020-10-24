@@ -4,9 +4,13 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-public class FromJava {
+public class SomeJavaCode {
     public static <T> void removeElement(List<T> list, int index) {
         list.remove(index);
+    }
+
+    public static <T> void replaceElement(List<T> list, int index, T value) {
+        list.set(index, value);
     }
 
     public static <T> void removeElement(Iterator<T> i) {
@@ -17,7 +21,11 @@ public class FromJava {
         list.set(index, newValue);
     }
 
-    public static List<String> listOfString() {
-        return new ArrayList<>(List.of("zero", "one"));
+    public static <T> void needsAList(List<T> list) {
+
+    }
+
+    public static List<String> mutableListOfStrings(String... strings) {
+        return new ArrayList<>(List.of(strings));
     }
 }

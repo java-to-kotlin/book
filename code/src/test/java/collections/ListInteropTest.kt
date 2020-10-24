@@ -1,11 +1,12 @@
 package collections
 
 import junit.framework.TestCase
+import java.lang.ClassCastException
 
 class ListInteropTest : TestCase() {
     fun testJavaCodeCanRemoveElementFromKotlin_Unmodifiable_List() {
         val l = listOf(1,2,3,4).toList()
-        FromJava.removeElement(l, 1)
+        SomeJavaCode.removeElement(l, 1)
         assertEquals(listOf(1,3,4), l)
     }
 
@@ -13,24 +14,98 @@ class ListInteropTest : TestCase() {
         val l = listOf(1,2,3,4).toList()
         val i = l.iterator()
         i.next()
-        FromJava.removeElement(i)
+        SomeJavaCode.removeElement(i)
         assertEquals(listOf(2,3,4), l)
     }
 
     fun testJavaCodeCanSetElementOfListArrayWrapper() {
         val l = listOf(1,2,3,4)
-        FromJava.setElement(l, 1, 99)
+        SomeJavaCode.setElement(l, 1, 99)
         assertEquals(listOf(1, 99, 3, 4), l)
     }
 
     fun testKotlinCanAcceptJavaListAsImmutableList() {
-        val l: List<String> = FromJava.listOfString()
-        assertEquals(listOf("zero", "one"), l)
+        /// begin: immutable
+        val aList: List<String> = SomeJavaCode.mutableListOfStrings("0", "1")
+        /// end: immutable
+        /*
+        /// begin: immutable
+        aList.removeAt(1) // doesn't compile
+        /// end: immutable
+        */
+
+        assertEquals(listOf("0", "1"), aList)
     }
 
     fun testKotlinCanAcceptJavaListAsMutableList() {
-        val l: MutableList<String> = FromJava.listOfString()
-        l.removeAt(1)
-        assertEquals(listOf("zero"), l)
+        /// begin: mutable
+        val aMutableList: MutableList<String> = SomeJavaCode.mutableListOfStrings("0", "1")
+        aMutableList.removeAt(1)
+        assertEquals(listOf("0"), aMutableList)
+        /// end: mutable
     }
+
+    fun testKotlinCanCastAwayJavaImmutabilty() {
+        /// begin: cast
+        val aList: List<String> = SomeJavaCode.mutableListOfStrings("0", "1")
+        val aMutableList: MutableList<String> = aList as MutableList<String>
+        aMutableList.removeAt(1)
+        assertEquals(listOf("0"), aMutableList)
+        /// end: cast
+    }
+
+    fun testKotlinLiteralsCanBeDowncastButCannotBeResizedAtRuntime() {
+        try {
+            /// begin: kotlinCastFail
+            val aList: List<String> = listOf("0", "1")
+            val aMutableList: MutableList<String> = aList as MutableList<String>
+            aMutableList.removeAt(1) // throws UnsupportedOperationException
+            /// end: kotlinCastFail
+            fail()
+        } catch (x: UnsupportedOperationException) {}
+    }
+
+    fun testKotlinLiteralsCanBeEditedInPlaceAtRuntime() {
+        val aList: List<String> = listOf("0", "1")
+        val aMutableList: MutableList<String> = aList as MutableList<String>
+        aMutableList[1] = "banana"
+        assertEquals(listOf("0", "banana"), aMutableList)
+    }
+
+    fun testKotlinHOFResultsCanBeModified() {
+        /// begin: kotlinHOF
+        val aList: List<String> = listOf("0", "1").map { it}
+        val aMutableList: MutableList<String> = aList as MutableList<String>
+        aMutableList.removeAt(1)
+        assertEquals(listOf("0"), aMutableList)
+        /// end: kotlinHOF
+    }
+
+    fun testCannotDowncastWillyNilly() {
+        try {
+            /// begin: downCastSupported
+            val aList: List<String> = MyList("0", "1")
+            val aMutableList: MutableList<String> = aList as MutableList<String> // throws ClassCastException
+            /// end: downCastSupported
+            fail()
+        } catch (x: ClassCastException) {}
+    }
+
+    fun testJavaCanAcceptMutableList() {
+        /// begin: javaAcceptMutableList
+        val aMutableList: MutableList<String> = mutableListOf("0", "1")
+        SomeJavaCode.needsAList(aMutableList)
+        /// end: javaAcceptMutableList
+    }
+
+    fun testJavaCanAcceptImmutableList() {
+        /// begin: javaAcceptList
+        val aList: List<String> = listOf("0", "1")
+        SomeJavaCode.needsAList(aList)
+        /// end: javaAcceptList
+    }
+
+
 }
+
+class MyList<T>(vararg items: T): List<T> by items.toList()
