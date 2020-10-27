@@ -179,7 +179,7 @@ public class Route implements Iterable<Journey> {
 
 Here `Route` has to be completely initialised in its constructor, in this case from any other `Collection` of ++Journey++s.
 Unfortunately, because that `Collection` may be mutable, we have to take a defensive copy of its items if `Journey` is to be truly immutable.
-In fact, even as defined here `Route` is not entirely immutable in the typesystem, as the `Iterator` it yields has a mutator method - `remove`.
+In fact, even as defined here `Route` is not entirely immutable in the type system, as the `Iterator` it yields has a mutator method - `remove`.
 So we have a class whose interface is almost immutable, except for one second-order operation.
 Luckily for us, the `List` returned by `List.copyOf` is 'safe' and will throw an `UnsupportedOperationException` at runtime if we attempt to call `remove` on its iterator.
 
@@ -291,7 +291,7 @@ public class Route implements List<Journey>{
 Finally our `Route` is directly usable everywhere that takes `List<Journey>`.
 Well, except for usages that call any mutating methods, where the `AbstractImmutableList` that is the actual type of `journeys` will rebut attempts, but only at runtime.
 Again, project teams can get used to these conventions and produce reliable software because of and in spite of them.
-On the whole the benefits of actually immutable collections outweigh the problems of a typesystem that is lying to you, because, to butcher a phrase, values are just so valuable.
+On the whole the benefits of actually immutable collections outweigh the problems of a type system that is lying to you, because, to butcher a phrase, values are just so valuable.
 The JVM's libraries may hark back to the days when mutability was the norm, but this is a case where going against the grain of Java is better than going with it.
 
 [quote,Alan Perlis,Epigrams in Programming]

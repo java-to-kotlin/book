@@ -1,7 +1,7 @@
 [[beans-to-values]]
 == Beans to Values
 
-Many Java projects have settled on mutable JavaBeans or POJO conventions for representing data.
+Many Java projects have settled on mutable JavaBeans or POJO (plain old Java object) conventions for representing data.
 Mutability brings complications though - why are immutable values a better choice, and how can we reduce the cost of mutability in a codebase?
 
 As we discuss in <<bean-java-style>>, JavaBeans were introduced to allow the development of drag-and-drop GUI builders in the Visual Basic style.
@@ -36,7 +36,7 @@ Java primitives all have value semantics: every `7` is equal to every other `7`.
 The objects that are the targets of references may or may not have value semantics though; in particular, mutable objects do not.
 In later chapters we'll look at finer distinctions, but for now, let's just define _a  value_ to be an immutable piece of data, and a _value type_ to be a type that defines the behaviour of an immutable piece of data.
 
-So `7` is a value, and the boxed `Integer` is a value type (because boxed types are immutable). `banana` is a value (because ``String``s are immutable), a `URI` is a value (because ``URI``s are immutable), but `java.util.Date` is not a value type (because we can call `setYear` etc on the date).
+So `7` is a value, and the boxed `Integer` is a value type (because boxed types are immutable). `banana` is a value (because ++String++s are immutable), a `URI` is a value (because ++URI++s are immutable), but `java.util.Date` is not a value type (because we can call `setYear` etc on the date).
 
 An instance of an immutable `DBConnectionInfo` is a value, but an instance of `Database` is not a value, even if all its properties are immutable. This is because it is not a piece of data, it is a means of accessing pieces of data. <<code-to-data>> discusses the difference between data and other immutable objects.
 
@@ -44,7 +44,7 @@ Are JavaBeans values?
 In the case of UI components JavaBeans are not values. UI components aren't just data - two otherwise identical buttons have different identities.
 In the case of beans used to represent plain data, it will depend on whether they are immutable.
 It is possible to create immutable beans - just don't define any setter methods and add the ability to initialise the properties in at least one non-default constructor.
-This is (serialization aside) technically a bean, but most developers would think of it more as a POJO, a _Plain Old Java Object_.
+This is (serialization aside) technically a bean, but most developers would think of it more as a POJO.
 
 Are POJOs values?
 The term was coined to refer to classes that don't have to extend from framework types in order to be useful.
@@ -255,7 +255,7 @@ class UserPreferences(
 
 At this stage we haven't changed the functioning of our application, just simplified its expression.
 Those `var` (as opposed to `val`) properties are the sign that we have mutable data.
-It's worth reminding ourselves at this point to that the Kotlin compiler is going to generate a private field, a getter method, and a setter method for each property, so that our Java continues to see the data class as a bean.
+It's worth reminding ourselves at this point, that the Kotlin compiler is going to generate a private field, a getter method, and a setter method for each property, so that our Java continues to see the data class as a bean.
 Kotlin embraces the beans naming convention.
 
 How now do we make `UserPreferences` immutable?

@@ -232,7 +232,7 @@ In new code, it was much easier to go with the grain.
 The drawback of Beans style is that it relies heavily on mutable state, and requires more of that state to be public than plain old Java objects because you cannot pass parameters to an object's constructor.
 Object state must be mutable so that it can be set after construction and objects must often be instantiated in an invalid state -- with required properties initialised to null, for example -- and then put into a valid state by setting their public properties.
 User interface components work well as beans, because they can safely be initialised with default content and styling and adjusted after construction.
-Treating other components of a system, that have no reasonable defaults, in the same way is error prone, and the type checker can't ensure they have been fully initialised.
+When we have classes that have no reasonable defaults treating them in the same way is error prone, because the type checker can’t tell us when we have provided all the required values.
 The Beans conventions make writing correct code harder and changes in dependencies can silently break client code.
 
 In the end, graphical composition of Java beans never became mainstream, but the coding conventions stuck.
@@ -357,7 +357,7 @@ We managed the risk by working in small changes, making each easy to understand,
 Our process was to first convert Java code to Kotlin, giving us a Java-esque design in Kotlin syntax.
 We then incrementally applied Kotlin language features to make the code increasingly easier to understand, more type safe, more concise, and with a more compositional structure that is easier to change without unpleasant surprises.
 
-Small, safe, reversible changes that improved the design: we _refactored_ from idiomatic Java to idomatic Kotlin.
+Small, safe, reversible changes that improved the design: we _refactored_ from idiomatic Java to idiomatic Kotlin.
 
 These days most projects are multilingual.
 A "Java" web app, for example, will involve code written in Java, HTML, CSS, JavaScript, at least one templating language, maybe more if you have templating on the server and in the browser, JSX if you're using React, and one or more query languages (SQL, etc).
@@ -487,7 +487,7 @@ We have though had to split more lines than we might usually to make the code fi
 Where our production Kotlin would usually have up to 4 or 5 parameters to a function definition, or arguments to a function call, on one line; to fit in the book we will often move to one item per line after only 3.
 That said, we find that Kotlin feels natural taking more vertical space than Java, and scrolling sideways is almost as inconvenient in an IDE as a book - so maybe our production style will move to be more like that you see here.
 
-We will sometimes hide code that is isn't relevant to the discussion.
+We will sometimes hide code that isn't relevant to the discussion.
 A line comment that starts with an ellipsis of three dots indicates that we have omitted some code for clarity or brevity.
 For example, in the following code, the comment is not part of the example, but indicates that we have omitted overloads of the `Money` function that are not relevant to the text.
 
