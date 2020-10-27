@@ -457,25 +457,34 @@ Because of this, `departsFrom`, which is initialised in on construction, can get
 
 The official line is that the non-mutable Kotlin collections are not _immutable_, but rather a _read-only view_ of a collection.
 This is the unfortunate consequence of having your mutable collections extend your otherwise non-mutable collections - the recipient of a non-mutable collection cannot modify it, but cannot know that it won't change.
-Even in Kotlin we could have created `MutableList`, passed it to `Journey` and then sorted it in place.
+Even in Kotlin we could have created `MutableList`, passed it to `Journey` as a `List`, and then sorted it in place.
 
 The rigorous solution to this problem is to separate mutable from immutable collections by not having a subtype relationship.
 In this scheme if we have a mutable list and want an immutable copy of it, we have to copy the data.
 A good analogy is a `StringBuilder`.
-This is effectively a mutable `String`, but is not a subtype of `String` - once we are ready we need to call `.toString()`,
+This is effectively a mutable `String`, but is not a subtype of `String`.
+Once we have a result we want to publish we need to call `.toString()`,
 and subsequent modifications to the `StringBuilder` will not affect previous results.
-Both Clojure and Scala adopt this approach for their collections libraries,
-why didn't Kotlin?
+Both Clojure and Scala adopt this builder approach for their mutable collections,
+why doesn't Kotlin?
 
-We suspect that the answer is, because the Kotlin designers, like your authors, had adopted a Java style where any collection passed from one place to another was treated as immutable, even if it had started life as mutable, and despite the mutation operations present in the Java interfaces.
+We suspect that the answer is: because the Kotlin designers, like your authors, had adopted a Java style where any collection shared from one place to another was treated as immutable, even if it had started life as mutable, and despite the mutation operations present in the Java interfaces.
 Sometimes we might enforce this immutability by wrapping with `Collections.unmodifiableList(...)` etc, but in an aligned development team this was unnecessary because no-one would think to modify a collection just because the Java interface said that they could.
-Passing your collection to a library written by another team or organisation was risky, as was receiving a collection that a source might retain a reference to and mutate later, but in practice we didn't suffer from many bugs from these causes.
-
+Passing your collection to a library written by another team or organisation was risky, as was receiving a collection that a source might retain a reference to and mutate later, but in practice we didn't find many bugs from these causes.
 In return for accepting a largely theoretical risk, we, and Kotlin, reaped the rewards of very simple and efficient interoperation with Java.
-And by extracting the 'immutable' interfaces it becomes very much simpler to define value types and to differentiate them from those collections that we do need to mutate for some reason.
-This pragmatism is typical of the grain of Kotlin - in this case it might be expressed as "be as safe as is sensible, but no safer."
+Pragmatism is typical of the grain of Kotlin - in this case it might be expressed as "be as safe as is sensible, but no safer."
+
+This convention - that any collection received as a parameter, returned as a result, or otherwise shared between code, is considered immutable unless documented as a special case - is a powerful one in Java.
+As discussed in <<beans-to-values>>, using values rather than mutable data allows our code to be less complex, with fewer places for bugs to hide.
+Mutating collections is particularly pernicious, because we often derive values (such as `departsFrom`) that can get out of date if we change the collection we extracted them from.
+In Kotlin, default-immutable collections power this convention.
+That's because if we declare all normal references as the 'immutable' versions, we can use `MutableCollection` to document when we do, in fact, consider that the collection is subject to change.
+
 
 === Migrating From Java to Kotlin Collections
+
+Remove all visible mutation
+
 
 TODO
 
