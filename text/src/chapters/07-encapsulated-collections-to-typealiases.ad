@@ -14,16 +14,16 @@ Whenever we want to process that data in a new way, we have to add new operation
 It's easy for encapsulation to end up _increasing_ the coupling between different parts of our application.
 
 In contrast, immutable collections do not require encapsulation.
-We don't need to ensure that state changes always go through the class' interface because there are no state changes.
+We don't need to ensure that state changes always go through the class's interface because there are no state changes.
 If we make our domain model _be_ the appropriate data structure, rather than encapsulate and hide it behind a class boundary, we _extend_ the operations available for us to work with the data.
-We have all the operations defined for the collection, and the operations we have defined for our application.
+We have all the operations defined for the collection and the operations we have defined for our application.
 
 === A Class That Encapsulates a Collection
 
 One of the core services of our Travelator application is route planning.
 
-A Route is a sequence of Journeys that can take the traveller from one location to another.
-Each Journey in a route is a service provided by an Operator, via some mode of transport -- ship, train, bus, camel, etc. -- departing from one location at a specific time and arriving at another location some time later.
+A route is a sequence of journeys that can take the traveller from one location to another.
+Each journey in a route is a service provided by an operator, via some mode of transport -- ship, train, bus, camel, etc. -- departing from one location at a specific time and arriving at another location some time later.
 Our routing service finds several possible routes, and our travellers can compare them by cost, duration, and so on, to choose the route they prefer.
 
 The journeys along a route do not always have a convenient interchange between them.
@@ -76,7 +76,7 @@ public class Route {
 
 <1> A Route encapsulates a List of Journeys.
 <2> To fully encapsulate the list, the constructor should take a defensive copy of the `journeys` parameter.
-    However, we know that our system only creates Route objects in the JSON deserialiser or in tests, neither of which hold onto the list of journeys after creating the Route that uses it.
+    However, we know that our system only creates Route objects in the JSON deserialiser or in tests, neither of which holds onto the list of journeys after creating the Route that uses it.
      There is, therefore, no risk of https://martinfowler.com/bliki/AliasingBug.html[_aliasing errors_], and we can save the cost of a copy whenever we create a Route.
 <3> Because Lists are mutable -- or, at least, the type system offers no guarantee that the List is _not_ mutable -- the `Route` class does not expose the `journeys` list to code using `Route` objects.
     Instead it provides accessors for getting the size and individual elements by index.
@@ -86,7 +86,7 @@ public class Route {
 
 To calculate the interchanges that require a stay, we will map every two contiguous Journeys in the Route to an Interchange between the end of the first journey and the start of the second, and filter the Interchanges to select only those that require one or more overnight stays.
 
-In Java, neither the collection nor stream APIs provide an operation to return all the contiguous pairs of a collection.
+In Java, neither the collection nor stream API provides an operation to return all the contiguous pairs of a collection.
 If we wrote this logic in Java we would have to implement it imperatively, with a for loop and mutable list, like this:
 
 [[required-stays-imperative]]
@@ -239,9 +239,6 @@ class Route(private val journeys: List<Journey>) {
 
 === Do We Need to Encapsulate the Collection?
 
-[quote,Alan Perlis,Epigrams in Programming]
-It is better to have 100 functions operate on one data structure than 10 functions on 10 data structures.
-
 In Java, the Route class encapsulated a mutable list to ensure that it couldn't be mutated.
 In Kotlin, the List type cannot be mutated, so there is nothing to encapsulate.
 There is no compelling reason for the `journeys` field to be private.
@@ -291,7 +288,10 @@ fun Route.requiredStays() =
 // end-insert
 
 It is now glaringly obvious that a Route is nothing more than a list of Journeys.
-In Kotlin, we can express that directly, with a `typealias`:
+The class wrapping the list is worse than superfluous: it prevents us easily using all those useful extension functions in Kotlin's standard library to construct, transform, and process Routes.
+As Alan Perlis famously said: "It is better to have 100 functions operate on one data structure than 10 functions on 10 data structures."
+We don't want a Route to _have_ a List of Journey's, we want it to _be_ a List of Journeys.
+In Kotlin, we can express that with a `typealias`:
 
 // begin-insert: tags/collections.13:src/main/java/travelator/itinerary/Route.kt#class
 [source,kotlin]
@@ -315,7 +315,6 @@ val Route.journeys get() = this
 
 The `Route` function ensures the calls to the constructor still compile.
 The `Route.journeys` extension property ensures that references to the `journeys` property of the Route class still compile when a Route is a List of Journeys.
-
 Then we can inline those temporary definitions, leaving the code that used them working with Lists of Journeys.
 
 However, IntelliJ cannot automatically replace a class definition with a typealias and temporary extensions.
@@ -323,7 +322,8 @@ It has to be done by manual editing.
 But those edits will prevent code that refers to the `journeys` property from compiling, because the extension of Route  must now be imported.
 
 So, we must refactor the class, and the code that depends on it, into a form that allows us to perform the manual edit without breaking any code.
-In this case, this means converting the `journeys` property defined on the class into an extension property that is imported by the files that depend on it, before we replace it with the definition above.
+In this case, this means converting the `journeys` property defined on the class into an extension property that is imported by the files that depend on it.
+Then we can replace it with the definition above.
 We can do this with a sequence of automated refactoring steps.
 
 First, we apply the "Move to class body" refactoring to the declaration of the `journeys` property in the primary constructor definition.
@@ -352,7 +352,7 @@ class Route(journeys: List<Journey>) {
 
 Now `journeys` is a calculated property, without a backing field, that can be refactored into an extension property on Route that is correctly imported into every file that refers to it.
 
-We'll have to temporarily increase the visibility of the `_journeys` property so that it extensions of `Route` can refer to it.
+We'll have to temporarily increase the visibility of the `_journeys` property so that extensions of `Route` can refer to it.
 
 // begin-insert: tags/collections.10:src/main/java/travelator/itinerary/Route.kt#class
 [source,kotlin]
@@ -431,5 +431,5 @@ Immutable collections and extensions allow us to organise our code in different 
 We can group all the logic required by a particular feature of the application, or group logic that bridges between different domains.
 We continue this train of thought in <<organising-code-by-domain>>.
 
-This chapter looked at preventing unwanted mutation, and how that Kotlin makes that unnecessary.
-In <<accumulating-objects-to-transformations>>, we look at a class designed to be mutable, and explore how we can refactor code that relies on its mutability to instead work by transforming immutable data.
+This chapter looked at how we prevent unwanted mutation, and how Kotlin makes this unnecessary.
+In <<accumulating-objects-to-transformations>>, we look at a class designed to be mutable and explore how we can refactor code that relies on its mutability to instead work by transforming immutable data.
