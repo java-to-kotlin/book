@@ -39,7 +39,7 @@ rather than returning `null`.
 Largely though the imperfections were forced on the designers to give backwards compatibility with Java.
 
 Where Kotlin has its own APIs, they are generally good examples of how to safely use null to represent optional properties, parameters and return values.
-After experiencing first-class nullability, returning to languages without this support feels unsafe - you are acutely aware that you are always only a dereference away from a `NullPointerException`, and relying on convention to find the safe path through the minefield.
+After you’ve experienced first-class nullability, returning to languages without this support feels unsafe - you are acutely aware that you are always only a dereference away from a `NullPointerException`, and that you’re relying on convention to find the safe path through the minefield.
 
 Functional programmers may have advised you to use a Optional/Maybe type rather than nullability in Kotlin.
 We counsel against this, even though it will give you the option to use the same (monadic — there, we said it) tools to represent potential absence, errors, asynchrony, etc.
@@ -170,15 +170,26 @@ object Legs {
 
 The method parameters are as we would expect, with Kotlin `List<Leg>` transparently accepting a `java.util.List`.
 It's worth mentioning here that, when a Kotlin function declares a non-nullable parameter, the compiler inserts a null check before the function body.
-That way, if Java callers sneak in a `null` we'll know straight away (the `legs` parameter is similarly checked).
+That way, if Java callers sneak in a `null`, we'll know straight away (the `legs` parameter is similarly checked).
 Because of these defensive checks, Kotlin detects unexpected nulls as close as possible to their source - in contrast to Java, where a reference can be set to `null` a long way in time and space from where it finally explodes.
 
 Returning to the example, the Kotlin `for` loop is very similar to Java's, except for the use of the `in` keyword rather than `:`, and similarly applies to any type that extends `Iterable`.
-Actually, we can use other types as well - the Kotlin `for` "iterates over anything that is iterable (anything that has an iterator() function that provides an Iterator object), or anything that is itself an iterator".
-We can even define an (operator) extension function to make someone else's type `Iterable` - maybe we'll find a creative use for this one day.
+
+.Iteration and the For Loop
+****
+Actually, we can use other types as well as `Iterable` in Kotlin `for` loops.
+The compiler will allow `for` to be used with anything:
+
+* That extends `Iterator`.
+* That has a method `iterator()` that returns an `Iterator`.
+* That has an in-scope extension function, `operator fun T.iterator()` returning an `Iterator`.
+
+Unfortunately this last wrinkle doesn't actually make other people's types `Iterable`, it just makes the `for` loop work.
+Which is a shame, because if we were to be able to retrospectively make types `Iterable` we could then apply `map`, `reduce` etc to them, as these are operations defined as extension functions on `Iterable<T>`.
+****
 
 The converted `findLongestLegOver` code is not very idiomatic Kotlin.
-(Arguably, since the introduction of streams, it wasn't very idiomatic Java either.)
+(Arguably, since the introduction of streams, it isn't very idiomatic Java either.)
 Instead of a for loop we should look for something more intention-revealing, but let's park that urge for now because our primary mission is to migrate from `Optional` to nullable.
 We'll illustrate that by converting our tests one by one, so that we have a mix, as we would in a codebase that we were migrating.
 In order for us to make use of nullability in our clients they have to be Kotlin, so let's convert the tests.
