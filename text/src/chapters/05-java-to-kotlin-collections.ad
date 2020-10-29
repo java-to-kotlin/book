@@ -480,6 +480,26 @@ Mutating collections is particularly pernicious, because we often derive values 
 In Kotlin, default-immutable collections power this convention.
 That's because if we declare all normal references as the 'immutable' versions, we can use `MutableCollection` to document when we do, in fact, consider that the collection is subject to change.
 
+We see this convention in action if we look into the Kotlin standard library.
+Here, for example, is (a streamlined version of) the definition of `map`:
+
+// begin-insert: src/main/kotlin/collections/collections.kt
+[source,kotlin]
+----
+inline fun <T, R> Iterable<T>.map(transform: (T) -> R): List<R> {
+    val result = ArrayList<R>()
+    for (item in this)
+        result.add(transform(item))
+    return result
+}
+----
+// end-insert
+
+Here we are able to build a list in place by mutation, and then return it as read-only.
+This is simple and efficient.
+Technically we _could_ downcast the result to `MutableList` and change the result, but we shouldn't.
+Instead, we should take the result type at face value - that way
+
 
 === Migrating From Java to Kotlin Collections
 
