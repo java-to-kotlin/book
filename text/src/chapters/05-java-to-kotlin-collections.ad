@@ -4,23 +4,23 @@
 On the face of it, Java and Kotlin have very similar collections libraries: they certainly interoperate suspiciously seamlessly.
 What are the differences, what motivates them, and where do we have to take care as we move from Java to Kotlin collections?
 
-In the last chapter <<beans-to-values>>, we discussed how Java grew up in the days when we saw objects as fundamentally stateful and mutable.
+In <<beans-to-values>>, we discussed how Java grew up in the days when we saw objects as fundamentally stateful and mutable.
 This was particularly true for collections - I mean, what is the point of a list if you can't add to it?
 We built collections by creating an empty object and adding to it.
 Need to remove an item from a shopping cart? - mutate the list.
 Shuffle a pack of cards? - obviously that changes the order of the deck.
-We wouldn't create a new paper list of TODOs every time we remember we need milk or take the cat to the vet -
+We wouldn't create a new paper To-Do list every time we remember we need milk or take the cat to the vet -
 mutable collections mirror our real world experience.
 
 === Java 1.0 Collections
 
 On its release, the quality of its built-in collections was a major reason to adopt Java.
 In those days many languages had no resizable collections, and even C++ had no standard Map class.
-Object encapsulation was the technology that allowed us to build mutable collections safely.
+Object encapsulation allowed us to build and use mutable collections safely.
 It was only natural to make use of this superpower now it had been given to us, so we went ahead and used `Vector` and `HashTable` as Sun intended.
 
 Java 1.0 had no generics, so collections just held ++Object++s which had to be downcast to be useful.
-So we learned to wrap the standard collections in a class that would perform the cast for us:
+The solution we learned was to wrap the standard collections in a class that would perform the cast for us:
 
 // begin-insert: tags/java-to-kotlin-collections.0:src/main/java/travelator/Route.java
 [source,java]
@@ -48,18 +48,27 @@ public class Route {
 // end-insert
 
 As well as providing the downcast, this wrapper class was helpful in two other ways.
-Firstly, it allowed us to restrict the mutability of the collection.
-In the Route example, a raw `Vector` would have exposed operations like `insertElementAt` and `removeElement` which might not be appropriate to our abstraction.
-In the case where we wanted an immutable `Route`, we could supply all its ++Journey++s to the constructor and not provide any mutators at all.
-Secondly, the wrapper is a convenient place to define operations like `getDepartsFrom`.
+
+Firstly, it is a convenient place to define operations like `getDepartsFrom`.
 This isn't applicable to a `Vector` of any ++Object++s, just ++Journey++s.
 Armed with a variable of type `Route`, even the early Java IDEs were smart enough to pop up the messages that could be sent, so clients could see the operations applicable to their collection rather than hunting around a namespace looking for suitable functions.
 This is a major selling point of statically-typed object orientation - the code practically writes itself.
 
+Secondly, the wrapper allowed us to restrict the mutability of the collection.
+In the Route example, a raw `Vector` would have allowed clients to call `add` with any `Object` (a `String` for example), but this is really just another aspect of the downcast.
+Crucially the `Vector` would also have exposed operations like `insertElementAt` and `removeElement`, where we only want to support appending ++Journey++s.
+The wrapper means that we can add only the mutators we want, and if we had wanted an immutable `Route`, we could have populated all the ++Journey++s in the constructor and not added any mutators at all.
+
 === Java 2 Collections
 
-Java 2 footnote:[which was known as 1.2 until Java had to compete with C# version numbers] introduced generics, and with them a revised collections library.
-Generics removed the need to downcast objects retrieved from a collection.
+Java 2 (which was version 1.2 until Java had to compete with C# version numbers) introduced a revised collections library.
+This tidied up the ad-hoc `Vector` and `Hashtable`, extracting a common `Collection` interface with more useful subclasses including `HashSet`.
+These collections all contained just ++Object++s though, so wrapper classes remained the best way to use them.
+
+=== Java 5 Collections
+
+Java 5 introduced generics, and cleverly retro-fitted them to the existing collections.
+Generics removed the need to downcast retrieved objects.
 
 // begin-insert: tags/java-to-kotlin-collections.1:src/main/java/travelator/Route.java
 [source,java]
@@ -86,8 +95,8 @@ public class Route {
 ----
 // end-insert
 
-<1> The diamond `<>` was only added by Java 7
-<2> Generics mean that we don't have to cast the result of `get`
+<1> The diamond `<>` was only added by Java 7.
+<2> Generics mean that we don't have to cast the result of `get`.
 
 Generics might allow us to use the unwrapped `List<Journey>` in place of a wrapper class, except that we still need a place to add operations like `getDepartsFrom`, and a way to restrict the mutability to the single `addJourney` method.
 
@@ -131,7 +140,7 @@ In Java this point evidently came after the introduction of Java 2, and so we ha
 === Immutable Collections
 
 It is of course possible to define your own immutable collections interfaces to solve this problem; what you can't do is to ask the JDK collections to implement them.
-Java developers who wanted immutable collections compatible with the JDK would have to to compromise.
+Java developers who wanted immutable collections compatible with the JDK would have to compromise.
 The lowest end is to implement `Iterable`.
 
 // begin-insert: tags/java-to-kotlin-collections.3:src/main/java/travelator/Route.java
@@ -201,7 +210,8 @@ public Stream<Journey> stream() {
 // end-insert
 
 which suggests that `Stream` is actually the de-facto immutable collection interface for Java.
-Maybe it's a pity that the JVM authors didn't define `Streamable` to go with `Iterable`.
+It's a pity that the Java library authors didn't define `Streamable` to go with `Iterable`, or provide any simple way to exchange an `Iterable` for a `Stream`.
+The desire to support parallel operations with ++Stream++s was so strong that the common use-cases were sacrificed.
 
 Another low-ceremony way of allowing clients to treat `Route` as a collection of ++Journey++s is to expose the backing field via a property.
 
@@ -244,11 +254,12 @@ Now the route isn't a collection per se, but you can ask it for one.
 The `List` returned from `getJourneys` lies to you at compile time by exposing all those mutation methods, but none of them will work at runtime, and in practice you get used to this way of working pretty quickly.
 
 At the other end of the pragmatism spectrum, we can go the whole hog and implement `List<Journey>` in `Route`.
+The simplest way to do this is to extend `AbstractList`.
 
-// begin-insert: tags/java-to-kotlin-collections.6:src/main/java/travelator/Route.java#foo
+// begin-insert: tags/java-to-kotlin-collections.6:src/main/java/travelator/Route.java
 [source,java]
 ----
-public class Route implements List<Journey>{
+public class Route extends AbstractList<Journey>{
 
     private final List<Journey> journeys;
 
@@ -266,11 +277,9 @@ public class Route implements List<Journey>{
     }
 
     @Override
-    public boolean isEmpty() {
-        return journeys.isEmpty();
+    public Journey get(int index) {
+        return journeys.get(index);
     }
-
-    // ... and 26 other List methods ...
 
     @Override
     public boolean equals(Object o) {
@@ -288,8 +297,8 @@ public class Route implements List<Journey>{
 ----
 // end-insert
 
-Finally our `Route` is directly usable everywhere that takes `List<Journey>`.
-Well, except for usages that call any mutating methods, where the `AbstractImmutableList` that is the actual type of `journeys` will rebut attempts, but only at runtime.
+Finally, our `Route` is directly usable everywhere that takes `List<Journey>`.
+Well, except for usages that call any mutating methods, where the `AbstractList` implementations all throw `UnsupportedOperationException`, but you only get to find this out at runtime.
 Again, project teams can get used to these conventions and produce reliable software because of and in spite of them.
 On the whole the benefits of actually immutable collections outweigh the problems of a type system that is lying to you, because, to butcher a phrase, values are just so valuable.
 The JVM's libraries may hark back to the days when mutability was the norm, but this is a case where going against the grain of Java is better than going with it.
@@ -323,7 +332,7 @@ Shouldn't this be a method on `Route`?
 Early in our careers we might have said yes, but we've seen too many classes bloated by trying to support every operation that any client required.
 Better to find the key abstractions that allows clients to help themselves, and very often a standard collection is one of those abstractions.
 This just leaves the problem that in Java it is much harder to find static functions like `durationOfLongestJourney` compared to methods, and the calling convention for such utility functions is different.
-The discoverability of such functions is a lot worse than typing `route.` and waiting for suggestions to appear.
+The discoverability of such functions is a lot worse than typing `route.`, and waiting for suggestions to appear.
 
 === Kotlin Collections
 
@@ -424,7 +433,7 @@ val List<Journey>.durationOfLongestJourney: Duration
 ----
 // end-insert
 
-Unfortunately, when it comes to mutability, there is more to substitutability that the Liskov Substitution Principle.
+Unfortunately, when it comes to mutability, there is more to substitutability than the Liskov Substitution Principle.
 Let's go back to our route and populate it from Java.
 
 // begin-insert: tags/java-to-kotlin-collections.7:src/main/java/travelator/SomeJava.java#someJava
