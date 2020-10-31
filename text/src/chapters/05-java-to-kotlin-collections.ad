@@ -12,6 +12,7 @@ Shuffle a pack of cards? - obviously that changes the order of the deck.
 We wouldn't create a new paper To-Do list every time we remember we need milk or take the cat to the vet -
 mutable collections mirror our real world experience.
 
+[[java-collections]]
 === Java Collections
 
 On its release, the quality of its built-in collections was a major reason to adopt Java.
@@ -172,14 +173,22 @@ In these cases we have to take a defensive copy of the original list if we are t
 
 If you think that all this second-guessing when the source or destination of collections is likely to modify them, and taking appropriate action, sounds a bit tedious, then you aren't alone.
 The problem applies to any mutable data, but mutating collections is particularly pernicious, because we often derive values (such as `departsFrom`) that can get out of date if we change the collection we extracted them from.
-Rather than taking defensive copies at every function boundary, many teams, your author's included, adopted a simpler and more efficient policy.
-This is to treat any collection shared between pieces of code that we own as immutable, even if it had started life as mutable, and despite the mutation operations present in the Java interfaces.
+Rather than taking defensive copies at every function boundary, many teams, your authors' included, adopted a simpler and more efficient policy.
+This is to treat any collection shared between pieces of code _that we own_ as immutable, even if it had started life as mutable, and despite the mutation operations present in the Java interfaces.
 We might occasionally enforce this immutability by wrapping with `Collections.unmodifiableList(...)` etc, but in an aligned development team this is unnecessary because no-one would think to modify a collection just because the Java interface said that they could.
 Passing your collection to a library written by another team or organisation may be risky, as is receiving a collection that a source might retain a reference to and mutate later, but in practice we don't find many problems from these causes.
 When we do, we can wrap or copy on the boundary of our code as appropriate.
 
-Another way to state this policy is that our code should only every mutate a collection that it has just created.
-Never mutate a collection that you have received from another source.
+Another way to state this policy is that our code should only mutate a collection that it has just created.
+Do not mutate a collection that you have received from another source, and arrange things so that you can rely on the fact that nothing else will.
+
+There will of course be exceptions to the rule - places where, usually for reasons of efficiency, we want to share a collection as a mutable collection.
+In these cases we can get dispensation by naming (`accumulator` is a good start), and by limiting the scope of the sharing as much as possible.
+Within a function is ideal, between private methods in a class acceptable, across module boundaries very rarely so.
+
+Project teams can get used to this convention and produce reliable software in spite of collections' mutability.
+On the whole the benefits of actually immutable collections outweigh the problems of a type system that is lying to you, because, to butcher a phrase, values are just so valuable.
+The JVM's libraries may hark back to the days when mutability was the norm, but this is a case where the grain of Java is shifting to the immutable, and it's better to be ahead of this change than behind it.
 
 === Kotlin Collections
 
@@ -199,7 +208,7 @@ Mutable collections have the same operations as immutable collections, plus the 
 It is safe to pass a `MutableList` as an argument to code that expects a `List`, because all the `List` methods will be present and can be invoked.
 In terms of the Liskov Substitution Principle, we can substitute a `MutableList` where a `List` is expected, without affecting our program correctness.
 
-A little bit of compiler magic makes it so that Kotlin code can accept a `java.util.List` as either a `kotlin.collections.List`:
+A little compiler magic makes it so that Kotlin code can accept a `java.util.List` as either a `kotlin.collections.List`:
 
 // begin-insert: src/test/java/collections/ListInteropTest.kt#immutable
 [source,kotlin]
@@ -251,69 +260,56 @@ SomeJavaCode.needsAList(aList)
 // end-insert
 
 At face-value, so far everything has been very plausible.
-We can differentiate between immutable ++List++s and ++MutableList++s in Kotlin, and easily interoperate with Java.
-And because there is an immutable `List` interface, we can implement that rather than the mutable Java version when we want to write nice value types.
-Let's convert our `Route` to Kotlin
-
-// begin-insert: tags/wrappers-to-collections.7:src/main/java/travelator/Route.kt
-[source,kotlin]
-----
-data class Route(
-    private val journeys: List<Journey>
-) : List<Journey> by journeys {
-    val departsFrom: Location = journeys[0].departsFrom
-}
-----
-// end-insert
-
-Note how easy it is to delegate our implementation of `List<Journey>` to a field, compared to the Java version.
-Also compared to Java, extension functions (or in this case an extension property) give a very natural way for clients to write their specific operations against this interface:
-
-// begin-insert: tags/wrappers-to-collections.7:src/main/java/travelator/Routes.kt#durationOfLongestJourney
-[source,kotlin]
-----
-val List<Journey>.durationOfLongestJourney: Duration
-    get() = when {
-        isEmpty() -> Duration.ZERO
-        else -> map { it.duration }.max() ?: error("unexpected null")
-    }
-----
-// end-insert
-
 Unfortunately, when it comes to mutability, there is more to substitutability than the Liskov Substitution Principle.
-Let's go back to our route and populate it from Java.
+As we saw in <<java-collections>>, just because we can't see mutators on our `kotlin.collections.List`, doesn't mean that the contents cannot change.
+In some ways it's worse in Kotlin, because we can convert a `MutableList` to a `List` in passing:
 
-// begin-insert: tags/wrappers-to-collections.7:src/main/java/travelator/SomeJava.java#someJava
-[source,java]
+// begin-insert: src/test/java/collections/ListInteropTest.kt#upCast
+[source,kotlin]
 ----
-List<Journey> journeys = loadJourneys();
-Route route = new Route(journeys);
-
-Journey shortestJourney = shortestJourneyIn(journeys);
-Location start = route.getDepartsFrom();
+val aMutableList = mutableListOf("0", "1")
+val aList: List<String> = aMutableList
 ----
 // end-insert
 
-All seems fine, but we keep getting bug reports that suggest that all is not well, even though our tests pass.
-Drilling down we find:
+Now lets say that we accept a `List<String>` somewhere, and take its immutabilty at face value:
 
-// begin-insert: tags/wrappers-to-collections.7:src/main/java/travelator/SomeJava.java#shortestJourneyIn
-[source,java]
+// begin-insert: src/test/java/collections/ListInteropTest.kt#aClass
+[source,kotlin]
 ----
-private static Journey shortestJourneyIn(List<Journey> journeys) {
-    journeys.sort(Comparator.comparing(Journey::getDuration));
-    return journeys.get(0);
+class AValueType(
+    val strings: List<String>
+) {
+    val first: String? = strings.firstOrNull()
 }
 ----
 // end-insert
 
-After a frustrating afternoon in the debugger we realise that, whilst our `Route` thought that it was being populated with an immutable list, no one told the Java code that supplied that list that it couldn't mutate it.
-`Route` turns out to be a mutable after all!
-Because of this, `departsFrom`, which is initialised in on construction, can get out of date.
+Everything seems fine:
+
+// begin-insert: src/test/java/collections/ListInteropTest.kt#passAsList
+[source,kotlin]
+----
+val holdsState = AValueType(aList)
+assertEquals(holdsState.first, holdsState.strings.first())
+----
+// end-insert
+
+But wait, didn't we still have a reference to a `MutableList`?
+
+// begin-insert: src/test/java/collections/ListInteropTest.kt#mutate
+[source,kotlin]
+----
+aMutableList[0] = "banana"
+assertEquals(holdsState.first, holdsState.strings.first()) // Expected "0", actual "banana"
+----
+// end-insert
+
+`AValueType` turns out to be a mutable after all!
+Because of this, `first`, which is initialised in on construction, can get out of date.
 
 The official line is that the non-mutable Kotlin collections are not _immutable_, but rather a _read-only view_ of a collection.
 This is the unfortunate consequence of having your mutable collections extend your otherwise non-mutable collections - the recipient of a non-mutable collection cannot modify it, but cannot know that it won't change.
-Even in Kotlin we could have created `MutableList`, passed it to `Journey` as a `List`, and then sorted it in place.
 
 The rigorous solution to this problem is to separate mutable from immutable collections by not having a subtype relationship.
 In this scheme if we have a mutable list and want an immutable copy of it, we have to copy the data.

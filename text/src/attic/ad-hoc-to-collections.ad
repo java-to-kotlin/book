@@ -228,3 +228,36 @@ Early in our careers we might have said yes, but we've seen too many classes blo
 Better to find the key abstractions that allows clients to help themselves, and very often a standard collection is one of those abstractions.
 This just leaves the problem that in Java it is much harder to find static functions like `durationOfLongestJourney` compared to methods, and the calling convention for such utility functions is different.
 The discoverability of such functions is a lot worse than typing `route.`, and waiting for suggestions to appear.
+
+
+
+LATER
+
+We can differentiate between immutable ++List++s and ++MutableList++s in Kotlin, and easily interoperate with Java.
+And because there is an immutable `List` interface, we can implement that rather than the mutable Java version when we want to write nice value types.
+Let's convert our `Route` to Kotlin
+
+// begin-insert: tags/wrappers-to-collections.7:src/main/java/travelator/Route.kt
+[source,kotlin]
+----
+data class Route(
+    private val journeys: List<Journey>
+) : List<Journey> by journeys {
+    val departsFrom: Location = journeys[0].departsFrom
+}
+----
+// end-insert
+
+Note how easy it is to delegate our implementation of `List<Journey>` to a field, compared to the Java version.
+Also compared to Java, extension functions (or in this case an extension property) give a very natural way for clients to write their specific operations against this interface:
+
+// begin-insert: tags/wrappers-to-collections.7:src/main/java/travelator/Routes.kt#durationOfLongestJourney
+[source,kotlin]
+----
+val List<Journey>.durationOfLongestJourney: Duration
+    get() = when {
+        isEmpty() -> Duration.ZERO
+        else -> map { it.duration }.max() ?: error("unexpected null")
+    }
+----
+// end-insert

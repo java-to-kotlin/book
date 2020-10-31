@@ -1,5 +1,6 @@
 package collections
 
+import junit.framework.ComparisonFailure
 import junit.framework.TestCase
 import java.lang.ClassCastException
 
@@ -105,7 +106,34 @@ class ListInteropTest : TestCase() {
         /// end: javaAcceptList
     }
 
+    fun testJustAReadOnlyView() {
+        /// begin: upCast
+        val aMutableList = mutableListOf("0", "1")
+        val aList: List<String> = aMutableList
+        /// end: upCast
 
+        /// begin: passAsList
+        val holdsState = AValueType(aList)
+        assertEquals(holdsState.first, holdsState.strings.first())
+        /// end: passAsList
+
+        try {
+            /// begin: mutate
+            aMutableList[0] = "banana"
+            assertEquals(holdsState.first, holdsState.strings.first()) // Expected "0", actual "banana"
+            /// end: mutate
+        } catch (expected: ComparisonFailure) {
+
+        }
+    }
 }
 
 class MyList<T>(vararg items: T): List<T> by items.toList()
+
+/// begin: aClass
+class AValueType(
+    val strings: List<String>
+) {
+    val first: String? = strings.firstOrNull()
+}
+/// end: aClass
