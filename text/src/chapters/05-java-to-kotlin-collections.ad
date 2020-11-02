@@ -320,17 +320,18 @@ and subsequent modifications to the `StringBuilder` will not affect previous res
 Both Clojure and Scala adopt this builder approach for their mutable collections,
 why doesn't Kotlin?
 
-We suspect that the answer is: because the Kotlin designers, like your authors, had adopted a Java style where any collection shared from one place to another was treated as immutable, even if it had started life as mutable, and despite the mutation operations present in the Java interfaces.
-Sometimes we might enforce this immutability by wrapping with `Collections.unmodifiableList(...)` etc, but in an aligned development team this was unnecessary because no-one would think to modify a collection just because the Java interface said that they could.
-Passing your collection to a library written by another team or organisation was risky, as was receiving a collection that a source might retain a reference to and mutate later, but in practice we didn't find many bugs from these causes.
-In return for accepting a largely theoretical risk, we, and Kotlin, reaped the rewards of very simple and efficient interoperation with Java.
-Pragmatism is typical of the grain of Kotlin - in this case it might be expressed as "be as safe as is sensible, but no safer."
-
+We suspect that the answer is: because the Kotlin designers, like your authors, had adopted the Java convention described above.
 This convention - that any collection received as a parameter, returned as a result, or otherwise shared between code, is considered immutable unless documented as a special case - is a powerful one in Java.
 As discussed in <<beans-to-values>>, using values rather than mutable data allows our code to be less complex, with fewer places for bugs to hide.
 Mutating collections is particularly pernicious, because we often derive values (such as `departsFrom`) that can get out of date if we change the collection we extracted them from.
 In Kotlin, default-immutable collections power this convention.
 That's because if we declare all normal references as the 'immutable' versions, we can use `MutableCollection` to document when we do, in fact, consider that the collection is subject to change.
+
+
+In return for accepting a largely theoretical risk, we, and Kotlin, reaped the rewards of very simple and efficient interoperation with Java.
+Pragmatism is typical of the grain of Kotlin - in this case it might be expressed as "be as safe as is sensible, but no safer."
+
+
 
 We see this convention in action if we look into the Kotlin standard library.
 Here, for example, is (a streamlined version of) the definition of `map`:
