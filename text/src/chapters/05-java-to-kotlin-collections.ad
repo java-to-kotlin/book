@@ -9,7 +9,7 @@ This was particularly true for collections - I mean, what is the point of a list
 We built collections by creating an empty one and adding to it.
 Need to remove an item from a shopping cart? - mutate the list.
 Shuffle a pack of cards? - obviously that changes the order of the deck.
-We wouldn't create a new paper To-Do list every time we remember we need milk or take the cat to the vet -
+We wouldn't create a new paper To-Do list every time we need milk or take the cat to the vet -
 mutable collections mirror our real world experience.
 
 [[java-collections]]
@@ -57,54 +57,12 @@ public class Route {
 <1> The diamond `<>` was only added by Java 7.
 <2> Generics mean that we don't have to cast the result of `get`.
 
-Until Java 5 and the introduction of generics we needed the wrapper class to enforce type safety.
+Until Java 5 and the introduction of generics we needed this wrapper class to enforce type safety.
 It prevented the adding of a `String`, for example, to a list that should only hold ++Journey++s, and down-cast the `Object` held in the collection on retrieval.
-Generics made collections type-safe.
-So, if there were no additional properties, why wouldn't we use `List<Journey>` rather than defining a wrapper `Route`?
+Generics make collections type-safe with no extra work, so it is now possible to use a plain `List<Journey>` rather than defining a wrapper `Route`.
 
-Firstly, the wrapper is a convenient place to define operations like `getDepartsFrom`.
-We can't add operations to the standard `List`, so we would have to write a static function:
-
-// begin-insert: tags/duncan-collections.1:src/main/java/travelator/Routes.java
-[source,java]
-----
-public class Routes {
-
-    public static Location getDepartsFrom(List<Journey> journeys) {
-        return journeys.get(0).getDepartsFrom();
-    }
-
-    // ... other utility functions
-}
-----
-// end-insert
-
-We then have to call this function statically:
-
-// begin-insert: tags/duncan-collections.1:src/main/java/travelator/UsingRoutes.java#function
-[source,java]
-----
-List<Journey> route = loadJourneys();
-Location start = Routes.getDepartsFrom(route);
-----
-// end-insert
-
-This compares unfavourably with calling the method:
-
-// begin-insert: tags/duncan-collections.1:src/main/java/travelator/UsingRoutes.java#method
-[source,java]
-----
-Route route = loadRoute();
-Location start = route.getDepartsFrom();
-----
-// end-insert
-
-Armed with a variable of type `Route`, even the early Java IDEs were smart enough to pop up the messages that could be sent, so clients could see the operations applicable to their type.
-This is a major selling point of statically-typed object orientation - the code practically writes itself.
-Without methods, you have to hunt around looking for suitable functions that take the type you have in hand.
-<<encapsulated-collections-to-typealiases>> examines this aspect of wrapper classes in more detail.
-
-The second major reason for having a wrapper class is that it allows us to restrict the mutability of the collection.
+In <<encapsulated-collections-to-typealiases>> we'll look at some of the other benefits of wrapper classes, but in this chapter we'll focus on one particular issue with unwrapped collections.
+The problem is that they are mutable, very mutable.
 `List<Journey> exposes operations like `insertElementAt` and `removeElement`, where, in our example, we only want to support appending ++Journey++s.
 The wrapper means that we can add only the mutators we want, and if we want an immutable `Route`, we can populate all the ++Journey++s in the constructor and not add any mutators at all.
 
@@ -118,7 +76,7 @@ In the write-only case we can pass a `List<Journey>` to a function expecting `Li
 The problem is that the `List` interface has both read and write operations, the compiler error messages are cryptic, and the poor user of the collections API is left to decide rather than the author of the API.
 ****
 
-As we will keep on saying, mutation is the source of many of our problems keeping software simple, as it allows state in one place to get out of date with respect to state in another.
+As we will keep on saying, mutation is the source of many of our problems with keeping software simple, as it allows state in one place to get out of date with respect to state in another.
 We might start with this:
 
 // begin-insert: tags/duncan-collections.1:src/main/java/travelator/UsingRoutes.java#before
@@ -155,25 +113,25 @@ public static Journey shortestJourneyIn(List<Journey> journeys) {
 ----
 // end-insert
 
-Who can blame the developer who was given a reference and called methods on its interface to do their job?
-You only have to spend several hundred of the prime hours of your life debugging the problems caused by issues like this, to come to the conclusion that maybe immutable collections (actually immutable objects full stop) might be a better default.
-In Java this point evidently came after the introduction of Java 2, and so we have forever been stuck with mutable collections interfaces.
+Ah, a developer as was given a reference and called methods on its interface to solve a problem, but that turned out to break code somewhere else in the system.
+You only have to spend several hundred hours of your life debugging the problems caused by issues like this, to come to the conclusion that maybe immutable collections (actually immutable objects full stop) might be a better default.
+For the JDK developers this point evidently came after the introduction of Java 2, and so we have forever been stuck with mutable collections interfaces.
 
-While Java's collections are in-theory mutable, they have, over the years, become less and less so in practice.
+To be fair, While Java's collections are in-theory mutable, they have, over the years, become less and less so in practice.
 Since their introduction it had always been possible to wrap a collection with, for example, `Collections.unmodifiableList`.
 The result is still a `List`, it still has all the mutation methods, but they all throw `UnsupportedOperationException`.
 We could have found out about the problem of `shortestJourneyIn` mutating our list by wrapping the result from `loadJourneys` in an `UnmodifiableList`.
 The tests of any code that combined the two would quickly fail, albeit only when run as opposed to when compiled.
 
-Wrapping a received list in an `UnmodifiableList` solves the problems of depended-on code mutating our collection.
+Wrapping a list in an `UnmodifiableList` solves the problems of depended-on code mutating our collection.
 If it's possible for the original list to be modified we can still have issues though, because `UnmodifiableList` reads through to its underlying collection.
 It doesn't guarantee that it never changes, just that it cannot be modified through the wrapper.
 In these cases we have to take a defensive copy of the original list if we are to be isolated from changes.
 `List.copyOf(collection)` was finally provided in Java 10 to copy an underlying collection as an `AbstractImmutableList`, which is neither modifiable nor subject to changes in the original collection.
 
-If you think that all this second-guessing when the source or destination of collections is likely to modify them, and taking appropriate action, sounds a bit tedious, then you aren't alone.
+If you think that all this second-guessing when the source or destination of collections are likely to modify them, and taking appropriate action, sounds a bit tedious, then you aren't alone.
 The problem applies to any mutable data, but mutating collections is particularly pernicious, because we often derive values (such as `departsFrom`) that can get out of date if we change the collection we extracted them from.
-Rather than taking defensive copies at every function boundary, many teams, your authors' included, adopted a simpler and more efficient policy.
+Rather than taking defensive copies at every function boundary, many teams, your authors' included, adopted a simpler and more efficient strategy.
 This is to treat any collection shared between pieces of code _that we own_ as immutable, even if it had started life as mutable, and despite the mutation operations present in the Java interfaces.
 We might occasionally enforce this immutability by wrapping with `Collections.unmodifiableList(...)` etc, but in an aligned development team this is unnecessary because no-one would think to modify a collection just because the Java interface said that they could.
 Passing your collection to a library written by another team or organisation may be risky, as is receiving a collection that a source might retain a reference to and mutate later, but in practice we don't find many problems from these causes.
@@ -206,7 +164,7 @@ So in `kotlin.collections`, `MutableList<String>` is a subtype of `List<String>`
 On the face of it this is a simple scheme.
 Mutable collections have the same operations as immutable collections, plus the mutation methods.
 It is safe to pass a `MutableList` as an argument to code that expects a `List`, because all the `List` methods will be present and can be invoked.
-In terms of the Liskov Substitution Principle, we can substitute a `MutableList` where a `List` is expected, without affecting our program correctness.
+In terms of the Liskov Substitution Principle, we can substitute a `MutableList` for a `List`, without affecting our program correctness.
 
 A little compiler magic makes it so that Kotlin code can accept a `java.util.List` as either a `kotlin.collections.List`:
 
@@ -261,7 +219,8 @@ SomeJavaCode.needsAList(aList)
 
 At face-value, so far everything has been very plausible.
 Unfortunately, when it comes to mutability, there is more to substitutability than the Liskov Substitution Principle.
-As we saw in <<java-collections>>, just because we can't see mutators on our `kotlin.collections.List`, doesn't mean that the contents cannot change.
+As we saw in <<java-collections>>, just because we can't see mutators on our reference of type `kotlin.collections.List`, doesn't mean that the contents cannot change.
+The actual type could be a `java.util.List`, which _is_ mutable.
 In some ways it's worse in Kotlin, because we can convert a `MutableList` to a `List` in passing:
 
 // begin-insert: src/test/java/collections/ListInteropTest.kt#upCast
@@ -307,6 +266,7 @@ assertEquals(holdsState.first, holdsState.strings.first()) // Expected "0", actu
 
 `AValueType` turns out to be a mutable after all!
 Because of this, `first`, which is initialised in on construction, can get out of date.
+Having immutable collections interfaces has not resulted in immutable collections!
 
 The official line is that the non-mutable Kotlin collections are not _immutable_, but rather a _read-only view_ of a collection.
 This is the unfortunate consequence of having your mutable collections extend your otherwise non-mutable collections - the recipient of a non-mutable collection cannot modify it, but cannot know that it won't change.
@@ -317,23 +277,19 @@ A good analogy is a `StringBuilder`.
 This is effectively a mutable `String`, but is not a subtype of `String`.
 Once we have a result we want to publish we need to call `.toString()`,
 and subsequent modifications to the `StringBuilder` will not affect previous results.
-Both Clojure and Scala adopt this builder approach for their mutable collections,
-why doesn't Kotlin?
+Both Clojure and Scala adopt this builder approach for their mutable collections, why doesn't Kotlin?
 
-We suspect that the answer is: because the Kotlin designers, like your authors, had adopted the Java convention described above.
-This convention - that any collection received as a parameter, returned as a result, or otherwise shared between code, is considered immutable unless documented as a special case - is a powerful one in Java.
-As discussed in <<beans-to-values>>, using values rather than mutable data allows our code to be less complex, with fewer places for bugs to hide.
-Mutating collections is particularly pernicious, because we often derive values (such as `departsFrom`) that can get out of date if we change the collection we extracted them from.
-In Kotlin, default-immutable collections power this convention.
-That's because if we declare all normal references as the 'immutable' versions, we can use `MutableCollection` to document when we do, in fact, consider that the collection is subject to change.
-
-
-In return for accepting a largely theoretical risk, we, and Kotlin, reaped the rewards of very simple and efficient interoperation with Java.
+We suspect that the answer is: because the Kotlin designers, like your authors, had adopted the convention described in <<java-collections>> in their own practice.
+If you treat any collection received as a parameter, returned as a result, or otherwise shared between code, as immutable, then having mutable collections extend non-mutable collections turns out to be quite safe.
+Admitedly _quite_ in the sense of _mainly_ rather than _completely_, but the benefits outweigh the costs.
+The Kotlin collections make this scheme even more powerful.
+In Java, we have the situation where we can in theory mutate any collections, so the type system doesn't tell us when this is safe or otherwise.
+In Kotlin, if we declare all normal references as the non-mutable versions, we can use ++MutableCollection++s to document when we do, in fact, consider that the collection is subject to change.
+In return for accepting a largely theoretical risk, we reap the rewards of very simple and efficient interoperation with Java.
 Pragmatism is typical of the grain of Kotlin - in this case it might be expressed as "be as safe as is sensible, but no safer."
 
-
-
-We see this convention in action if we look into the Kotlin standard library.
+Recall that another way to express the convention is - our code should only mutate a collection that it has just created.
+We see this in action if we look into the Kotlin standard library.
 Here, for example, is (a streamlined version of) the definition of `map`:
 
 // begin-insert: src/main/kotlin/collections/collections.kt
@@ -351,8 +307,7 @@ inline fun <T, R> Iterable<T>.map(transform: (T) -> R): List<R> {
 Here we are able to build a list in place by mutation, and then return it as read-only.
 This is simple and efficient.
 Technically we _could_ downcast the result to `MutableList` and change the result, but we shouldn't.
-Instead, we should take the result type at face value - that way
-
+Instead, we should take the result type at face value - that way any code sharing this collection will not have to consider the complications the would arise if it were to change.
 
 === Migrating From Java to Kotlin Collections
 
