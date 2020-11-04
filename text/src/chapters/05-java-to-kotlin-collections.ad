@@ -29,7 +29,7 @@ Java 5 introduced generics, and cleverly retro-fitted them to the existing colle
 From the outset, developers were encouraged not to use raw collections, but rather to wrap the library objects in their own classes.
 So instead of passing around a `List<Journey>`, we would create a `Route` wrapper class.
 
-// begin-insert: tags/duncan-collections.1:src/main/java/travelator/Route.java
+// begin-insert: tags/java-to-kotlin-collections.0:src/main/java/travelator/Route.java
 [source,java]
 ----
 public class Route {
@@ -79,35 +79,35 @@ The problem is that the `List` interface has both read and write operations, the
 As we will keep on saying, mutation is the source of many of our problems with keeping software simple, as it allows state in one place to get out of date with respect to state in another.
 We might start with this:
 
-// begin-insert: tags/duncan-collections.1:src/main/java/travelator/UsingRoutes.java#before
+// begin-insert: tags/java-to-kotlin-collections.0:src/main/java/travelator/UsingRoutes.java#before
 [source,java]
 ----
 List<Journey> route = loadJourneys();
-Location start = Routes.getDepartsFrom(route);
-Journey shortestJourney = shortestJourneyIn(route);
-var score = someComplicatedCalculation(shortestJourney, start);
+Location start = getDepartsFrom(route);
+Journey longestJourney = longestJourneyIn(route);
+var score = sufferScore(longestJourney, start);
 ----
 // end-insert
 
 Let's inline `start`:
 
-// begin-insert: tags/duncan-collections.1:src/main/java/travelator/UsingRoutes.java#after
+// begin-insert: tags/java-to-kotlin-collections.0:src/main/java/travelator/UsingRoutes.java#after
 [source,java]
 ----
 List<Journey> route = loadJourneys();
-Journey shortestJourney = shortestJourneyIn(route);
-var score = someComplicatedCalculation(shortestJourney, Routes.getDepartsFrom(route));
+Journey longestJourney = longestJourneyIn(route);
+var score = sufferScore(longestJourney, getDepartsFrom(route));
 ----
 // end-insert
 
 All seems fine, but we keep getting bug reports that suggest that all is not well, even though our tests pass.
 Drilling down we find:
 
-// begin-insert: tags/duncan-collections.1:src/main/java/travelator/UsingRoutes.java#shortestJourneyIn
+// begin-insert: tags/java-to-kotlin-collections.0:src/main/java/travelator/UsingRoutes.java#longestJourneyIn
 [source,java]
 ----
-public static Journey shortestJourneyIn(List<Journey> journeys) {
-    journeys.sort(Comparator.comparing(Journey::getDuration));
+public static Journey longestJourneyIn(List<Journey> journeys) {
+    journeys.sort(comparing(Journey::getDuration).reversed());
     return journeys.get(0);
 }
 ----
