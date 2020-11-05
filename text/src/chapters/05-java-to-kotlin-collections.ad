@@ -29,18 +29,18 @@ Java 5 introduced generics, and cleverly retro-fitted them to the existing colle
 From the outset, developers were encouraged not to use raw collections, but rather to wrap the library objects in their own classes.
 So instead of passing around a `List<Journey>`, we would create a `Route` wrapper class.
 
-// begin-insert: tags/duncan-collections.0:src/main/java/travelator/Route.java
+// begin-insert: tags/duncan-collections.1:src/main/java/travelator/Route.java
 [source,java]
 ----
 public class Route {
-    private final Vector journeys = new Vector();
+    private final List<Journey> journeys = new ArrayList<>(); // <1>
 
     public int size() {
         return journeys.size();
     }
 
-    public Journey getJourneys(int index) {
-        return (Journey) journeys.elementAt(index);
+    public Journey getJourney(int index) {
+        return journeys.get(index); // <2>
     }
 
     public void addJourney(Journey journey) {
@@ -48,7 +48,7 @@ public class Route {
     }
 
     public Location getDepartsFrom() {
-        return getJourneys(0).getDepartsFrom();
+        return getJourney(0).getDepartsFrom();
     }
 }
 ----
@@ -105,6 +105,15 @@ public static int sufferScoreFor(List<Journey> route) {
 All seems fine, but we keep getting bug reports that suggest that all is not well, even though our tests pass.
 Drilling down we find:
 
+// begin-insert: tags/java-to-kotlin-collections.0:src/main/java/travelator/Routes.java#getDepartsFrom
+[source,java]
+----
+public static Location getDepartsFrom(List<Journey> route) {
+    return route.get(0).getDepartsFrom();
+}
+----
+// end-insert
+
 // begin-insert: tags/java-to-kotlin-collections.0:src/main/java/travelator/Suffering.java#longestJourneyIn
 [source,java]
 ----
@@ -135,13 +144,21 @@ In these cases we have to take a defensive copy of the original list if we are t
 If you think that all this second-guessing when the source or destination of collections are likely to modify them, and taking appropriate action, sounds a bit tedious, then you aren't alone.
 The problem applies to any mutable data, but mutating collections is particularly pernicious, because we often derive values (such as `departsFrom`) that can get out of date if we change the collection we extracted them from.
 Rather than taking defensive copies at every function boundary, many teams, your authors' included, adopted a simpler and more efficient strategy.
-This is to treat any collection shared between pieces of code _that we own_ as immutable, even if it had started life as mutable, and despite the mutation operations present in the Java interfaces.
-We might occasionally enforce this immutability by wrapping with `Collections.unmodifiableList(...)` etc, but in an aligned development team this is unnecessary because no-one would think to modify a collection just because the Java interface said that they could.
-Passing your collection to a library written by another team or organisation may be risky, as is receiving a collection that a source might retain a reference to and mutate later, but in practice we don't find many problems from these causes.
-When we do, we can wrap or copy on the boundary of our code as appropriate.
 
-Another way to state this policy is that our code should only mutate a collection that it has just created.
-Do not mutate a collection that you have received from another source, and arrange things so that you can rely on the fact that nothing else will.
+[[dont-mutate-shared-collections]]
+.Don't Mutate Shared Collections
+****
+Treat any collection shared between separate pieces of code as immutable.
+Sharing includes references received as a parameter, returned as a result, or assigned to a shared variable.
+This applies even if the collection started life as mutable, and despite the mutation operations present in the Java interfaces.
+
+As we've seen, code that we don't own may not respect this convention.
+In this case, we can use copies to insulate our code from these changes.
+****
+
+This strategy doesn't stop us from creating mutable collections and populating them within a function, but code should only change a collection that it has just created.
+As soon as we return a reference as a result we should treat it as immutable - create, don't mutate.
+We might occasionally enforce this immutability by wrapping with `Collections.unmodifiableList(...)` etc, but in an aligned development team this is unnecessary, because no code will treat the as mutable.
 
 There will of course be exceptions to the rule - places where, usually for reasons of efficiency, we want to share a collection as a mutable collection.
 In these cases we can get dispensation by naming (`accumulator` is a good start), and by limiting the scope of the sharing as much as possible.
@@ -283,7 +300,7 @@ Once we have a result we want to publish we need to call `.toString()`,
 and subsequent modifications to the `StringBuilder` will not affect previous results.
 Both Clojure and Scala adopt this builder approach for their mutable collections, why doesn't Kotlin?
 
-We suspect that the answer is: because the Kotlin designers, like your authors, had adopted the convention described in <<java-collections>> in their own practice.
+We suspect that the answer is: because the Kotlin designers, like your authors, had adopted the convention described in <<dont-mutate-shared-collections>>.
 If you treat any collection received as a parameter, returned as a result, or otherwise shared between code, as immutable, then having mutable collections extend non-mutable collections turns out to be quite safe.
 Admittedly _quite_ in the sense of _mainly_, rather than _completely_, but still the benefits outweigh the costs.
 The Kotlin collections make this scheme even more powerful.
@@ -318,7 +335,120 @@ Instead, we should take the result type at face value - that way any code sharin
 Because of the smooth interop between Java and Kotlin collections described above, converting code with collections is usually seamless, at least at the syntactic level.
 If our Java code relies on mutating collections, though, we may have to take extra care in order to avoid ending up breaking invariants in Kotlin.
 
-rExample will have
+A good approach is to refactor your Java code to the <<dont-mutate-shared-collections>> convention before converting to Kotlin.
+
+Let's have a look at the code from Travelator we saw earlier.
+
+// begin-insert: tags/java-to-kotlin-collections.2:src/main/java/travelator/Suffering.java#foo
+[source,java]
+----
+public static int sufferScoreFor(List<Journey> route) {
+    Location start = getDepartsFrom(route);
+    Journey longestJourney = longestJourneyIn(route);
+    return sufferScore(longestJourney, start);
+}
+
+private static Journey longestJourneyIn(List<Journey> journeys) {
+    journeys.sort(comparing(Journey::getDuration).reversed());
+    return journeys.get(0);
+}
+----
+// end-insert
+
+`longestJourneyIn` breaks the rule by mutating its parameter.
+This leads to our being unable to change the order that we evaluate `getDepartsFrom` and `longestJourneyIn`
+Before we can fix this, we have to be sure that no other code depends on this mutation.
+This can be hard, which is itself a good reason to not allow changing collections from the outset.
+If we have confidence in our tests we can try making the edit and seeing if anything breaks - otherwise we may have to add tests and/or reason with our code and dependency analysis.
+Let's decide that it's safe go ahead and make the change.
+
+At the time of writing your authors couldn't find any standard Java function to take a collection and return a sorted `List` from it.
+Curiously `List.sort(...)` actually creates a sorted version of itself and then mutates itself to match:
+
+[source,java]
+----
+@SuppressWarnings({"unchecked", "rawtypes"})
+default void sort(Comparator<? super E> c) {
+    Object[] a = this.toArray();
+    Arrays.sort(a, (Comparator) c);
+    ListIterator<E> i = this.listIterator();
+    for (Object e : a) {
+        i.next();
+        i.set((E) e);
+    }
+}
+----
+
+This just goes to show how mutable thinking was the grain of Java back in the Java 8 days when this was written.
+There is now `Stream.sorted(...)` but in our experience streams are rarely performant for small collections.
+Maybe we shouldn't care about performance, but we can't help ourselves.
+We justify our indulgence by reasoning that we know of several places in the code that currently sort in place, and so will have to be changed in order to not mutate shared collections.
+We and end up writing:
+
+// begin-insert: tags/java-to-kotlin-collections.3:src/main/java/travelator/Collections.java#sorted
+[source,java]
+----
+@SuppressWarnings("unchecked")
+public static <E> List<E> sorted(Collection<E> collection, Comparator<? super E> by) {
+    var result = (E[]) collection.toArray();
+    Arrays.sort(result, by);
+    return Arrays.asList(result);
+}
+----
+// end-insert
+
+Before we go on, it's worth considering how we can be confident that this code is correct.
+Because of mutation it's really quite hard.
+We have to be sure that `Arrays.sort` won't affect the input collection, which means checking the documentation for `Collection.toArray`.
+When we do, we find the magic words "The caller is thus free to modify the returned array," so that's OK, we've decoupled the input from the output.
+This function is a classic example of accepting mutation in the scope where we create a collection, but not outside - "create, don't mutate."
+
+While we're pulling this thread - what are we returning, and is it mutable?
+`Arrays.asList` returns an `ArrayList`, but not the standard one.
+This one is `private` inside `Arrays` and writes through to our `result`.
+Because it is backed by an array though, we cannot add or remove items - it isn't resizable.
+It turns out that Java collections aren't just mutable, non-mutable, or immutable, they are sometimes mutable provided that we don't change their structure!
+None of these distinctions are reflected in the type system, so it is possible to make type-preserving changes that break at runtime depending on which code path yields a collection that we subsequently try to modify.
+This is yet another reason to side-step the issue altogether and just never modify a shared collection.
+
+Anyhoo, returning to our refactoring, we can use our new `sorted` in `longestJourneyIn` in order (oops) to stop modifying the shared collection.
+
+// begin-insert: tags/java-to-kotlin-collections.3:src/main/java/travelator/Suffering.java#longestJourneyIn
+[source,java]
+----
+private static Journey longestJourneyIn(List<Journey> journeys) {
+    return sorted(journeys, comparing(Journey::getDuration).reversed())
+        .get(0);
+}
+----
+// end-insert
+
+Now `sufferScoreFor` won't be subject to the side effect in `longestJourneyIn` we can inline the local variables.
+
+// begin-insert: tags/java-to-kotlin-collections.4:src/main/java/travelator/Suffering.java#sufferScoreFor
+[source,java]
+----
+public static int sufferScoreFor(List<Journey> route) {
+    return sufferScore(
+        longestJourneyIn(route),
+        getDepartsFrom(route));
+}
+----
+// end-insert
+
+Inlining the local variables might not seem much of a payoff, but it's a small example of a bigger theme.
+In <<actions-to-calculations>> we'll look at how avoiding mutation allows us to safely refactor code in ways that just isn't possible otherwise.
+
+
+
+
+
+
+
+Hmmm, that's so pathologically mutating that it might have been written as an example in a book.
+
+
+Example will have
 A collection of List<Journey> that we want to change to display in score order.
 So we have a mutableList of List<Journey> that we load from somewhere, then call someComplicatedCalculation to order them in place.
 This mutates each List<Journey> because of the shortestJourneyIn (make longestJourneyIn and take last not first).
