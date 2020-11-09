@@ -84,8 +84,8 @@ We might start with this:
 ----
 public static int sufferScoreFor(List<Journey> route) {
     Location start = getDepartsFrom(route);
-    Journey longestJourney = longestJourneyIn(route);
-    return sufferScore(longestJourney, start);
+    var longestJourneys = longestJourneysIn(route, 3);
+    return sufferScore(longestJourneys, start);
 }
 ----
 // end-insert
@@ -96,8 +96,8 @@ Let's inline `start`:
 [source,java]
 ----
 public static int sufferScoreFor(List<Journey> route) {
-    Journey longestJourney = longestJourneyIn(route);
-    return sufferScore(longestJourney, getDepartsFrom(route));
+    List<Journey> longestJourneys = longestJourneysIn(route, 3);
+    return sufferScore(longestJourneys, getDepartsFrom(route));
 }
 ----
 // end-insert
@@ -114,12 +114,13 @@ public static Location getDepartsFrom(List<Journey> route) {
 ----
 // end-insert
 
-// begin-insert: tags/java-to-kotlin-collections.0:src/main/java/travelator/Suffering.java#longestJourneyIn
+// begin-insert: tags/java-to-kotlin-collections.0:src/main/java/travelator/Suffering.java#longestJourneysIn
 [source,java]
 ----
-private static Journey longestJourneyIn(List<Journey> journeys) {
+public static List<Journey> longestJourneysIn(List<Journey> journeys, int limit) {
     journeys.sort(comparing(Journey::getDuration).reversed());
-    return journeys.get(0);
+    var actualLimit = Math.min(journeys.size(), limit);
+    return journeys.subList(0, actualLimit);
 }
 ----
 // end-insert
@@ -185,7 +186,7 @@ So in `kotlin.collections`, `MutableList<String>` is a subtype of `List<String>`
 On the face of it this is a simple scheme.
 Mutable collections have the same operations as non-mutable collections, plus the mutation methods.
 It is safe to pass a `MutableList` as an argument to code that expects a `List`, because all the `List` methods will be present and can be invoked.
-In terms of the Liskov Substitution Principle, we can substitute a `MutableList` for a `List`, without affecting our program correctness.
+In terms of the https://en.wikipedia.org/wiki/Liskov_substitution_principle[Liskov Substitution Principle], we can substitute a `MutableList` for a `List`, without affecting our program correctness.
 
 A little compiler magic makes it so that Kotlin code can accept a `java.util.List` as either a `kotlin.collections.List`:
 
@@ -344,19 +345,20 @@ Let's have a look at the code from Travelator we saw earlier.
 ----
 public static int sufferScoreFor(List<Journey> route) {
     Location start = getDepartsFrom(route);
-    Journey longestJourney = longestJourneyIn(route);
-    return sufferScore(longestJourney, start);
+    List<Journey> longestJourneys = longestJourneysIn(route, 3);
+    return sufferScore(longestJourneys, start);
 }
 
-private static Journey longestJourneyIn(List<Journey> journeys) {
+public static List<Journey> longestJourneysIn(List<Journey> journeys, int limit) {
     journeys.sort(comparing(Journey::getDuration).reversed());
-    return journeys.get(0);
+    var actualLimit = Math.min(journeys.size(), limit);
+    return journeys.subList(0, actualLimit);
 }
 ----
 // end-insert
 
-`longestJourneyIn` breaks the rule by mutating its parameter.
-This leads to our being unable to change the order that we evaluate `getDepartsFrom` and `longestJourneyIn`
+`longestJourneysIn` breaks the rule by mutating its parameter.
+This leads to our being unable to change the order that we evaluate `getDepartsFrom` and `longestJourneysIn`
 Before we can fix this, we have to be sure that no other code depends on this mutation.
 This can be hard, which is itself a good reason to not allow changing collections from the outset.
 If we have confidence in our tests we can try making the edit and seeing if anything breaks - otherwise we may have to add tests and/or reason with our code and dependency analysis.
@@ -411,26 +413,27 @@ It turns out that Java collections aren't just mutable, non-mutable, or immutabl
 None of these distinctions are reflected in the type system, so it is possible to make type-preserving changes that break at runtime depending on which code path yields a collection that we subsequently try to modify.
 This is yet another reason to side-step the issue altogether and just never modify a shared collection.
 
-Anyhoo, returning to our refactoring, we can use our new `sorted` in `longestJourneyIn` in order (oops) to stop modifying the shared collection.
+Anyhoo, returning to our refactoring, we can use our new `sorted` in `longestJourneysIn` in order (oops) to stop modifying the shared collection.
 
-// begin-insert: tags/java-to-kotlin-collections.3:src/main/java/travelator/Suffering.java#longestJourneyIn
+// begin-insert: tags/java-to-kotlin-collections.3:src/main/java/travelator/Suffering.java#longestJourneysIn
 [source,java]
 ----
-private static Journey longestJourneyIn(List<Journey> journeys) {
+static List<Journey> longestJourneysIn(List<Journey> journeys, int limit) {
+    var actualLimit = Math.min(journeys.size(), limit);
     return sorted(journeys, comparing(Journey::getDuration).reversed())
-        .get(0);
+        .subList(0, actualLimit);
 }
 ----
 // end-insert
 
-Now `sufferScoreFor` won't be subject to the side effect in `longestJourneyIn` we can inline the local variables.
+Now `sufferScoreFor` won't be subject to the side effect in `longestJourneysIn` we can inline the local variables.
 
 // begin-insert: tags/java-to-kotlin-collections.4:src/main/java/travelator/Suffering.java#sufferScoreFor
 [source,java]
 ----
 public static int sufferScoreFor(List<Journey> route) {
     return sufferScore(
-        longestJourneyIn(route),
+        longestJourneysIn(route, 3),
         getDepartsFrom(route));
 }
 ----
@@ -441,8 +444,7 @@ In <<actions-to-calculations>> we'll look at how avoiding mutation allows us to 
 
 
 
-
-
+NOTES FROM HERE DOWN!
 
 
 Hmmm, that's so pathologically mutating that it might have been written as an example in a book.

@@ -482,11 +482,11 @@ Nor are there coding conventions to distinguish between constructing a new state
 
 NOTE: Although the Kotlin code for calling a function and instantiating a class look the same, they are implemented by different JVM bytecode.  A source-compatible change between a class and a function will not be binary-compatible.
 
-Where a class needs multiple factory functions, as does our Money class, they are usually defined as top level functions, not on the companion object of the class.
+Where a class needs multiple factory functions, as does our Money class, they are usually defined as top-level functions, not on the companion object of the class.
 IntelliJ does its bit to nudge one towards this style:
 it is much better at autosuggesting top-level functions than methods on a companion object.
 
-So, it would be more conventional if our Money class was created by expressions like `Money(...)` or, alternatively, like `moneyOf(...)`, than like `Money.of(...)`.
+So, it would be more conventional if we created Money instances with expressions like `Money(...)` or, alternatively, `moneyOf(...)`, rather than `Money.of(...)`.
 
 We've declared the Money constructor as private, so it looks like the easiest option would be to define top-level `moneyOf` functions in the same source file as the Money class.
 However, those `moneyOf` functions would have to call the Money class' constructor, making it invisible outside the class.

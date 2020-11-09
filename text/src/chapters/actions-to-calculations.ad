@@ -22,7 +22,7 @@ fun fullName(customer: Customer) = "${customer.givenName} ${customer.familyName}
 ----
 
 is a calculation, as it will always return the same value when supplied the same `Customer`.
-This is true only if `Customer` is immutable.footnote:[or at least `givenName` and `secondName` are immutable]
+This is true only if `Customer` is immutable (or at least `givenName` and `familyName` cannot change).
 To keep things simple, we'll say that calculations can only have value (as defined in <<beans-to-values>>) parameters.
 
 Methods, and the disguised methods that are member-properties, can also be calculations:
@@ -55,7 +55,7 @@ can also be a calculation if the data it depends on is a value.
 .Computed Property or Function?
 ****
 You may have wondered when to define a computed property and when to have a function that returns a value.
-Computed properties are really confusing if they can return different values at different types, at least when defined on values types.
+Computed properties are really confusing if they can return different values at different types, at least when defined on value types.
 And you'll discover that we consider that most of our types should be value types.
 So a good rule of thumb is only to use computed properties when they are calculations, and functions for any results that depend on side effects or mutable data.
 ****
@@ -138,7 +138,7 @@ Calculations on the other hand can be invoked at any time, with no consequences 
 If we are refactoring code and find that we don't need the result of a calculation, we can safely not invoke it.
 If it is an expensive calculation, we can safely cache its result; if it is not expensive, we can safely recalculate it on demand if that simplifies things.
 It is this feeling of safety that puts the smug smile on the faces of functional programmers.
-We'll, that and knowing that a monad is just a monoid in the category of endofunctors.
+Well, that and knowing that a monad is just a monoid in the category of endofunctors.
 
 .Procedural Code
 ****
@@ -254,7 +254,7 @@ public class InMemoryTrips implements Trips {
 ----
 // end-insert
 
-The thunking from `Set<Trip>` to `Optional<Trip>` seems to be because there is some business rule around only one booked active trip at any time that is not enforced in the persistence layer.
+The conversion from `Set<Trip>` to `Optional<Trip>` seems to be because there is some business rule around only one booked active trip at any time that is not enforced in the persistence layer.
 
 Until we got here, we have been relying on our knowledge of the meanings of words to establish that Java methods represent actions rather than calculations.
 Here finally we find a smoking gun.
@@ -321,8 +321,8 @@ public class TrackingTests {
 // end-insert
 
 In order to give predictable results we have had to use a fake clock, injected into `InMemoryTrips`.
-Having said that `clock.instant()` definitely depends on when we call it, in our tests it doesn't (at least not in the same way).
-The alternative would have been to have set up trips relative to the time that the tests are being run - you can do this, but things get ugly quickly.
+Having said that `clock.instant()` definitely depends on when we call it; in our tests it doesn't (at least not in the same way).
+The alternative would have been to have set up trips relative to the time that the tests are being run - you can do this, but things quickly get hard to reason with.
 
 .2015 was the End of Time
 ****
@@ -334,8 +334,8 @@ The solution was the refactoring that we are presenting here.
 ****
 
 Is having to inject a clock https://dhh.dk/2014/test-induced-design-damage.html[Test-Induced Design Damage]?
-In some ways it is.
-Dependency injection, and in particular mocks, have allowed us to solve testing problems that would otherwise have forced a rethink that might lead to a better design.
+In some ways it is, yes.
+Mocks have allowed us to solve testing problems, also allow us to avoid a rethink that might lead to a better design.
 
 ==== A Better Design
 
