@@ -346,7 +346,7 @@ Whilst this forces the caller to know the time, that isn't generally a problem.
 In fact this is a special case of the way that we refactor to avoid dependencies on other global variables - instead of calling out to read, pass the value into the function.
 
 Let's start the refactor by adding an (as yet unused) `Instant` parameter to the `Trips.currentTripsFor(customerId)` method.
-Before this was
+Before this was:
 
 // begin-insert: tags/effects.0:src/main/java/travelator/Trips.java#foo
 [source,java]
@@ -358,10 +358,12 @@ public interface Trips {
 ----
 // end-insert
 
-We use IntelliJ's _Change Signature_ refactoring to add the parameter, calling it `at`, and defaulting it to `Instant.now()` on the assumption that shouldn't break any code.
-Running the tests shows that we are right.
+We use IntelliJ's _Change Signature_ refactoring to add the parameter, calling it `at`.
+When we add a parameter we need to tell IntelliJ what value it should add when updating the callers of our function.
+As we aren't using the value in the method yet, we should be able to use `null` without breaking anything.
+Running the tests shows that we are right - they still pass.
 
-`Trips` now looks like this
+`Trips` now looks like this:
 
 // begin-insert: tags/effects.2:src/main/java/travelator/Trips.java#foo
 [source,java]
@@ -373,7 +375,7 @@ public interface Trips {
 ----
 // end-insert
 
-and here is a call
+Here is the method being called:
 
 // begin-insert: tags/effects.2:src/main/java/travelator/Tracking.java#foo
 [source,java]
@@ -383,7 +385,7 @@ class Tracking implements ITrackTrips {
 
     @Override
     public Optional<Trip> currentTripFor(String customerId) {
-        var candidates = trips.currentTripsFor(customerId, Instant.now()) // <1>
+        var candidates = trips.currentTripsFor(customerId, null) // <1>
             .stream()
             .filter((trip) -> trip.getBookingStatus() == BOOKED)
             .collect(toList());
@@ -399,11 +401,11 @@ class Tracking implements ITrackTrips {
 }
 ----
 // end-insert
-<1> New parameter
 
-Note that we can only pull this trick because `Instant.now()`, while an action, has no side effects that will affect any other part of our program.
+<1> IntelliJ uses `null` as the argument value.
 
-That `now()` is not really helping us in `Tracking`, so lets pull it out as a parameter, supplied by the caller again, in this case `CurrentTripsHandler`.
+Remember that aren't using the value of the time in our implementations of `Trips` yet, just trying to supply it on the outside of our system in order to convert as much code as possible to calculations.
+So we again add it as a parameter, this time to `Tracking.currentTripFor`:
 
 // begin-insert: tags/effects.3:src/main/java/travelator/Tracking.java#foo
 [source,java]
@@ -429,7 +431,10 @@ class Tracking implements ITrackTrips {
 }
 ----
 // end-insert
-<1> Now a parameter
+
+<1> Our new `Instant` parameter.
+
+This is called in production code from `CurrentTripsHandler`:
 
 // begin-insert: tags/effects.3:src/main/java/travelator/handlers/CurrentTripsHandler.java#foo
 [source,java]
@@ -442,7 +447,7 @@ public class CurrentTripsHandler {
                 .findFirst();
             if (customerId.isEmpty())
                 return new Response(HTTP_BAD_REQUEST);
-            var currentTrip = tracking.currentTripFor(customerId.get(), Instant.now()); // <1>
+            var currentTrip = tracking.currentTripFor(customerId.get(), null); // <1>
             return currentTrip.isPresent() ?
                 new Response(HTTP_OK, objectMapper.writeValueAsString(currentTrip)) :
                 new Response(HTTP_NOT_FOUND);
@@ -453,11 +458,52 @@ public class CurrentTripsHandler {
 }
 ----
 // end-insert
-<1> Supplying the time.
+
+<1> `null` argument value.
+
+It is also called from `TrackingTests`:
+
+// begin-insert: tags/effects.3:src/test/java/travelator/TrackingTests.java#foo
+[source,java]
+----
+public class TrackingTests {
+
+    final StoppedClock clock = new StoppedClock();
+
+    final InMemoryTrips trips = new InMemoryTrips(clock);
+    final Tracking tracking = new Tracking(trips);
+
+    @Test
+    public void returns_empty_when_no_trip_planned_to_happen_now() {
+        clock.now = anInstant();
+        assertEquals(
+            Optional.empty(),
+            tracking.currentTripFor("cust1", null) // <1>
+        );
+    }
+
+    @Test
+    public void returns_single_active_booked_trip() {
+        var diwaliTrip = givenATrip("cust1", "Diwali", "2020-11-13", "2020-11-15", BOOKED);
+        givenATrip("cust1", "Christmas", "2020-12-24", "2020-11-26", BOOKED);
+
+        clock.now = diwaliTrip.getPlannedStartTime().toInstant();
+        assertEquals(
+            Optional.of(diwaliTrip),
+            tracking.currentTripFor("cust1", null) // <1>
+        );
+    }
+
+    ...
+}
+----
+// end-insert
+
+<1> New arguments are `null`.
 
 At this point we still haven't changed the behaviour of our code, but neither are we using the time now passed down from our handler.
 Let's do that in `InMemoryTrips`, where we started.
-We did have
+We did have:
 
 // begin-insert: tags/effects.3:src/test/java/travelator/InMemoryTrips.java#foo
 [source,java]
@@ -476,7 +522,8 @@ public class InMemoryTrips implements Trips {
 ----
 // end-insert
 
-and now
+Now we have the time as a parameter, we can use that rather than asking the `clock`:
+
 // begin-insert: tags/effects.4:src/test/java/travelator/InMemoryTrips.java#foo
 [source,java]
 ----
@@ -493,46 +540,39 @@ public class InMemoryTrips implements Trips {
 ----
 // end-insert
 
-Now that we aren't asking the clock for the time the tests that use `InMemoryTrips` will fail, because the method is now using the value of the parameter, and the tests are not supplying the right value.
+This causes the tests that use `InMemoryTrips` to fail with ++NullPointerException++s, because the method is now using the value of the parameter, and the tests are passing `null`.
 
-// begin-insert: tags/effects.3:src/test/java/travelator/TrackingTests.java#foo
+
+// begin-insert: tags/effects.4:src/test/java/travelator/TrackingTests.java#foo
 [source,java]
 ----
-public class TrackingTests {
+@Test
+public void returns_empty_when_no_trip_planned_to_happen_now() {
+    clock.now = anInstant();
+    assertEquals(
+        Optional.empty(),
+        tracking.currentTripFor("cust1", null) // <1>
+    );
+}
 
-    final StoppedClock clock = new StoppedClock();
+@Test
+public void returns_single_active_booked_trip() {
+    var diwaliTrip = givenATrip("cust1", "Diwali", "2020-11-13", "2020-11-15", BOOKED);
+    givenATrip("cust1", "Christmas", "2020-12-24", "2020-11-26", BOOKED);
 
-    final InMemoryTrips trips = new InMemoryTrips(clock);
-    final Tracking tracking = new Tracking(trips);
-
-    @Test
-    public void returns_empty_when_no_trip_planned_to_happen_now() {
-        clock.now = anInstant();
-        assertEquals(
-            Optional.empty(),
-            tracking.currentTripFor("cust1", Instant.now()) // <1>
-        );
-    }
-
-    @Test
-    public void returns_single_active_booked_trip() {
-        var diwaliTrip = givenATrip("cust1", "Diwali", "2020-11-13", "2020-11-15", BOOKED);
-        givenATrip("cust1", "Christmas", "2020-12-24", "2020-11-26", BOOKED);
-
-        clock.now = diwaliTrip.getPlannedStartTime().toInstant();
-        assertEquals(
-            Optional.of(diwaliTrip),
-            tracking.currentTripFor("cust1", Instant.now()) // <1>
-        );
-    }
-
-    ...
+    clock.now = diwaliTrip.getPlannedStartTime().toInstant();
+    assertEquals(
+        Optional.of(diwaliTrip),
+        tracking.currentTripFor("cust1", null) // <1>
+    );
 }
 ----
 // end-insert
-<1> These need to be the value we were setting into the `StoppedClock`.
 
-A cunning refactor (kudos to Jordan Stewart) is to replace all the `Instant.now()` calls with `clock.now`
+<1> These `nulls` are now being dereferenced inside `InMemoryTrips`.
+
+Instead of `null`, we need to pass the value that the tests were setting into the `clock`.
+A cunning refactor (suggested by Jordan Stewart) is to replace the ++null++s with `clock.now`:
 
 // begin-insert: tags/effects.5:src/test/java/travelator/TrackingTests.java#foo
 [source,java]
@@ -628,13 +668,12 @@ public class TrackingTests {
 ==== End Game
 
 We're nearly almost done now (refactoring is never completely done).
-Now that neither of our `currentTripFor` methods fetch the time, leaving that to the handler,
-tests for the handler may well require us to control _now_.
+Now neither of our `currentTripFor` methods fetch the time, leaving that to the handler, tests for the handler may well require us to control _now_.
 So we'll probably inject the clock into `CurrentTripHandler` rather than call the raw `Instant.now()`.
 Oh, and we haven't converted the code to Kotlin!
 
 This last observation is quite significant.
-This way of thinking about values, calculations and actions is not exclusive to Kotlin.
+This way of thinking about calculations and actions is not exclusive to Kotlin.
 It is certainly possible to make the distinction in any language, and the grain of Java is becoming more functional with time.
 We find though that Kotlin's more natural support for immutable data and other functional constructs means that the costs of making the distinction are lower, and so the cost/benefit ratio looks more favourable.
 It's also worth observing that a lot of the refactoring steps taken in this chapter (and others) are safe because we are moving around the invocation of calculations and not actions.
@@ -670,11 +709,11 @@ If `tripsFor` is an action, then anything that calls it is an action, including 
 The same will obviously be true of the production version of `Trips` that reads and writes to the database.
 After all this work, we haven't actually promoted our action to a calculation after all!
 
-Should we be downhearted⸮ - probably not.
+Should we be downhearted? - probably not.
 Actions are graduated, they can be more or less susceptible to time.
 In this case, unless other code _in this interaction_ is also going to fetch the trips for a customer and find an inconsistency, we can treat `Trips` as effectively immutable, and so `tripsFor`, and by extension `currentTripsFor`, are effectively calculations.
 In this respect our `InMemoryTrips` is less safe than our database implementation, because if accessed on multiple threads it can mutate the collection returned by `tripsFor`, leading to potential `ConcurrentModificationExceptions` in the `filter` implementation.
-Categorising our code into values, calculations and actions has helped us see these issues, and given us a framework for deciding if they are important in context.
+Categorising our code into calculations and actions has helped us see these issues, and given us a framework for deciding if they are important in context.
 
 Lastly, it is worth noting that one place in which Kotlin makes this categorisation easier is in its default use of immutable data.
 When you see `List` in Java you have to find the places in which it is created or referenced in order to establish its mutability, and hence the likelihood that code accessing it can be an action.
