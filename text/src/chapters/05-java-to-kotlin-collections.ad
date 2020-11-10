@@ -338,6 +338,8 @@ If our Java code relies on mutating collections, though, we may have to take ext
 
 A good approach is to refactor your Java code to the <<dont-mutate-shared-collections>> convention before converting to Kotlin.
 
+==== Fixup the Java
+
 Let's have a look at the code from Travelator we saw earlier.
 
 // begin-insert: tags/java-to-kotlin-collections.2:src/main/java/travelator/Suffering.java#foo
@@ -442,23 +444,220 @@ public static int sufferScoreFor(List<Journey> route) {
 Inlining the local variables might not seem much of a payoff, but it's a small example of a bigger theme.
 In <<actions-to-calculations>> we'll look at how avoiding mutation allows us to safely refactor code in ways that just isn't possible otherwise.
 
+Stepping out to look at the callers of `sufferScoreFor` we find:
 
+// begin-insert: tags/java-to-kotlin-collections.4:src/main/java/travelator/Suffering.java#routesToShowFor
+[source,java]
+----
+public static List<List<Journey>> routesToShowFor(String itineraryId) {
+    var routes = loadRoutes(itineraryId);
+    removeUnbearableRoutes(routes);
+    return routes;
+}
 
-NOTES FROM HERE DOWN!
+private static void removeUnbearableRoutes(List<List<Journey>> routes) {
+    routes.removeIf(route -> sufferScoreFor(route) > 10);
+}
+----
+// end-insert
 
+Hmmm, that's so pathologically mutating that it might have been written as an example in a book!
+At least `removeUnbearableRoutes` is signalling that it must mutate something by returning `void`.
+We can take baby steps by changing that first and using the result - a case of making something worse before making it better:
 
-Hmmm, that's so pathologically mutating that it might have been written as an example in a book.
+// begin-insert: tags/java-to-kotlin-collections.5:src/main/java/travelator/Suffering.java#routesToShowFor
+[source,java]
+----
+public static List<List<Journey>> routesToShowFor(String itineraryId) {
+    var routes = loadRoutes(itineraryId);
+    routes = removeUnbearableRoutes(routes);
+    return routes;
+}
 
+private static List<List<Journey>> removeUnbearableRoutes(List<List<Journey>> routes) {
+    routes.removeIf(route -> sufferScoreFor(route) > 10);
+    return routes;
+}
+----
+// end-insert
 
-Example will have
-A collection of List<Journey> that we want to change to display in score order.
-So we have a mutableList of List<Journey> that we load from somewhere, then call someComplicatedCalculation to order them in place.
-This mutates each List<Journey> because of the shortestJourneyIn (make longestJourneyIn and take last not first).
+This time we will use streams and `filter` to replace the mutation:
 
-Remove all visible mutation
+// begin-insert: tags/java-to-kotlin-collections.6:src/main/java/travelator/Suffering.java#routesToShowFor
+[source,java]
+----
+public static List<List<Journey>> routesToShowFor(String itineraryId) {
+    var routes = loadRoutes(itineraryId);
+    routes = bearable(routes);
+    return routes;
+}
 
+private static List<List<Journey>> bearable(List<List<Journey>> routes) {
+    return routes.stream()
+        .filter(route -> sufferScoreFor(route) <= 10)
+        .collect(toUnmodifiableList());
+}
+----
+// end-insert
 
-TODO
+Note how it is now easier to find a nice short name for our function - `removeUnbearableRoutes` becomes `bearable`.
+If you have functional leanings you might also be baulking at the reassignment to `routes` in `routesToShowFor`.
+That's deliberate, but only to allow us to draw parallels with the refactor in <<beans-to-values>>.
+There we changed mutating-some-data-in-place to replacing-the-reference-with-a-mutated-value, and that is what we have done here too.
+Of course, we don't need the local at all really, so let's get rid of it, inline twice does it nicely:
+
+// begin-insert: tags/java-to-kotlin-collections.7:src/main/java/travelator/Suffering.java#routesToShowFor
+[source,java]
+----
+public static List<List<Journey>> routesToShowFor(String itineraryId) {
+    return bearable(loadRoutes(itineraryId));
+}
+
+private static List<List<Journey>> bearable(List<List<Journey>> routes) {
+    return routes.stream()
+        .filter(route -> sufferScoreFor(route) <= 10)
+        .collect(toUnmodifiableList());
+}
+----
+// end-insert
+
+==== Convert to Kotlin
+
+Now we've removed all the mutation from our Java collections, it's time to convert to Kotlin.
+Unfortunately, the converter can get confused when it tries to infer the nullability of collections, and their generic types.
+In order to get the following we had to remove ++?++s from some hairy types like `List<List<Journey?>>?`
+
+// begin-insert: tags/java-to-kotlin-collections.8:src/main/java/travelator/Suffering.kt#foo
+[source,kotlin]
+----
+object Suffering {
+    @JvmStatic
+    fun sufferScoreFor(route: List<Journey>): Int {
+        return sufferScore(
+            longestJourneysIn(route, 3),
+            Routes.getDepartsFrom(route)
+        )
+    }
+
+    @JvmStatic
+    fun longestJourneysIn(journeys: List<Journey>, limit: Int): List<Journey> {
+        val actualLimit = Math.min(journeys.size, limit)
+        return Collections.sorted(journeys, Comparator.comparing { obj: Journey -> obj.duration }
+            .reversed())
+            .subList(0, actualLimit)
+    }
+
+    @JvmStatic
+    fun routesToShowFor(itineraryId: String): List<List<Journey>> {
+        return bearable(loadRoutes(itineraryId))
+    }
+
+    private fun bearable(routes: List<List<Journey>>): List<List<Journey>> {
+        return routes.stream()
+            .filter { route: List<Journey> -> sufferScoreFor(route) <= 10 }
+            .collect(Collectors.toUnmodifiableList())
+    }
+
+    ...
+}
+----
+// end-insert
+
+On the plus side, Java code calling our Kotlin hasn't had to change - here is a test passing a plain Java `List` to the Kotlin `longestJourneyIn`.
+
+// begin-insert: tags/java-to-kotlin-collections.8:src/test/java/travelator/LongestJourneyInTests.java#foo
+[source,java]
+----
+@Test public void returns_limit_results() {
+    assertEquals(
+        List.of(longJourney, mediumJourney),
+        longestJourneysIn(List.of(shortJourney, mediumJourney, longJourney), 2)
+    );
+}
+----
+// end-insert
+
+Returning to the Kotlin, we can tidy up quite a bit.
+`sort...` and `take` extension functions on `Iterable` let us simplify `longestJourneysIn` dramatically.
+
+// begin-insert: tags/java-to-kotlin-collections.9:src/main/java/travelator/Suffering.kt#longestJourneysIn
+[source,kotlin]
+----
+@JvmStatic
+fun longestJourneysIn(journeys: List<Journey>, limit: Int): List<Journey> =
+    journeys.sortedByDescending { it.duration }.take(limit)
+----
+// end-insert
+
+Now converting to an extension function <<functions-to-extension-functions>> allows us to simplify the name.
+Java code is still able to call this as a static method.
+
+// begin-insert: tags/java-to-kotlin-collections.10:src/main/java/travelator/Suffering.kt#longestJourneysIn
+[source,kotlin]
+----
+@JvmStatic
+fun List<Journey>.longestJourneys(limit: Int): List<Journey> =
+    sortedByDescending { it.duration }.take(limit)
+----
+// end-insert
+
+In `bearable` we can convert the `Stream` to Kotlin by removing the call to `.stream()` and the terminal operation - Kotlin `filter` returns a `List` directly.
+
+// begin-insert: tags/java-to-kotlin-collections.11:src/main/java/travelator/Suffering.kt#bearable
+[source,kotlin]
+----
+private fun bearable(routes: List<List<Journey>>): List<List<Journey>> = routes
+    .filter { sufferScoreFor(it) <= 10 }
+----
+// end-insert
+
+Interestingly this is a place where the result is potentially more mutable than our Java was.
+In Java, we were collecting with `Collectors.toUnmodifiableList()`.
+Kotlin `filter` declares its return type as `List`, but the actual type is the mutable `ArrayList`.
+Provided we never down-cast this shouldn't be an issue, especially as we are now treating our shared collections as immutable even in Java.
+
+Finally, we can make things read more nicely with a typealias to name `List<Journey>` as `Route`, and a cheek local extension property to allow us to write `route.departsFrom`.
+
+// begin-insert: tags/java-to-kotlin-collections.12:src/main/java/travelator/Suffering.kt#foo
+[source,kotlin]
+----
+typealias Route = List<Journey>
+
+object Suffering {
+    @JvmStatic
+    fun sufferScoreFor(route: Route): Int =
+        sufferScore(
+            route.longestJourneys(3),
+            route.departsFrom // <1>
+        )
+
+    @JvmStatic
+    fun Route.longestJourneys(limit: Int): Route =
+        sortedByDescending { it.duration }.take(limit)
+
+    @JvmStatic
+    fun routesToShowFor(itineraryId: String): List<Route> {
+        return bearable(loadRoutes(itineraryId))
+    }
+
+    private fun bearable(routes: List<Route>): List<Route> =
+        routes.filter { sufferScoreFor(it) <= 10 }
+
+    private val Route.departsFrom: Location get() = Routes.getDepartsFrom(this) // <2>
+
+    ...
+}
+----
+// end-insert
+
+<1> `List<Journey>` doesn't have `departsFrom`,
+<2> but we can pretend with a local extension property.
+
+=== Conclusions
+
+Java at one time favoured programming with mutability.
+That has fallen out of favour, but more by convention than enforcement.
+Kotlin has taken a very pragmatic approach to mutability in its collections, giving smooth operation and a simple programming model, but only where your Java conventions align with its approach.
 
 * Beware that Java can mutate a collection that it has passed to Kotlin
 * Beware that Java can (at least try to) mutate a collection that is has received from Kotlin.
@@ -468,14 +667,4 @@ TODO
 * As more and more of your code is Kotlin you can begin to forget the distinction between read-only and immutable - just always pass immutable and never retain mutable.
 * Stay in Kotlin immutable land whenever you can, but if you need efficiency, don't be afraid to create a mutable collection and return it as immutable.
 
-Gotchas
-
-* Java collections say they are mutable, but are often immutable, Kotlin vv
-* Kotlin exposing its mutability to Java
-
-=== Conclusions
-
-Java at one time favoured programming with mutability.
-That has fallen out of favour, but more by convention than enforcement.
-Kotlin has taken a very pragmatic approach to mutability in its collections, giving smooth operation and an simple programming model, but only where your Java conventions align with its approach.
 
