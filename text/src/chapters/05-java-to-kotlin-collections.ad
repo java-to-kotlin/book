@@ -4,6 +4,9 @@
 On the face of it, Java and Kotlin have very similar collections libraries: they certainly interoperate suspiciously seamlessly.
 What are the differences, what motivates them, and where do we have to take care as we move from Java to Kotlin collections?
 
+[[java-collections]]
+=== Java Collections
+
 In <<beans-to-values>>, we discussed how Java grew up in the days when we saw objects as fundamentally stateful and mutable.
 This was particularly true for collections - I mean, what is the point of a list if you can't add to it?
 We build collections by creating an empty one and adding to it.
@@ -11,9 +14,6 @@ Need to remove an item from a shopping cart? - mutate the list.
 Shuffle a pack of cards? - obviously that changes the order of the deck.
 We wouldn't create a new paper To-Do list every time we need milk or take the cat to the vet -
 mutable collections mirror our real world experience.
-
-[[java-collections]]
-=== Java Collections
 
 On its release, the quality of its built-in collections was a good reason to adopt Java.
 In those days many languages had no resizable collections in their standard library.
@@ -23,77 +23,32 @@ Which is to say, we created them and then mutated them.
 There was no choice, as all the constructors created empty collections.
 
 Java 2 (which was version 1.2 until Java had to compete with C# version numbers) introduced a revised collections library.
-This tidied up the ad-hoc `Vector`, `Stack` and `Hashtable`, extracting a common `Collection` interface with more useful subclasses including `HashSet`.
+This tidied up the ad-hoc `Vector`, `Stack` and `Hashtable` classes, creating a common `Collection` interface with more useful subclasses including `HashSet`.
 It was now possible to create a collection as a copy of another collection.
-Java 5 introduced generics, and cleverly retro-fitted them to the existing collections.
+The static `Collections` class provided some helpful utility operations like `sort` and `reverse`.
+Java 5 introduced generics, and cleverly retro-fitted them to the existing collections, so that now we can declare types like `List<Journey>`.
 
-From the outset, we learned not to use raw collections, but rather to wrap the library objects in our own classes.
-So instead of passing around a `List<Journey>`, we would create a `Route` wrapper class.
-
-// begin-insert: tags/duncan-collections.1:src/main/java/travelator/Route.java
-[source,java]
-----
-public class Route {
-    private final List<Journey> journeys = new ArrayList<>(); // <1>
-
-    public int size() {
-        return journeys.size();
-    }
-
-    public Journey getJourney(int index) {
-        return journeys.get(index); // <2>
-    }
-
-    public void addJourney(Journey journey) {
-        journeys.add(journey);
-    }
-
-    public Location getDepartsFrom() {
-        return getJourney(0).getDepartsFrom();
-    }
-}
-----
-// end-insert
-
-<1> The diamond `<>` was only added by Java 7.
-<2> Generics mean that we don't have to cast the result of `get`.
-
-Until Java 5 and the introduction of generics we needed this wrapper class to enforce type safety.
-It prevented the adding of a `String`, for example, to a `List` that should only hold ++Journey++s, and down-cast the `Object` held in the collection on retrieval.
-Generics make collections type-safe with no extra work, so it is now possible to use a plain `List<Journey>` rather than defining a wrapper `Route`.
-We still tend to use wrappers though, why?
-
-In <<encapsulated-collections-to-typealiases>> we'll look at some other benefits of wrapper classes, but in this chapter we'll focus on one particular issue with unwrapped collections.
-The problem is that they are mutable, very mutable.
-`List<Journey>` exposes operations like `remove` and `replaceAll`, where, in our example, we only want to support appending ++Journey++s.
-Hiding the collection inside the wrapper means that we can add only the mutators we want.
-If we want an immutable `Route`, we can populate all the ++Journey++s in the constructor and not add any mutators at all.
-
-.Collections and Variance
-****
-If we have subclasses of Journey, using `List<Journey>` rather than a wrapper also becomes complicated because of issues of co- and contra-variance.
-
-We'll skip over the details here, but the net result of the design of Java generics is that _users_ of a collection have to decide whether to treat it as read-only or write-only.
-In the read-only case we can pass a `List<TrainJourney>` to a function expecting a `List<? extends Journey>`, but inside the function the list can only ever be read from.
-In the write-only case we can pass a `List<Journey>` to a function expecting `List<? super TrainJourney>`, which can only ever write to the list.
-The problem is that the `List` interface has both read and write operations, the compiler error messages are cryptic, and the poor user of the collections API is left to decide rather than the author of the API.
-****
+The Java collections remained though, mutable, very mutable.
+Not only are there operations to add and remove items, but also operations like sort are defined _only_ as mutations.
+There is no standard library function to return a sorted copy of a `List` for example.
 
 As we will keep on saying, mutation is the source of many of our problems with keeping software simple, as it allows state in one place to get out of sync with respect to state in another.
-We might start with this:
+For example, in Travelator we can represent a route as a `List` of ++Journey++s.
+There is also the concept of a suffer-score - the lower the suffer-score, the more pleasant a route is likely to be.
+We can derive a suffer-score for a route:
 
 // begin-insert: tags/java-to-kotlin-collections.0:src/main/java/travelator/Suffering.java#sufferScoreFor
 [source,java]
 ----
 public static int sufferScoreFor(List<Journey> route) {
     Location start = getDepartsFrom(route);
-    var longestJourneys = longestJourneysIn(route, 3);
+    List<Journey> longestJourneys = longestJourneysIn(route, 3);
     return sufferScore(longestJourneys, start);
 }
 ----
 // end-insert
 
-Then we decide to inline `start`:
+Now say we decide to inline `start`:
 
 // begin-insert: tags/java-to-kotlin-collections.1:src/main/java/travelator/Suffering.java#sufferScoreFor
 [source,java]
@@ -128,12 +83,12 @@ public static List<Journey> longestJourneysIn(List<Journey> journeys, int limit)
 ----
 // end-insert
 
-Ah, a developer was given a reference, called methods on its interface to solve a problem, and that turned out to break code somewhere else in the system!
+Ah, a developer called methods on a parameter (`journeys`) to solve a problem, and that turned out to break code somewhere else in the system!
 You only have to spend several hundred hours of your life debugging the problems caused by issues like this, to come to the conclusion that maybe immutable collections (actually immutable data full stop) might be a better default.
 For the JDK developers this point evidently came after the introduction of Java 2, and so we have forever been stuck with mutable collections interfaces.
 
-To be fair, while Java's collections are in-theory mutable, they have, over the years, become less and less so in practice.
-Since their introduction it had always been possible to wrap a collection with, for example, `Collections.unmodifiableList`.
+To be fair, while Java's collections are mutable in theory, they have, over the years, become less and less so in practice.
+Even at the start, it was possible to wrap a collection with, for example, `Collections.unmodifiableList`.
 The result is still a `List`: it still has all the mutation methods, but they all throw `UnsupportedOperationException`.
 We could have found out about the problem of `shortestJourneyIn` mutating our list by wrapping the result from `loadJourneys` in an `UnmodifiableList`.
 The tests of any code that combined the two would quickly fail, albeit only when run as opposed to when compiled.
@@ -145,7 +100,7 @@ It doesn't guarantee that it never changes, just that it cannot be modified thro
 In these cases we have to take a defensive copy of the original list if we are to be isolated from changes.
 `List.copyOf(collection)` was finally provided in Java 10 to copy an underlying collection as an `AbstractImmutableList`, which is neither modifiable nor subject to changes in the original collection.
 
-If you think that all this second-guessing when the source or destination of collections are likely to modify them, and taking appropriate action, sounds a bit tedious, then you aren't alone.
+If you think that all this second-guessing of when the source or destination of collections are likely to modify them, and taking appropriate action, sounds a bit tedious and error-prone, then you aren't alone.
 The problem applies to any mutable data, but mutating collections is particularly pernicious, because we often derive values (such as `departsFrom`) that can get out of date if we change the collection we extracted them from.
 Rather than taking defensive copies at every function boundary, many teams, your authors' included, adopted a simpler and more efficient strategy.
 
@@ -190,7 +145,7 @@ Mutable collections have the same operations as non-mutable collections, plus th
 It is safe to pass a `MutableList` as an argument to code that expects a `List`, because all the `List` methods will be present and can be invoked.
 In terms of the https://en.wikipedia.org/wiki/Liskov_substitution_principle[Liskov Substitution Principle], we can substitute a `MutableList` for a `List`, without affecting our program correctness.
 
-A little compiler magic allows Kotlin code to accept a `java.util.List` as either a `kotlin.collections.List`:
+A little compiler magic allows Kotlin code to accept a `java.util.List` a `kotlin.collections.List`:
 
 // begin-insert: src/test/java/collections/ListInteropTest.kt#immutable
 [source,kotlin]
@@ -200,7 +155,7 @@ aList.removeAt(1) // doesn't compile
 ----
 // end-insert
 
-or a `kotlin.collections.MutableList`:
+That magic also allows Kotlin to accept the Java `List` as a `kotlin.collections.MutableList`:
 
 // begin-insert: src/test/java/collections/ListInteropTest.kt#mutable
 [source,kotlin]
@@ -454,7 +409,7 @@ Stepping out to look at the callers of `sufferScoreFor` we find:
 [source,java]
 ----
 public static List<List<Journey>> routesToShowFor(String itineraryId) {
-    var routes = loadRoutes(itineraryId);
+    var routes = routesFor(itineraryId);
     removeUnbearableRoutes(routes);
     return routes;
 }
@@ -473,7 +428,7 @@ We can take baby steps by changing the function to return the parameter is it mu
 [source,java]
 ----
 public static List<List<Journey>> routesToShowFor(String itineraryId) {
-    var routes = loadRoutes(itineraryId);
+    var routes = routesFor(itineraryId);
     routes = removeUnbearableRoutes(routes);
     return routes;
 }
@@ -492,7 +447,7 @@ In passing, we can take the opportunity to rename it:
 [source,java]
 ----
 public static List<List<Journey>> routesToShowFor(String itineraryId) {
-    var routes = loadRoutes(itineraryId);
+    var routes = routesFor(itineraryId);
     routes = bearable(routes);
     return routes;
 }
@@ -516,7 +471,7 @@ Of course, we don't need the local variable at all really, so let's get rid of i
 [source,java]
 ----
 public static List<List<Journey>> routesToShowFor(String itineraryId) {
-    return bearable(loadRoutes(itineraryId));
+    return bearable(routesFor(itineraryId));
 }
 
 private static List<List<Journey>> bearable(List<List<Journey>> routes) {
@@ -530,10 +485,42 @@ private static List<List<Journey>> bearable(List<List<Journey>> routes) {
 ==== Convert to Kotlin
 
 Now we've removed all the mutation from our Java collections, it's time to convert to Kotlin.
+The static methods we've been looking at are in a class called `Suffering`.
+
+// begin-insert: tags/java-to-kotlin-collections.7:src/main/java/travelator/Suffering.java
+[source,java]
+----
+public class Suffering {
+
+    public static int sufferScoreFor(List<Journey> route) {
+        return sufferScore(
+            longestJourneysIn(route, 3),
+            getDepartsFrom(route));
+    }
+
+    static List<Journey> longestJourneysIn(List<Journey> journeys, int limit) {
+        var actualLimit = Math.min(journeys.size(), limit);
+        return sorted(journeys, comparing(Journey::getDuration).reversed())
+            .subList(0, actualLimit);
+    }
+
+    public static List<List<Journey>> routesToShowFor(String itineraryId) {
+        return bearable(routesFor(itineraryId));
+    }
+
+    private static List<List<Journey>> bearable(List<List<Journey>> routes) {
+        return routes.stream()
+            .filter(route -> sufferScoreFor(route) <= 10)
+            .collect(toUnmodifiableList());
+    }
+}
+----
+// end-insert
+
 Unfortunately, the converter can get confused when it tries to infer the nullability of collections and their generic types.
 After conversion, we had to remove ++?++s from some hairy types like `List<List<Journey?>>?` in order to have:
 
-// begin-insert: tags/java-to-kotlin-collections.8:src/main/java/travelator/Suffering.kt#foo
+// begin-insert: tags/java-to-kotlin-collections.8:src/main/java/travelator/Suffering.kt
 [source,kotlin]
 ----
 object Suffering {
@@ -555,7 +542,7 @@ object Suffering {
 
     @JvmStatic
     fun routesToShowFor(itineraryId: String): List<List<Journey>> {
-        return bearable(loadRoutes(itineraryId))
+        return bearable(routesFor(itineraryId))
     }
 
     private fun bearable(routes: List<List<Journey>>): List<List<Journey>> {
@@ -563,8 +550,6 @@ object Suffering {
             .filter { route: List<Journey> -> sufferScoreFor(route) <= 10 }
             .collect(Collectors.toUnmodifiableList())
     }
-
-    ...
 }
 ----
 // end-insert
@@ -583,8 +568,8 @@ On the plus side, the Java code calling our Kotlin hasn't had to change - here f
 ----
 // end-insert
 
-Returning to the Kotlin, we can tidy up quite a bit.
-`sort...` and `take` extension functions on `Iterable` let us simplify `longestJourneysIn` dramatically.
+Returning to the Kotlin, we can now take advantage of the many utilities available on Kotlin collections to simplify the code.
+The `sort...` and `take` extension functions on `Iterable` let us simplify `longestJourneysIn` dramatically.
 
 // begin-insert: tags/java-to-kotlin-collections.9:src/main/java/travelator/Suffering.kt#longestJourneysIn
 [source,kotlin]
@@ -595,7 +580,7 @@ fun longestJourneysIn(journeys: List<Journey>, limit: Int): List<Journey> =
 ----
 // end-insert
 
-Now if we convert this to an extension function <<functions-to-extension-functions>> we can simplify the name.
+Now if we convert this to an extension function as seen in <<functions-to-extension-functions>> we can simplify the name.
 Java code is still able to call this as a static method.
 
 // begin-insert: tags/java-to-kotlin-collections.10:src/main/java/travelator/Suffering.kt#longestJourneysIn
@@ -607,7 +592,7 @@ fun List<Journey>.longestJourneys(limit: Int): List<Journey> =
 ----
 // end-insert
 
-In `bearable` we can convert the `Stream` to Kotlin by removing the call to `.stream()` and the terminal operation - Kotlin `filter` returns a `List` directly.
+In `bearable`, we can convert the `Stream` to Kotlin by removing the call to `.stream()` and the terminal operation - Kotlin `filter` returns a `List` directly.
 
 // begin-insert: tags/java-to-kotlin-collections.11:src/main/java/travelator/Suffering.kt#bearable
 [source,kotlin]
@@ -622,9 +607,9 @@ In Java, we were collecting with `Collectors.toUnmodifiableList()`.
 Kotlin `filter` declares its return type as `List`, but the actual runtime type is the mutable `ArrayList`.
 Provided we never down-cast this shouldn't be an issue, especially as we are now treating our shared collections as immutable even in Java.
 
-Finally, we can make things read more nicely with a typealias to name `List<Journey>` as `Route`, and a cheeky local extension property allows us to pretend that `Route` has a `departsFrom` property.
+Finally, we can make things read more nicely with a type alias to name `List<Journey>` as `Route`, and a cheeky local extension property allows us to pretend that `Route` has a `departsFrom` property.
 
-// begin-insert: tags/java-to-kotlin-collections.12:src/main/java/travelator/Suffering.kt#foo
+// begin-insert: tags/java-to-kotlin-collections.12:src/main/java/travelator/Suffering.kt
 [source,kotlin]
 ----
 typealias Route = List<Journey>
@@ -643,21 +628,21 @@ object Suffering {
 
     @JvmStatic
     fun routesToShowFor(itineraryId: String): List<Route> {
-        return bearable(loadRoutes(itineraryId))
+        return bearable(routesFor(itineraryId))
     }
 
     private fun bearable(routes: List<Route>): List<Route> =
         routes.filter { sufferScoreFor(it) <= 10 }
 
     private val Route.departsFrom: Location get() = Routes.getDepartsFrom(this) // <2>
-
-    ...
 }
 ----
 // end-insert
 
 <1> `List<Journey>` doesn't have `departsFrom`,
 <2> but we can pretend with a local extension property.
+
+We discuss type aliases and extension functions and properties in more detail in <<encapsulated-collections-to-typealiases>>.
 
 === Conclusions
 
