@@ -1,15 +1,232 @@
 [[java-to-kotlin-classes]]
 == Java To Kotlin Classes
 
-Introductory material on
+The class is the basic unit of code organisation in Java.
+How do we convert our Java classes to Kotlin, and what differences will we see when we have?
 
-* How to convert Java to Kotlin
-* The format of Kotlin classes
-* Basic Java and Kotlin interop
+=== Converting Java Classes to Kotlin
 
-=== Migrating Java Classes to Kotlin
+Many chapters in this book will start with some history or philosophy (if you're very lucky both), but here we're just going to launch straight into converting a simple entity class from Java to Kotlin.
+
+Travelator doesn't keep much potentially sensitive information about its customers.
+This is our `Customer` class:
+
+// begin-insert: tags/java-to-kotlin-classes.0:src/main/java/travelator/Customer.java
+[source,java]
+----
+public class Customer {
+    private final String id; // <1>
+    private final String name;
+    private final String email;
+
+    // <2>
+    public Customer(String id, String name, String email) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+    }
+
+    public String getId() { // <3>
+        return id;
+    }
+
+    public String getName() { // <3>
+        return name;
+    }
+
+    public String getEmail() { // <3>
+        return email;
+    }
+
+    @Override
+    public boolean equals(Object o) { // <4>
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Customer customer = (Customer) o;
+        return id.equals(customer.id) &&
+            name.equals(customer.name) &&
+            email.equals(customer.email);
+    }
+
+    @Override
+    public int hashCode() { // <4>
+        return Objects.hash(id, name, email);
+    }
+
+    @Override
+    public String toString() { // <5>
+        return "Customer{" +
+            "id='" + id + '\'' +
+            ", name='" + name + '\'' +
+            ", email='" + email + '\'' +
+            '}';
+    }
+}
+----
+// end-insert
+
+This class is very simple -- it does nothing more than group related data and provides no operations of its own.
+Even so, the class involves a lot of code:
+
+<1> Values are immutable, so the class declares its fields as final.
+<2> It must define a constructor to initialise those fields
+<3> The accessor methods of its properties follow the Java Bean naming conventions.
+<4> The class implements the `equals` and `hashCode` methods to ensure that two `Customer` values with equal fields compare as equal.
+<5> It returns a textual representation of itself from the `toString` method.
+
+Your authors come from the school of Java that assumes that everything we pass, store or return is not null unless explicitly indicated otherwise (<<optional-to-nullable>>.
+You can't _see_ that, but it's why there are no `@Nullable` annotations or null checks of parameters.
+What you can see is the amount of boilerplate code required.
+Happily our IDE generated it for us, but we have to remember to delete and regenerate those methods when we change the fields of the class to avoid confusing bugs.
+
+IntelliJ has an action - "Convert Java file to Kotlin File" (at the time of writing).
+When we invoke that, it offers to change other files if necessary to keep things consistent.
+It's best to say yes, but as this can potentially modify files throughout the project, only when you have no uncommitted changes, so that it's easy to see what else has been changed.
+
+In this case we find that IntelliJ hasn't changed any other files.
+Our `Customer.java` file has been replaced with `Customer.kt` in the same directory:
+
+// begin-insert: tags/java-to-kotlin-classes.2:src/main/java/travelator/Customer.kt
+[source,kotlin]
+----
+class Customer(val id: String, val name: String, val email: String) {
+    override fun equals(o: Any?): Boolean {
+        if (this === o) return true
+        if (o == null || javaClass != o.javaClass) return false
+        val customer = o as Customer
+        return id == customer.id && name == customer.name && email == customer.email
+    }
+
+    override fun hashCode(): Int {
+        return Objects.hash(id, name, email)
+    }
+
+    override fun toString(): String {
+        return "Customer{" +
+            "id='" + id + '\'' +
+            ", name='" + name + '\'' +
+            ", email='" + email + '\'' +
+            '}'
+    }
+}
+----
+// end-insert
+
+The Kotlin class is noticeably more succinct because it declares its properties in the primary constructor.
+Those declarations stand in for all this Java:
+
+// begin-insert: tags/java-to-kotlin-classes.1:src/main/java/travelator/Customer.java#replaced_by_primary_constructor
+[source,java]
+----
+private final String id;
+private final String name;
+private final String email;
+
+public Customer(String id, String name, String email) {
+    this.id = id;
+    this.name = name;
+    this.email = email;
+}
+
+public String getId() {
+    return id;
+}
+
+public String getName() {
+    return name;
+}
+
+public String getEmail() {
+    return email;
+}
+----
+// end-insert
+
+The primary constructor syntax is convenient, but it does interfere with the "scannability" of the class.
+Java classes that follow the standard coding conventions always define their elements in the same order: class name, superclass, interfaces, then within the class body, fields, constructors, and methods.
+This makes it easy to skim-read the class and quickly locate the features you're interested in.
+
+It's not quite so easy in Kotlin: a class definition is organised thus: class name, primary constructor (which can contain parameters and/or property definitions), superclass (which may also be the call to the superclass' constructor), interfaces, then within the class body, more properties, more constructors, methods, and companion objects (we'll come to those later).
+Coming from Java, Nat and Duncan definitely found it harder to read classes at first, and although we got used to it eventually, we still find it hard at times to neatly format classes that have a primary constructor, a superclass, several interfaces, and properties that are defined outside the primary constructor.
+
+One easy change is to Alt-Enter inside the constructor parameter list and "Put parameters on separate lines".
+
+// begin-insert: tags/java-to-kotlin-classes.3:src/main/java/travelator/Customer.kt#foo
+[source,kotlin]
+----
+class Customer(
+    val id: String,
+    val name: String,
+    val email: String
+) {
+    ...
+}
+----
+// end-insert
+
+If you're very new to Kotlin you may wonder what happened to the `getName` etc accessor methods.
+They are now being generated by the compiler, so that Java code can still call them.
+
+// begin-insert: tags/java-to-kotlin-classes.3:src/main/java/travelator/Emailing.java
+[source,java]
+----
+public class Emailing {
+
+    public static Email welcomeEmailFor(Customer customer) {
+        return new Email(
+            customer.getEmail(),
+            "Hi " + customer.getName() + "\n\n" +
+            "Welcome to Travelator - where do you want to go?\n\n" +
+            "Your adventurous travel specialists."
+        );
+    }
+}
+----
+// end-insert
+
+Declaring a `name` property causes the compiler to generate a private `name` field and a `getName()` method.
+Inversely, if a Java class defines a `getName()` method, Kotlin can call it as `customer.name`.
+We'll discuss properties in more detail in <<methods-to-properties>>.
+
+So far converting our class to Kotlin has saved us 15 or so lines of code, but we aren't done yet.
+Value types like this are so useful, but so tedious to get right and keep right, that Kotlin supports them at a language level.
+Mark the class with the `data` modifier, and the compiler will generate `equals`, `hashCode` and `toString` methods automatically (if they are not defined by the class).
+That reduces the `Customer` class to:
+
+// begin-insert: tags/java-to-kotlin-classes.4:src/main/java/travelator/Customer.kt
+[source,kotlin]
+----
+data class Customer(
+    val id: String,
+    val name: String,
+    val email: String
+)
+----
+// end-insert
+
+.Is Customer an Entity or a Value?
+****
+As defined here, our `Customer` class has value semantics - two `Customer` instances compare equal only when all their properties are equal.
+That's because that is what our original `equals` and `hashCode` methods did, and how `data` classes are defined.
+At the same time, a customer is an entity - even if they change their email address they are the same person.
+If we think this way, we might reasonably define equality to check only the `id` field.
+
+In Duncan and Nat's experience it is best to think of `Customer` as data representing the state of an entity _at a given time_ - a value.
+If you need to know whether two instances of `Customer` represent the same customer, then it is simple and idiomatic to compare the ids for equality.
+****
 
 === Conclusions
+
+For simple cases like the `Customer` shown here, it is quick and easy to convert Java to Kotlin.
+The result is compatible with existing Java code.
+If we also want value semantics, `data` classes allow us to remove even more boilerplate.
+Because they are so quick and easy to create, and require no maintenance, your authors find they introduce new value classes far more frequently in Kotlin than in Java -
+to declare application-specific "micro-types" that wrap primitive values, to hold intermediate results of a calculation pipeline, or to pivot data into temporary structures that make it easier to write application logic.
+
+We look at more advantages of value types in <<beans-to-values>>.
+<<static-methods-to-free-standing-functions>> examines how Kotlin represents static methods and data.
+
+
 
 
 
