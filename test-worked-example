@@ -14,6 +14,7 @@ cached_dir=$(realpath build/testing-history-cached)
 
 if [ ! -d "$working_dir" ]
 then
+  git worktree prune
   mkdir -p "$working_dir"
   (cd ../refactoring-to-kotlin-code && git worktree add --detach "$working_dir")
 fi
@@ -51,9 +52,9 @@ for tag in $(git tag -l '*.[0-9]*' | sort -V); do
         touch "$cached"
       fi
     else
-      # Delete the last two lines of Gradle output because they are not stable between runs
+      # Make the Gradle output stable between runs
       mv "$tag.log" "$tag.orig.log"
-      "$clean_log" "$tag.orig.log" > "$tag.log"
+      "$clean_log" "$tag.orig.log" "$working_dir" > "$tag.log"
 
       if diff --side-by-side "$tag.log" "$known_failures_dir/$tag.log"
       then
