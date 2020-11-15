@@ -18,16 +18,19 @@ public class EmailAddress {
     private final String localPart; // <1>
     private final String domain;
 
-    public EmailAddress(String localPart, String domain) { // <2>
-        this.localPart = localPart;
-        this.domain = domain;
+    public static EmailAddress parse(String value) { // <2>
+        var atIndex = value.indexOf("@");
+        if (atIndex < 1 || atIndex == value.length() - 1)
+            throw new IllegalArgumentException("EmailAddress must be two parts separated by @");
+        return new EmailAddress(
+            value.substring(0, atIndex),
+            value.substring(atIndex + 1)
+        );
     }
 
-    public EmailAddress(String value) { // <3>
-        this(
-            value.substring(0, value.indexOf("@")),
-            value.substring(value.indexOf("@") + 1)
-        );
+    public EmailAddress(String localPart, String domain) { // <3>
+        this.localPart = localPart;
+        this.domain = domain;
     }
 
     public String getLocalPart() { // <4>
@@ -64,17 +67,18 @@ This class is very simple -- it does nothing more than wrap a single string and 
 Even so, it has a lot of code:
 
 <1> Values are immutable, so the class declares its fields as final.
-<2> It must define a constructor to initialise the fields.
-<3> There is a secondary constructor that calls the primary constructor.
+<2> There is a static factory method to parse from a string - this calls the primary constructor.
+<3> The fields are initialised in a primary constructor.
 <4> The accessor methods of its property follows the Java Bean naming conventions.
 <5> The class implements the `equals` and `hashCode` methods to ensure that two `EmailAddress` values with equal fields compare as equal.
 <6> `toString` returns the canonical form.
 
 Your authors come from the school of Java that assumes that everything we pass, store or return is not null unless explicitly indicated otherwise (<<optional-to-nullable>>).
 You can't _see_ that, but it's why there are no `@Nullable` annotations or null checks of parameters.
-What you can see is the amount of boilerplate code required.
-Happily our IDE generated it for us, but we have to remember to delete and regenerate those methods when we change the fields of the class to avoid confusing bugs.
+What you _can_ see is the amount of boilerplate code required to express a value holding two other values.
+Happily our IDE generated the `equals` and `hashCode` methods for us, but we have to remember to delete and regenerate those methods when we change the fields of the class to avoid confusing bugs.
 
+We're here to convert Java to Kotlin, so how do we do that?
 IntelliJ has an action - "Convert Java file to Kotlin File" (at the time of writing).
 When we invoke that, it offers to change other files if necessary to keep things consistent.
 It's best to say yes, but as this can potentially modify files throughout the project, only when you have no uncommitted changes, so that it's easy to see what else has been changed.
@@ -85,16 +89,7 @@ Our `EmailAddress.java` file has been replaced with `EmailAddress.kt` in the sam
 // begin-insert: tags/java-to-kotlin-classes.2:src/main/java/travelator/EmailAddress.kt
 [source,kotlin]
 ----
-class EmailAddress(
-    val localPart: String, val domain: String
-) {
-
-    constructor(value: String) : this(
-        value.substring(0, value.indexOf("@")),
-        value.substring(value.indexOf("@") + 1)
-    ) {
-    }
-
+class EmailAddress(val localPart: String, val domain: String) {
     override fun equals(o: Any?): Boolean {
         if (this === o) return true
         if (o == null || javaClass != o.javaClass) return false
@@ -108,6 +103,20 @@ class EmailAddress(
 
     override fun toString(): String {
         return "$localPart@$domain"
+    }
+
+    companion object {
+        @JvmStatic
+        fun parse(value: String): EmailAddress {
+            val atIndex = value.indexOf("@")
+            require(!(atIndex < 1 || atIndex == value.length - 1)) {
+                "EmailAddress must be two parts separated by @"
+            }
+            return EmailAddress(
+                value.substring(0, atIndex),
+                value.substring(atIndex + 1)
+            )
+        }
     }
 }
 ----
@@ -146,6 +155,7 @@ Coming from Java, Nat and Duncan definitely found it harder to read classes at f
 
 One easy change is to lay out the constructor parameter list line by line.
 With the cursor inside the parameter list, we can do that with Alt-Enter and "Put parameters on separate lines".
+Sometimes a blank line after the header part helps too.
 
 // begin-insert: tags/java-to-kotlin-classes.3:src/main/java/travelator/EmailAddress.kt
 [source,kotlin]
@@ -154,10 +164,6 @@ class EmailAddress(
     val localPart: String,
     val domain: String
 ) {
-    constructor(value: String) : this(
-        value.substring(0, value.indexOf("@")),
-        value.substring(value.indexOf("@") + 1)
-    )
 
     override fun equals(o: Any?): Boolean {
         if (this === o) return true
@@ -173,9 +179,66 @@ class EmailAddress(
     override fun toString(): String {
         return "$localPart@$domain"
     }
+
+    companion object {
+        @JvmStatic
+        fun parse(value: String): EmailAddress {
+            val atIndex = value.indexOf("@")
+            require(!(atIndex < 1 || atIndex == value.length - 1)) {
+                "EmailAddress must be two parts separated by @"
+            }
+            return EmailAddress(
+                value.substring(0, atIndex),
+                value.substring(atIndex + 1)
+            )
+        }
+    }
 }
 ----
 // end-insert
+
+One place where Kotlin is noticeably less succinct than Java is the use of companion objects to house static state and methods - in this case `parse()`.
+Kotlin prefers top-level state and functions to these class-scoped members, although they are still compiled into classes, because all code in the JVM needs a class host.
+We currently have Java code that uses the static method, for example the tests:
+
+// begin-insert: tags/java-to-kotlin-classes.0:src/test/java/travelator/EmailAddressTests.java
+[source,java]
+----
+public class EmailAddressTests {
+
+    @Test
+    public void parsing() {
+        assertEquals(
+            new EmailAddress("fred", "example.com"),
+            EmailAddress.parse("fred@example.com")
+        );
+    }
+
+    @Test
+    public void parsingFailures() {
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> EmailAddress.parse("@")
+        );
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> EmailAddress.parse("fred@")
+        );
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> EmailAddress.parse("@example.com")
+        );
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> EmailAddress.parse("fred_at_example.com")
+        );
+    }
+}
+----
+// end-insert
+
+The companion object combined with the `@JVMStatic` annotation, mean this didn't have to change when we converted to Kotlin, so we'll leave `parse` as it is for now.
+We'll discuss how to migrate to top-level functions in <<static-methods-to-free-standing-functions>>.
 
 If you're new to Kotlin you may wonder what happened to the `getLocalPart()` and `getDomain()` accessor methods.
 Declaring a `domain` property causes the compiler to generate a private `domain` field and a `getDomain()` method, so that Java code can still call it.
@@ -193,6 +256,8 @@ public class Marketing {
 ----
 // end-insert
 
+You can see that Java is accessing the domain property through the `getDomain()` method.
+
 Inversely, when the class was Java and had an explicit `getDomain()` method, Kotlin code could have called it as `address.domain`.
 We'll discuss properties in more detail in <<methods-to-properties>>.
 
@@ -208,17 +273,33 @@ data class EmailAddress(
     val localPart: String,
     val domain: String
 ) {
-    constructor(value: String) : this(
-        value.substring(0, value.indexOf("@")),
-        value.substring(value.indexOf("@") + 1)
-    )
 
-    override fun toString() = "$localPart@$domain" // <1>
+    override fun toString(): String { // <1>
+        return "$localPart@$domain"
+    }
+
+    companion object {
+        @JvmStatic
+        fun parse(value: String): EmailAddress {
+            val atIndex = value.indexOf("@")
+            require(!(atIndex < 1 || atIndex == value.length - 1)) {
+                "EmailAddress must be two parts separated by @"
+            }
+            return EmailAddress(
+                value.substring(0, atIndex),
+                value.substring(atIndex + 1)
+            )
+        }
+    }
 }
 ----
 // end-insert
 
-<1>  We don't want the generated `toString()` method, so we define the one that we do want.
+<1>  We don't want the generated `toString()` method, so we define the one we do want.
+
+Frankly, that `parse` method still rankles - it's taking up a disproportionate amount of space for the work it is doing.
+We'll have a crack at making it suitably short and sweet in <<assignments-to-let-blocks>>.
+For now though, we're done with seeing how to convert a Java class to Kotlin.
 
 === Conclusions
 
