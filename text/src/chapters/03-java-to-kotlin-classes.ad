@@ -21,7 +21,9 @@ public class EmailAddress {
     public static EmailAddress parse(String value) { // <2>
         var atIndex = value.indexOf("@");
         if (atIndex < 1 || atIndex == value.length() - 1)
-            throw new IllegalArgumentException("EmailAddress must be two parts separated by @");
+            throw new IllegalArgumentException(
+                "EmailAddress must be two parts separated by @"
+            );
         return new EmailAddress(
             value.substring(0, atIndex),
             value.substring(atIndex + 1)
@@ -63,28 +65,30 @@ public class EmailAddress {
 ----
 // end-insert
 
-This class is very simple -- it does nothing more than wrap a single string and provides no operations of its own.
+This class is very simple -- it does nothing more than wrap two strings and provides no operations of its own.
 Even so, it has a lot of code:
 
 <1> Values are immutable, so the class declares its fields as final.
-<2> There is a static factory method to parse from a string - this calls the primary constructor.
+<2> There is a static factory method to `parse` and `EmailAddress` from a string - this calls the primary constructor.
 <3> The fields are initialised in a primary constructor.
-<4> The accessor methods of its property follows the Java Bean naming conventions.
+<4> The accessor methods of its properties follow the Java Bean naming conventions.
 <5> The class implements the `equals` and `hashCode` methods to ensure that two `EmailAddress` values with equal fields compare as equal.
 <6> `toString` returns the canonical form.
 
-Your authors come from the school of Java that assumes that everything we pass, store or return is not null unless explicitly indicated otherwise (<<optional-to-nullable>>).
-You can't _see_ that, but it's why there are no `@Nullable` annotations or null checks of parameters.
-What you _can_ see is the amount of boilerplate code required to express a value holding two other values.
-Happily our IDE generated the `equals` and `hashCode` methods for us, but we have to remember to delete and regenerate those methods when we change the fields of the class to avoid confusing bugs.
+Your authors come from the school of Java that assumes that everything we pass, store or return is not null unless explicitly indicated otherwise.
+You can't _see_ that, but it's why there are no `@Nullable` annotations or null checks of parameters ((<<optional-to-nullable>> discusses nullability).
+What you _can_ see is the amount of boilerplate code required to express a value composed of two other values.
+Happily our IDE generated the `equals` and `hashCode` methods for us, but we have to remember to delete and regenerate those methods if we change the fields of the class to avoid confusing bugs.
 
-We're here to convert Java to Kotlin, so how do we do that?
-IntelliJ has an action - "Convert Java file to Kotlin File" (at the time of writing).
-When we invoke that, it offers to change other files if necessary to keep things consistent.
-It's best to say yes, but as this can potentially modify files throughout the project, only when you have no uncommitted changes, so that it's easy to see what else has been changed.
+So much for the Java; we're here for the Kotlin.
+How do we convert?
+Helpfully IntelliJ has an action - "Convert Java file to Kotlin File" (at the time of writing).
+Let's invoke it.
+IntelliJ now offers to change other files if necessary to keep things consistent.
+As this can potentially modify files throughout the project, its best to say yes, but only when you have no uncommitted changes, so that it's easy to see what else has been changed.
 
-In this case we find that IntelliJ hasn't changed any other files.
-Our `EmailAddress.java` file has been replaced with `EmailAddress.kt` in the same directory:
+In this case IntelliJ doesn't have to change any other files.
+It has though replaced our `EmailAddress.java` file with `EmailAddress.kt` in the same directory:
 
 // begin-insert: tags/java-to-kotlin-classes.2:src/main/java/travelator/EmailAddress.kt
 [source,kotlin]
@@ -122,8 +126,8 @@ class EmailAddress(val localPart: String, val domain: String) {
 ----
 // end-insert
 
-The Kotlin class is noticeably more succinct because it declares its properties in the primary constructor.
-Those declarations stand in for all this Java:
+The Kotlin class is noticeably more succinct because it declares its properties in the primary constructor - the parameters after the class name.
+Those marked `val` are considered properties, and so stand in for all this Java:
 
 // begin-insert: tags/java-to-kotlin-classes.1:src/main/java/travelator/EmailAddress.java#replaced_by_primary_constructor
 [source,java]
@@ -146,11 +150,11 @@ public String getDomain() {
 ----
 // end-insert
 
-The primary constructor syntax is convenient, but it does interfere with the "scannability" of the class.
+The primary constructor syntax is convenient, but it does interfere with the "scanability" of the class.
 Java classes that follow the standard coding conventions always define their elements in the same order: class name, superclass, interfaces, then within the class body, fields, constructors, and methods.
 This makes it easy to skim-read the class and quickly locate the features you're interested in.
 
-It's not quite so easy in Kotlin: a class definition is organised thus: class name, primary constructor (which can contain parameters and/or property definitions), superclass (which may also be the call to the superclass' constructor), interfaces, then within the class body, more properties, more constructors, methods, and companion objects (we'll come to those later).
+It's not quite so easy in Kotlin: a class definition is organised thus: class name, primary constructor (which can contain parameters and/or property definitions), superclass (which may also be the call to the superclass' constructor), interfaces, then within the class body, more properties, more constructors, methods, and companion objects.
 Coming from Java, Nat and Duncan definitely found it harder to read classes at first, and although we got used to it eventually, we still find it hard at times to neatly format classes that have a primary constructor, a superclass, several interfaces, and properties that are defined outside the primary constructor.
 
 One easy change is to lay out the constructor parameter list line by line.
@@ -198,10 +202,10 @@ class EmailAddress(
 // end-insert
 
 One place where Kotlin is noticeably less succinct than Java is the use of companion objects to house static state and methods - in this case `parse()`.
-Kotlin prefers top-level state and functions to these class-scoped members, although they are still compiled into classes, because all code in the JVM needs a class host.
+Kotlin prefers top-level state and functions to these class-scoped members, although they are still compiled into classes, because all code in the JVM needs to belong to a class.
 We currently have Java code that uses the static method, for example the tests:
 
-// begin-insert: tags/java-to-kotlin-classes.0:src/test/java/travelator/EmailAddressTests.java
+// begin-insert: tags/java-to-kotlin-classes.0:src/test/java/travelator/EmailAddressTests.java#foo
 [source,java]
 ----
 public class EmailAddressTests {
@@ -224,24 +228,17 @@ public class EmailAddressTests {
             IllegalArgumentException.class,
             () -> EmailAddress.parse("fred@")
         );
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> EmailAddress.parse("@example.com")
-        );
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> EmailAddress.parse("fred_at_example.com")
-        );
+        ...
     }
 }
 ----
 // end-insert
 
 The companion object combined with the `@JVMStatic` annotation, mean this didn't have to change when we converted to Kotlin, so we'll leave `parse` as it is for now.
-We'll discuss how to migrate to top-level functions in <<static-methods-to-free-standing-functions>>.
+We'll discuss how to refactor to top-level functions in <<static-methods-to-free-standing-functions>>.
 
 If you're new to Kotlin you may wonder what happened to the `getLocalPart()` and `getDomain()` accessor methods.
-Declaring a `domain` property causes the compiler to generate a private `domain` field and a `getDomain()` method, so that Java code can still call it.
+Declaring the `domain` property causes the compiler to generate a private `domain` field and a `getDomain()` method, so that Java code can still call it.
 Here is a little throw-away code to support a marketing plan:
 
 // begin-insert: tags/java-to-kotlin-classes.3:src/main/java/travelator/Marketing.java
@@ -257,7 +254,6 @@ public class Marketing {
 // end-insert
 
 You can see that Java is accessing the domain property through the `getDomain()` method.
-
 Inversely, when the class was Java and had an explicit `getDomain()` method, Kotlin code could have called it as `address.domain`.
 We'll discuss properties in more detail in <<methods-to-properties>>.
 
@@ -304,8 +300,9 @@ For now though, we're done with seeing how to convert a Java class to Kotlin.
 === Conclusions
 
 For simple cases like the `EmailAddress` shown here, it is quick and easy to convert Java to Kotlin.
-The result is compatible with existing Java code.
+The result is completely compatible with existing Java code.
 If we also want value semantics, `data` classes allow us to remove even more boilerplate.
+
 Because they are so quick and easy to create, and require no maintenance, we introduce new value classes far more frequently in Kotlin than in Java -
 to declare application-specific "micro-types" that wrap primitive values, to hold intermediate results of a calculation pipeline, or to pivot data into temporary structures that make it easier to write application logic.
 
