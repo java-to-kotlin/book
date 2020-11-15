@@ -1,11 +1,74 @@
 == Open Classes to Sealed Classes
 
-=== A Rule of Thumb
+In Java, we can define polymorphic methods on classes. We can use interfaces to define sets of polymorphic. methods, independently of any class that implements them.  Later, we can define a class that implements the interface and the implementations of the methods of that interface for that class.
+
+Calling polymorphic methods is supported by the type checker: we cannot call a method if the class does not implement it.
+
+The drawback of interfaces is that you have to declare that a class implements an interface in the definition of a class.  You can't add an interface to a class without changing its definition.  Java programmers turn to design patterns, like the Adapter, Bridge and Decorator patterns, to work around the fact that we cannot add interfaces to a class without recompiling it.
+
+As a result, key types in a Java application's domain model tend to become "God Objects" with many methods that support different aspects of the application.  Or methods gets moved from the domain model class into "Helper" or "Util" classes that end up a grab-bag of loosely related functionality that is awkward to use compared to a method on the class itself.
+
+As a last resort, when classes do not define a common interfaces, or the operations we want to perform are very different for different types, Java programmers resort to run-time type checks , using the `instanceof` and downcast operators to run different code for different classes of object.
+This is risky: the type checker cannot tell if we have forgotten necessary cases, nor if we are covering _unnecessary_ cases.
+As we change code, it is easy to introduce bugs or leave dead code in the codebase that is hard to identify and remove.
+
+God Objects, Helper classes, and run-time type checks are all considered to be "code smells" -- visible symptoms of design flaws.
+But what's the alternative?
+At the time of writing, Javafootnote:[At least up to Java 14. A future version of Java will have sealed classes.] only gives us classes, methods, and interfaces for modelling.
+The code smells we see in Java are a consequence of this limited set of abstraction mechanisms.
+
+Kotlin classes, like Java classes, can have polymorphic methods and implement interfaces, and classes must be declared to implement an interface.
+This simplifies interop with Java, but means that, like Java, you cannot introduce polymorphism to an object without changing its class definition.
+
+However, Kotlin has another mechanism for organising classes and behaviour: _sealed classes_.
+A sealed class is an abstract class with a fixed set of subclasses, defined in the same source file.
+The compiler prevents you from subclassing the sealed class elsewhere.
+Thanks to this restriction, run-time type checks on sealed class hierarchies do not have the same drawbacks as run-time type checks in Java.
+The type checker can guarantee that `when` expressions that test the subtype of a sealed class cover all possible cases and only possible cases.
+
+
+Object-oriented polymorphism assumes that the set of operations varies infrequently, and the set of types the operations apply to varies frequently.  It is much easier to extend a program by adding another class that implements an interface than it is to add another method to an interface implemented by many classes.  The JVM can even load new classes into a running program, as long as they implement an interface compiled into the program.
+
+Sealed class hierarchies and `when` expressions assume the opposite: that the set of operations varies more frequently than the set of types they apply to.
+It is much easier to write another function that is conditional on the concrete subclass of a sealed class than it is to add another subclass to every existing when expressions.
+
+Kotlin has no mechanism that lets you define a type and operations in a way that let you easily vary both the types that the operations apply to, and the operations that apply to the types, with static type safety and without modifying existing code.
+You have to choose which approach you'll use for a class based on which aspect, subtypes or operations, you expect to vary most frequently as the program evolves.
+
+
+
+[TIP]
+.Only typecast down a sealed class hierarchy
+****
 
 Only use typecasts to cast from the root of a sealed class hierarchy to one of the children in an exhaustive when expression.
 
 Otherwise, don't cast your way out of the static types.
 
 Example of errors that can occur if casting: listOf(1,2,3) returns a the List interface of a mutable list.  If you cast it to MutableList you can mutate a list that code is expecting to be (and typed) as unmodifiable.
+****
+
+
+
+[WARNING]
+.When statements are not checked for exhaustiveness
+****
+When expressions are checked for exhaustiveness but when _statements_ are not.  If all the branches of a `when` expression evaluate to `Unit` and the value of the entire `when` expression is never used, the `when` is considered to be a statement. In that case, even if downcasting an instance of a sealed class, the branches will not be checked for exhaustiveness.
+
+You can force an exhaustive check by using the `Unit` value of the when statement.  For example, the following extension method will use the `Unit` value it is called upon.
+
+----
+val Unit.exhaustive get() = this
+----
+
+It can be used like this to make the compiler check a `when` statement for exhaustiveness.
+
+----
+when (instanceOfSealedClass) {
+    is SubclassA => { println("A") }
+    is SubclassB => { println("B") }
+}.exhaustive
+----
+****
 
 
