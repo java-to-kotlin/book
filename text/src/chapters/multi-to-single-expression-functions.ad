@@ -4,7 +4,57 @@
 Duncan in particular loves Kotlin's single-expression function definitions.
 When should we use this form, and what Kotlin features can we use to make more code into a single expression?
 
-At the end of <<java-to-kotlin-classes>> we were left with this code for `EmailAddress`:
+As with Java, the code in a Kotlin functions is usually {defined inside braces} and with one or more `return` statements defining the result (unless `void`/`Unit`).
+
+// begin-insert: src/main/kotlin/single_expression_functions/functions.kt#add
+[source,kotlin]
+----
+fun add(a: Int, b: Int): Int {
+    return a + b
+}
+----
+// end-insert
+
+If the top level of the code is a single expression though, we can optionally drop the result type, and define the code with an `=` and the expression.
+
+// begin-insert: src/main/kotlin/single_expression_functions/functions.kt#addToo
+[source,kotlin]
+----
+fun addToo(a: Int, b: Int): Int = a + b
+----
+// end-insert
+
+This is nice to read - it's saying the function `add` equals `a + b`.
+Which makes sense for a single expression, but can also read nicely when that expresion is itself composed of sub-expressions.
+
+// begin-insert: src/main/kotlin/single_expression_functions/functions.kt#max
+[source,kotlin]
+----
+fun max(a: Int, b: Int): Int =
+    when {
+        a > b -> a
+        else -> b
+    }
+----
+// end-insert
+
+This form is less suitable for functions that have side effects, especially writing.
+
+// begin-insert: src/main/kotlin/single_expression_functions/functions.kt#printTwice
+[source,kotlin]
+----
+fun printTwice(s: String): Unit = println("$s\n$s")
+----
+// end-insert
+
+This compiles, but if we adopt a convention of reserving single expression functions for calculations (see <<actions-to-calculations>>), then we have a way of communicating our intent when we use them.
+
+Of course lots of pure calculations consist of more than one top-level expression.
+Your authors have found though, that attempting to make as many as possible into simple single expression functions can improve our software.
+This is because we end up with more pure functions, and they will have reduced complexity.
+As pure functions themselves reduce complexity, this is a double-action complexity reduction.
+
+For example, at the end of <<java-to-kotlin-classes>> we were left with this code for `EmailAddress`:
 
 // begin-insert: tags/multi-to-single-expression-functions.0:src/main/java/travelator/EmailAddress.kt
 [source,kotlin]
@@ -31,29 +81,12 @@ data class EmailAddress(
     }
 }
 ----
-// end-insert 
-
-We said at the time that the amount of code required in the `parse` method added insult to the injury of having to declare static methods in a companion object.
-To be fair, the Java had also been pretty obnoxiously verbose:
-
-// begin-insert: tags/java-to-kotlin-classes.1:src/main/java/travelator/EmailAddress.java#parse
-[source,java]
-----
-public static EmailAddress parse(String value) {
-    var atIndex = value.lastIndexOf('@');
-    if (atIndex < 1 || atIndex == value.length() - 1)
-        throw new IllegalArgumentException(
-            "EmailAddress must be two parts separated by @"
-        );
-    return new EmailAddress(
-        value.substring(0, atIndex),
-        value.substring(atIndex + 1)
-    );
-}
-----
 // end-insert
 
-That's no excuse for Kotlin though.
+The `toString` method is already a nice simple single expression.
+We said at the time though, that the amount of code required in the `parse` method added insult to the injury of having to declare static methods in a companion object.
+Maybe focusing on making it into a simple single expression would help.
+
 Let's analyse the code and see what is preventing this function from being a nice single expression.
 
 // begin-insert: tags/multi-to-single-expression-functions.1:src/main/java/travelator/EmailAddress.kt#parse
@@ -77,10 +110,11 @@ fun parse(value: String): EmailAddress {
 <3> `require` is a statement.
 
 Even if we use immutable `val` declarations, assigning to variables is an action not a calculation in the scheme we introduce in <<actions-to-calculations>>.
-That's because assignment is time-sensitive, we can't move it later in this function without affecting the behaviour.
+Actions are code that depend on when or whether they are executed.
+Assignment is an action because we can't move it later in this function without affecting the behaviour.
 In this case the language scoping rules will forbid the move, as `atIndex` is required to compile the later expressions.
 
-`value.lastIndexOf(String)` is a calculation - it will always return the same result for the same arguments (`this` is considered an argument when we call methods).
+The expression `value.lastIndexOf(Char)` is a calculation though - it will always return the same result for the same arguments (`this` is considered an argument when we call methods).
 So we could inline `atIndex` to remove the variable:
 
 // begin-insert: tags/multi-to-single-expression-functions.2:src/main/java/travelator/EmailAddress.kt#parse
@@ -101,11 +135,11 @@ fun parse(value: String): EmailAddress {
 // end-insert
 
 This won't produce the same bytecode, nor run as fast (probably, it's notoriously difficult to second guess HotSpot), but it will return the same result.
-It's hard to argue that it's better though, so let's revert and try another tack.
+It's hard to argue that it's better though, so let's revert the change and try another tack.
 
 The solution to the time-sensitivity of assignment is to have a scope where `atIndex` is always defined.
 A function could be such a scope, as a function binds a single evaluation of its arguments to its parameters.
-We can get there by extracting a function of all but the assignment:
+We can see this by selecting all but the code before the assignment and extracting a function `emailAddress`:
 
 // begin-insert: tags/multi-to-single-expression-functions.3:src/main/java/travelator/EmailAddress.kt#parse
 [source,kotlin]
@@ -167,7 +201,8 @@ inline fun require(value: Boolean, lazyMessage: () -> Any): Unit {
 ----
 // end-insert
 
-Now we can inline our local copy - things are going to get worse before they get worse:
+Now we can inline our local copy.
+Suspend disbelief for now, things are going to get worse before they get better:
 
 // begin-insert: tags/multi-to-single-expression-functions.6:src/main/java/travelator/EmailAddress.kt#emailAddress
 [source,kotlin]
@@ -189,15 +224,16 @@ private fun emailAddress(value: String, atIndex: Int): EmailAddress {
 
 There's an awful lot of redundancy that we can remove there.
 Alt-Enter on the `toString` will remove it, and another Alt-Enter on the `if` condition will remove the double-negation `!!`.
-Then we can short-cut the creation and immediate evaluation of a lambda to get the `message`.
+Then we can short-cut the creation and immediate evaluation of the lambda to get the `message`, yielding:
 
 // begin-insert: tags/multi-to-single-expression-functions.7:src/main/java/travelator/EmailAddress.kt#emailAddress
 [source,kotlin]
 ----
 private fun emailAddress(value: String, atIndex: Int): EmailAddress {
     if ((atIndex < 1 || atIndex == value.length - 1)) {
-        val message = "EmailAddress must be two parts separated by @"
-        throw IllegalArgumentException(message)
+        throw IllegalArgumentException(
+            "EmailAddress must be two parts separated by @"
+        )
     }
     return EmailAddress(
         value.substring(0, atIndex),
@@ -214,8 +250,9 @@ Now we can introduce an `else` to see the structure:
 ----
 private fun emailAddress(value: String, atIndex: Int): EmailAddress {
     if ((atIndex < 1 || atIndex == value.length - 1)) {
-        val message = "EmailAddress must be two parts separated by @"
-        throw IllegalArgumentException(message)
+        throw IllegalArgumentException(
+            "EmailAddress must be two parts separated by @"
+        )
     } else {
         return EmailAddress(
             value.substring(0, atIndex),
@@ -234,8 +271,9 @@ This is so tantalisingly close to a single expression that even IntelliJ can fee
 ----
 private fun emailAddress(value: String, atIndex: Int): EmailAddress {
     return if ((atIndex < 1 || atIndex == value.length - 1)) {
-        val message = "EmailAddress must be two parts separated by @"
-        throw IllegalArgumentException(message)
+        throw IllegalArgumentException(
+            "EmailAddress must be two parts separated by @"
+        )
     } else {
         EmailAddress(
             value.substring(0, atIndex),
@@ -254,8 +292,9 @@ Alt-Enter on the `return` offers "Convert to expression body":
 ----
 private fun emailAddress(value: String, atIndex: Int): EmailAddress =
     if ((atIndex < 1 || atIndex == value.length - 1)) {
-        val message = "EmailAddress must be two parts separated by @"
-        throw IllegalArgumentException(message)
+        throw IllegalArgumentException(
+            "EmailAddress must be two parts separated by @"
+        )
     } else {
         EmailAddress(
             value.substring(0, atIndex),
@@ -289,7 +328,7 @@ private fun emailAddress(value: String, atIndex: Int): EmailAddress =
 ----
 // end-insert
 
-Here's the original:
+For comparison, here is the original:
 
 // begin-insert: tags/multi-to-single-expression-functions.12:src/main/java/travelator/EmailAddress.kt#parse
 [source,kotlin]
@@ -310,16 +349,16 @@ fun parse(value: String): EmailAddress {
 Are we happy with the result?
 
 Silence was the stern reply.
-
 We now have _more_ code, and that `emailAddress` function doesn't feel like it's adding any value except for capturing `atIndex`.
+
 Refactoring is sometimes a process of exploration.
 We have a goal in mind, but don't always know how it will turn out.
-It's our (your authors') experience that trying to find a nice single expression form of a function often improves our code, but we can't put our hand on our hearts and say that has happened here.
+It's our (your authors') experience that trying to find a nice single expression form of a function often improves our code, but we can't look you in the eye and say that has happened here.
 
-We could give up on the idea, push on and try to get there from here.
+We could give up on the idea, or push on and try to get there from here.
 Instead though, let's try reverting and trying another tack, informed by the experience we've just gained.
 
-Where we only have one variable we need to replace, a `let` can stand in for a function - giving us a scope where the value is defined rather than having to be assigned to a local.
+Where we only have one variable we need to replace, a `let` block gives us us a scope where the value is defined rather than having to be assigned to a local - the reason we extracted the function `emailAddress` last time we tried.
 We can get there in baby steps by first surrounding the code after the assignment with a `let`:
 
 // begin-insert: tags/multi-to-single-expression-functions.13:src/main/java/travelator/EmailAddress.kt#parse
@@ -347,7 +386,7 @@ Now we can lift the return out of the `let` - unfortunately IntelliJ doesn't off
 ----
 fun parse(value: String): EmailAddress {
     val atIndex = value.lastIndexOf('@')
-    let {
+    return let {
         require(!(atIndex < 1 || atIndex == value.length - 1)) {
             "EmailAddress must be two parts separated by @"
         }
@@ -360,7 +399,7 @@ fun parse(value: String): EmailAddress {
 ----
 // end-insert
 
-Now we thread the value of `atIndex` through the `let` by making it the receiver and the parameter:
+The trick now is to thread the value of `atIndex` through the `let` by making it the receiver and the parameter:
 
 // begin-insert: tags/multi-to-single-expression-functions.15:src/main/java/travelator/EmailAddress.kt#parse
 [source,kotlin]
@@ -422,11 +461,13 @@ fun parse(value: String): EmailAddress =
 We've reached the point of no return!
 Are we happy with the result?
 
-Duncan is writing this, and he is pretty relieved to have got here after 17 refactoring steps.
-It has certainly served its purpose of showing some tricks to allow us to get to single expression functions.
+Duncan is writing this, and he _is_ pretty relieved to have got here after 17 refactoring steps.
+The example has certainly served its purpose of showing some tricks to allow us to get to single expression functions.
 Nonetheless, he isn't convinced that it has demonstrated that seeking single expressions has a significant payoff.
-This still seems to be a lot of code, and none of it feels like it might be useful elsewhere.
+This still seems to be a lot of code, and none of it feels like it is earning its keep.
+
 Can we make this better by raising the level of abstraction?
+Let's try a third tack.
 
 If we step out from the mechanical refactorings, we can see that what we are doing is creating an `EmailAddress` from two non-empty strings separated by a particular character, `@` in this case.
 Finding two non-empty strings separated by a character sounds like a higher-level concept that we could refactor towards.
@@ -495,10 +536,11 @@ private fun split(value: String): Pair<String, String> {
 ----
 // end-insert
 
-IntelliJ turns out to be really quite clever there, returning a `Pair` as it has two values to return.
+IntelliJ turns out to be really quite clever there, making the result a `Pair` as it has two values to return.
 
 This `split` would be a nice generic function that we might use in other places if it was parameterised with the character.
-"Introduce Parameter" on the `"@"` lets us fix the former, we "Convert parameter to receiver" on `value` while we're there to get a little local extension function:
+"Introduce Parameter" on the `"@"` makes that so.
+We "Convert parameter to receiver" on `value` while we're there to get a little local extension function:
 
 // begin-insert: tags/multi-to-single-expression-functions.21:src/main/java/travelator/EmailAddress.kt#parse
 [source,kotlin]
@@ -523,7 +565,7 @@ private fun String.split(divider: Char): Pair<String, String> {
 ----
 // end-insert
 
-Now we can replay our introduction of `let` in `parse` to get:
+Now we can replay our introduction of `let` in `parse(...)` to get:
 
 // begin-insert: tags/multi-to-single-expression-functions.22:src/main/java/travelator/EmailAddress.kt#parse
 [source,kotlin]
@@ -535,7 +577,7 @@ fun parse(value: String): EmailAddress =
 ----
 // end-insert
 
-This, _finally_, is a single expression function that feels worth the effort!
+This, finally, is a single expression function that feels worth the effort!
 
 To finish, we can apply the techniques from this chapter to `split` to make it a single expression.
 Here then is the final `EmailAddress.kt`:
@@ -569,7 +611,12 @@ private fun String.splitAround(divider: Char): Pair<String, String> =
 ----
 // end-insert
 
-`splitAround` felt like a better name with doesn't clash with the standard `String.split` and hints that both sides of the split must be non-empty.
-If we want to promote it to a public function we should probably write some unit tests for it - we've probably sunk enough time for today, so we'll make a mental note that we have a `String.splitAround` lying around and wrap this refactoring up.
+`splitAround` felt like a better name with doesn't clash with the standard `String.split`, and hints that both sides of the split must be non-empty.
+If we want to promote it to a public function we should probably write some unit tests for it - we've probably sunk enough time for today, so we'll make a mental note that we have a `String.splitAround` lying around if we ever need one and wrap this refactoring up.
+
+=== Conclusion
+
+Defining our calculations as single expression functions lets us communicate that they are different to side-effecting actions.
+Trying to express them as a simple single expression is a useful discipline that can lead to well factored, clean code.
 
 
