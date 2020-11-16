@@ -87,6 +87,8 @@ The `toString` method is already a nice simple single expression.
 We said at the time though, that the amount of code required in the `parse` method added insult to the injury of having to declare static methods in a companion object.
 Maybe focusing on making it into a simple single expression would help.
 
+=== Take 1
+
 Let's analyse the code and see what is preventing this function from being a nice single expression.
 
 // begin-insert: tags/multi-to-single-expression-functions.1:src/main/java/travelator/EmailAddress.kt#parse
@@ -358,6 +360,8 @@ It's our (your authors') experience that trying to find a nice single expression
 We could give up on the idea, or push on and try to get there from here.
 Instead though, let's try reverting and trying another tack, informed by the experience we've just gained.
 
+=== Take 2
+
 Where we only have one variable we need to replace, a `let` block gives us us a scope where the value is defined rather than having to be assigned to a local - the reason we extracted the function `emailAddress` last time we tried.
 We can get there in baby steps by first surrounding the code after the assignment with a `let`:
 
@@ -468,6 +472,8 @@ This still seems to be a lot of code, and none of it feels like it is earning it
 
 Can we make this better by raising the level of abstraction?
 Let's try a third tack.
+
+=== Take 3
 
 If we step out from the mechanical refactorings, we can see that what we are doing is creating an `EmailAddress` from two non-empty strings separated by a particular character, `@` in this case.
 Finding two non-empty strings separated by a character sounds like a higher-level concept that we could refactor towards.
