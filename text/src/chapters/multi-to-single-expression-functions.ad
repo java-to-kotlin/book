@@ -4,5 +4,572 @@
 Duncan in particular loves Kotlin's single-expression function definitions.
 When should we use this form, and what Kotlin features can we use to make more code into a single expression?
 
-Can use Email.parse() from <<java-to-kotlin-classes>>.
+At the end of <<java-to-kotlin-classes>> we were left with this code for `EmailAddress`:
+
+// begin-insert: tags/multi-to-single-expression-functions.0:src/main/java/travelator/EmailAddress.kt
+[source,kotlin]
+----
+data class EmailAddress(
+    val localPart: String,
+    val domain: String
+) {
+
+    override fun toString() = "$localPart@$domain"
+
+    companion object {
+        @JvmStatic
+        fun parse(value: String): EmailAddress {
+            val atIndex = value.lastIndexOf('@')
+            require(!(atIndex < 1 || atIndex == value.length - 1)) {
+                "EmailAddress must be two parts separated by @"
+            }
+            return EmailAddress(
+                value.substring(0, atIndex),
+                value.substring(atIndex + 1)
+            )
+        }
+    }
+}
+----
+// end-insert 
+
+We said at the time that the amount of code required in the `parse` method added insult to the injury of having to declare static methods in a companion object.
+To be fair, the Java had also been pretty obnoxiously verbose:
+
+// begin-insert: tags/java-to-kotlin-classes.1:src/main/java/travelator/EmailAddress.java#parse
+[source,java]
+----
+public static EmailAddress parse(String value) {
+    var atIndex = value.lastIndexOf('@');
+    if (atIndex < 1 || atIndex == value.length() - 1)
+        throw new IllegalArgumentException(
+            "EmailAddress must be two parts separated by @"
+        );
+    return new EmailAddress(
+        value.substring(0, atIndex),
+        value.substring(atIndex + 1)
+    );
+}
+----
+// end-insert
+
+That's no excuse for Kotlin though.
+Let's analyse the code and see what is preventing this function from being a nice single expression.
+
+// begin-insert: tags/multi-to-single-expression-functions.1:src/main/java/travelator/EmailAddress.kt#parse
+[source,kotlin]
+----
+fun parse(value: String): EmailAddress {
+    val atIndex = value.lastIndexOf('@') // <2>
+    require(!(atIndex < 1 || atIndex == value.length - 1)) { // <3>
+        "EmailAddress must be two parts separated by @"
+    }
+    return EmailAddress( // <1>
+        value.substring(0, atIndex),
+        value.substring(atIndex + 1)
+    )
+}
+----
+// end-insert
+
+<1> Creating the `EmailAddress` is a single expression, depending on `value` and `atIndex`.
+<2> Assigning to `atIndex` is statement.
+<3> `require` is a statement.
+
+Even if we use immutable `val` declarations, assigning to variables is an action not a calculation in the scheme we introduce in <<actions-to-calculations>>.
+That's because assignment is time-sensitive, we can't move it later in this function without affecting the behaviour.
+In this case the language scoping rules will forbid the move, as `atIndex` is required to compile the later expressions.
+
+`value.lastIndexOf(String)` is a calculation - it will always return the same result for the same arguments (`this` is considered an argument when we call methods).
+So we could inline `atIndex` to remove the variable:
+
+// begin-insert: tags/multi-to-single-expression-functions.2:src/main/java/travelator/EmailAddress.kt#parse
+[source,kotlin]
+----
+fun parse(value: String): EmailAddress {
+    require(!(
+        value.lastIndexOf('@') < 1 ||
+            value.lastIndexOf('@') == value.length - 1)) {
+        "EmailAddress must be two parts separated by @"
+    }
+    return EmailAddress(
+        value.substring(0, value.lastIndexOf('@')),
+        value.substring(value.lastIndexOf('@') + 1)
+    )
+}
+----
+// end-insert
+
+This won't produce the same bytecode, nor run as fast (probably, it's notoriously difficult to second guess HotSpot), but it will return the same result.
+It's hard to argue that it's better though, so let's revert and try another tack.
+
+The solution to the time-sensitivity of assignment is to have a scope where `atIndex` is always defined.
+A function could be such a scope, as a function binds a single evaluation of its arguments to its parameters.
+We can get there by extracting a function of all but the assignment:
+
+// begin-insert: tags/multi-to-single-expression-functions.3:src/main/java/travelator/EmailAddress.kt#parse
+[source,kotlin]
+----
+fun parse(value: String): EmailAddress {
+    val atIndex = value.lastIndexOf('@')
+    return emailAddress(value, atIndex)
+}
+
+private fun emailAddress(value: String, atIndex: Int): EmailAddress {
+    require(!(atIndex < 1 || atIndex == value.length - 1)) {
+        "EmailAddress must be two parts separated by @"
+    }
+    return EmailAddress(
+        value.substring(0, atIndex),
+        value.substring(atIndex + 1)
+    )
+}
+----
+// end-insert
+
+Now we can inline the `atIndex` variable, as the `atIndex` parameter has captured its value for us.
+
+// begin-insert: tags/multi-to-single-expression-functions.4:src/main/java/travelator/EmailAddress.kt#parse
+[source,kotlin]
+----
+fun parse(value: String): EmailAddress {
+    return emailAddress(value, value.lastIndexOf('@'))
+}
+
+private fun emailAddress(value: String, atIndex: Int): EmailAddress {
+    require(!(atIndex < 1 || atIndex == value.length - 1)) {
+        "EmailAddress must be two parts separated by @"
+    }
+    return EmailAddress(
+        value.substring(0, atIndex),
+        value.substring(atIndex + 1)
+    )
+}
+----
+// end-insert
+
+Now `parse` is a single expression, but `emailAddress(...)` isn't, so let's not declare victory just yet.
+That `require` is always going to cause us some problems, as its job is to prevent evaluate proceeding, which is the opposite of an expression, which needs to evaluate to a value.
+
+Often when we reach this sort of impass when refactoring, inlining the cause of the problem will let us see the way ahead.
+Irritatingly IntelliJ won't let us inline `require` (despite showing us its source) because it isn't part of our project.
+Let's just copy it in to our file (at the time of writing we have to remove some contracts lines):
+
+// begin-insert: tags/multi-to-single-expression-functions.5:src/main/java/travelator/EmailAddress.kt#require
+[source,kotlin]
+----
+inline fun require(value: Boolean, lazyMessage: () -> Any): Unit {
+    if (!value) {
+        val message = lazyMessage()
+        throw IllegalArgumentException(message.toString())
+    }
+}
+----
+// end-insert
+
+Now we can inline our local copy - things are going to get worse before they get worse:
+
+// begin-insert: tags/multi-to-single-expression-functions.6:src/main/java/travelator/EmailAddress.kt#emailAddress
+[source,kotlin]
+----
+private fun emailAddress(value: String, atIndex: Int): EmailAddress {
+    if (!!(atIndex < 1 || atIndex == value.length - 1)) {
+        val message = ({
+            "EmailAddress must be two parts separated by @"
+        })()
+        throw IllegalArgumentException(message.toString())
+    }
+    return EmailAddress(
+        value.substring(0, atIndex),
+        value.substring(atIndex + 1)
+    )
+}
+----
+// end-insert
+
+There's an awful lot of redundancy that we can remove there.
+Alt-Enter on the `toString` will remove it, and another Alt-Enter on the `if` condition will remove the double-negation `!!`.
+Then we can short-cut the creation and immediate evaluation of a lambda to get the `message`.
+
+// begin-insert: tags/multi-to-single-expression-functions.7:src/main/java/travelator/EmailAddress.kt#emailAddress
+[source,kotlin]
+----
+private fun emailAddress(value: String, atIndex: Int): EmailAddress {
+    if ((atIndex < 1 || atIndex == value.length - 1)) {
+        val message = "EmailAddress must be two parts separated by @"
+        throw IllegalArgumentException(message)
+    }
+    return EmailAddress(
+        value.substring(0, atIndex),
+        value.substring(atIndex + 1)
+    )
+}
+----
+// end-insert
+
+Now we can introduce an `else` to see the structure:
+
+// begin-insert: tags/multi-to-single-expression-functions.8:src/main/java/travelator/EmailAddress.kt#emailAddress
+[source,kotlin]
+----
+private fun emailAddress(value: String, atIndex: Int): EmailAddress {
+    if ((atIndex < 1 || atIndex == value.length - 1)) {
+        val message = "EmailAddress must be two parts separated by @"
+        throw IllegalArgumentException(message)
+    } else {
+        return EmailAddress(
+            value.substring(0, atIndex),
+            value.substring(atIndex + 1)
+        )
+    }
+}
+----
+// end-insert
+
+At this point we have a function with two statements chosen by an `if`.
+This is so tantalisingly close to a single expression that even IntelliJ can feel it - Alt-Enter on the `if`, and it offers to "Lift return out of 'if'":
+
+// begin-insert: tags/multi-to-single-expression-functions.9:src/main/java/travelator/EmailAddress.kt#emailAddress
+[source,kotlin]
+----
+private fun emailAddress(value: String, atIndex: Int): EmailAddress {
+    return if ((atIndex < 1 || atIndex == value.length - 1)) {
+        val message = "EmailAddress must be two parts separated by @"
+        throw IllegalArgumentException(message)
+    } else {
+        EmailAddress(
+            value.substring(0, atIndex),
+            value.substring(atIndex + 1)
+        )
+    }
+}
+----
+// end-insert
+
+There it is - our single expression.
+Alt-Enter on the `return` offers "Convert to expression body":
+
+// begin-insert: tags/multi-to-single-expression-functions.10:src/main/java/travelator/EmailAddress.kt#emailAddress
+[source,kotlin]
+----
+private fun emailAddress(value: String, atIndex: Int): EmailAddress =
+    if ((atIndex < 1 || atIndex == value.length - 1)) {
+        val message = "EmailAddress must be two parts separated by @"
+        throw IllegalArgumentException(message)
+    } else {
+        EmailAddress(
+            value.substring(0, atIndex),
+            value.substring(atIndex + 1)
+        )
+    }
+----
+// end-insert
+
+When we're defining a function as a single expression, `when` is often clearer than `if`.
+IntelliJ will do this for us if we Alt-Enter on the `if`.
+Here we've also removed unnecessary braces, inlined `message`, and finally converted `parse` to a single expression:
+
+// begin-insert: tags/multi-to-single-expression-functions.11:src/main/java/travelator/EmailAddress.kt#parse
+[source,kotlin]
+----
+fun parse(value: String) =
+    emailAddress(value, value.lastIndexOf('@'))
+
+private fun emailAddress(value: String, atIndex: Int): EmailAddress =
+    when {
+        atIndex < 1 || atIndex == value.length - 1 ->
+            throw IllegalArgumentException(
+                "EmailAddress must be two parts separated by @"
+            )
+        else -> EmailAddress(
+            value.substring(0, atIndex),
+            value.substring(atIndex + 1)
+        )
+    }
+----
+// end-insert
+
+Here's the original:
+
+// begin-insert: tags/multi-to-single-expression-functions.12:src/main/java/travelator/EmailAddress.kt#parse
+[source,kotlin]
+----
+fun parse(value: String): EmailAddress {
+    val atIndex = value.lastIndexOf('@')
+    require(!(atIndex < 1 || atIndex == value.length - 1)) {
+        "EmailAddress must be two parts separated by @"
+    }
+    return EmailAddress(
+        value.substring(0, atIndex),
+        value.substring(atIndex + 1)
+    )
+}
+----
+// end-insert
+
+Are we happy with the result?
+
+Silence was the stern reply.
+
+We now have _more_ code, and that `emailAddress` function doesn't feel like it's adding any value except for capturing `atIndex`.
+Refactoring is sometimes a process of exploration.
+We have a goal in mind, but don't always know how it will turn out.
+It's our (your authors') experience that trying to find a nice single expression form of a function often improves our code, but we can't put our hand on our hearts and say that has happened here.
+
+We could give up on the idea, push on and try to get there from here.
+Instead though, let's try reverting and trying another tack, informed by the experience we've just gained.
+
+Where we only have one variable we need to replace, a `let` can stand in for a function - giving us a scope where the value is defined rather than having to be assigned to a local.
+We can get there in baby steps by first surrounding the code after the assignment with a `let`:
+
+// begin-insert: tags/multi-to-single-expression-functions.13:src/main/java/travelator/EmailAddress.kt#parse
+[source,kotlin]
+----
+fun parse(value: String): EmailAddress {
+    val atIndex = value.lastIndexOf('@')
+    let {
+        require(!(atIndex < 1 || atIndex == value.length - 1)) {
+            "EmailAddress must be two parts separated by @"
+        }
+        return EmailAddress(
+            value.substring(0, atIndex),
+            value.substring(atIndex + 1)
+        )
+    }
+}
+----
+// end-insert
+
+Now we can lift the return out of the `let` - unfortunately IntelliJ doesn't offer to help us this time:
+
+// begin-insert: tags/multi-to-single-expression-functions.14:src/main/java/travelator/EmailAddress.kt#parse
+[source,kotlin]
+----
+fun parse(value: String): EmailAddress {
+    val atIndex = value.lastIndexOf('@')
+    let {
+        require(!(atIndex < 1 || atIndex == value.length - 1)) {
+            "EmailAddress must be two parts separated by @"
+        }
+        EmailAddress(
+            value.substring(0, atIndex),
+            value.substring(atIndex + 1)
+        )
+    }
+}
+----
+// end-insert
+
+Now we thread the value of `atIndex` through the `let` by making it the receiver and the parameter:
+
+// begin-insert: tags/multi-to-single-expression-functions.15:src/main/java/travelator/EmailAddress.kt#parse
+[source,kotlin]
+----
+fun parse(value: String): EmailAddress {
+    val atIndex = value.lastIndexOf('@')
+    return atIndex.let { atIndex -> // <1>
+        require(!(atIndex < 1 || atIndex == value.length - 1)) {
+            "EmailAddress must be two parts separated by @"
+        }
+        EmailAddress(
+            value.substring(0, atIndex),
+            value.substring(atIndex + 1)
+        )
+    }
+}
+----
+// end-insert
+
+<1> `Warning Name shadowed: atIndex` - which is the point.
+
+Inline the `atIndex` variable and we have our single expression:
+
+// begin-insert: tags/multi-to-single-expression-functions.16:src/main/java/travelator/EmailAddress.kt#parse
+[source,kotlin]
+----
+fun parse(value: String): EmailAddress {
+    return value.lastIndexOf('@').let { atIndex ->
+        require(!(atIndex < 1 || atIndex == value.length - 1)) {
+            "EmailAddress must be two parts separated by @"
+        }
+        EmailAddress(
+            value.substring(0, atIndex),
+            value.substring(atIndex + 1)
+        )
+    }
+}
+----
+// end-insert
+
+Now Alt-Enter on the return lets us "Convert to expression body":
+
+// begin-insert: tags/multi-to-single-expression-functions.17:src/main/java/travelator/EmailAddress.kt#parse
+[source,kotlin]
+----
+fun parse(value: String): EmailAddress =
+    value.lastIndexOf('@').let { atIndex ->
+        require(!(atIndex < 1 || atIndex == value.length - 1)) {
+            "EmailAddress must be two parts separated by @"
+        }
+        EmailAddress(
+            value.substring(0, atIndex),
+            value.substring(atIndex + 1)
+        )
+    }
+----
+// end-insert
+
+We've reached the point of no return!
+Are we happy with the result?
+
+Duncan is writing this, and he is pretty relieved to have got here after 17 refactoring steps.
+It has certainly served its purpose of showing some tricks to allow us to get to single expression functions.
+Nonetheless, he isn't convinced that it has demonstrated that seeking single expressions has a significant payoff.
+This still seems to be a lot of code, and none of it feels like it might be useful elsewhere.
+Can we make this better by raising the level of abstraction?
+
+If we step out from the mechanical refactorings, we can see that what we are doing is creating an `EmailAddress` from two non-empty strings separated by a particular character, `@` in this case.
+Finding two non-empty strings separated by a character sounds like a higher-level concept that we could refactor towards.
+
+One last revert then:
+
+// begin-insert: tags/multi-to-single-expression-functions.18:src/main/java/travelator/EmailAddress.kt#parse
+[source,kotlin]
+----
+fun parse(value: String): EmailAddress {
+    val atIndex = value.lastIndexOf('@')
+    require(!(atIndex < 1 || atIndex == value.length - 1)) {
+        "EmailAddress must be two parts separated by @"
+    }
+    return EmailAddress(
+        value.substring(0, atIndex),
+        value.substring(atIndex + 1)
+    )
+}
+----
+// end-insert
+
+This time we'll concentrate not on `atIndex`, but those `substring` calls.
+We'll pull them out into variables:
+
+// begin-insert: tags/multi-to-single-expression-functions.19:src/main/java/travelator/EmailAddress.kt#parse
+[source,kotlin]
+----
+fun parse(value: String): EmailAddress {
+    val atIndex = value.lastIndexOf('@')
+    require(!(atIndex < 1 || atIndex == value.length - 1)) {
+        "EmailAddress must be two parts separated by @"
+    }
+    val leftPart = value.substring(0, atIndex)
+    val rightPart = value.substring(atIndex + 1)
+    return EmailAddress(
+        leftPart,
+        rightPart
+    )
+}
+----
+// end-insert
+
+Now, one more time with feeling, we can extract a function of all but the return statement:
+
+// begin-insert: tags/multi-to-single-expression-functions.20:src/main/java/travelator/EmailAddress.kt#parse
+[source,kotlin]
+----
+fun parse(value: String): EmailAddress {
+    val (leftPart, rightPart) = split(value)
+    return EmailAddress(
+        leftPart,
+        rightPart
+    )
+}
+
+private fun split(value: String): Pair<String, String> {
+    val atIndex = value.lastIndexOf('@')
+    require(!(atIndex < 1 || atIndex == value.length - 1)) {
+        "EmailAddress must be two parts separated by @"
+    }
+    val leftPart = value.substring(0, atIndex)
+    val rightPart = value.substring(atIndex + 1)
+    return Pair(leftPart, rightPart)
+}
+----
+// end-insert
+
+IntelliJ turns out to be really quite clever there, returning a `Pair` as it has two values to return.
+
+This `split` would be a nice generic function that we might use in other places if it was parameterised with the character.
+"Introduce Parameter" on the `"@"` lets us fix the former, we "Convert parameter to receiver" on `value` while we're there to get a little local extension function:
+
+// begin-insert: tags/multi-to-single-expression-functions.21:src/main/java/travelator/EmailAddress.kt#parse
+[source,kotlin]
+----
+fun parse(value: String): EmailAddress {
+    val (leftPart, rightPart) = value.split('@')
+    return EmailAddress(
+        leftPart,
+        rightPart
+    )
+}
+
+private fun String.split(divider: Char): Pair<String, String> {
+    val atIndex = lastIndexOf(divider)
+    require(!(atIndex < 1 || atIndex == length - 1)) {
+        "EmailAddress must be two parts separated by @"
+    }
+    val leftPart = substring(0, atIndex)
+    val rightPart = substring(atIndex + 1)
+    return Pair(leftPart, rightPart)
+}
+----
+// end-insert
+
+Now we can replay our introduction of `let` in `parse` to get:
+
+// begin-insert: tags/multi-to-single-expression-functions.22:src/main/java/travelator/EmailAddress.kt#parse
+[source,kotlin]
+----
+fun parse(value: String): EmailAddress =
+    value.split('@').let { (leftPart, rightPart) ->
+        EmailAddress(leftPart, rightPart)
+    }
+----
+// end-insert
+
+This, _finally_, is a single expression function that feels worth the effort!
+
+To finish, we can apply the techniques from this chapter to `split` to make it a single expression.
+Here then is the final `EmailAddress.kt`:
+
+// begin-insert: tags/multi-to-single-expression-functions.23:src/main/java/travelator/EmailAddress.kt
+[source,kotlin]
+----
+data class EmailAddress(
+    val localPart: String,
+    val domain: String
+) {
+
+    override fun toString() = "$localPart@$domain"
+
+    companion object {
+        @JvmStatic
+        fun parse(value: String): EmailAddress =
+            value.splitAround('@').let { (leftPart, rightPart) ->
+                EmailAddress(leftPart, rightPart)
+            }
+    }
+}
+
+private fun String.splitAround(divider: Char): Pair<String, String> =
+    lastIndexOf(divider).let { index ->
+        require(index >= 1 && index != length - 1) {
+            "string must be two parts separated by $divider"
+        }
+        substring(0, index) to substring(index + 1)
+    }
+----
+// end-insert
+
+`splitAround` felt like a better name with doesn't clash with the standard `String.split` and hints that both sides of the split must be non-empty.
+If we want to promote it to a public function we should probably write some unit tests for it - we've probably sunk enough time for today, so we'll make a mental note that we have a `String.splitAround` lying around and wrap this refactoring up.
+
 
