@@ -17,7 +17,7 @@ The language designers made the decision to have all code and data tied to class
 We have class-scoped static state, so we need class-scoped static methods.
 They could have added free-standing data and functions, but static fields and methods will do.
 If the language had options, then developers would have to choose which to use when, and less choice is often better.
-The designers then logically carried this language design decision forward to the Java Virtual Machine, which in turn does not have any way to express free-standing code or data.
+The designers then logically carried this language design decision forward to the Java Virtual Machine, which in turn has no way to express free-standing code or data.
 
 .Static State
 ****
@@ -27,13 +27,16 @@ We used static fields to implement per-class caches of instances.
 Then the new millennium fad for testing code all-but killed static state.
 That's because it's very difficult to isolate one test from another when they are coupled by state, and very hard to uncouple them when that state is static and so shared between all tests in a JVM.
 (Note that state here refers to mutable data. Immutable data is less of an issue.)
+
 As a result we learned to keep otherwise-static state in object fields and to arrange for there to be one shared instance of the object in application scope with dependency injection.
 By which your authors mean "passing an object to a constructor", rather than "Spring".
 
 For the rest of this chapter we restrict our examination to static methods rather than fields, but many of the same discussions and techniques also apply to the latter.
 ****
 
-In the absence of static state in a class, static methods effectively become just functions that have to be called via their class name:
+Sometimes we have a class with both non-static and static methods acting on the same type.
+Often though we end up with a class of just static methods.
+When there is no static state for them to share, these methods are really just stand-alone functions grouped together and called via their class name:
 
 // begin-insert: src/main/java/topLevelFunctions/TopLevel.java#scopedMax
 [source,java]
@@ -42,7 +45,7 @@ var max = Collections.max(list);
 ----
 // end-insert
 
-Amazingly the industry didn't really notice how much of a pain that eg `Collections.` prefix was for a while.
+Amazingly the industry didn't really notice how much of a pain that `Collections.` prefix was for a while.
 This was because we wrote our programs by adding more and more methods to types that we owned, and so rarely needed static functions.
 Static functions are useful when want to add functionality _without_ adding a (non-static) method.
 This might be because our classes are already sagging under the weight of all the methods that we have already added to them, or it might be because we don't own the class and so can't add the method to it.
