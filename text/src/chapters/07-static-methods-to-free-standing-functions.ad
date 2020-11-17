@@ -1,28 +1,84 @@
 [[static-methods-to-free-standing-functions]]
-== Static Methods to Free Standing Functions
+== Static Methods to Free-Standing Functions
 
 Static functions are one of the fundamental building blocks of software.
 In Java, they have to be declared as methods on a class, but in Kotlin we can declare them as free-standing, top-level entities.
-Should we prefer this form, and how do we migrate from the Java to the Kotlin style?
+When should we prefer this form, and how do we migrate from the Java to the Kotlin style?
 
+=== Java Statics
 
-=== Java Classes
+All values and functions in a Java program have to belong to a class: they are _members_ of that class.
+Java calls member-values _fields_, and member-functions _methods_.
+By default, fields values are per-instance of the class, and methods are also per-instance, in that they have access to the state of the instance that they are invoked on.
+If we mark fields as `static` though, they are shared between all instances of the class.
+Static methods only have access to this shared state (and public static fields in other classes), but in return for this restriction we can invoke them without needing an instance of the class.
 
-All and code and state in a Java program have to belong to a class.
-The language designers had studied C++, which was an extension to C.
-C has only free-standing functions, C++ added classes, so now code could be in two places and people had to choose.
-Java went with hosting all functions as methods in order to reduce the tyranny of choice.
+The language designers made the decision to have all code and data tied to classes to simplify the language.
+We have class-scoped static state, so we need class-scoped static methods.
+They could have added free-standing data and functions, but static fields and methods will do.
+If the language had options, then developers would have to choose which to use when, and less choice is often better.
+The designers then logically carried this language design decision forward to the Java Virtual Machine, which in turn does not have any way to express free-standing code or data.
 
+.Static State
+****
+In the early days of Java, static state was a lot more prevalent than it is today.
+We wrote singletons, and argued about how to initialise them in a lazy but safe way.
+We used static fields to implement per-class caches of instances.
+Then the new millennium fad for testing code all-but killed static state.
+That's because it's very difficult to isolate one test from another when they are coupled by state, and very hard to uncouple them when that state is static and so shared between all tests in a JVM.
+(Note that state here refers to mutable data. Immutable data is less of an issue.)
+As a result we learned to keep otherwise-static state in object fields and to arrange for there to be one shared instance of the object in application scope with dependency injection.
+By which your authors mean "passing an object to a constructor", rather than "Spring".
 
+For the rest of this chapter we restrict our examination to static methods rather than fields, but many of the same discussions and techniques also apply to the latter.
+****
 
-What do we mean by function?
-- a static method
-- not depending on mutable static state in the class
-- probably a calculation
+In the absence of static state in a class, static methods effectively become just functions that have to be called via their class name:
 
+// begin-insert: src/main/java/topLevelFunctions/TopLevel.java#scopedMax
+[source,java]
+----
+var max = Collections.max(list);
+----
+// end-insert
 
-Convert to Kotlin translates a class of static methods into an object with methods annotated as @JvmStatic.
+Amazingly the industry didn't really notice how much of a pain that eg `Collections.` prefix was for a while.
+This was because we wrote our programs by adding more and more methods to types that we owned, and so rarely needed static functions.
+Static functions are useful when want to add functionality _without_ adding a (non-static) method.
+This might be because our classes are already sagging under the weight of all the methods that we have already added to them, or it might be because we don't own the class and so can't add the method to it.
 
-Then we show how to refactor methods from methods of a singleton object to top-level functions, while keeping dependent Java code unaffected.
+Over time, we began to appreciate the advantages of using standard interfaces, like the Java collections, instead of working with our own abstractions.
+It's no accident then that the Java release that allowed us to use collections this way, Java 5, also brought the ability to `import static java.util.Collections.max` so that we could then write:
 
-This is already written up in the JSON DSL example (<<methods-to-operators>>), but that example needs to be simplified or the JSON DSL chapter split into two topics.
+// begin-insert: src/main/java/topLevelFunctions/TopLevel.java#importedMax
+[source,java]
+----
+var m = max(list);
+----
+// end-insert
+
+Because the JVM only really supports static methods rather than true free-standing functions this is only really a convenience provided by the compiler.
+And while Kotlin does have top-level functions, they too will have to be implemented as methods when running on the JVM.
+
+=== Kotlin Free-Standing Functions
+
+Compiled into class files
+Can call from Java
+Can set class name with @JvmName
+
+=== Kotlin Statics
+
+Scala & Smalltalk Class objects
+Ability to implement interfaces
+Compatibility with @JvmStatic
+
+=== Migrating From Static Methods to Free-Standing Functions
+
+Convert to Kotlin
+Distinguish between factories etc which might stay on companion objects and others to move to top level.
+Move to top level with @JvmName
+Can remove @JvmName when there are no Java usages.
+
+=== Conclusion
+
+Related content <<java-to-kotlin-collections>>, <<encapsulated-collections-to-typealiases>>, <<functions-to-extension-functions>>.
