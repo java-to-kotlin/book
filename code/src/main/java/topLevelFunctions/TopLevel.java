@@ -20,5 +20,11 @@ public class TopLevel {
         var m = max(list);
         /// end: importedMax
     }
+
+    public static void importKotlin() {
+        Top_levelKt.topLevelFun();
+        Top_levelKt.getTopLevelVal();
+        Renamed.topLevelFun2();
+    }
 }
 

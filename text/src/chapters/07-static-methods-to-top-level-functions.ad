@@ -1,8 +1,8 @@
 [[static-methods-to-free-standing-functions]]
-== Static Methods to Free-Standing Functions
+== Static Methods to Top Level Functions
 
 Static functions are one of the fundamental building blocks of software.
-In Java, they have to be declared as methods on a class, but in Kotlin we can declare them as free-standing, top-level entities.
+In Java, they have to be declared as methods on a class, but in Kotlin we can declare them as top-level entities.
 When should we prefer this form, and how do we migrate from the Java to the Kotlin style?
 
 === Java Statics
@@ -57,22 +57,35 @@ var m = max(list);
 ----
 // end-insert
 
-Because the JVM only really supports static methods rather than true free-standing functions this is only really a convenience provided by the compiler.
+Because the JVM only really supports static methods rather than true top-level functions this is only really a convenience provided by the compiler.
 And while Kotlin does have top-level functions, they too will have to be implemented as methods when running on the JVM.
 
-=== Kotlin Free-Standing Functions
+=== Kotlin Top-Level Functions and Companion Objects
 
-Compiled into class files
-Can call from Java
-Can set class name with @JvmName
+Kotlin allows functions (and properties and constants) to be declared outside of classes.
+In this case the compiler creates a class declaration with static members for the top-level declarations, as the JVM has nowhere else for them to go.
+By default, the name of the class is derived from the name of the file defining the functions.
+For example, functions defined in `top-level.kt` end up as static methods on a class called `Top_levelKt`.
+If you know the name of the class you can reference it from Java, and either import or directly invoke `Top_levelKt.foo()`.
+Don't like the name `Top_leveKt`?
+Then you can add a `file:JvmName` annotation to the top of the file as we'll see later.
 
-=== Kotlin Statics
+As well as top-level functions Kotlin also allows us to define properties and functions scoped to a class.
+Instead of just marking these as `static` like Java, Kotlin borrows from Scala and collects them together into a companion object.
+This groups them together, allows the collection of static methods to implement an interface, and makes everything a bit more cumbersome if we just want to define one or two static methods.
 
-Scala & Smalltalk Class objects
-Ability to implement interfaces
-Compatibility with @JvmStatic
+In general, we favour top-level functions in Kotlin.
+When referenced from Kotlin, they can be moved from file to file within a package without affecting client code.
+This flexibility is nice, as is the lack of irritating indentation and syntax associated with companion objects.
+The main exception is where we need to keep compatibility with Java, in particular as we are migrating part of a system.
+Another reason to use companion object methods is that they have access to the private state of instances of their class.
+As we use private state a lot less in Kotlin (immutable objects have less reason to hide their implementation) this is rarely useful.
+The final main use for companion objects is for factory methods, allowing us to write for example `MyType.of(...)`.
 
-=== Migrating From Static Methods to Free-Standing Functions
+Top-Level functions then should be our default in Kotlin.
+Let's look at migrating some utilities defined as static Java methods to top-level Kotlin functions.
+
+=== Migrating From Static Methods to Top-Level Functions
 
 Convert to Kotlin
 Distinguish between factories etc which might stay on companion objects and others to move to top level.
