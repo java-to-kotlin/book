@@ -87,6 +87,18 @@ The `toString` method is already a nice simple single expression.
 We said at the time though, that the amount of code required in the `parse` method added insult to the injury of having to declare static methods in a companion object.
 Maybe focusing on making it into a simple single expression would help.
 
+[WARNING]
+====
+Lots of the refactoring sequences presented in this book are of the form "here's one I prepared earlier."
+We show you the successful take.
+
+Real life refactorings, like writing code from scratch, aren't like that.
+We try things that don't work at all, or we take a much more circuitous route than we show in the final edit.
+
+As this is an otherwise small example, we've taken this opportunity to show what actually happened when we tried to convert `parse` to a single expression.
+We think that there are valuable lessons in the journey, but if you just want the destination, you should skip ahead to <<take-3>>.
+====
+
 === Take 1
 
 Let's analyse the code and see what is preventing this function from being a nice single expression.
@@ -187,7 +199,7 @@ private fun emailAddress(value: String, atIndex: Int): EmailAddress {
 Now `parse` is a single expression, but `emailAddress(...)` isn't, so let's not declare victory just yet.
 That `require` is always going to cause us some problems, as its job is to prevent evaluate proceeding, which is the opposite of an expression, which needs to evaluate to a value.
 
-Often when we reach this sort of impass when refactoring, inlining the cause of the problem will let us see the way ahead.
+Often when we reach this sort of impasse when refactoring, inlining the cause of the problem will let us see the way ahead.
 Irritatingly IntelliJ won't let us inline `require` (despite showing us its source) because it isn't part of our project.
 Let's just copy it in to our file (at the time of writing we have to remove some contracts lines):
 
@@ -362,7 +374,7 @@ Instead though, let's try reverting and trying another tack, informed by the exp
 
 === Take 2
 
-Where we only have one variable we need to replace, a `let` block gives us us a scope where the value is defined rather than having to be assigned to a local - the reason we extracted the function `emailAddress` last time we tried.
+Where we only have one variable we need to replace, a `let` block gives us a scope where the value is defined rather than having to be assigned to a local - the reason we extracted the function `emailAddress` last time we tried.
 We can get there in baby steps by first surrounding the code after the assignment with a `let`:
 
 // begin-insert: tags/multi-to-single-expression-functions.13:src/main/java/travelator/EmailAddress.kt#parse
@@ -473,6 +485,7 @@ This still seems to be a lot of code, and none of it feels like it is earning it
 Can we make this better by raising the level of abstraction?
 Let's try a third tack.
 
+[[take-3]]
 === Take 3
 
 If we step out from the mechanical refactorings, we can see that what we are doing is creating an `EmailAddress` from two non-empty strings separated by a particular character, `@` in this case.
@@ -610,19 +623,25 @@ data class EmailAddress(
 private fun String.splitAround(divider: Char): Pair<String, String> =
     lastIndexOf(divider).let { index ->
         require(index >= 1 && index != length - 1) {
-            "string must be two parts separated by $divider"
+            "string must be two non-empty parts separated by $divider"
         }
         substring(0, index) to substring(index + 1)
     }
 ----
 // end-insert
 
-`splitAround` felt like a better name with doesn't clash with the standard `String.split`, and hints that both sides of the split must be non-empty.
-If we want to promote it to a public function we should probably write some unit tests for it - we've probably sunk enough time for today, so we'll make a mental note that we have a `String.splitAround` lying around if we ever need one, and wrap this refactoring up.
+`splitAround` felt like a better name which doesn't clash with the standard `String.split`, and hints that both sides of the split must be non-empty.
+Words like around, which are unusual in identifiers, should prompt readers to suspend their assumptions about what a function does and actually look it up.
+
+While `splitAround` does feel like a generally applicable utility function, if we want to promote it to be public we should probably write some unit tests for it.
+We've probably spent enough time for today, so we'll make a mental note that we have a `String.splitAround` lying around if we ever need one, and finally commit the change.
 
 === Conclusion
 
 Defining our calculations as single expression functions lets us communicate that they are different to side-effecting actions.
 Trying to express them as a simple single expression is a useful discipline that can lead to well factored, clean code.
+
+Refactorings don't always succeed the first, or second, time we try them.
+We don't always have the luxury of repeated attempts, but the more we practice improving our communication in code, the more often we'll get there before we give up.
 
 
