@@ -607,42 +607,38 @@ In Java, we were collecting with `Collectors.toUnmodifiableList()`.
 Kotlin `filter` declares its return type as `List`, but the actual runtime type is the mutable `ArrayList`.
 Provided we never down-cast this shouldn't be an issue, especially as we are now treating our shared collections as immutable even in Java.
 
-Finally, we can make things read more nicely with a type alias to name `List<Journey>` as `Route`, and a cheeky local extension property allows us to pretend that `Route` has a `departsFrom` property.
+Here is our final code:
 
-// begin-insert: tags/java-to-kotlin-collections.12:src/main/java/travelator/Suffering.kt
+// begin-insert: tags/java-to-kotlin-collections.11:src/main/java/travelator/Suffering.kt
 [source,kotlin]
 ----
-typealias Route = List<Journey>
-
 object Suffering {
     @JvmStatic
-    fun sufferScoreFor(route: Route): Int =
-        sufferScore(
+    fun sufferScoreFor(route: List<Journey>): Int {
+        return sufferScore(
             route.longestJourneys(3),
-            route.departsFrom // <1>
+            Routes.getDepartsFrom(route)
         )
+    }
 
     @JvmStatic
-    fun Route.longestJourneys(limit: Int): Route =
+    fun List<Journey>.longestJourneys(limit: Int): List<Journey> =
         sortedByDescending { it.duration }.take(limit)
 
     @JvmStatic
-    fun routesToShowFor(itineraryId: String): List<Route> {
+    fun routesToShowFor(itineraryId: String): List<List<Journey>> {
         return bearable(routesFor(itineraryId))
     }
 
-    private fun bearable(routes: List<Route>): List<Route> =
-        routes.filter { sufferScoreFor(it) <= 10 }
-
-    private val Route.departsFrom: Location get() = Routes.getDepartsFrom(this) // <2>
+    private fun bearable(routes: List<List<Journey>>): List<List<Journey>> = routes
+        .filter { sufferScoreFor(it) <= 10 }
 }
 ----
 // end-insert
 
-<1> `List<Journey>` doesn't have `departsFrom`,
-<2> but we can pretend with a local extension property.
-
-We discuss type aliases and extension functions and properties in more detail in <<encapsulated-collections-to-typealiases>>.
+We say final, but in practice we probably wouldn't finish this refactoring at this point.
+In Kotlin we don't usually publish static methods in an object like this - we prefer top-level function definitions.
+<<static-methods-to-top-level-functions>> continues where this chapter leaves off.
 
 === Conclusion
 

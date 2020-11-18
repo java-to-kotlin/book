@@ -1,4 +1,4 @@
-[[static-methods-to-free-standing-functions]]
+[[static-methods-to-top-level-functions]]
 == Static Methods to Top Level Functions
 
 Static functions are one of the fundamental building blocks of software.
@@ -77,7 +77,7 @@ As well as top-level functions Kotlin also allows us to define properties and fu
 Instead of just marking these as `static` like Java, Kotlin borrows from Scala and collects them together into a companion object.
 This groups them together, allows the collection of static methods to implement an interface, and makes everything a bit more cumbersome if we just want to define one or two static methods.
 
-In general, we favour top-level functions in Kotlin.
+In general then, we favour top-level functions in Kotlin.
 When referenced from Kotlin, they can be moved from file to file within a package without affecting client code.
 This flexibility is nice, as is the lack of irritating indentation and syntax associated with companion objects.
 The main exception is where we need to keep compatibility with Java, in particular as we are migrating part of a system.
@@ -85,13 +85,86 @@ Another reason to use companion object methods is that they have access to the p
 As we use private state a lot less in Kotlin (immutable objects have less reason to hide their implementation) this is rarely useful.
 The final main use for companion objects is for factory methods, allowing us to write for example `MyType.of(...)`.
 
-Top-Level functions then should be our default in Kotlin.
+Top-level functions then should be our default in Kotlin.
 Let's look at migrating some utilities defined as static Java methods to top-level Kotlin functions.
 
 === Migrating From Static Methods to Top-Level Functions
 
-Convert to Kotlin
+In <<java-to-kotlin-collections>> we saw a typical collection of static functions acting on collections.
+
+// begin-insert: tags/java-to-kotlin-collections.7:src/main/java/travelator/Suffering.java
+[source,java]
+----
+public class Suffering {
+
+    public static int sufferScoreFor(List<Journey> route) {
+        return sufferScore(
+            longestJourneysIn(route, 3),
+            getDepartsFrom(route));
+    }
+
+    static List<Journey> longestJourneysIn(List<Journey> journeys, int limit) {
+        var actualLimit = Math.min(journeys.size(), limit);
+        return sorted(journeys, comparing(Journey::getDuration).reversed())
+            .subList(0, actualLimit);
+    }
+
+    public static List<List<Journey>> routesToShowFor(String itineraryId) {
+        return bearable(routesFor(itineraryId));
+    }
+
+    private static List<List<Journey>> bearable(List<List<Journey>> routes) {
+        return routes.stream()
+            .filter(route -> sufferScoreFor(route) <= 10)
+            .collect(toUnmodifiableList());
+    }
+}
+----
+// end-insert
+
+Converting this to Kotlin we ended up with:
+
+// begin-insert: tags/java-to-kotlin-collections.11:src/main/java/travelator/Suffering.kt
+[source,kotlin]
+----
+object Suffering {
+    @JvmStatic
+    fun sufferScoreFor(route: List<Journey>): Int {
+        return sufferScore(
+            route.longestJourneys(3),
+            Routes.getDepartsFrom(route)
+        )
+    }
+
+    @JvmStatic
+    fun List<Journey>.longestJourneys(limit: Int): List<Journey> =
+        sortedByDescending { it.duration }.take(limit)
+
+    @JvmStatic
+    fun routesToShowFor(itineraryId: String): List<List<Journey>> {
+        return bearable(routesFor(itineraryId))
+    }
+
+    private fun bearable(routes: List<List<Journey>>): List<List<Journey>> = routes
+        .filter { sufferScoreFor(it) <= 10 }
+}
+----
+// end-insert
+
+In <<java-to-kotlin-classes>> we saw that converting a Java class with a static method produced a Kotlin class with a companion object.
+Here we have no class, just a top-level object.
+That's because the Java in this case had no non-static methods, so we don't have to share a namespace with any instances.
+This is how we know that this is a good candidate for conversion to top-level functions.
+
+
+
+
 Distinguish between factories etc which might stay on companion objects and others to move to top level.
+
+
+
+
+
 Move to top level with @JvmName
 Can remove @JvmName when there are no Java usages.
 
