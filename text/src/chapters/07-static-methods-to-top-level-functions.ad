@@ -124,7 +124,7 @@ public class Suffering {
 
 Converting this to Kotlin we ended up with:
 
-// begin-insert: tags/java-to-kotlin-collections.11:src/main/java/travelator/Suffering.kt
+// begin-insert: tags/static-methods-to-top-level-functions.0:src/main/java/travelator/Suffering.kt
 [source,kotlin]
 ----
 object Suffering {
@@ -156,17 +156,59 @@ Here we have no class, just a top-level object.
 That's because the Java in this case had no non-static methods, so we don't have to share a namespace with any instances.
 This is how we know that this is a good candidate for conversion to top-level functions.
 
+We can't just move the functions out of the scope of the object, because they are called from Java, and Java doesn't understand top-level Kotlin functions.
+At the moment, due to the `@JvmStatic` annotations, the Java code is seeing them as static methods on a `Suffering` class.
+Here for example is some rendering code.
+
+// begin-insert: tags/static-methods-to-top-level-functions.0:src/main/java/travelator/UI.java#tableData
+[source,java]
+----
+public static List<RouteRow> tableData(List<List<Journey>> routes) {
+    return routes.stream().map( (route) ->
+        new RouteRow(route, Suffering.sufferScoreFor(route)) // <1>
+    ).collect(toList());
+}
+----
+// end-insert
+
+<1> Call to static method `Suffering.sufferScoreFor`.
+
+We can't _just_ move the methods out of the scope of the object, but we _can_ move them if we tell the Kotlin compiler that we would like it to host the top-level functions in a class called `Suffering`.
+That's the job of the `file:JvmName` annotation we mentioned earlier.
+There's no nice automated refactoring here, we just add the annotation at the top of the file, remove the `object` scope and `@JvmStatic` annotations to get:
+
+TODO - NEED TO DISPLAY PACKAGE AND IMPORTS IN THE FOLLOWING EXAMPLE
+
+// begin-insert: tags/static-methods-to-top-level-functions.1:src/main/java/travelator/Suffering.kt
+[source,kotlin]
+----
+@file:JvmName("Suffering")
 
 
+fun sufferScoreFor(route: List<Journey>): Int {
+    return sufferScore(
+        route.longestJourneys(3),
+        Routes.getDepartsFrom(route)
+    )
+}
 
-Distinguish between factories etc which might stay on companion objects and others to move to top level.
+fun List<Journey>.longestJourneys(limit: Int): List<Journey> =
+    sortedByDescending { it.duration }.take(limit)
 
+fun routesToShowFor(itineraryId: String): List<List<Journey>> {
+    return bearable(routesFor(itineraryId))
+}
 
+private fun bearable(routes: List<List<Journey>>): List<List<Journey>> = routes
+    .filter { sufferScoreFor(it) <= 10 }
+----
+// end-insert
 
+This keeps our Java happy, but irritatingly breaks any Kotlin code that was calling the methods.
+This was importing the methods as eg `import travelator.Suffering.longestJourneys`, but Kotlin can't see top-level functions that way, even though that is the class that hosts them.
+Ho hum, the fix is as easy as changing to `import travelator.longestJourneys`, or even removing the import altogether if the calling code is in the same package.
 
-
-Move to top level with @JvmName
-Can remove @JvmName when there are no Java usages.
+The `file:JvmName` annotation will see us through until all clients of the code are Kotlin, at which point we can safely remove it.
 
 === Conclusion
 
