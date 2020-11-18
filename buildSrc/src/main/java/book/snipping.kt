@@ -125,7 +125,7 @@ fun Iterable<String>.snipped(tagName: String?, kotlinVersion: String): List<Stri
     var exdent = ""
 
     fun shouldSkip(line: Text): Boolean {
-        return line.isPackageStatement()
+        return line.isPackageStatement() && tagName == null
             || line.isImportStatement() && tagName == null
             || line.isBlank() && inPreamble
     }

@@ -177,13 +177,14 @@ We can't _just_ move the methods out of the scope of the object, but we _can_ mo
 That's the job of the `file:JvmName` annotation we mentioned earlier.
 There's no nice automated refactoring here, we just add the annotation at the top of the file, remove the `object` scope and `@JvmStatic` annotations to get:
 
-TODO - NEED TO DISPLAY PACKAGE AND IMPORTS IN THE FOLLOWING EXAMPLE
-
-// begin-insert: tags/static-methods-to-top-level-functions.1:src/main/java/travelator/Suffering.kt
+// begin-insert: tags/static-methods-to-top-level-functions.1:src/main/java/travelator/Suffering.kt#foo
 [source,kotlin]
 ----
 @file:JvmName("Suffering")
+package travelator
 
+import travelator.Other.routesFor;
+import travelator.Other.sufferScore;
 
 fun sufferScoreFor(route: List<Journey>): Int {
     return sufferScore(
