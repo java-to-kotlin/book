@@ -636,6 +636,15 @@ Words like around, which are unusual in identifiers, should prompt readers to su
 While `splitAroundLast` does feel like a generally applicable utility function, if we want to promote it to be public we should probably write some unit tests for it.
 We've probably spent enough time for today, so we'll make a mental note that we have a `String.splitAroundLast` lying around if we ever need one, and finally commit the change.
 
+.What Should Parse Return?
+****
+Before we leave this example, we should observe that this refactoring would have been easier had `parse` not thrown an exception on error.
+`throw` is a statement and so doesn't sit well when we are trying to decompose into expressions.
+<<exceptions-to-errors>> talks about this in detail, but had we written `EmailAddress` from scratch in Kotlin we would probably have returned `EmailAddress?` from `parse`, and null on failure.
+That doesn't sit well with Java clients, where the type system doesn't warn about nullability.
+So we would probably end up with two parsing methods, one for legacy code and one for Kotlin, removing the exception version when there were no Java clients left.
+****
+
 === Conclusion
 
 Defining our calculations as single expression functions lets us communicate that they are different to side-effecting actions.
@@ -643,5 +652,7 @@ Trying to express them as a simple single expression is a useful discipline that
 
 Refactorings don't always succeed the first, or second, time we try them.
 We don't always have the luxury of repeated attempts, but the more we practice improving our communication in code, the more often we'll get there before we give up.
+
+
 
 

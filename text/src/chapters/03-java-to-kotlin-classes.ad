@@ -69,8 +69,8 @@ This class is very simple -- it does nothing more than wrap two strings and prov
 Even so, it has a lot of code:
 
 <1> Values are immutable, so the class declares its fields as final.
-<2> There is a static factory method to `parse` and `EmailAddress` from a string - this calls the primary constructor.
-<3> The fields are initialised in a primary constructor.
+<2> There is a static factory method to `parse` an `EmailAddress` from a string - this calls the primary constructor.
+<3> The fields are initialised in a constructor.
 <4> The accessor methods of its properties follow the Java Bean naming conventions.
 <5> The class implements the `equals` and `hashCode` methods to ensure that two `EmailAddress` values with equal fields compare as equal.
 <6> `toString` returns the canonical form.
@@ -82,10 +82,10 @@ Happily our IDE generated the `equals` and `hashCode` methods for us, but we hav
 
 So much for the Java; we're here for the Kotlin.
 How do we convert?
-Helpfully IntelliJ has an action - "Convert Java file to Kotlin File" (at the time of writing).
+Helpfully IntelliJ has an action called "Convert Java file to Kotlin File".
 Let's invoke it.
 IntelliJ now offers to change other files if necessary to keep things consistent.
-As this can potentially modify files throughout the project, its best to say yes, but only when you have no uncommitted changes, so that it's easy to see what else has been changed.
+As conversion can potentially modify files throughout the project, its best to say yes, but only when you have no uncommitted changes, so that it's easy to see what else has been changed.
 
 In this case IntelliJ doesn't have to change any other files.
 It has though replaced our `EmailAddress.java` file with `EmailAddress.kt` in the same directory:
@@ -236,7 +236,7 @@ public class EmailAddressTests {
 ----
 // end-insert
 
-The companion object combined with the `@JVMStatic` annotation, mean this didn't have to change when we converted to Kotlin, so we'll leave `parse` as it is for now.
+The companion object combined with the `@JVMStatic` annotation, mean this didn't have to change when we converted the class to Kotlin, so we'll leave `parse` as it is for now.
 We'll discuss how to refactor to top-level functions in <<static-methods-to-top-level-functions>>.
 
 If you're new to Kotlin you may wonder what happened to the `getLocalPart()` and `getDomain()` accessor methods.
@@ -256,7 +256,7 @@ public class Marketing {
 // end-insert
 
 You can see that Java is accessing the domain property through the `getDomain()` method.
-Inversely, when the class was Java and had an explicit `getDomain()` method, Kotlin code could have called it as `address.domain`.
+Conversely, when the class was Java and had an explicit `getDomain()` method, Kotlin code could have called it as `address.domain`.
 We'll discuss properties in more detail in <<methods-to-properties>>.
 
 So far converting our class to Kotlin has saved us 10 or so lines of code, but we aren't done yet.
