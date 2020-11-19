@@ -614,13 +614,13 @@ data class EmailAddress(
     companion object {
         @JvmStatic
         fun parse(value: String): EmailAddress =
-            value.splitAround('@').let { (leftPart, rightPart) ->
+            value.splitAroundLast('@').let { (leftPart, rightPart) ->
                 EmailAddress(leftPart, rightPart)
             }
     }
 }
 
-private fun String.splitAround(divider: Char): Pair<String, String> =
+private fun String.splitAroundLast(divider: Char): Pair<String, String> =
     lastIndexOf(divider).let { index ->
         require(index >= 1 && index != length - 1) {
             "string must be two non-empty parts separated by $divider"
@@ -630,11 +630,11 @@ private fun String.splitAround(divider: Char): Pair<String, String> =
 ----
 // end-insert
 
-`splitAround` felt like a better name which doesn't clash with the standard `String.split`, and hints that both sides of the split must be non-empty.
+`splitAroundLast` felt like a better name which doesn't clash with the standard `String.split`, and hints that both sides of the split must be non-empty.
 Words like around, which are unusual in identifiers, should prompt readers to suspend their assumptions about what a function does and actually look it up.
 
-While `splitAround` does feel like a generally applicable utility function, if we want to promote it to be public we should probably write some unit tests for it.
-We've probably spent enough time for today, so we'll make a mental note that we have a `String.splitAround` lying around if we ever need one, and finally commit the change.
+While `splitAroundLast` does feel like a generally applicable utility function, if we want to promote it to be public we should probably write some unit tests for it.
+We've probably spent enough time for today, so we'll make a mental note that we have a `String.splitAroundLast` lying around if we ever need one, and finally commit the change.
 
 === Conclusion
 
