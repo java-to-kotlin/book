@@ -93,14 +93,14 @@ If we wrote this logic in Java we would have to implement it imperatively, with 
 // begin-insert: tags/collections.1:src/main/java/travelator/itinerary/Route.java#imperative_algorithm
 [source,java]
 ----
-public List<Interchange> requiredStays() {
+public List<Interchange> requiredAccommodation() {
     var results = new ArrayList<Interchange>();
 
     for (int i = 1; i < journeys.size(); i++) {
         var interchange =
             Interchange.between(journeys.get(i - 1), journeys.get(i));
 
-        if (interchange.isStayRequired()) {
+        if (interchange.isAccommodationRequired()) {
             results.add(interchange);
         }
     }
@@ -116,11 +116,11 @@ We can write the logic as a concise pipeline of transformations where each phase
 // begin-insert: tags/collections.5:src/main/java/travelator/itinerary/Route.kt#declarative_algorithm
 [source,kotlin]
 ----
-fun requiredStays() =
+fun requiredAccommodation() =
     journeys
         .windowed(2)
         .map { (j1, j2) -> Interchange.between(j1, j2) }
-        .filter { it.isStayRequired }
+        .filter { it.isAccommodationRequired }
 ----
 // end-insert
 
@@ -225,11 +225,11 @@ class Route(private val journeys: List<Journey>) {
             journeys.last().arrivalTime
         )
 
-    fun requiredStays() =
+    fun requiredAccommodation() =
         journeys
             .windowed(2)
             .map { (j1, j2) -> Interchange.between(j1, j2) }
-            .filter { it.isStayRequired }
+            .filter { it.isAccommodationRequired }
 
     ...
 }
@@ -276,14 +276,14 @@ val Route.duration
 ----
 // end-insert
 
-// begin-insert: tags/collections.7:src/main/java/travelator/rooms/Route_RequiredStays.kt
+// begin-insert: tags/collections.7:src/main/java/travelator/rooms/Route_RequiredAccommodation.kt
 [source,kotlin]
 ----
-fun Route.requiredStays() =
+fun Route.requiredAccommodation() =
     journeys
         .windowed(2)
         .map { (j1, j2) -> Interchange.between(j1, j2) }
-        .filter { it.isStayRequired }
+        .filter { it.isAccommodationRequired }
 ----
 // end-insert
 
@@ -409,13 +409,13 @@ val Route.duration
 ----
 // end-insert
 
-// begin-insert: tags/collections.13:src/main/java/travelator/rooms/Route_RequiredStays.kt
+// begin-insert: tags/collections.13:src/main/java/travelator/rooms/Route_RequiredAccommodation.kt
 [source,kotlin]
 ----
-fun Route.requiredStays() =
+fun Route.requiredAccommodation() =
     this.windowed(2)
         .map { (j1, j2) -> Interchange.between(j1, j2) }
-        .filter { it.isStayRequired }
+        .filter { it.isAccommodationRequired }
 ----
 // end-insert
 
