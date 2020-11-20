@@ -154,10 +154,12 @@ The primary constructor syntax is convenient, but it does interfere with the "sc
 Java classes that follow the standard coding conventions always define their elements in the same order: class name, superclass, interfaces, then within the class body, fields, constructors, and methods.
 This makes it easy to skim-read the class and quickly locate the features you're interested in.
 
-It's not quite so easy in Kotlin: a class definition is organised thus: class name, primary constructor (which can contain parameters and/or property definitions), superclass (which may also be the call to the superclass' constructor), interfaces, then within the class body, more properties, more constructors, methods, and companion objects.
-Coming from Java, Nat and Duncan definitely found it harder to read classes at first, and although we got used to it eventually, we still find it hard at times to neatly format classes that have a primary constructor, a superclass, several interfaces, and properties that are defined outside the primary constructor.
+It's not quite so easy to find the parts of a Kotlin class.
+A Kotlin class definition has a header part with the class name, primary constructor (which can contain parameters and/or property definitions), superclass (which may also be the call to the superclass' constructor) and interfaces
+Then within the class body, there are more properties, more constructors, methods, and companion objects.
 
-One easy change is to lay out the constructor parameter list line by line.
+Coming from Java, Nat and Duncan definitely found it harder to read classes at first, and although we got used to it eventually, we still find it hard at times to format classes for maximum readability, especially if there is a lot going on in the header part.
+One easy fix is to lay out the constructor parameter list line by line.
 With the cursor inside the parameter list, we can do that with Alt-Enter and "Put parameters on separate lines".
 Sometimes a blank line after the header part helps too.
 
@@ -201,8 +203,10 @@ class EmailAddress(
 ----
 // end-insert
 
-One place where Kotlin is noticeably less succinct than Java is the use of companion objects to house static state and methods - in this case `parse()`.
-Kotlin prefers top-level state and functions to these class-scoped members, although they are still compiled into classes, because all code in the JVM needs to belong to a class.
+One place where Kotlin is noticeably less succinct than Java is that it uses companion objects to house static state and methods - in this case `parse()`.
+In Kotlin we prefer top-level state and functions to these class-scoped members.
+<<static-methods-to-top-level-functions>> discusses the pros and cons.
+
 We currently have Java code that uses the static method, for example the tests:
 
 // begin-insert: tags/java-to-kotlin-classes.0:src/test/java/travelator/EmailAddressTests.java#foo
@@ -236,7 +240,7 @@ public class EmailAddressTests {
 ----
 // end-insert
 
-The companion object combined with the `@JVMStatic` annotation, mean this didn't have to change when we converted the class to Kotlin, so we'll leave `parse` as it is for now.
+The companion object, combined with the `@JVMStatic` annotation, means this didn't have to change when we converted the class to Kotlin, so we'll leave `parse` as it is for now.
 We'll discuss how to refactor to top-level functions in <<static-methods-to-top-level-functions>>.
 
 If you're new to Kotlin you may wonder what happened to the `getLocalPart()` and `getDomain()` accessor methods.

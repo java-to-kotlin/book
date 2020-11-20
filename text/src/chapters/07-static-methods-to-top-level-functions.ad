@@ -14,7 +14,7 @@ Methods are also per-instance, in that they have access to the state of the inst
 If we mark fields as `static` though, they are shared between all instances of the class.
 Static methods only have access to this shared state (and public static fields in other classes), but in return for this restriction we can invoke them without needing an instance of the class.
 
-The Java designers made the decision to have all code and data tied to classes in order to simplify the language.
+To simplify the language, the Java designers made the decision to have all code and data tied to classes.
 We have class-scoped static state, so we need class-scoped static methods.
 They could have added free-standing data and functions, but static fields and methods will do.
 If the language had options, then developers would have to choose between them, and less choice is often better.
@@ -30,7 +30,7 @@ That's because it's very difficult to isolate one test from another when they ar
 (Note that state here refers to mutable data. Immutable data is less of an issue.)
 
 So we learned to keep otherwise-static state in object fields and used dependency injection to arrange for there to be one shared instance of the object in our application.
-When we say "dependency injection" here your authors mean "passing an object to a constructor", but Spring will also do.
+When we say "dependency injection" here your authors mean "passing an object to a constructor", rather than the use of a framework.
 
 For the rest of this chapter we restrict our examination to static methods rather than fields, but many of the same discussions and techniques also apply to the latter.
 ****
@@ -53,7 +53,8 @@ Static functions are useful when want to add functionality _without_ adding a (n
 This might be because our classes are already sagging under the weight of all the methods that we have already added to them, or it might be because we don't own the class and so can't add the method to it.
 
 Over time, we began to appreciate the advantages of using standard interfaces, like the Java collections, instead of working with our own abstractions.
-It's no accident then that the Java release that allowed us to use collections this way, Java 5, also brought the ability to `import static java.util.Collections.max` so that we could then write:
+Java 5 (with its generics) was the first release that allowed us to use collections directly, rather than wrapping them with our own classes.
+It's no accident then that Java 5 also brought the ability to `import static java.util.Collections.max` so that we could then write:
 
 // begin-insert: src/main/java/topLevelFunctions/TopLevel.java#importedMax
 [source,java]
@@ -62,7 +63,7 @@ var m = max(list);
 ----
 // end-insert
 
-Because the JVM only really supports static methods rather than true top-level functions this is only really a convenience provided by the compiler.
+Because the JVM only supports static methods rather than true top-level functions this is really only  a convenience provided by the compiler.
 For the same reason, while Kotlin does have top-level functions, they too are implemented as static methods when running on the JVM.
 
 === Kotlin Top-Level Functions, Objects and Companion Objects
@@ -72,8 +73,7 @@ In this case the compiler creates a class declaration with static members for th
 By default, it derives the name of the class from the name of the file defining the functions.
 For example, functions defined in `top-level.kt` end up as static methods on a class called `Top_levelKt`.
 If we know the name of the class we can reference it from Java, and either static import or directly invoke `Top_levelKt.foo()`.
-Don't like the name `Top_leveKt`?
-Then we can add a `file:JvmName` annotation to the top of the file as we'll see later.
+If we don't like the name `Top_levelKt`, then we can add a `file:JvmName` annotation to the top of the file as we'll see later.
 
 As well as these top-level functions, Kotlin also allows us to define properties and functions scoped to a class like Java.
 Instead of just marking these as `static`, Kotlin borrows from Scala and collects them together into `object` declarations, where there is only one instance of each object.
@@ -161,7 +161,7 @@ object Suffering {
 In <<java-to-kotlin-classes>>, we saw that converting a Java class with static and non-static methods produced a Kotlin class with a companion object.
 Here we have no class, just a top-level object.
 That's because the Java in this case had no non-static methods, so they don't have to share a namespace with any instances.
-This is a good indication that this is a candidate for conversion to top-level functions.
+Had the conversion instead produced a class with a companion object, that would have been a sign that this is a less suitable candidate for conversion to top-level functions.
 
 We can't just move the functions out of the scope of the object, because they are called from Java, and Java doesn't understand top-level Kotlin functions.
 At the moment, due to the `@JvmStatic` annotations, the Java code is seeing them as static methods on a `Suffering` class.
@@ -182,7 +182,8 @@ public static List<RouteRow> tableData(List<List<Journey>> routes) {
 
 We can't _just_ move the methods out of the scope of the object, but we _can_ move them if we tell the Kotlin compiler that we would like it to host the top-level functions in a class called `Suffering`.
 That's the job of the `file:JvmName` annotation we mentioned earlier.
-There's no nice automated refactoring here, we have to manually add the annotation at the top of the file, and remove the `object` scope and `@JvmStatic` annotations to get:
+There's no nice automated refactoring here.
+We have to manually add the annotation at the top of the file, and remove the `object` scope and `@JvmStatic` annotations to get:
 
 // begin-insert: tags/static-methods-to-top-level-functions.1:src/main/java/travelator/Suffering.kt#foo
 [source,kotlin]
@@ -213,7 +214,7 @@ private fun bearable(routes: List<List<Journey>>): List<List<Journey>> = routes
 // end-insert
 
 This keeps our Java happy, but irritatingly breaks Kotlin code that was calling the methods.
-This was importing the methods as eg `import travelator.Suffering.longestJourneys`, but Kotlin can't see top-level functions that way, even though that is the class hosting them.
+This was importing the methods as, for example `import travelator.Suffering.longestJourneys`, but Kotlin can't see top-level functions that way, even though that is the class hosting them.
 Ho hum, the fix is as easy as changing to `import travelator.longestJourneys`, or even removing the import altogether if the calling code is in the same package.
 
 Now we have top-level functions that we can call from Java and Kotlin.
@@ -224,15 +225,14 @@ That's also the easiest technique if you're writing new Java code that needs to 
 .Moving Top-Level Functions
 [WARNING]
 ====
-We are able to move a Kotlin top-level function between files within a package without changing the Kotlin source that calls it.
+We can move a Kotlin top-level function between files within a package without changing the Kotlin source that calls it.
 But, unless we use a `file:@JvmName` annotation to fix things, a move will change the host class file, the name of which is compiled into the client code.
 If we publish Kotlin library code in a jar file, all is fine provided we compile against the same version of the library as we run against.
 
 Unfortunately, build systems have to pick one version of each library from the set of versions declared by all dependencies.
 This can lead to running code compiled against one library version running against a newer version.
 If this happens, and a called top-level function has moved, we can get `NoSuchMethodError` thrown at runtime.
-
-In practice your authors have not seen this issue, but take care if you are publishing top-level functions in a library.
+None of our tests or example code will have had to change to warn us about the breakage - we just have to take extra care if we move top-level functions published in a library.
 ====
 
 === Conclusion
@@ -242,4 +242,4 @@ In Java these have to be static methods on a class, but in Kotlin we can and sho
 Converting Java to Kotlin will instead create `object` declarations, but these are easily converted.
 
 You may have noticed that we glossed over whether the function `fun List<Journey>.longestJourneys(limit)` is a top-level function, or an extension function.
-As we can define extension functions in other scopes, let's call it a top-level extension function, and call forward to <<functions-to-extension-functions>> for more discussion.
+As we can define extension functions in other scopes, let's call it a top-level extension function. See <<functions-to-extension-functions>> for more discussion.
