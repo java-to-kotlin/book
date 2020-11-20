@@ -12,18 +12,14 @@ known_failures_dir=$(realpath buildSrc/known-failures/$kotlin_version)
 working_dir=$(realpath build/testing-history)
 cached_dir=$(realpath build/testing-history-cached)
 
-if [ ! -d "$working_dir" ]
-then
-  git worktree prune
-  mkdir -p "$working_dir"
-  (cd ../refactoring-to-kotlin-code && git worktree add --detach "$working_dir")
-fi
-
+rm -rf "$working_dir"
+mkdir -p "$working_dir"
+(cd ../refactoring-to-kotlin-code && git worktree prune && git worktree add --force --detach "$working_dir")
 mkdir -p "$cached_dir"
 
 cd "$working_dir"
 
-rm -f *.log
+rm -f ./*.log
 
 result=0
 
