@@ -27,11 +27,11 @@ Each journey in a route is a service provided by an operator, via some mode of t
 Our routing service finds several possible routes, and our travellers can compare them by cost, duration, and so on, to choose the route they prefer.
 
 The journeys along a route do not always have a convenient interchange between them.
-Some services run only once a day, or once a week, so our travellers want to know when they will have to book somewhere to stay between the end of one journey and the start of the next.
+Some services run only once a day, or once a week, so our travellers want to know when they will have to book accommodation between the end of one journey and the start of the next.
 This will let us improve the cost estimate for a route, because we can suggest places to stay and include the cost in the overall cost of the route.
 We can make the feature earn its keep by booking their preferred choices and earning a commission.
 
-Fundamental to this feature is the ability to find every interchange in a Route where the traveller will need to find somewhere to stay.
+Fundamental to this feature is the ability to find every interchange in a Route where the traveller will need accommodation.
 Currently, our Route class does not have that capability.
 How best to add it?
 
@@ -84,7 +84,7 @@ public class Route {
 <4> The `Route` class implements application logic that uses the contents of the encapsulated list.
     We will add another operation to report any accommodation required along the route.
 
-To calculate the interchanges that require a stay, we will map every two contiguous Journeys in the Route to an Interchange between the end of the first journey and the start of the second, and filter the Interchanges to select only those that require one or more overnight stays.
+To calculate the interchanges that require accommodation, we will map every two contiguous Journeys in the Route to an Interchange between the end of the first journey and the start of the second, and filter the Interchanges to select only those that require one or more overnight stays.
 
 In Java, neither the collection nor stream API provides an operation to return all the contiguous pairs of a collection.
 If we wrote this logic in Java we would have to implement it imperatively, with a for loop and mutable list, like this:
@@ -201,7 +201,7 @@ val duration
 ----
 // end-insert
 
-We are now ready to add the `requiredStays` method to our Kotlin class.
+We are now ready to add the `requiredAccommodation` method to our Kotlin class.
 That leaves the Route class as:
 
 // begin-insert: tags/collections.5:src/main/java/travelator/itinerary/Route.kt#route
