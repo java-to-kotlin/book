@@ -1,7 +1,7 @@
 [[accumulating-objects-to-transformations]]
 == Accumulating Objects to Transformations
 
-Java programs usually rely heavily on mutable state, because it is so arduous in Java to define value types and  transform values, even with the Streams API.
+Java programs usually rely heavily on mutable state, because it is so arduous in Java to define value types and transform values, even with the Streams API.
 How can we translate Java code that relies upon mutable objects and side effects to Kotlin code that transforms immutable values?
 
 === Calculating with Accumulator Parameters
@@ -21,9 +21,9 @@ It is used it like this:
 // begin-insert: tags/accumulator.0:src/test/java/travelator/itinerary/Itinerary_CostTest.kt#calculation
 [source,kotlin]
 ----
-val fx: ExchangeRates = /// note: [...]
+val fx: ExchangeRates = ...
 
-val userCurrency = /// note: [...]
+val userCurrency = ...
 
 val calculator = CostSummaryCalculator(userCurrency, fx) // <1>
 
@@ -46,18 +46,24 @@ We implemented the `Itinerary.addCostsTo` method as follows:
 ----
 data class Itinerary(
     val route: Route,
-    val stays: List<Stay> = emptyList()
+    val accommodations: List<Accommodation> = emptyList()
 ) {
     ...
 
     fun addCostsTo(calculator: CostSummaryCalculator) {
         route.addCostsTo(calculator)
-        for (stay in stays) {
-            calculator.addCost(stay.price)
-        }
+        accommodations.addCostsTo(calculator)
     }
 
     ...
+}
+
+...
+
+fun Iterable<Accommodation>.addCostsTo(calculator: CostSummaryCalculator) {
+    forEach { a ->
+        calculator.addCost(a.totalPrice)
+    }
 }
 ----
 // end-insert
@@ -414,13 +420,15 @@ And we'll report the costs from our domain models like this:
 ----
 data class Itinerary(
     val route: Route,
-    val stays: List<Stay> = emptyList()
+    val accommodations: List<Accommodation> = emptyList()
 ) {
 
     fun costs() =
-        route.costs() + stays.map { it.price }
+        route.costs() + accommodations.costs()
 
 }
+
+fun Iterable<Accommodation>.costs() = map { it.totalPrice }
 ----
 // end-insert
 
