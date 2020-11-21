@@ -38,8 +38,7 @@ fun costSummary(i: Itinerary): CostSummary {
 <2> This tells the Itinerary to add its costs to the calculator.  In response, the Itinerary adds the cost of its elements: the journeys along the route, accommodation, and other services the traveller plans to pay for.
 <3> This calls the calculator's `summarise` method to obtain the `CostSummary`, after all the costs have been collected.
 
-
-We implemented the `Itinerary.addCostsTo` method as follows:
+Converting our Itinerary class to Kotlin leaves us with an implementation of `addCosts` that still has a Java flavour:
 
 // begin-insert: tags/accumulator.0:src/main/java/travelator/itinerary/Itinerary.kt#costs
 [source,kotlin]
@@ -69,11 +68,10 @@ fun Iterable<Accommodation>.addCostsTo(calculator: CostSummaryCalculator) {
 The logic relies upon side effects to accumulate costs in the mutable state of the `CostSummaryCalculator`.
 
 The benefit of this approach is that we can use the calculator to summarise the costs of any object in our domain model without knowing the structure of that object.
-The object is responsible for adding costs to the calculator or passing the calculator to its sub-objects.
+The object is responsible for adding costs to the calculator and passing the calculator to its sub-objects so that they can add _their_ costs.
 This decouples the code that asks for the costs from the code that provides the costs, allowing us to evolve them independently.
 
-For example, a Route contains Journeys that each have a cost, but the Itinerary doesn't know or care how the Route is structured or how to collect the costs of those Journeys.  That is encapsulated by the `Route` class.
-
+For example, a Route contains Journeys that each have a cost, and Accommodation has a room rate, a number of nights, and additional costs such as meals and hotel services.  The Itinerary doesn't know or care how these objects are structured or how to collect their respective costs:  that is encapsulated in the `Route` and `Accomodation` classes.
 
 However, our use of mutable state has two significant disadvantages.
 
