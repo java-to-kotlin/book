@@ -282,7 +282,7 @@ class CostSummary(userCurrency: Currency) {
 // end-insert
 
 Now we can change the `CostSummaryCalculator.summarise` method to call the new constructor, thereby treating the `CostSummary` class as if it was an immutable value type.
-While we are about it, we'll sort the totals by currency code with Kotlin's `List.sortedBy` function, instead of a mutable ArrayList and Java's in-place sort.
+While we are about it, we'll sort the totals by currency code with Kotlin's `List.sortedBy` function, instead of applying Java's in-place sort to a mutable ArrayList.
 
 // begin-insert: tags/accumulator.2:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise
 [source,kotlin]
@@ -411,17 +411,19 @@ fun costSummary(i: Itinerary) =
 
 And we'll report the costs from our domain models like this:
 
-// begin-insert: tags/accumulator.8:src/main/java/travelator/itinerary/Itinerary.kt
+// begin-insert: tags/accumulator.8:src/main/java/travelator/itinerary/Itinerary.kt#costs
 [source,kotlin]
 ----
 data class Itinerary(
     val route: Route,
     val accommodations: List<Accommodation> = emptyList()
 ) {
+    ...
 
     fun costs() =
         route.costs() + accommodations.costs()
 
+    ...
 }
 
 fun Iterable<Accommodation>.costs() =
