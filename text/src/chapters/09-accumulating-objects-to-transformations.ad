@@ -58,11 +58,9 @@ data class Itinerary(
     ...
 }
 
-...
-
 fun Iterable<Accommodation>.addCostsTo(calculator: CostSummaryCalculator) {
     forEach { a ->
-        calculator.addCost(a.totalPrice)
+        a.addCostsTo(calculator)
     }
 }
 ----
@@ -428,7 +426,8 @@ data class Itinerary(
 
 }
 
-fun Iterable<Accommodation>.costs() = map { it.totalPrice }
+fun Iterable<Accommodation>.costs() =
+    flatMap { it.costs() }
 ----
 // end-insert
 
