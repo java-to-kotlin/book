@@ -41,13 +41,15 @@ fun costSummary(i: Itinerary): CostSummary {
 
 We implemented the `Itinerary.addCostsTo` method as follows:
 
-// begin-insert: tags/accumulator.0:src/main/java/travelator/itinerary/Itinerary.kt
+// begin-insert: tags/accumulator.0:src/main/java/travelator/itinerary/Itinerary.kt#costs
 [source,kotlin]
 ----
 data class Itinerary(
     val route: Route,
     val stays: List<Stay> = emptyList()
 ) {
+    ...
+
     fun addCostsTo(calculator: CostSummaryCalculator) {
         route.addCostsTo(calculator)
         for (stay in stays) {
@@ -55,6 +57,7 @@ data class Itinerary(
         }
     }
 
+    ...
 }
 ----
 // end-insert
@@ -413,8 +416,10 @@ data class Itinerary(
     val route: Route,
     val stays: List<Stay> = emptyList()
 ) {
+
     fun costs() =
         route.costs() + stays.map { it.price }
+
 }
 ----
 // end-insert
