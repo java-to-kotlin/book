@@ -651,7 +651,6 @@ interface Customers {
     @Throws(DuplicateException::class)
     fun add(name: String, email: String): Customer
 
-    @JvmDefault // <1>
     fun addToo(name:String, email:String)
         : Result<Customer, DuplicateException> =
         try {
@@ -665,20 +664,6 @@ interface Customers {
 ----
 // end-insert
 
-<1> This annotation tells the compiler to generate Java-compatible default methods.
-We wouldn't have had to do this had we left `Customers` in Java -
-we live and learn.
-You have to tell the compiler how to implement `@JVMDefault` with a compiler switch.
-
-// begin-insert: tags/errors.5:build.gradle#foo
-[source,groovy]
-----
-compileKotlin {
-    kotlinOptions.jvmTarget = "1.8"
-    kotlinOptions.freeCompilerArgs = ['-Xjvm-default=compatibility']
-}
-----
-// end-insert
 
 .Naming
 ****
