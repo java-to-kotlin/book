@@ -1,4 +1,8 @@
-= Encapsulation
+== Classes to Closures
+
+We can hide encapsulate information in both functional and object-oriented programming paradigms.
+OO encapsulation is very much the grain of Java, but things are a lot more fluid in Kotlin.
+What advantages does functional encapsulation have, and how can the two interoperate in and between Java and Kotlin?
 
 Imagine, if you can, that you need to send email from some code that you are writing.
 Just that - not receive mail, or list sent messages - just fire and forget.
@@ -52,7 +56,7 @@ Everywhere we want to send email has to know about this petty configuration - we
 Solving that problem by hiding the details in global variables works fine until we discover that every run of the unit test suite now is sending 5 emails!
 There must be a better way of hiding these petty details.
 
-== Object Oriented Encapsulation
+=== Object Oriented Encapsulation
 
 Object oriented languages have a ready-made solution to this problem - objects can encapsulate the data.
 
@@ -172,7 +176,7 @@ fun createEmailSender(
 ----
 // end-insert
 
-== Functional Encapsulation
+=== Functional Encapsulation
 
 Having seen how an OO programmer solves the problem of encapsulating pesky details so clients don't have to remember them, how would a functional programmer approach the same problem?
 
@@ -310,7 +314,7 @@ fun sendDistress(sender: (Email) -> Unit) {
 In the unlikely event that you're joining us from JavaScript, or Clojure, the functional form will be much more familiar.
 But if you came to Kotlin from Java, this solution probably feels quite alien.
 
-== What About Java Then?
+=== What About Java Then?
 
 Both the object and functional forms have allowed us to encapsulate things (in this case configuration, but it could equally well have been collaborators)
 to transport them from the place where they are known to the place where they are used.
@@ -412,7 +416,7 @@ sendDistress(sender) // <3>
 <2> We can convert with a lambda.
 <3> Kotlin will convert parameters automatically.
 
-== Implementors and Clients
+=== Implementors and Clients
 
 There are two sides to an abstraction, the client code that uses it, and the implementing code.
 So far, both client and implementor have either been object-oriented (where fields carry the information), or functional (where a function closes over the information).
@@ -610,7 +614,7 @@ val sender = ISendEmail { function(it) }
 ----
 // end-insert
 
-== Comparing the Approaches
+=== Comparing the Approaches
 
 Let's remind ourselves of the OO approach
 
@@ -741,7 +745,7 @@ fun sendDistress(sender: EmailSystem) {
 
 Here we have an example of code that reads the same, but generates very different, and fundamentally incompatible, bytecode.
 
-== OO or Functional?
+=== OO or Functional?
 
 Both the OO and functional approaches can achieve the same goals, and with similar levels of expressiveness.
 Which should we choose?
@@ -771,6 +775,8 @@ These things are certainly possible in a functional implementation, but OO was d
 TLDR;
 
 The functional approach is a little more flexible while the OO approach is more explicit.
+
+TODO - refactoring from classes to closures
 
 
 
