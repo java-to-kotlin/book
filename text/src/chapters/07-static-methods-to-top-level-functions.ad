@@ -27,7 +27,7 @@ We wrote singletons, and argued about how to initialise them in a lazy but safe 
 We used static fields to implement per-class caches of instances.
 Then the new millennium fad for testing code all-but killed static state.
 That's because it's very difficult to isolate one test from another when they are coupled by state, and very hard to uncouple them when that state is static and so shared between all tests in a JVM.
-(Note that state here refers to mutable data. Immutable data is less of an issue.)
+(Note that _state_ here refers to mutable data. Immutable data is less of an issue.)
 
 So we learned to keep otherwise-static state in object fields and used dependency injection to arrange for there to be one shared instance of the object in our application.
 When we say "dependency injection" here your authors mean "passing an object to a constructor", rather than the use of a framework.
@@ -76,16 +76,18 @@ If we know the name of the class we can reference it from Java, and either stati
 If we don't like the name `Top_levelKt`, then we can add a `file:JvmName` annotation to the top of the file as we'll see later.
 
 As well as these top-level functions, Kotlin also allows us to define properties and functions scoped to a class like Java.
-Instead of just marking these as `static`, Kotlin borrows from Scala and collects them together into `object` declarations, where there is only one instance of each object.
+Instead of just marking these as `static`, Kotlin borrows from Scala and collects them together into `object` declarations.
+`object` declarations define singletons - there is only one instance of each type.
 All the members of an `object` will be compiled to members of a class with the same name as the object.
 They won't actually be static methods unless specifically marked with an `@JvmStatic` though.
 This is because Kotlin allows objects to extend other types, and that's incompatible with static declarations.
 
 Where we need to group static and non-static members in the same class, we declare the static parts in a `companion object` inside the (otherwise non-static) class declaration.
-This groups them in the file, allows the collection of static methods to implement an interface, and makes everything just a bit too cumbersome if we just want to define one or two static methods.
+This groups them in the file, allows the collection of static methods to implement an interface, and code in a `companion object` is able to access private state in instances of its containing class.
+It also makes everything just a bit too cumbersome if we just want to define one or two static methods.
 
 All things being equal, in Kotlin we favour top-level functions over methods on an `object`.
-When referenced from Kotlin, top-level declarations can be moved from file to file within a package without affecting client code (but see <<moving-top-level-functions>>.
+When referenced from Kotlin, top-level declarations can be moved from file to file within a package without affecting client code (but see the caveat in <<moving-top-level-functions>>.
 This flexibility is nice, as is the lack of irritating indentation associated with objects.
 We will use an `object` instead of top-level functions where we need the ability to implement an interface.
 We have no choice but to use a `companion object` when we need to mix static and non-static behaviour within a class.
@@ -93,7 +95,7 @@ This happens largely for factory methods, allowing us to write for example `MyTy
 
 === Migrating From Static Methods to Top-Level Functions
 
-While we default to using top-level functions when writing Kotlin code from scratch, the Java to Kotlin conversion build into IntelliJ doesn't create top-level functions.
+While we prefer to use top-level declarations where we possible when writing Kotlin code from scratch, the Java to Kotlin conversion built into IntelliJ doesn't.
 It converts our Java statics into object methods.
 Let's see how to refactor from Java, through object declarations, to top-level functions.
 
