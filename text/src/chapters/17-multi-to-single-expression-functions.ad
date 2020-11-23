@@ -1,8 +1,8 @@
 [[multi-to-single-expression-functions]]
-== Multi to Single Expression Functions
+== Multi to Single-Expression Functions
 
 Duncan in particular loves Kotlin's single-expression function definitions.
-When should we use this form, why might we prefer it, and what Kotlin features can we use to make more functions single expressions?
+When should we use this form, why might we prefer it, and what Kotlin features can we use to make more functions single-expressions?
 
 As with Java, the code in a Kotlin function is usually {defined inside braces} and with one or more `return` statements defining the result (unless `void`/`Unit`).
 
@@ -15,7 +15,7 @@ fun add(a: Int, b: Int): Int {
 ----
 // end-insert
 
-If the top-level of the code is a single expression though, we can optionally drop the result type, and define the code with an `=` and the expression.
+If the top-level of the code is a single-expression though, we can optionally drop the result type, and define the code with an `=` and the expression.
 
 // begin-insert: src/main/kotlin/single_expression_functions/functions.kt#addToo
 [source,kotlin]
@@ -25,7 +25,7 @@ fun addToo(a: Int, b: Int): Int = a + b
 // end-insert
 
 This is nice to read - it's saying the function `add` equals `a + b`.
-Which makes sense for a single expression, but can also read nicely when that expresion is itself composed of sub-expressions.
+Which makes sense for a single-expression, but can also read nicely when that expresion is itself composed of sub-expressions.
 
 // begin-insert: src/main/kotlin/single_expression_functions/functions.kt#max
 [source,kotlin]
@@ -47,11 +47,11 @@ fun printTwice(s: String): Unit = println("$s\n$s")
 ----
 // end-insert
 
-This compiles, but if we adopt a convention of reserving single expression functions for calculations (see <<actions-to-calculations>>), then we have a way of communicating our intent when we use them.
+This compiles, but if we adopt a convention of reserving single-expression functions for calculations (see <<actions-to-calculations>>), then we have a way of communicating our intent when we use them.
 
 Of course lots of pure calculations consist of more than one top-level expression.
 Your authors have found though, that attempting to make as many as possible into simple single expression functions can improve our software.
-This is because we end up with more pure functions, and they will have reduced complexity.
+This is because we end up with more calculations (as opposed to side-effecting actions), and they will have reduced complexity.
 As pure functions themselves reduce complexity, this is a double-action complexity reduction.
 
 For example, at the end of <<java-to-kotlin-classes>> we were left with this code for `EmailAddress`:
@@ -87,17 +87,12 @@ The `toString` method is already a nice simple single expression.
 We said at the time though, that the amount of code required in the `parse` method added insult to the injury of having to declare static methods in a companion object.
 Maybe focusing on making it into a simple single expression would help.
 
-[WARNING]
-====
-Lots of the refactoring sequences presented in this book are of the form "here's one I prepared earlier."
+Before we go on, we should say that lots of the refactoring sequences presented in this book are of the form "here's one I prepared earlier."
 We show you the successful take.
-
 Real life refactorings, like writing code from scratch, aren't like that.
 We try things that don't work at all, or we take a much more circuitous route than we show in the final edit.
-
 As this is an otherwise small example, we've taken this opportunity to show what actually happened when we tried to convert `parse` to a single expression.
 We think that there are valuable lessons in the journey, but if you just want the destination, you should skip ahead to <<take-3>>.
-====
 
 === Take 1
 
@@ -197,11 +192,11 @@ private fun emailAddress(value: String, atIndex: Int): EmailAddress {
 // end-insert
 
 Now `parse` is a single expression, but `emailAddress(...)` isn't, so let's not declare victory just yet.
-That `require` is always going to cause us some problems, as its job is to prevent evaluate proceeding, which is the opposite of an expression, which needs to evaluate to a value.
+That `require` is always going to cause us some problems, because its job is to prevent evaluate proceeding, which is the opposite of an expression, which needs to evaluate to a value.
 
 Often when we reach this sort of impasse when refactoring, inlining the cause of the problem will let us see the way ahead.
 Irritatingly IntelliJ won't let us inline `require` (despite showing us its source) because it isn't part of our project.
-Let's just copy it in to our file (at the time of writing we have to remove some contracts lines):
+Let's just copy (a simplified version of) it in to our file:
 
 // begin-insert: tags/multi-to-single-expression-functions.5:src/main/java/travelator/EmailAddress.kt#require
 [source,kotlin]
@@ -362,19 +357,20 @@ fun parse(value: String): EmailAddress {
 
 Are we happy with the result?
 
-Silence was the stern reply.
+Not really.
 We now have _more_ code, and that `emailAddress` function doesn't feel like it's adding any value except for capturing `atIndex`.
 
 Refactoring is sometimes a process of exploration.
 We have a goal in mind, but don't always know how it will turn out.
-It's our (your authors') experience that trying to find a nice single expression form of a function often improves our code, but we can't look you in the eye and say that has happened here.
+It's our (your authors') experience that trying to find a single expression form of a function often improves our code, but we can't look you in the eye and say that has happened here.
 
 We could give up on the idea, or push on and try to get there from here.
 Instead though, let's try reverting and trying another tack, informed by the experience we've just gained.
 
 === Take 2
 
-Where we only have one variable we need to replace, a `let` block gives us a scope where the value is defined rather than having to be assigned to a local - the reason we extracted the function `emailAddress` last time we tried.
+The reason we extracted the `emailAddress` function was to give us a scope where `atIndex` value is defined throughout the block, rather than having to be assigned to a local variable.
+Where we only have one variable we need to replace, a `let` block gives us this facility without having to define a function.
 We can get there in baby steps by first surrounding the code after the assignment with a `let`:
 
 // begin-insert: tags/multi-to-single-expression-functions.13:src/main/java/travelator/EmailAddress.kt#parse
@@ -478,7 +474,7 @@ We've reached the point of no return!
 Are we happy with the result?
 
 Duncan is writing this, and he _is_ pretty relieved to have got here after 17 refactoring steps.
-The example has certainly served its purpose of showing some tricks to allow us to get to single expression functions.
+The example has certainly served its purpose of showing some tricks to allow us to get to single-expression functions.
 Nonetheless, he isn't convinced that it has demonstrated that seeking single expressions has a significant payoff.
 This still seems to be a lot of code, and none of it feels like it is earning its keep.
 
@@ -596,9 +592,9 @@ fun parse(value: String): EmailAddress =
 ----
 // end-insert
 
-This, finally, is a single expression function that feels worth the effort!
+This, finally, is a single-expression function that feels worth the effort!
 
-To finish, we can apply the techniques from this chapter to `split` to make it a single expression.
+To finish, we can apply the techniques from this chapter to `split` to make it a single-expression.
 Here then is the final `EmailAddress.kt`:
 
 // begin-insert: tags/multi-to-single-expression-functions.23:src/main/java/travelator/EmailAddress.kt
@@ -631,7 +627,7 @@ private fun String.splitAroundLast(divider: Char): Pair<String, String> =
 // end-insert
 
 `splitAroundLast` felt like a better name which doesn't clash with the standard `String.split`, and hints that both sides of the split must be non-empty.
-Words like around, which are unusual in identifiers, should prompt readers to suspend their assumptions about what a function does and actually look it up.
+Words like _around_, which are unusual in identifiers, should prompt readers of the code to suspend their assumptions about what a function does and actually look it up.
 
 While `splitAroundLast` does feel like a generally applicable utility function, if we want to promote it to be public we should probably write some unit tests for it.
 We've probably spent enough time for today, so we'll make a mental note that we have a `String.splitAroundLast` lying around if we ever need one, and finally commit the change.
@@ -647,11 +643,11 @@ So we would probably end up with two parsing methods, one for legacy code and on
 
 === Conclusion
 
-Defining our calculations as single expression functions lets us communicate that they are different to side-effecting actions.
-Trying to express them as a simple single expression is a useful discipline that can lead to well factored, clean code.
+Defining our calculations as single-expression functions lets us communicate that they are different to side-effecting actions.
+Trying to express them as a simple single-expressions is a useful discipline that can lead to well factored, clean code.
 
 Refactorings don't always succeed the first, or second, time we try them.
-We don't always have the luxury of repeated attempts, but the more we practice improving our communication in code, the more often we'll get there before we give up.
+As developers we don't always have the luxury of repeated attempts, but the more we practice improving our communication in code, the more often we'll get there before we give up.
 
 
 
