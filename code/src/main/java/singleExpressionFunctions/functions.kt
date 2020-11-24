@@ -1,4 +1,4 @@
-package single_expression_functions
+package singleExpressionFunctions
 
 /// begin: add
 fun add(a: Int, b: Int): Int {

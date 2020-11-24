@@ -112,7 +112,7 @@ One way of making an otherwise partial function total
 is to widen its return type.
 If we define
 
-// begin-insert: src/main/kotlin/errors/errors.kt#parseIntResult
+// begin-insert: src/main/java/errors/errors.kt#parseIntResult
 [source,kotlin]
 ----
 fun parseInt(s: String): Result<Int, String> =
@@ -141,7 +141,7 @@ The other way to make an otherwise partial function total
 is to use the type system to ensure that it can only be passed
 valid arguments.Let's say that we define
 
-// begin-insert: src/main/kotlin/errors/errors.kt#ShortDigitString
+// begin-insert: src/main/java/errors/errors.kt#ShortDigitString
 [source,kotlin]
 ----
 data class ShortDigitString(
@@ -159,7 +159,7 @@ data class ShortDigitString(
 
 Now we could define `parseInt`
 
-// begin-insert: src/main/kotlin/errors/errors.kt#parseInt
+// begin-insert: src/main/java/errors/errors.kt#parseInt
 [source,kotlin]
 ----
 fun parseInt(s: ShortDigitString) =
@@ -185,7 +185,7 @@ as we are using the type system to propagating the guarantee that validation has
 Does this help?
 Well if we just end up writing
 
-// begin-insert: src/main/kotlin/errors/errors.kt#numberOfMonths
+// begin-insert: src/main/java/errors/errors.kt#numberOfMonths
 [source,kotlin]
 ----
 fun numberOfMonths(years: String) =
@@ -199,7 +199,7 @@ as the raw `Integer.parseInt`.
 
 But if we push the parsing out a level
 
-// begin-insert: src/main/kotlin/errors/errors.kt#numberOfMonthsShort
+// begin-insert: src/main/java/errors/errors.kt#numberOfMonthsShort
 [source,kotlin]
 ----
 fun numberOfMonths(years: ShortDigitString) =
@@ -272,7 +272,7 @@ By restricting subtyping they allow the receiver
 of a sealed parameter type to account for all possibilities.
 So, using Result as an example
 
-// begin-insert: src/main/kotlin/errors/errors.kt#errorMessage
+// begin-insert: src/main/java/errors/errors.kt#errorMessage
 [source,kotlin]
 ----
 val Result<*, Exception>.errorMessage : String? get() =
@@ -297,7 +297,7 @@ While we are on the subject of inheritance, final by default and LSP?
 We used another handy Kotlin feature in our definition of ShortDigitString
 - delegation.
 
-// begin-insert: src/main/kotlin/errors/errors.kt#ShortDigitString
+// begin-insert: src/main/java/errors/errors.kt#ShortDigitString
 [source,kotlin]
 ----
 data class ShortDigitString(
@@ -319,7 +319,7 @@ wrapped value.
 Easy implementation of CharSequence means that we can use
 ShortDigitString directly wherever the interface is required.
 
-// begin-insert: src/main/kotlin/errors/errors.kt#divisibleByTen
+// begin-insert: src/main/java/errors/errors.kt#divisibleByTen
 [source,kotlin]
 ----
 fun divisibleByTen(s: ShortDigitString) =

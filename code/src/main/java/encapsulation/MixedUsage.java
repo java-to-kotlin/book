@@ -1,14 +1,11 @@
 package encapsulation;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.net.InetAddress;
 import java.util.function.Consumer;
 
 import static encapsulation.EncapsulationKt.inetAddress;
 import static encapsulation.EmailSenderI.EmailSender;
 import static encapsulation.EncapsulationKt.sendEmail;
-import static encapsulation.FPUsageLambda.createEmailSender;
 
 public class MixedUsage {
     static {
