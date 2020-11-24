@@ -1,8 +1,114 @@
 [[functions-to-extension-functions]]
 == Functions to Extension Functions
 
-Kotlin has a special form of function called an extension function, which is called like a method but is in fact a free-standing function.
-It's easy to convert from one to the other and back, but when should we prefer one to the other?
+Kotlin has a special form of function called an extension function, which is called like a method but is in fact (usually) a free-standing function.
+It's easy to convert from a normal function to an extension function, and back, but when should we prefer one to the other?
+
+Object-oriented programming is the art of solving problems by sending messages to objects.
+Want to know the length of `myString`?
+Send it a message `myString.length()` asking it.
+Want to print that string to the console?
+Send it in a `PrintWriter.println(myString)` message to the `System.out` object.
+In a class-based OO language, we define how an object reacts to a message by defining methods on a class.
+Methods are bound to a class, and have access to the data (fields) associated with a particular instance.
+When we invoke a method, the runtime arranges for the correct version of a method to be called (depending on the runtime type of the object), and for it to have access to instance state.
+
+In functional programming we solve problems by calling functions with values.
+We find the length of `myString` by passing it to a `length(myString)` function.
+We print to the console with `println(myString)`, and if we wanted to print somewhere else we would pass that to the function: `println(myString, System.err)`.
+Functions are not defined _on_ a type, although they may have an intimate relationship with it.
+
+The paradigms have pros and cons, but for now let's just consider discoverability and extensibility.
+
+Let's say that we have a `Customer` type:
+
+// begin-insert: src/main/java/extensionFunctions/code.kt#customer
+[source,kotlin]
+----
+data class Customer(
+    val givenName: String,
+    val familyName: String
+) {
+        ...
+}
+----
+// end-insert
+
+This _is_ a class, so straight away we know that we can send messages to ask for the `givenName` and `familyName`.
+What about other operations?
+In a class-based system we only have to scroll down to see another message that we can send:
+
+// begin-insert: src/main/java/extensionFunctions/code.kt#customerFull
+[source,kotlin]
+----
+data class Customer(
+    val givenName: String,
+    val familyName: String
+) {
+    val fullName get() = "$givenName $familyName"
+}
+----
+// end-insert
+
+Even without looking at the definition, if we have a variable `val aCustomer: Customer`, we can type `aCustomer.` and our IDE will eagerly tell us that we can call `givenName`, `familyName` or `fullName`.
+In fact, this auto-complete is in many ways better than looking at the class definition, because if we look at source we have to remember to navigate up into all our supertypes to find other operations (`equals` etc) that might apply.
+
+In a functional decomposition, `fullName` would be a function, and we would have to search our codebase for it.
+In this case it will be a function where the only argument is of type `Customer`.
+It's surprisingly hard to get IntelliJ to help us - "Find Usages" grouped by parameter type will do the job, but it's hardly convenient.
+Maybe IDEs for functional languages do a better job, but given that there don't seem to be any IDEs for functional languages, it seems unlikely.
+Of course in practice we will expect to find the definition of `Customer` and its fundamental operations close together in the source, perhaps in the same file or at least namespace.
+
+Score one to OO for discoverability then.
+What about extensibility?
+What happens when we want to add an operation to `Customer`?
+Marketing would like to render the name reversed with the `familyName` in upper case.
+(You may notice that whenever we need a simple but arbitrary example we blame marketing.)
+
+If we own the code then we can just add a method:
+
+// begin-insert: src/main/java/extensionFunctions/code.kt#postalName
+[source,kotlin]
+----
+data class Customer(
+    val givenName: String,
+    val familyName: String
+) {
+    val fullName get() = "$givenName $familyName"
+    fun nameForMarketing() = "${familyName.toUpperCase()}, $givenName}"
+}
+----
+// end-insert
+
+If we don't own the code then we can't add a method, and so we have to fall back on a function.
+In Java we might have a collection of these static functions in a class called `Marketing`, or `CustomerUtils`.
+In Kotlin we can make them top-level functions (see <<static-methods-to-top-level-functions>>), but the principle is the same.
+
+// begin-insert: src/main/java/extensionFunctions/code.kt#nameForMarketing
+[source,kotlin]
+----
+fun nameForMarketing(customer: Customer) =
+    "${customer.familyName.toUpperCase()}, $customer.givenName}"
+----
+// end-insert
+
+What of the functional solution?
+Well this is the functional solution too.
+So the functional solution is better for extensibility, because extension operations are indistinguishable from those (like `fullName`) provided by the original authors, whereas the OO solution makes us look for two different types of implementation, methods and functions.
+
+Even if we _do_ own the code for the `Customer` class, we should be wary of adding methods like `nameForMarketing`.
+`Customer` is a fundamental domain class in our application: lots of other code will depend on it.
+Adding a report for marketing shouldn't force us to recompile and retest everything, but it will if we add a method.
+So for better or worse it's probably better that we keep `Customer` as small as possible and add functionality with external functions.
+
+Those functions don't have to be as hard to find as we've made out though; they can be extension functions.
+
+ifdef::todos[]
+
+
+
+
+
 
 Content from Duncan's blog - to be repurposed.
 
@@ -150,4 +256,9 @@ person.toJson() // calls Person.toJson() no matter what the actual type of perso
 
 Cover: flow, nullability.
 
+Also, which object should be the receiver?
+
+And calling without a receiver (passing as first param)
+
 Reference <<methods-to-extension-functions>>, <<methods-to-properties>>
+endif::[]
