@@ -1,5 +1,8 @@
+import book.SourceRoots
+import book.processFile
 import book.processFiles
 import book.runCommand
+import java.lang.System.getProperty
 
 tasks {
     val retagCode = register<Exec>("retagCode") {
@@ -17,6 +20,27 @@ tasks {
                 textRoot = projectDir,
                 workedExampleSrcRoot = rootDir.resolve("../refactoring-to-kotlin-code"),
                 digressionSrcRoot = rootDir.resolve("code"),
+                abortOnFailure = true,
+                kotlinVersion = rootDir.resolve(".kotlin-version").readText().trim()
+            )
+        }
+    }
+
+    // Use ./gradlew expand-one -Dsingle-file=$FilePath$
+    register("expand-one") {
+        dependsOn(retagCode)
+
+        doLast {
+            val file = getProperty("single-file")?.let {
+                File(it).takeIf { it.isFile }
+            } ?: error("File not specified or found in property single-file")
+            processFile(
+                src = file,
+                dest = file,
+                roots = SourceRoots(
+                    rootDir.resolve("../refactoring-to-kotlin-code"),
+                    rootDir.resolve("code")
+                ),
                 abortOnFailure = true,
                 kotlinVersion = rootDir.resolve(".kotlin-version").readText().trim()
             )
