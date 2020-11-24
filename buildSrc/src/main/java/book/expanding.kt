@@ -19,17 +19,19 @@ private fun SourceRoots.sourceRootFor(version: String?): File = when (version) {
 }
 
 fun processFiles(
-    textRoot: File,
-    workedExampleSrcRoot: File,
-    digressionSrcRoot: File,
+    inputRoot: File,
+    outputRoot: File,
+    sourceRoots: SourceRoots,
     abortOnFailure: Boolean,
     kotlinVersion: String
 ) {
-    textRoot.walkTopDown()
+    inputRoot.walkTopDown()
         .filter { it.name.endsWith(".ad") }
         .forEach { file ->
             processFile(
-                file, file, SourceRoots(workedExampleSrcRoot, digressionSrcRoot),
+                file,
+                outputRoot.resolve(file.relativeTo(inputRoot)),
+                sourceRoots,
                 abortOnFailure,
                 kotlinVersion
             )
@@ -49,8 +51,9 @@ fun processFile(
         text,
         lookupWithRoot(src, roots, abortOnFailure, kotlinVersion)
     )
-    if (newText != text)
-        dest.writeText(newText)
+    dest.also {
+        it.parentFile.mkdirs()
+    }.writeText(newText)
 }
 
 private fun lookupWithRoot(

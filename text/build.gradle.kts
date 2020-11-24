@@ -1,7 +1,6 @@
 import book.SourceRoots
 import book.processFile
 import book.processFiles
-import book.runCommand
 import java.lang.System.getProperty
 
 tasks {
@@ -12,14 +11,19 @@ tasks {
         outputs.file(rootProject.buildDir.resolve("tagged"))
     }
 
+    val sourceRoots = SourceRoots(
+        rootDir.resolve("../refactoring-to-kotlin-code"),
+        rootDir.resolve("code")
+    )
+
     register("build") {
         dependsOn(retagCode)
 
         doLast {
             processFiles(
-                textRoot = projectDir,
-                workedExampleSrcRoot = rootDir.resolve("../refactoring-to-kotlin-code"),
-                digressionSrcRoot = rootDir.resolve("code"),
+                inputRoot = projectDir,
+                outputRoot = projectDir,
+                sourceRoots = sourceRoots,
                 abortOnFailure = true,
                 kotlinVersion = rootDir.resolve(".kotlin-version").readText().trim()
             )
@@ -37,22 +41,11 @@ tasks {
             processFile(
                 src = file,
                 dest = file,
-                roots = SourceRoots(
-                    rootDir.resolve("../refactoring-to-kotlin-code"),
-                    rootDir.resolve("code")
-                ),
+                roots = sourceRoots,
                 abortOnFailure = true,
                 kotlinVersion = rootDir.resolve(".kotlin-version").readText().trim()
             )
         }
     }
-
-// This causes us not to find the tags when "build" is run, even though it has completed
-//    create("clean") {
-//        doFirst {
-//            "./retag-worked-example".runCommand(workingDir = project.rootProject.projectDir)
-//            Thread.sleep(2000)
-//        }
-//    }
 }
 
