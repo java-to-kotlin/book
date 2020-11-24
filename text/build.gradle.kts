@@ -3,8 +3,10 @@ import book.runCommand
 
 tasks {
     val retagCode = register<Exec>("retagCode") {
-        workingDir(rootProject.rootDir)
+        workingDir(rootDir)
         commandLine("./retag-worked-example")
+        inputs.dir(rootDir.resolve("../refactoring-to-kotlin-code"))
+        outputs.file(rootProject.buildDir.resolve("tagged"))
     }
 
     register("build") {
@@ -12,11 +14,11 @@ tasks {
 
         doLast {
             processFiles(
-                textRoot = project.projectDir,
-                workedExampleSrcRoot = project.rootProject.projectDir.resolve("../refactoring-to-kotlin-code"),
-                digressionSrcRoot = project.rootProject.projectDir.resolve("code"),
+                textRoot = projectDir,
+                workedExampleSrcRoot = rootDir.resolve("../refactoring-to-kotlin-code"),
+                digressionSrcRoot = rootDir.resolve("code"),
                 abortOnFailure = true,
-                kotlinVersion = project.projectDir.parentFile.resolve(".kotlin-version").readText().trim()
+                kotlinVersion = rootDir.resolve(".kotlin-version").readText().trim()
             )
         }
     }

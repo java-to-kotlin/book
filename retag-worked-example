@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 
 if [ "$1" = "--dry-run" ]
@@ -11,7 +11,7 @@ else
  gitcmd="git"
 fi
 
-cd ../refactoring-to-kotlin-code
+pushd ../refactoring-to-kotlin-code
 
 tagfmt='*.[0-9]*'
 
@@ -25,3 +25,6 @@ git log --branches --not --branches="[m]aster" --topo-order --format=oneline | a
       }
     }
 ' | xargs -n 2 $gitcmd tag -f
+
+popd
+touch "build/tagged"
