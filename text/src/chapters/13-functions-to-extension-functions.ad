@@ -28,15 +28,16 @@ Let's say that we have a `Customer` type:
 [source,kotlin]
 ----
 data class Customer(
+    val id: String,
     val givenName: String,
     val familyName: String
 ) {
-        ...
+    ...
 }
 ----
 // end-insert
 
-This _is_ a class, so straight away we know that we can send messages to ask for the `givenName` and `familyName`.
+This _is_ a class, so straight away we know that we can send messages to ask for the `id`, `givenName` and `familyName`.
 What about other operations?
 In a class-based system we only have to scroll down to see another message that we can send:
 
@@ -44,6 +45,7 @@ In a class-based system we only have to scroll down to see another message that 
 [source,kotlin]
 ----
 data class Customer(
+    val id: String,
     val givenName: String,
     val familyName: String
 ) {
@@ -73,6 +75,7 @@ If we own the code then we can just add a method:
 [source,kotlin]
 ----
 data class Customer(
+    val id: String,
     val givenName: String,
     val familyName: String
 ) {
@@ -162,11 +165,15 @@ While we can't call extension methods as normal functions in Kotlin, we can assi
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#references
 [source,kotlin]
 ----
-val methodReference: (Customer.() -> String) = Customer::fullName
-val extensionFunctionReference: (Customer.() -> String) = Customer::nameForMarketing
+val methodReference: (Customer.() -> String) =
+    Customer::fullName
+val extensionFunctionReference: (Customer.() -> String) =
+    Customer::nameForMarketing
 
-val methodAsFunctionReference: (Customer) -> String = methodReference
-val extensionAsFunctionReference: (Customer) -> String = extensionFunctionReference
+val methodAsFunctionReference: (Customer) -> String =
+    methodReference
+val extensionAsFunctionReference: (Customer) -> String =
+    extensionFunctionReference
 ----
 // end-insert
 
@@ -208,170 +215,122 @@ customer.extensionAsFunctionReference() // doesn't compile
 
 As their name implies, extension functions give us the ability to extend the operations available on a type.
 They do this while supporting the intuitive, send-a-message calling convention of methods, which allows them to be discoverable in the same Ctrl-Space way.
-It's important to note though that they are not, in fact, sending a message to an object.
-It is the compile-time type of the reference that is used to select which extension function to call.
+
+[WARN]
+.Extension Functions are Not Polymorphic
+****
+It's important to note though that while invoking an extension function looks like a method call, it is not, in fact, sending a message to an object.
+It is the compile-time type of the reference that is used to select which extension function to call, not the runtime type as with methods.
+
 We'll look at this more in <<methods-to-extension-functions>> and <<open-to-sealed-classes>>.
+****
 
-ifdef::todos[]
+=== Conversions
 
+So far we have examined extension functions for adding operations to a type.
+Conversions from one type to another are good application.
+Travelator needs to convert customer details to and from JSON and XML.
+Let's first consider converting from `JsonNode` to `Customer`.
 
+We could add a constructor, `Customer(jsonNode)` (or a static `Customer` method) that knew how to extract the relevant data, but it really doesn't feel right to pollute our `Customer` class with dependencies on a specific JSON library, and then XML, and then what?
+The same argument applies to JsonNode.
+Even if we could change its code, pretty soon it would be unmanageable with all the jsonNode.toMyDomainType()` methods.
+
+In Java then, we'd end up with a class of utility functions of the form:
+
+// begin-insert: src/main/java/extensionFunctions/SomeJava.java#toCustomer
+[source,java]
 ----
-Platform declaration clash: The following declarations have the same JVM signature (nameForMarketing(LextensionFunctions/Customer;)Ljava/lang/String;):
-public final fun nameForMarketing(customer: Customer): String ...
-public final fun Customer.nameForMarketing(): String ...
+static Customer toCustomer(JsonNode node) {
+        ...
+}
 ----
+// end-insert
 
+or our preference:
 
-
-Content from Duncan's blog - to be repurposed.
-
-I enjoyed [Extension functions are not utility functions](https://medium.com/@dimsuz/extension-functions-are-not-utility-functions-74a5f9b53892#.o57pbn5k2)
-
-I thought that I disagreed, but on more careful reading maybe not. Instead I'll pull out some extension functions from my current codebase.
-
-We're finding that extension functions are a simple way to make code more expressive.
-
-Without an extension function:
-
-```kotlin
-private fun addressFrom(node: JsonNode): Address = ...
-
-val addresses = nodes.map { addressFrom(it) }
-```
-
-With an extension function:
-
-```kotlin
-private fun JsonNode.toAddress(): Address = ...
-
-val addresses = nodes.map { it.toAddress() }
-```
-
-You might the find first example more readable like this:
-
-```kotlin
-private fun toAddress(node: JsonNode): Address = ...
-
-val addresses = nodes.map(::toAddress)
-```
-
-in which case fill yer boots, but my mind doesn't work that way.
-
-Extension functions work well here, but the place where they really shine is method chaining.
-
-Without them:
-
-```kotlin
-private fun addressFrom(node: JsonNode): Address = ...
-
-private fun isInUK(address: Address): Boolean = ...
-
-val isInUK = isInUK(addressFrom(node))
-```
-
-Extension functions don't make you turn your brain inside out:
-
-```kotlin
-private fun JsonNode.toAddress(): Address = ...
-
-private fun Address.isInUK(): Boolean = ...
-
-val isInUK = node.toAddress().isInUK()
-```
-
-You may have noticed the `private` in the examples above - most of the extension functions that we write this way are used  locally - just to make a few lines of code more intuitive. But that's by no means universally true - this is from some library code to extend Jackson in more general ways:
-
-```kotlin
-fun JsonNode.getExpected(name: String): JsonNode = get(name) ?: throw MissingPropertyException("property '$name' is missing")
-
-fun JsonNode.getNonBlankText(name: String) = getExpected(name).asText().apply {
-    if (isBlank()) throw JsonInterpretationException("property $name is blank")
+// begin-insert: src/main/java/extensionFunctions/SomeJava.java#customerFrom
+[source,java]
+----
+static Customer customerFrom(JsonNode node) {
+        ...
 }
-```
+----
+// end-insert
 
-I had wondered whether this style was best suited to operations on types that we don't own. But I find we have code that acts on our own types:
+Calling these individually isn't too horrible:
 
-```kotlin
-fun suggestionsTemplateDataFor(suggestions: List<JournalJson>) = mapOf(
-    "results" to suggestions.withOAText()
-)
+// begin-insert: src/main/java/extensionFunctions/SomeJava.java#calling
+[source,java]
+----
+var customer = customerFrom(node);
+var customer2 = toCustomer(node);
+----
+// end-insert
 
-private fun List<JournalJson>.withOAText(): List<Map<String, Any?>> = this.map { it.withOAText() }
+If we need to combine functions though, things start to go awry:
 
-private fun JournalJson.withOAText() = TreeMap(this.asPropertyMap().plus( "openAccessText" to this.accessType.toUIString()))
+// begin-insert: src/main/java/extensionFunctions/SomeJava.java#chaining
+[source,java]
+----
+var marketingNameLength = nameForMarketing(customerFrom(node)).length();
+----
+// end-insert
 
-private fun AccessType.toUIString() = when (this) {
-    AccessType.OPEN_ACCESS -> "Yes"
-    AccessType.SUBSCRIPTION -> "No"
-    AccessType.OPEN_CHOICE -> "Optional"
-    else -> "Unknown"
+We're all developers here, and used to reading function invocations, so it's easy to underestimate the cognitive load of searching for the innermost call and working your way out through function and method calls to work out how an expression evaluates.
+Compare this to the version using extension functions:
+
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#chaining
+[source,kotlin]
+----
+fun JsonNode.toCustomer(): Customer = SOME_CODE()
+
+val nameForMarketingLength = jsonNode.toCustomer().nameForMarketing().length
+----
+// end-insert
+
+Duncan can literally feel the difference in readability in the tension in his shoulders.
+
+=== Nullability
+
+One major difference between invoking a method and calling a function is in the treatment of `null` references.
+If we have a reference that is `null`, we can't send a message to it, because there is nothing to send a message to.
+Some runtimes will allow you to pretend by silently ignoring such calls, but not the JVM, which signals its disgust with `NullPointerExceptions`.
+In contrast, `null` parameters are tractable.
+We may not know what to do with them, but they don't prevent us from invoking the code, because we have an object to send the message to
+In the case of static methods this is the Java class, or the Kotlin object.
+
+It follows that whilst `thing.method()` and `thing.extensionFunction()` look to be equivalent calls, `method` can never be called if `thing` is `null`, whereas `extensionFunction` can.
+In order to allow this we have to declare the receiver as nullable.
+Here's an example from the code to convert an XML `Element` to a `Customer`.
+
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#xml
+[source,kotlin]
+----
+fun Element?.toCustomer(): Customer? = this?.let { element ->
+    Customer(
+        element.attribute("id"),
+        element.attribute("first-name"),
+        element.attribute("last-name")
+    )
 }
-```
+----
+// end-insert
 
-Here `JournalJson` and `AccessType` are simple data classes, unencumbered by all the operations that the rest of the system would like them to have; because they can define operations like `withOAText()` as extension functions when they need them. And if defining an extension on `List<JournalJson>` isn't a utility function I don't know what is, but here it really helps us to at least get the gist of what is going on at the top level.
+Inside a method, `this` can never be `null`, but here the receiver can be, so we use `this?.let` to separate the cases.
 
-Hidden in there is a call to
+Extension functions on nullable types can significantly reduce the noise of properly handling `null` values in Kotlin, again reducing the cognitive load of understanding what our code is doing.
 
-```kotlin
-fun Any.asPropertyMap(): Map<String, Any?> = SpaceBlanket(this)
-```
+=== Use in the Standard Library
 
-which *is* the archetypal extension function definition - high-level and fundamental.
+=== Migrating to Extension Functions
 
+=== Conclusion
 
-The article brought out 3 extension function use-cases.
+Use-cases.
 
 1.  Adding a little local expressiveness with private methods like `JsonNode.toAddress()`
 2.  Adding methods you wish were available on types that you don't own - `JsonNode.getNonBlankText(name: String)`
 3.  Keeping your own classes small by defining operations as extension functions rather than actual methods - `AccessType.toUIString()`
 
-On the Kotlin Slack Channel, Daniel Wellman asked
-
-*"How do you decide when methods should be extension functions and when they should be members (functions) on classes/objects _that you own_?"*
-
-Nathan Armstrong replied
-
-*"I think it's usually when it encapsulates operations on a type in some context tangential to the one the type was made for.  For example, when writing code that intersects two domains or concerns, using extension methods can help you use your existing types more naturally alongside one another without leaking that local utility into other parts of the codebase"*
-
-He's right. So right that I'm going to say that again with many more words and claim the credit.
-
-Most of my Java projects have ended up with a package of domain objects - `Person`, `Address` etc. Kotlin makes these nice and simple with data classes, and when 1.1 allows inheritance these will become even more useful.
-
-Over time these classes accrete operations that make sense to our application. Things like `Person.asJson()` and `Address.isCloseMyHouse()`. These operations dilute the essence of the class for our happy convenience, but after a while we can't see the platonic wood for expedient trees.
-
-Extension functions let us express the PersonNess in the `Person` class, and the JSONness elsewhere. In this case maybe type-classes would be better, but for now, we can move our JSON writing and useful-to-us-but-not-really-essential operations off of the class and into extension functions.
-
-A nice side-effect of this is that we can build our domain classes in a module that doesn't have dependencies on Jackson and some SQL library and the whole of the rest of our app. Maybe we'll finally get reuseable abstractions for those fundamental real-world things that every app has to implement from scratch because of all the special cases that define our Customer rather than yours.
-
-A word of warning though. Extension functions are not polymorphic. If I have
-
-
-```kotlin
-class Person
-
-class Customer: Person
-
-fun Person.toJson() = ...
-
-fun Customer.toJson() = ...
-```
-
-the bindings are as follows:
-
-```kotlin
-Person().toJson() // calls Person.toJson()
-
-Customer().toJson() // calls Customer.toJson()
-
-val person: Person = readCustomer(42)
-person.toJson() // calls Person.toJson() no matter what the actual type of person
-```
-
-Cover: flow, nullability.
-
-Also, which object should be the receiver?
-
-And calling without a receiver (passing as first param)
-
-Reference <<methods-to-extension-functions>>, <<methods-to-properties>>
-endif::[]
+Reference <<methods-to-extension-functions>>, <<methods-to-properties>>, <<encapsulated-collections-to-typealiases>>, <<explaining-variables-to-extension-functions>>.
