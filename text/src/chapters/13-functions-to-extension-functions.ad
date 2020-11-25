@@ -4,6 +4,8 @@
 Kotlin has a special form of function called an extension function, which is called like a method but is in fact (usually) a free-standing function.
 It's easy to convert from a normal function to an extension function, and back, but when should we prefer one to the other?
 
+=== Functions and Methods
+
 Object-oriented programming is the art of solving problems by sending messages to objects.
 Want to know the length of `myString`?
 Send it a message `myString.length()` asking it.
@@ -22,7 +24,7 @@ The paradigms have pros and cons, but for now let's just consider discoverabilit
 
 Let's say that we have a `Customer` type:
 
-// begin-insert: src/main/java/extensionFunctions/code.kt#customer
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#customer
 [source,kotlin]
 ----
 data class Customer(
@@ -38,7 +40,7 @@ This _is_ a class, so straight away we know that we can send messages to ask for
 What about other operations?
 In a class-based system we only have to scroll down to see another message that we can send:
 
-// begin-insert: src/main/java/extensionFunctions/code.kt#customerFull
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#customerFull
 [source,kotlin]
 ----
 data class Customer(
@@ -50,7 +52,7 @@ data class Customer(
 ----
 // end-insert
 
-Even without looking at the definition, if we have a variable `val aCustomer: Customer`, we can type `aCustomer.` and our IDE will eagerly tell us that we can call `givenName`, `familyName` or `fullName`.
+Even without looking at the definition, if we have a variable `val customer: Customer`, we can type `customer.` and our IDE will eagerly tell us that we can call `givenName`, `familyName` or `fullName`.
 In fact, this auto-complete is in many ways better than looking at the class definition, because if we look at source we have to remember to navigate up into all our supertypes to find other operations (`equals` etc) that might apply.
 
 In a functional decomposition, `fullName` would be a function, and we would have to search our codebase for it.
@@ -67,7 +69,7 @@ Marketing would like to render the name reversed with the `familyName` in upper 
 
 If we own the code then we can just add a method:
 
-// begin-insert: src/main/java/extensionFunctions/code.kt#postalName
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#postalName
 [source,kotlin]
 ----
 data class Customer(
@@ -84,7 +86,7 @@ If we don't own the code then we can't add a method, and so we have to fall back
 In Java we might have a collection of these static functions in a class called `Marketing`, or `CustomerUtils`.
 In Kotlin we can make them top-level functions (see <<static-methods-to-top-level-functions>>), but the principle is the same.
 
-// begin-insert: src/main/java/extensionFunctions/code.kt#nameForMarketing
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#nameForMarketing
 [source,kotlin]
 ----
 fun nameForMarketing(customer: Customer) =
@@ -97,16 +99,127 @@ Well this is the functional solution too.
 So the functional solution is better for extensibility, because extension operations are indistinguishable from those (like `fullName`) provided by the original authors, whereas the OO solution makes us look for two different types of implementation, methods and functions.
 
 Even if we _do_ own the code for the `Customer` class, we should be wary of adding methods like `nameForMarketing`.
-`Customer` is a fundamental domain class in our application: lots of other code will depend on it.
+The class `Customer` is a fundamental domain class in our application: lots of other code will depend on it.
 Adding a report for marketing shouldn't force us to recompile and retest everything, but it will if we add a method.
 So for better or worse it's probably better that we keep `Customer` as small as possible and add functionality with external functions.
 
 Those functions don't have to be as hard to find as we've made out though; they can be extension functions.
 
+=== Extension Functions
+
+Extension functions are functions that look like methods, but are in fact just functions.
+(As we explore in <<static-methods-to-top-level-functions>>, technically they are _also_ methods on the JVM, because all code has to be.
+And they can in fact be non-static methods of another class, we'll get to that later.)
+
+If we define an extension function:
+
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#nameForMarketingExt
+[source,kotlin]
+----
+fun Customer.nameForMarketing() = "${familyName.toUpperCase()}, $givenName}"
+----
+// end-insert
+
+then we can call it as if it is a method
+
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#callingExt
+[source,kotlin]
+----
+val s = customer.nameForMarketing()
+----
+// end-insert
+
+and IntelliJ will auto-suggest it along with the actual methods.
+
+Java isn't quite so helpful - it just sees the extension function as a static function:
+
+// begin-insert: src/main/java/extensionFunctions/SomeJava.java#callingExt
+[source,java]
+----
+var s = Extension_functionsKt.nameForMarketing(customer); // <1>
+----
+// end-insert
+
+<1> `Extension_functionsKt` is the name of the class containing our top-level declarations as static methods - see <<static-methods-to-top-level-functions>>.
+
+Interestingly we can't call the function in the same way from Kotlin:
+
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#error
+[source,kotlin]
+----
+nameForMarketing(customer) // <1> doesn't compile
+----
+// end-insert
+
+<1> `Unresolved reference. None of the following candidates is applicable because of receiver type mismatch:
+public fun Customer.nameForMarketing(): String ...`.
+
+[TIP]
+.Function Types for Methods and Extension Functions
+****
+While we can't call extension methods as normal functions in Kotlin, we can assign them to normal function references. So the following compiles:
+
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#references
+[source,kotlin]
+----
+val methodReference: (Customer.() -> String) = Customer::fullName
+val extensionFunctionReference: (Customer.() -> String) = Customer::nameForMarketing
+
+val methodAsFunctionReference: (Customer) -> String = methodReference
+val extensionAsFunctionReference: (Customer) -> String = extensionFunctionReference
+----
+// end-insert
+
+We can invoke these as expected:
+
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#invoke1
+[source,kotlin]
+----
+customer.methodReference()
+customer.extensionFunctionReference()
+
+methodAsFunctionReference(customer)
+extensionAsFunctionReference(customer)
+----
+// end-insert
+
+We can also use the _with-receiver_ references as if they took the receiver as the first argument:
+
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#invoke2
+[source,kotlin]
+----
+methodReference(customer)
+extensionFunctionReference(customer)
+----
+// end-insert
+
+We cannot, however, call the plain references as if they had a receiver:
+
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#invoke3
+[source,kotlin]
+----
+customer.methodAsFunctionReference() // <1> doesn't compile
+customer.extensionAsFunctionReference() // doesn't compile
+----
+// end-insert
+
+<1> `Unresolved reference: methodAsFunctionReference`
+****
+
+As their name implies, extension functions give us the ability to extend the operations available on a type.
+They do this while supporting the intuitive, send-a-message calling convention of methods, which allows them to be discoverable in the same Ctrl-Space way.
+It's important to note though that they are not, in fact, sending a message to an object.
+It is the compile-time type of the reference that is used to select which extension function to call.
+We'll look at this more in <<methods-to-extension-functions>> and <<open-to-sealed-classes>>.
+
 ifdef::todos[]
 
 
-
+----
+Platform declaration clash: The following declarations have the same JVM signature (nameForMarketing(LextensionFunctions/Customer;)Ljava/lang/String;):
+public final fun nameForMarketing(customer: Customer): String ...
+public final fun Customer.nameForMarketing(): String ...
+----
 
 
 
