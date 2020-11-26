@@ -37,7 +37,7 @@ Evolving design and architecture to better take advantage of Kotlin's affordance
   - Composing algorithms from sequence of primitive transformations
   - Iterable Collections vs Sequences vs Streams
   - Limitations of Streams API -- it doesn't let you abstract transformations of entire streams in the same way as transformations of values within a stream. E.g. you cannot add new, higher-level methods to Streams
-  - Using Kotlin extension methods to refactor pipeline stages: transformations of streams and of values can be treated in the same way, leading to much more readable pipelines.
+  - Using Kotlin extension functions to refactor pipeline stages: transformations of streams and of values can be treated in the same way, leading to much more readable pipelines.
 
 * Part: Extension functions? What else are they good for?
   - Kotlin style: deliberate polymorphism (e.g. classes and functions are final by default)

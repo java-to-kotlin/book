@@ -65,6 +65,11 @@ fun calling(customer: Customer) {
 
 }
 
+
+fun delme() {
+    val s = null.toString()
+}
+
 /// begin: nameForMarketingExt
 fun Customer.nameForMarketing() = "${familyName.toUpperCase()}, $givenName}"
 /// end: nameForMarketingExt
@@ -79,6 +84,7 @@ object Chaining {
 
     /// end: chaining
 }
+
 class TitleProvider(val title: String) {
     fun Customer.nameWithTitle() = "$title $fullName"
 }
@@ -114,6 +120,21 @@ object CounterFactuals {
         "${customer.familyName.toUpperCase()}, $customer.givenName}"
     /// end: nameForMarketing
 
+    val Customer.fullName get() = "$givenName $familyName"
+
+    fun methodIsPreferred(customer: Customer) {
+        customer.fullName
+    }
+
 }
 
 fun <T> SOME_CODE(): T = TODO()
+
+fun nullableToString() {
+    /// begin: nullableToString
+    val customer: Customer? = SOME_CODE()
+    val s: String = customer.toString()
+    /// end: nullableToString
+}
+
+

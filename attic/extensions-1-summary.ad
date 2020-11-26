@@ -1,11 +1,11 @@
-== We explore the length and breadth of extension methods
+== We explore the length and breadth of extension functions
 
-Extensions allow additional methods and properties to be defined on a type without modifying that type.
+Extensions allow additional operations and properties to be defined on a type without modifying that type.
 You can invoke an extension in the usual way, as if it was a member of the type.
 
-The canonical use of extension methods is to add methods to types we don't own and cannot modify ourselves.  For example, in <<encapsulated-collections-to-typealiases>> we used an extension function to abstract over a sequence of data pipeline operations that was duplicated at different places in our code.
+The canonical use of extension functions is to add methods to types we don't own and cannot modify ourselves.  For example, in <<encapsulated-collections-to-typealiases>> we used an extension function to abstract over a sequence of data pipeline operations that was duplicated at different places in our code.
 
-Extension methods mean user extensions to an API appear no different to methods provided by the API.  IntelliJ is very good in this respect – offering extension methods alongside members when autocompleting.
+Extension functions mean user extensions to an API appear no different to methods provided by the API.  IntelliJ is very good in this respect – offering extension functions alongside members when autocompleting.
 
 We can lean on this seamless extensibility to make our code more expressive.
 
@@ -15,20 +15,20 @@ Compare to Java members vs. static methods. E.g. the Stream API cannot be seamle
 
 
 
-=== Mutual pull between nullability and extension methods
+=== Mutual pull between nullability and extension functions
 
-Extension functions are easy to use with nullable types and null safety.  Kotlin's null-safe dereference operator (?.) is used when, well, dereferencing.  Therefore it's easy to use to safely call an extension method, but requires the use of the `let` scoping function to pass a nullable reference to a non-null parameter.
+Extension functions are easy to use with nullable types and null safety.  Kotlin's null-safe dereference operator (?.) is used when, well, dereferencing.  Therefore it's easy to use to safely call an extension function, but requires the use of the `let` scoping function to pass a nullable reference to a non-null parameter.
 
-=== Mutual pull between type inference, generic functions and extension methods
+=== Mutual pull between type inference, generic functions and extension functions
 
-Compared to methods defined on a class, extension methods can be more betterer w.r.t. type parameters and inference.
+Compared to methods defined on a class, extension functions can be more betterer w.r.t. type parameters and inference.
 
 E.g. can express a relationship between the type of the invoked object and the type of the result.
 
 
-=== Extension methods on our _own_ types
+=== Extension functions on our _own_ types
 
-These mutual pulls mean that we get a lot of benefit from defining extension methods on our _own_ types.
+These mutual pulls mean that we get a lot of benefit from defining extension functions on our _own_ types.
 
 Separate the platonic and the pragmatic.
 
@@ -64,7 +64,7 @@ E.g. "withXxx" replaces, "plusXxx" adds, "minusXxx" removes.
 
 ...when you don't need to maintain any extra state.
 
-E.g. PrintWriter wrapping print functions as a decorator of Writer wouldn't be needed in Kotlin.  Those functions could be extension methods.  But BufferedWriter would still be a decorator, because it maintains state -- the buffer, and how much has not yet been flushed to the underlying stream.
+E.g. PrintWriter wrapping print functions as a decorator of Writer wouldn't be needed in Kotlin.  Those functions could be extension functions.  But BufferedWriter would still be a decorator, because it maintains state -- the buffer, and how much has not yet been flushed to the underlying stream.
 
 
 === Parameterise when extensions lead to duplicative code
@@ -79,9 +79,9 @@ report if it's missing, try to parse it, & report if parsing fails. Lots of dupl
 After: the get method looks up the property & reports if it is missing, delegates to the parser, and reports if parsing fails. No duplicates code.
 
 
-=== You can write extension methods of nullable types (and even the type of null)
+=== You can write extension functions of nullable types (and even the type of null)
 
-You can write code that doesn't need to use the null-safe dereference operator, because null-safety is handled _inside_ the extension method.
+You can write code that doesn't need to use the null-safe dereference operator, because null-safety is handled _inside_ the extension functions.
 
 "Elvis has left the building!"
 
@@ -92,7 +92,7 @@ E.g. calling the Any?.toString() extension by mistake when you want to call the 
 Avoid unless there's a _really_ good reason to.
 
 
-=== You can write extension methods of functions.
+=== You can write extension functions of functions.
 
 [source, kotlin]
 ----
@@ -118,9 +118,9 @@ The basis for builders and expressive DSLs.
 
 Local extension functions within a function can be used instead of explaining variables.  Close over local variables, which therefore do not need to be passed as arguments.
 
-You can write extension methods as _methods_.  Cannot be called from outside a class, but can be called _within_ the class.  So they need to be private.
+You can write extension functions as _methods_.  Cannot be called from outside a class, but can be called _within_ the class.  So they need to be private.
 
-When we define extension methods within methods it can be difficult to understand what `this` refers to.  Especially when we use extension _lambdas_.  E.g. the block passed to the `apply` function.
+When we define extension fuctions within methods it can be difficult to understand what `this` refers to.  Especially when we use extension _lambdas_.  E.g. the block passed to the `apply` function.
 
 Luckily `this` is statically resolved, so we can navigate to the definition of an identifier in the IDE.
 

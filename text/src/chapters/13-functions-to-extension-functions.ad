@@ -160,7 +160,7 @@ public fun Customer.nameForMarketing(): String ...`.
 [TIP]
 .Function Types for Methods and Extension Functions
 ****
-While we can't call extension methods as normal functions in Kotlin, we can assign them to normal function references. So the following compiles:
+While we can't call extension functions as normal functions in Kotlin, we can assign them to normal function references. So the following compiles:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#references
 [source,kotlin]
@@ -321,7 +321,45 @@ Inside a method, `this` can never be `null`, but here the receiver can be, so we
 
 Extension functions on nullable types can significantly reduce the noise of properly handling `null` values in Kotlin, again reducing the cognitive load of understanding what our code is doing.
 
+=== Generics
+
+So far we looked at extension functions defined on concrete types.
+Just as with normal functions
+
 === Use in the Standard Library
+
+Note that the Kotlin library authors faced the same issue extending types that they don't own as we do - in their case those provided by the Java standard library.
+While they resorted to compiler trickery in some cases, a lot of the Kotlin standard library is extension functions.
+This includes fundamental functions like `map`, `filter` and `reduce` (defined as extensions on `Iterable`), and the scope functions `let`, `run`, `with`, `apply` and `also`. There is even an extension function `toString`.
+
+[WARN]
+.`toString` on Nullable Types
+****
+Where a method and extension function are both in scope and visible, the compiler will generate a call to the method, not the function.
+As we've discussed, a method can never be safely called on a nullable type, but an extension function can.
+So Kotlin defines an extension function:
+
+[source,kotlin]
+----
+fun Any?.toString(): String
+----
+
+This is called if you invoke `toString` on a nullable type:
+
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#nullableToString
+[source,kotlin]
+----
+val customer: Customer? = SOME_CODE()
+val s: String = customer.toString()
+----
+// end-insert
+
+Here `s` will be either the result of calling the `Customer.toString` method if customer is not `null`, or the `String` with value `"null"`.
+That's a reference pointing to not to `null`, but to the characters "null".
+
+This is a neat trick, but means that you can find variables that you thought would contain the string representation of an object actually set to the string "null".
+This can make for hours of debugging - ask us how we know!
+****
 
 === Migrating to Extension Functions
 
@@ -333,4 +371,4 @@ Use-cases.
 2.  Adding methods you wish were available on types that you don't own - `JsonNode.getNonBlankText(name: String)`
 3.  Keeping your own classes small by defining operations as extension functions rather than actual methods - `AccessType.toUIString()`
 
-Reference <<methods-to-extension-functions>>, <<methods-to-properties>>, <<encapsulated-collections-to-typealiases>>, <<explaining-variables-to-extension-functions>>.
+Reference <<methods-to-extension-functions>>, <<methods-to-properties>>, <<encapsulated-collections-to-typealiases>>, <<explaining-variables-to-extension-functions>>,
