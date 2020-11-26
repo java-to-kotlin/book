@@ -157,6 +157,8 @@ nameForMarketing(customer) // <1> doesn't compile
 <1> `Unresolved reference. None of the following candidates is applicable because of receiver type mismatch:
 public fun Customer.nameForMarketing(): String ...`.
 
+_Receiver_ by the way is the name that Kotlin gives to `this` in an extension function.
+
 [TIP]
 .Function Types for Methods and Extension Functions
 ****
@@ -273,7 +275,7 @@ If we need to combine functions though, things start to go awry:
 // begin-insert: src/main/java/extensionFunctions/SomeJava.java#chaining
 [source,java]
 ----
-var marketingNameLength = nameForMarketing(customerFrom(node)).length();
+var marketingLength = nameForMarketing(customerFrom(node)).length();
 ----
 // end-insert
 
@@ -285,7 +287,7 @@ Compare this to the version using extension functions:
 ----
 fun JsonNode.toCustomer(): Customer = SOME_CODE()
 
-val nameForMarketingLength = jsonNode.toCustomer().nameForMarketing().length
+val marketingLength = jsonNode.toCustomer().nameForMarketing().length
 ----
 // end-insert
 
@@ -324,7 +326,61 @@ Extension functions on nullable types can significantly reduce the noise of prop
 === Generics
 
 So far we looked at extension functions defined on concrete types.
-Just as with normal functions
+Just as with normal functions, they can have generic parameters though, and this is most interesting when the receiver is generic.
+
+Here's a really useful extension function that for some reason isn't part of the standard library.
+
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#printed
+[source,kotlin]
+----
+fun <T> T.printed(): T = this.also(::println)
+----
+// end-insert
+
+We can use this when we want to debug the value of an expression in place.
+For example, remember this:
+
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#printed2
+[source,kotlin]
+----
+val marketingLength = jsonNode.toCustomer().nameForMarketing().length
+----
+// end-insert
+
+If we need to see the value of the customer we would normally pull out a variable:
+
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#printed3
+[source,kotlin]
+----
+val customer = jsonNode.toCustomer()
+println(customer)
+val marketingLength = customer.nameForMarketing().length
+----
+// end-insert
+
+With `printed` we have a function that prints the value of the receiver and returns it unchanged, so that we can write:
+
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#printed4
+[source,kotlin]
+----
+val marketingLength = jsonNode.toCustomer().printed().nameForMarketing().length
+----
+// end-insert
+
+which is much less disruption, and easy to search for before we check in.
+
+We can also define extension functions for specialised generic types.
+
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#familyNames
+[source,kotlin]
+----
+fun Iterable<Customer>.familyNames(): Set<String> =
+    this.map(Customer::familyName).toSet()
+----
+// end-insert
+
+This extension function is applicable to any `Collection<Customer>`, but not to collections of other types.
+We can use extension functions in this way to use collections to represent domain concepts rather than defining our own types - see <<encapsulated-collections-to-typealiases>>, and for extracting parts of collections pipelines into named sections - see <<TODO>>.
 
 === Use in the Standard Library
 
@@ -358,8 +414,10 @@ Here `s` will be either the result of calling the `Customer.toString` method if 
 That's a reference pointing to not to `null`, but to the characters "null".
 
 This is a neat trick, but means that you can find variables that you thought would contain the string representation of an object actually set to the string "null".
-This can make for hours of debugging - ask us how we know!
+This lead to hours of gentle debugging - ask us how we know!
 ****
+
+=== Extension Functions as Methods
 
 === Migrating to Extension Functions
 

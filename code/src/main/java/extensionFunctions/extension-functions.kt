@@ -80,9 +80,25 @@ object Chaining {
     /// begin: chaining
     fun JsonNode.toCustomer(): Customer = SOME_CODE()
 
-    val nameForMarketingLength = jsonNode.toCustomer().nameForMarketing().length
-
+    /// begin: printed2
+    val marketingLength = jsonNode.toCustomer().nameForMarketing().length
+    /// end: printed2
     /// end: chaining
+
+    fun withoutPrinted() {
+        /// begin: printed3
+        val customer = jsonNode.toCustomer()
+        println(customer)
+        val marketingLength = customer.nameForMarketing().length
+        /// end: printed3
+    }
+
+    fun withPrinted() {
+        /// begin: printed4
+        val marketingLength = jsonNode.toCustomer().printed().nameForMarketing().length
+        /// end: printed4
+    }
+
 }
 
 class TitleProvider(val title: String) {
@@ -136,5 +152,16 @@ fun nullableToString() {
     val s: String = customer.toString()
     /// end: nullableToString
 }
+
+/// begin: printed
+fun <T> T.printed(): T = this.also(::println)
+/// end: printed
+
+/// begin: familyNames
+fun Iterable<Customer>.familyNames(): Set<String> =
+    this.map(Customer::familyName).toSet()
+/// end: familyNames
+
+
 
 

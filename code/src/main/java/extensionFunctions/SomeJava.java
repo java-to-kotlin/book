@@ -34,7 +34,7 @@ public class SomeJava {
         /// end: calling
 
         /// begin: chaining
-        var marketingNameLength = nameForMarketing(customerFrom(node)).length();
+        var marketingLength = nameForMarketing(customerFrom(node)).length();
         /// end: chaining
     }
 }
