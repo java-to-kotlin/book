@@ -161,7 +161,7 @@ _Receiver_ by the way is the name that Kotlin gives to `this` in an extension fu
 
 [TIP]
 .Function Types for Methods and Extension Functions
-****
+====
 While we can't call extension functions as normal functions in Kotlin, we can assign them to normal function references. So the following compiles:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#references
@@ -213,19 +213,19 @@ customer.extensionAsFunctionReference() // doesn't compile
 // end-insert
 
 <1> `Unresolved reference: methodAsFunctionReference`
-****
+====
 
 As their name implies, extension functions give us the ability to extend the operations available on a type.
 They do this while supporting the intuitive, send-a-message calling convention of methods, which allows them to be discoverable in the same Ctrl-Space way.
 
-[WARN]
+[WARNING]
 .Extension Functions are Not Polymorphic
-****
+====
 It's important to note though that while invoking an extension function looks like a method call, it is not, in fact, sending a message to an object.
 It is the compile-time type of the reference that is used to select which extension function to call, not the runtime type as with methods.
 
 We'll look at this more in <<methods-to-extension-functions>> and <<open-to-sealed-classes>>.
-****
+====
 
 === Conversions
 
@@ -388,9 +388,9 @@ Note that the Kotlin library authors faced the same issue extending types that t
 While they resorted to compiler trickery in some cases, a lot of the Kotlin standard library is extension functions.
 This includes fundamental functions like `map`, `filter` and `reduce` (defined as extensions on `Iterable`), and the scope functions `let`, `run`, `with`, `apply` and `also`. There is even an extension function `toString`.
 
-[WARN]
-.`toString` on Nullable Types
-****
+[WARNING]
+.toString on Nullable Types
+====
 Where a method and extension function are both in scope and visible, the compiler will generate a call to the method, not the function.
 As we've discussed, a method can never be safely called on a nullable type, but an extension function can.
 So Kotlin defines an extension function:
@@ -415,7 +415,7 @@ That's a reference pointing to not to `null`, but to the characters "null".
 
 This is a neat trick, but means that you can find variables that you thought would contain the string representation of an object actually set to the string "null".
 This lead to hours of gentle debugging - ask us how we know!
-****
+====
 
 === Extension Functions as Methods
 
