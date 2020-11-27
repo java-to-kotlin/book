@@ -74,9 +74,6 @@ fun delme() {
 fun Customer.nameForMarketing() = "${familyName.toUpperCase()}, $givenName}"
 /// end: nameForMarketingExt
 
-/// begin: nameForMarketingProp
-val Customer.nameForMarketing get() = "${familyName.toUpperCase()}, $givenName}"
-/// end: nameForMarketingProp
 
 object Chaining {
     val jsonNode: JsonNode = SOME_CODE()
@@ -145,6 +142,10 @@ object CounterFactuals {
     fun methodIsPreferred(customer: Customer) {
         customer.fullName
     }
+
+    /// begin: nameForMarketingProp
+    val Customer.nameForMarketing get() = "${familyName.toUpperCase()}, $givenName}"
+    /// end: nameForMarketingProp
 
 }
 
