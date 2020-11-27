@@ -54,8 +54,8 @@ data class Customer(
 ----
 // end-insert
 
-Even without looking at the definition, if we have a variable `val customer: Customer`, we can type `customer.` and our IDE will eagerly tell us that we can call `givenName`, `familyName` or `fullName`.
-In fact, this auto-complete is in many ways better than looking at the class definition, because if we look at source we have to remember to navigate up into all our supertypes to find other operations (`equals` etc) that might apply.
+Even without looking at the definition, if we have a variable `val customer: Customer`, we can type `customer.` and our IDE will eagerly tell us that we can call `id`, givenName`, `familyName` or `fullName`.
+In fact, this auto-complete is in many ways better than looking at the class definition, because it also shows us supertype and other operations (`equals`, `copy` etc) that we would have to navigate to other files to see.
 
 In a functional decomposition, `fullName` would be a function, and we would have to search our codebase for it.
 In this case it will be a function where the only argument is of type `Customer`.
@@ -99,12 +99,12 @@ fun nameForMarketing(customer: Customer) =
 
 What of the functional solution?
 Well this is the functional solution too.
-So the functional solution is better for extensibility, because extension operations are indistinguishable from those (like `fullName`) provided by the original authors, whereas the OO solution makes us look for two different types of implementation, methods and functions.
+So the functional solution is arguably better for extensibility, because extension operations are indistinguishable from those (like `fullName`) provided by the original authors, whereas the OO solution makes us look for two different types of implementation, methods and functions.
 
 Even if we _do_ own the code for the `Customer` class, we should be wary of adding methods like `nameForMarketing`.
 The class `Customer` is a fundamental domain class in our application: lots of other code will depend on it.
 Adding a report for marketing shouldn't force us to recompile and retest everything, but it will if we add a method.
-So for better or worse it's probably better that we keep `Customer` as small as possible and add functionality with external functions.
+So it's better that we keep `Customer` as small as possible and add frivolous functionality with external functions.
 
 Those functions don't have to be as hard to find as we've made out though; they can be extension functions.
 
@@ -113,6 +113,9 @@ Those functions don't have to be as hard to find as we've made out though; they 
 Extension functions are functions that look like methods, but are in fact just functions.
 (As we explore in <<static-methods-to-top-level-functions>>, technically they are _also_ methods on the JVM, because all code has to be.
 And they can in fact be non-static methods of another class, we'll get to that later.)
+
+As their name implies, extension functions give us the ability to extend the operations available on a type.
+They do this while supporting the intuitive, dot-means-send-a-message calling convention of methods, which allows them to be discoverable in the same Ctrl-Space way.
 
 If we define an extension function:
 
@@ -215,8 +218,26 @@ customer.extensionAsFunctionReference() // doesn't compile
 <1> `Unresolved reference: methodAsFunctionReference`
 ====
 
-As their name implies, extension functions give us the ability to extend the operations available on a type.
-They do this while supporting the intuitive, send-a-message calling convention of methods, which allows them to be discoverable in the same Ctrl-Space way.
+Note that extension functions don't have any special access to the private members of the class that they are extending, they can only have the same priveleges as normal functions in their scope.
+
+=== Extension Properties
+
+Kotlin also supports extension properties.
+This is possible because Kotlin property accessors are actually method calls.
+Extension properties can't store any data because they don't really add fields to their class - they can only be computed.
+
+`nameForMarketing` could have been defined as an extension property:
+
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#nameForMarketingProp
+[source,kotlin]
+----
+val Customer.nameForMarketing get() = "${familyName.toUpperCase()}, $givenName}"
+----
+// end-insert
+
+In fact, it probably _should_ be a property, as it is a simple calculation (see <<actions-to-calculations>>) and so always returns the same result.
+
+Unless we specifically distinguish (as we do in <<methods-to-properties>>) discussion around extension functions also applies to extension properties.
 
 [WARNING]
 .Extension Functions are Not Polymorphic
@@ -238,7 +259,7 @@ We could add a constructor, `Customer(jsonNode)` (or a static `Customer` method)
 The same argument applies to JsonNode.
 Even if we could change its code, pretty soon it would be unmanageable with all the jsonNode.toMyDomainType()` methods.
 
-In Java then, we'd end up with a class of utility functions of the form:
+In Java then, we would write a class of utility functions of the form:
 
 // begin-insert: src/main/java/extensionFunctions/SomeJava.java#toCustomer
 [source,java]
@@ -249,7 +270,7 @@ static Customer toCustomer(JsonNode node) {
 ----
 // end-insert
 
-or our preference:
+or Duncan's preference:
 
 // begin-insert: src/main/java/extensionFunctions/SomeJava.java#customerFrom
 [source,java]
@@ -280,7 +301,7 @@ var marketingLength = nameForMarketing(customerFrom(node)).length();
 // end-insert
 
 We're all developers here, and used to reading function invocations, so it's easy to underestimate the cognitive load of searching for the innermost call and working your way out through function and method calls to work out how an expression evaluates.
-Compare this to the version using extension functions:
+In Kotlin, we can write the conversion as an extension on `JsonNode` and enjoy a soothing flow from left to right:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#chaining
 [source,kotlin]
@@ -298,9 +319,8 @@ Duncan can literally feel the difference in readability in the tension in his sh
 One major difference between invoking a method and calling a function is in the treatment of `null` references.
 If we have a reference that is `null`, we can't send a message to it, because there is nothing to send a message to.
 Some runtimes will allow you to pretend by silently ignoring such calls, but not the JVM, which signals its disgust with `NullPointerExceptions`.
-In contrast, `null` parameters are tractable.
-We may not know what to do with them, but they don't prevent us from invoking the code, because we have an object to send the message to
-In the case of static methods this is the Java class, or the Kotlin object.
+In contrast, `null` _parameters_ are tractable.
+We may not know what to do with them, but they don't prevent us from finding code to invoke.
 
 It follows that whilst `thing.method()` and `thing.extensionFunction()` look to be equivalent calls, `method` can never be called if `thing` is `null`, whereas `extensionFunction` can.
 In order to allow this we have to declare the receiver as nullable.
@@ -319,14 +339,16 @@ fun Element?.toCustomer(): Customer? = this?.let { element ->
 ----
 // end-insert
 
-Inside a method, `this` can never be `null`, but here the receiver can be, so we use `this?.let` to separate the cases.
+Inside a method, `this` can never be `null`.
+Inside an extension function, it can be, so we use `this?.let` create the customer only if the receiver isn't `null`.
 
 Extension functions on nullable types can significantly reduce the noise of properly handling `null` values in Kotlin, again reducing the cognitive load of understanding what our code is doing.
 
 === Generics
 
-So far we looked at extension functions defined on concrete types.
-Just as with normal functions, they can have generic parameters though, and this is most interesting when the receiver is generic.
+So far we have looked at extension functions defined on concrete types.
+Just as with normal functions, they can have generic parameters though.
+This is most interesting when the receiver is generic.
 
 Here's a really useful extension function that for some reason isn't part of the standard library.
 
@@ -347,7 +369,7 @@ val marketingLength = jsonNode.toCustomer().nameForMarketing().length
 ----
 // end-insert
 
-If we need to see the value of the customer we would normally pull out a variable:
+If we need to see the value of the customer for debugging we would normally need to pull out a variable:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#printed3
 [source,kotlin]
@@ -380,24 +402,26 @@ fun Iterable<Customer>.familyNames(): Set<String> =
 // end-insert
 
 This extension function is applicable to any `Collection<Customer>`, but not to collections of other types.
-We can use extension functions in this way to use collections to represent domain concepts rather than defining our own types - see <<encapsulated-collections-to-typealiases>>, and for extracting parts of collections pipelines into named sections - see <<TODO>>.
+Extension functions then allow us to use collections to represent domain concepts rather than defining our own types - see <<encapsulated-collections-to-typealiases>>, and for extracting parts of collections pipelines into named sections - see <<TODO>>.
 
 === Use in the Standard Library
 
 Note that the Kotlin library authors faced the same issue extending types that they don't own as we do - in their case those provided by the Java standard library.
-While they resorted to compiler trickery in some cases, a lot of the Kotlin standard library is extension functions.
-This includes fundamental functions like `map`, `filter` and `reduce` (defined as extensions on `Iterable`), and the scope functions `let`, `run`, `with`, `apply` and `also`. There is even an extension function `toString`.
+While they sometimes resorted to compiler trickery, a lot of the Kotlin standard library is extension functions.
+This includes fundamental functions like `map`, `filter` and `reduce` (defined as extensions on `Iterable`), and the scope functions `let`, `run`, `with`, `apply` and `also`. There is even an extension function `Any?.toString`.
 
 [WARNING]
 .toString on Nullable Types
 ====
 Where a method and extension function are both in scope and visible, the compiler will generate a call to the method, not the function.
 As we've discussed, a method can never be safely called on a nullable type, but an extension function can.
-So Kotlin defines an extension function:
+So Kotlin defines an extension function, the code for which is effectively:
 
 [source,kotlin]
 ----
-fun Any?.toString(): String
+fun Any?.toString(): String =
+    this?.let { it.toString() }
+    ?: "null"
 ----
 
 This is called if you invoke `toString` on a nullable type:
@@ -410,7 +434,7 @@ val s: String = customer.toString()
 ----
 // end-insert
 
-Here `s` will be either the result of calling the `Customer.toString` method if customer is not `null`, or the `String` with value `"null"`.
+Here `s` will be either the result of calling the `Customer.toString` method if customer is not `null`, or otherwise the `String` with value `"null"`.
 That's a reference pointing to not to `null`, but to the characters "null".
 
 This is a neat trick, but means that you can find variables that you thought would contain the string representation of an object actually set to the string "null".
