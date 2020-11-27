@@ -1,6 +1,10 @@
 package extensionFunctions
 
+import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.ObjectWriter
+import java.io.OutputStream
 
 /// begin: customerFull
 /// begin: customer
@@ -119,6 +123,23 @@ fun Element?.toCustomer(): Customer? = this?.let { element ->
     )
 }
 /// end: xml
+
+
+/// begin: jsonWriter
+class JsonWriter(
+    private val objectMapper: ObjectMapper,
+    private val outputStream: OutputStream
+) {
+    fun writeCustomer(customer: Customer) {
+        objectMapper.writer().writeValue(outputStream, customer.toJson())
+    }
+
+    fun asJsonString(customer: Customer) =
+        objectMapper.writeValueAsString(customer.toJson())
+
+    private fun Customer.toJson(): JsonNode = objectMapper.valueToTree(this)
+}
+/// end: jsonWriter
 
 object CounterFactuals {
     /// begin: postalName

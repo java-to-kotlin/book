@@ -443,6 +443,33 @@ This lead to hours of gentle debugging - ask us how we know!
 
 === Extension Functions as Methods
 
+We normally define extension functions as top-level functions.
+They can, however, be defined inside a class definition.
+In this case they can access the members of their own class, but 'extend' another type.
+
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#jsonWriter
+[source,kotlin]
+----
+class JsonWriter(
+    private val objectMapper: ObjectMapper,
+    private val outputStream: OutputStream
+) {
+    fun writeCustomer(customer: Customer) {
+        objectMapper.writer().writeValue(outputStream, customer.toJson())
+    }
+
+    fun asJsonString(customer: Customer) =
+        objectMapper.writeValueAsString(customer.toJson())
+
+    private fun Customer.toJson(): JsonNode = objectMapper.valueToTree(this)
+}
+----
+// end-insert
+
+Here `Customer.toJson` can access both the `ObjectMapper` and the `Customer` from their respective scopes.
+This isn't a technique that we should use too often, but it can simplify code by allowing the simple left-to-right reading of extension functions while hiding details that would complicate things.
+In particular, it allows DSLs to hide details (like the `ObjectMapper`) that clients shouldn't be bothered by.
+
 === Migrating to Extension Functions
 
 === Conclusion
