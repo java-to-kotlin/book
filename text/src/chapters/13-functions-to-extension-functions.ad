@@ -472,6 +472,580 @@ In particular, it allows DSLs to hide details (like the `ObjectMapper`) that cli
 
 === Refactoring to Extension Functions
 
+The actual mechanics of converting a static method to an extension are simple - the trick is recognising all the places where extension functions make things better.
+Let's work our way through some of Travelator and see how we do.
+
+Those clever people in marketing have come up with a spreadsheet that gives customers a score according to how valuable they are.
+They're constantly changing the algorithm, so they don't want to us to automate that, but they do need a summary file produced from the tab-separated file of customer data and scores that they export.
+Here are our tests:
+
+// begin-insert: tags/functions-to-extension-methods.0:src/test/java/travelator/marketing/HighValueCustomersReportTests.java
+[source,java]
+----
+class HighValueCustomersReportTests {
+
+    @Test
+    public void test() throws IOException {
+        List<String> input = List.of(
+            "ID\tFirstName\tLastName\tScore\tSpend",
+            "1\tFred\tFlintstone\t11\t1000.00",
+            "4\tBetty\tRubble\t10\t2000.00",
+            "2\tBarney\tRubble\t0\t20.00",
+            "3\tWilma\tFlintstone\t9\t0.00"
+        );
+        List<String> expected = List.of(
+            "ID\tName\tSpend",
+            "4\tRUBBLE, Betty\t2000.00",
+            "1\tFLINTSTONE, Fred\t1000.00",
+            "\tTOTAL\t3000.00"
+        );
+        check(input, expected);
+    }
+
+    @Test
+    public void emptyTest() throws IOException {
+        List<String> input = List.of(
+            "ID\tFirstName\tLastName\tScore\tSpend"
+        );
+        List<String> expected = List.of(
+            "ID\tName\tSpend",
+            "\tTOTAL\t0.00"
+        );
+        check(input, expected);
+    }
+
+    @Test
+    public void emptySpendIs0() {
+        assertEquals(
+            new CustomerData("1", "Fred", "Flintstone", 0, 0D),
+            HighValueCustomersReport.customerDataFrom("1\tFred\tFlintstone\t0")
+        );
+    }
+
+    private void check(List<String> inputLines, List<String> expectedLines) throws IOException {
+        var output = new StringWriter();
+        HighValueCustomersReport.generate(
+            new StringReader(String.join("\n", inputLines)),
+            output
+        );
+        assertEquals(String.join("\n", expectedLines), output.toString());
+    }
+}
+----
+// end-insert
+
+You can see that we haven't gone to town on these, as marketing do have habit of changing their minds, but in essence the report needs to list the customers who have a score of ten or more, sorted by spend, with a final total line.
+
+Here is the code:
+
+// begin-insert: tags/functions-to-extension-methods.0:src/main/java/travelator/marketing/HighValueCustomersReport.java
+[source,java]
+----
+public class HighValueCustomersReport {
+
+    public static void generate(Reader reader, Writer writer) throws IOException {
+        List<CustomerData> valuableCustomers = new BufferedReader(reader).lines()
+            .skip(1) // header
+            .map(line -> customerDataFrom(line))
+            .filter(customerData -> customerData.score >= 10)
+            .sorted(comparing(customerData -> customerData.score))
+            .collect(toList());
+
+        writer.write("ID\tName\tSpend\n");
+        for (var customerData: valuableCustomers) {
+            writer.append(lineFor(customerData)).append("\n");
+        }
+        writer.append(summaryFor(valuableCustomers));
+    }
+
+    private static String summaryFor(List<CustomerData> valuableCustomers) {
+        var total = valuableCustomers.stream()
+            .mapToDouble(customerData -> customerData.spend)
+            .sum();
+        return "\tTOTAL\t" + formatMoney(total);
+    }
+
+    static CustomerData customerDataFrom(String line) {
+        var parts = line.split("\t");
+        double spend = parts.length == 4 ? 0 :
+            Double.parseDouble(parts[4]);
+        return new CustomerData(
+            parts[0],
+            parts[1],
+            parts[2],
+            Integer.parseInt(parts[3]),
+            spend
+        );
+    }
+
+    private static String lineFor(CustomerData customer) {
+        return customer.id + "\t" + marketingNameFor(customer) + "\t" +
+            formatMoney(customer.spend);
+    }
+
+    private static String formatMoney(double money) {
+        return String.format("%#.2f", money);
+    }
+
+    private static String marketingNameFor(CustomerData customer) {
+        return customer.familyName.toUpperCase() + ", " + customer.givenName;
+    }
+}
+----
+// end-insert
+
+You can see that this is already a very functional (as opposed to object-oriented) expression of the solution.
+This will make it easy to convert to top-level functions, and top-level functions are easy to convert to extension functions.
+
+But first, here is `CustomerData`:
+
+// begin-insert: tags/functions-to-extension-methods.0:src/main/java/travelator/marketing/CustomerData.java
+[source,java]
+----
+class CustomerData {
+    public final String id;
+    public final String givenName;
+    public final String familyName;
+    public final int score;
+    public final double spend;
+
+    CustomerData(String id, String givenName, String familyName, int score, double spend) {
+        this.id = id;
+        this.givenName = givenName;
+        this.familyName = familyName;
+        this.score = score;
+        this.spend = spend;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        CustomerData that = (CustomerData) o;
+        return score == that.score &&
+            Double.compare(that.spend, spend) == 0 &&
+            id.equals(that.id) &&
+            givenName.equals(that.givenName) &&
+            familyName.equals(that.familyName);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, givenName, familyName, score, spend);
+    }
+}
+----
+// end-insert
+
+This isn't trying to represent everything about a customer, just the data we care about for this report, which is why it is package-protected, and why whoever wrote it (it may have been us ;-) just used fields.
+I doubt we (I mean, whoever wrote it) would even have bothered with `equals` and `hashCode` had it not been for
+the `emptySpendIs0` test.
+That `double` for spend looks suspicious too, but it hasn't caused us any problems yet, so we'll suspend our disbelief and just convert the whole thing to a Kotlin data class (see <<beans-to-values>> before we go on.
+
+Normally that would be a really simple job because of the excellent interop, but it turns out that (at the time of writing) the converter cannot believe that anyone would stoop to raw field access, and so it doesn't change Java that accesses, for example `customerData.score` to `customerData.getScore()` to match the Kotlin property definition.
+If we just add the getters before converting to Kotlin, our Java will still be reading the fields directly, so that won't help, but luckily there is an "Encapsulate Fields" refactor which will convert all the fields and field accesses in `Customer` to getters.
+
+// begin-insert: tags/functions-to-extension-methods.1:src/main/java/travelator/marketing/CustomerData.java#foo
+[source,java]
+----
+class CustomerData {
+    private final String id;
+    private final String givenName;
+    private final String familyName;
+    private final int score;
+    private final double spend;
+
+    ...
+    @Override
+    public int hashCode() {
+        return Objects.hash(getId(), getGivenName(), getFamilyName(), getScore(), getSpend());
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getGivenName() {
+        return givenName;
+    }
+    ...
+}
+----
+// end-insert
+
+Now client code is calling the getters:
+
+// begin-insert: tags/functions-to-extension-methods.1:src/main/java/travelator/marketing/HighValueCustomersReport.java#foo
+[source,java]
+----
+private static String lineFor(CustomerData customer) {
+    return customer.getId() + "\t" + marketingNameFor(customer) + "\t" +
+        formatMoney(customer.getSpend());
+}
+----
+// end-insert
+
+So we can convert `CustomerData` to a Kotlin data class without breaking the Java:
+
+// begin-insert: tags/functions-to-extension-methods.2:src/main/java/travelator/marketing/CustomerData.kt
+[source,kotlin]
+----
+internal data class CustomerData(
+    val id: String,
+    val givenName: String,
+    val familyName: String,
+    val score: Int,
+    val spend: Double
+)
+----
+// end-insert
+
+Now we can go ahead and convert `HighValueCustomerReport` to Kotlin too - it's entirely self-contained.
+That doesn't go brilliantly, `customerDataFrom` doesn't compile after the conversion:
+
+// begin-insert: tags/functions-to-extension-methods.3:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFrom
+[source,kotlin]
+----
+object HighValueCustomersReport {
+    ...
+    @JvmStatic
+    fun customerDataFrom(line: String): CustomerData { // <1>
+        val parts = line.split("\t".toRegex()).toTypedArray()
+        val spend: Double = if (parts.size == 4) 0 else parts[4].toDouble() // <2>
+        return CustomerData(
+            parts[0],
+            parts[1],
+            parts[2], parts[3].toInt(), // <3>
+            spend
+        )
+    }
+    ...
+}
+----
+// end-insert
+
+<1> `'public' function exposes its 'internal' return type CustomerData`.
+<2> `The integer literal does not conform to the expected type Double`.
+<3> Odd formatting.
+
+This function was package protected to allow the test to access it.
+Kotlin doesn't really support package protection, so the converter has chosen public visibility here, but internal for `CustomerData`, and then it complains that it is returning an internal type from a public method.
+Maybe these will be fixed by the time you read this.
+Similarly, the converter hasn't been smart enough to know that Kotlin doesn't coerce the integer 0 to double, leading to the second error.
+
+On the bright side, if this is the best computers can do, maybe our jobs are safe for a few years yet!
+Let's help IntelliJ out by clicking on the errors and Alt-Entering to fix them for it.
+
+// begin-insert: tags/functions-to-extension-methods.4:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFrom
+[source,kotlin]
+----
+object HighValueCustomersReport {
+    ...
+    @JvmStatic
+    internal fun customerDataFrom(line: String): CustomerData { // <1>
+        val parts = line.split("\t".toRegex()).toTypedArray()
+        val spend: Double = if (parts.size == 4) 0.0 else parts[4].toDouble()
+        return CustomerData(
+            parts[0],
+            parts[1],
+            parts[2],
+            parts[3].toInt(),
+            spend
+        )
+    }
+    ...
+}
+----
+// end-insert
+
+<1> We've chosen `internal` as the best visibility.
+
+Our functions are currently hosted in an `object` - let's convert them to top level functions (<<static-methods-to-top-level-functions>>).
+
+// begin-insert: tags/functions-to-extension-methods.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#all
+[source,kotlin]
+----
+@file:JvmName("HighValueCustomersReport")
+package travelator.marketing
+
+...
+
+@Throws(IOException::class)
+fun generate(reader: Reader?, writer: Writer) {
+    val valuableCustomers = BufferedReader(reader).lines()
+        .skip(1) // header
+        .map { line: String -> customerDataFrom(line) }
+        .filter { (_, _, _, score) -> score >= 10 }
+        .sorted(Comparator.comparing { (_, _, _, score) -> score })
+        .collect(Collectors.toList())
+    writer.write("ID\tName\tSpend\n")
+    for (customerData in valuableCustomers) {
+        writer.append(lineFor(customerData)).append("\n")
+    }
+    writer.append(summaryFor(valuableCustomers))
+}
+
+private fun summaryFor(valuableCustomers: List<CustomerData>): String {
+    val total = valuableCustomers.stream()
+        .mapToDouble { (_, _, _, _, spend) -> spend }
+        .sum()
+    return "\tTOTAL\t" + formatMoney(total)
+}
+
+internal fun customerDataFrom(line: String): CustomerData { // <1>
+    val parts = line.split("\t".toRegex()).toTypedArray()
+    val spend: Double = if (parts.size == 4) 0.0 else parts[4].toDouble()
+    return CustomerData(
+        parts[0],
+        parts[1],
+        parts[2],
+        parts[3].toInt(),
+        spend
+    )
+}
+
+private fun lineFor(customer: CustomerData): String {
+    return customer.id + "\t" + marketingNameFor(customer) + "\t" +
+        formatMoney(customer.spend)
+}
+
+private fun formatMoney(money: Double): String {
+    return String.format("%#.2f", money)
+}
+
+private fun marketingNameFor(customer: CustomerData): String {
+    return customer.familyName.toUpperCase() + ", " + customer.givenName
+}
+----
+// end-insert
+
+OK, it's time to look for potential and actual extension functions.
+Starting at the end is the `marketingNameFor` that we saw (a slightly different version of) earlier.
+If we Alt-Enter on the `customer` parameter IntelliJ will offer to "Convert Parameter to Receiver".
+This gives:
+
+// begin-insert: tags/functions-to-extension-methods.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#marketingNameFor
+[source,kotlin]
+----
+private fun lineFor(customer: CustomerData): String {
+    return customer.id + "\t" + customer.marketingNameFor() + "\t" +
+        formatMoney(customer.spend)
+}
+
+...
+private fun CustomerData.marketingNameFor(): String {
+    return familyName.toUpperCase() + ", " + givenName
+}
+----
+// end-insert
+
+That's now not a great name now - let's rename it to `marketingName`.
+Then "Convert function to property", "Convert to expression body" and convert the string concatenation to expansion.
+
+// begin-insert: tags/functions-to-extension-methods.7:src/main/java/travelator/marketing/HighValueCustomersReport.kt#marketingNameFor
+[source,kotlin]
+----
+private fun lineFor(customer: CustomerData): String =
+    "${customer.id}\t${customer.marketingName}\t${formatMoney(customer.spend)}"
+
+private fun formatMoney(money: Double): String {
+    return String.format("%#.2f", money)
+}
+
+private val CustomerData.marketingName: String
+    get() = "${familyName.toUpperCase()}, $givenName"
+----
+// end-insert
+
+Now `formatMoney` is letting us down, again "Convert Parameter to Receiver", rename, and "Convert to expression body":
+
+// begin-insert: tags/functions-to-extension-methods.8:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toMoneyString
+[source,kotlin]
+----
+private fun lineFor(customer: CustomerData): String =
+    "${customer.id}\t${customer.marketingName}\t${customer.spend.toMoneyString()}"
+
+private fun Double.toMoneyString() = String.format("%#.2f", this)
+----
+// end-insert
+
+The `String.format` wrankles a bit.
+Kotlin would allow us to write `"%#.2f".format(this)`, but we prefer this:
+
+// begin-insert: tags/functions-to-extension-methods.9:src/main/java/travelator/marketing/HighValueCustomersReport.kt#formattedAs
+[source,kotlin]
+----
+private fun Double.toMoneyString() = this.formattedAs("%#.2f")
+
+private fun Double.formattedAs(format: String) = String.format(format, this)
+----
+// end-insert
+
+Now `customerDataFrom` is in our sights:
+
+// begin-insert: tags/functions-to-extension-methods.10:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor
+[source,kotlin]
+----
+internal fun customerDataFrom(line: String): CustomerData {
+    val parts = line.split("\t".toRegex()).toTypedArray()
+    val spend: Double = if (parts.size == 4) 0.0 else parts[4].toDouble()
+    return CustomerData(
+        parts[0],
+        parts[1],
+        parts[2],
+        parts[3].toInt(),
+        spend
+    )
+}
+----
+// end-insert
+
+Before we go on, let's observe that `CharSequence.split()`, `String.toRegex()`, `Collection<T>.toTypedArray()`, `String.toDouble()` and `String.toInt()` are all extension functions provided by the Kotlin standard library.
+
+There's a lot to tidy before we go on.
+Kotlin has a `CharSequence.split(delimters)` that we can use in place of the regex.
+We can inline `spend`, "Add names to call arguments" and convert to a single expression function (see <<multi-to-single-expression-functions>>).
+
+// begin-insert: tags/functions-to-extension-methods.11:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor
+[source,kotlin]
+----
+internal fun customerDataFrom(line: String): CustomerData =
+    line.split("\t").let { parts ->
+        CustomerData(
+            id = parts[0],
+            givenName = parts[1],
+            familyName = parts[2],
+            score = parts[3].toInt(),
+            spend = if (parts.size == 4) 0.0 else parts[4].toDouble()
+        )
+    }
+----
+// end-insert
+
+Now "Convert Parameter to Receiver", and rename to `toCustomerData`.
+
+// begin-insert: tags/functions-to-extension-methods.12:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor
+[source,kotlin]
+----
+internal fun String.toCustomerData(): CustomerData =
+    split("\t").let { parts ->
+        CustomerData(
+            id = parts[0],
+            givenName = parts[1],
+            familyName = parts[2],
+            score = parts[3].toInt(),
+            spend = if (parts.size == 4) 0.0 else parts[4].toDouble()
+        )
+    }
+----
+// end-insert
+
+Note that the Java in our tests is still calling this as a static method:
+
+// begin-insert: tags/functions-to-extension-methods.12:src/test/java/travelator/marketing/HighValueCustomersReportTests.java#customerDataFor
+[source,java]
+----
+@Test
+public void emptySpendIs0() {
+    assertEquals(
+        new CustomerData("1", "Fred", "Flintstone", 0, 0D),
+        HighValueCustomersReport.toCustomerData("1\tFred\tFlintstone\t0")
+    );
+}
+----
+// end-insert
+
+Now
+
+// begin-insert: tags/functions-to-extension-methods.13:src/main/java/travelator/marketing/HighValueCustomersReport.kt#summaryFor
+[source,kotlin]
+----
+private fun summaryFor(valuableCustomers: List<CustomerData>): String {
+    val total = valuableCustomers.stream()
+        .mapToDouble { (_, _, _, _, spend) -> spend }
+        .sum()
+    return "\tTOTAL\t" + total.toMoneyString()
+}
+----
+// end-insert
+
+That destructuring is odd, but we can get rid of it by hand-writing the `total` in Kotlin.
+We'll remove the concatenation while we're there:
+
+// begin-insert: tags/functions-to-extension-methods.14:src/main/java/travelator/marketing/HighValueCustomersReport.kt#summaryFor
+[source,kotlin]
+----
+private fun summaryFor(valuableCustomers: List<CustomerData>): String {
+    val total = valuableCustomers.sumByDouble { it.spend }
+    return "\tTOTAL\t${total.toMoneyString()}"
+}
+----
+// end-insert
+
+Now convert to a single expression extension function:
+
+// begin-insert: tags/functions-to-extension-methods.15:src/main/java/travelator/marketing/HighValueCustomersReport.kt#summaryFor
+[source,kotlin]
+----
+private fun List<CustomerData>.summarised(): String =
+    sumByDouble { it.spend }.let { total ->
+        "\tTOTAL\t${total.toMoneyString()}"
+    }
+----
+// end-insert
+
+Now only `generate` is left unimproved:
+
+// begin-insert: tags/functions-to-extension-methods.16:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+[source,kotlin]
+----
+@Throws(IOException::class)
+fun generate(reader: Reader?, writer: Writer) {
+    val valuableCustomers = BufferedReader(reader).lines()
+        .skip(1) // header
+        .map { line: String -> line.toCustomerData() }
+        .filter { (_, _, _, score) -> score >= 10 }
+        .sorted(Comparator.comparing { (_, _, _, score) -> score })
+        .collect(Collectors.toList())
+    writer.write("ID\tName\tSpend\n")
+    for (customerData in valuableCustomers) {
+        writer.append(lineFor(customerData)).append("\n")
+    }
+    writer.append(valuableCustomers.summarised())
+}
+----
+// end-insert
+
+We still have to convert Java streams to Kotlin sequences by hand:
+
+// begin-insert: tags/functions-to-extension-methods.17:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+[source,kotlin]
+----
+@Throws(IOException::class)
+fun generate(reader: Reader, writer: Writer) {
+    val valuableCustomers = reader.buffered().lineSequence()
+        .drop(1) // header
+        .map(String::toCustomerData)
+        .filter { it.score >= 10 }
+        .sortedBy(CustomerData::score)
+        .toList()
+    writer.write("ID\tName\tSpend\n")
+    for (customerData in valuableCustomers) {
+        writer.append(lineFor(customerData)).append("\n")
+    }
+    writer.append(valuableCustomers.summarised())
+}
+----
+// end-insert
+
+
+
+
+
+
+
+
+
 === Conclusion
 
 Use-cases.

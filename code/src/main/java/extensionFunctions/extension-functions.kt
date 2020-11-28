@@ -106,10 +106,6 @@ object Chaining {
 
 }
 
-class TitleProvider(val title: String) {
-    fun Customer.nameWithTitle() = "$title $fullName"
-}
-
 class Element {
     fun attribute(s: String): String = SOME_CODE()
 }
