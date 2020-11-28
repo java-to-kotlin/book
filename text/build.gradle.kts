@@ -7,8 +7,6 @@ tasks {
     val retagCode = register<Exec>("retagCode") {
         workingDir(rootDir)
         commandLine("./retag-worked-example")
-        inputs.dir(rootDir.resolve("../refactoring-to-kotlin-code"))
-        outputs.file(rootProject.buildDir.resolve("tagged"))
     }
 
     val sourceRoots = SourceRoots(
@@ -21,8 +19,8 @@ tasks {
 
         doLast {
             processFiles(
-                inputRoot = projectDir,
-                outputRoot = projectDir,
+                inputRoot = projectDir.resolve("src"),
+                outputRoot = projectDir.resolve("src"),
                 sourceRoots = sourceRoots,
                 abortOnFailure = true,
                 kotlinVersion = rootDir.resolve(".kotlin-version").readText().trim()
