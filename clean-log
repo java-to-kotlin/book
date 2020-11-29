@@ -2,9 +2,21 @@
 set -e
 set -o pipefail
 
-grep -E \
-    -e '^e:' \
-    -e '^building with' \
-    -e '^[^>].*Test.*FAILED$' \
-    -e '^\s+.* at .*:[0-9]+$' \
-    "$1" | sed -Ee "s|$2/||"
+awk -- '
+    BEGIN {
+        multiline_error = 0;
+    }
+
+    /^> Task :.+ FAILED$/ {
+        multiline_error = 1;
+    }
+
+    /^FAILURE: Build failed with an exception\.$/ {
+        multiline_error = 0;
+    }
+
+    multiline_error {
+        print;
+    }
+
+' "$1" | sed -Ee "s|$2/||"
