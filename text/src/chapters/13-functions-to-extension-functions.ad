@@ -730,6 +730,7 @@ object HighValueCustomersReport {
 
 This function was package protected to allow the test to access it.
 Kotlin doesn't really support package protection, so the converter has chosen public visibility here, but internal for `CustomerData`, and then it complains that it is returning an internal type from a public method.
+The simplest solution is just to make them both public.
 Maybe these will be fixed by the time you read this.
 Similarly, the converter hasn't been smart enough to know that Kotlin doesn't coerce the integer 0 to double, leading to the second error.
 
@@ -742,7 +743,7 @@ Let's help IntelliJ out by clicking on the errors and Alt-Entering to fix them f
 object HighValueCustomersReport {
     ...
     @JvmStatic
-    internal fun customerDataFrom(line: String): CustomerData { // <1>
+    fun customerDataFrom(line: String): CustomerData { // <1>
         val parts = line.split("\t".toRegex()).toTypedArray()
         val spend: Double = if (parts.size == 4) 0.0 else parts[4].toDouble()
         return CustomerData(
@@ -758,7 +759,7 @@ object HighValueCustomersReport {
 ----
 // end-insert
 
-<1> We've chosen `internal` as the best visibility.
+<1> Now public
 
 Our functions are currently hosted in an `object` - let's convert them to top level functions (<<static-methods-to-top-level-functions>>).
 
@@ -792,7 +793,7 @@ private fun summaryFor(valuableCustomers: List<CustomerData>): String {
     return "\tTOTAL\t" + formatMoney(total)
 }
 
-internal fun customerDataFrom(line: String): CustomerData { // <1>
+fun customerDataFrom(line: String): CustomerData { // <1>
     val parts = line.split("\t".toRegex()).toTypedArray()
     val spend: Double = if (parts.size == 4) 0.0 else parts[4].toDouble()
     return CustomerData(
@@ -886,7 +887,7 @@ Now `customerDataFrom` is in our sights:
 // begin-insert: tags/functions-to-extension-methods.10:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor
 [source,kotlin]
 ----
-internal fun customerDataFrom(line: String): CustomerData {
+fun customerDataFrom(line: String): CustomerData {
     val parts = line.split("\t".toRegex()).toTypedArray()
     val spend: Double = if (parts.size == 4) 0.0 else parts[4].toDouble()
     return CustomerData(
@@ -909,7 +910,7 @@ We can inline `spend`, "Add names to call arguments" and convert to a single exp
 // begin-insert: tags/functions-to-extension-methods.11:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor
 [source,kotlin]
 ----
-internal fun customerDataFrom(line: String): CustomerData =
+fun customerDataFrom(line: String): CustomerData =
     line.split("\t").let { parts ->
         CustomerData(
             id = parts[0],
@@ -927,7 +928,7 @@ Now "Convert Parameter to Receiver", and rename to `toCustomerData`.
 // begin-insert: tags/functions-to-extension-methods.12:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor
 [source,kotlin]
 ----
-internal fun String.toCustomerData(): CustomerData =
+fun String.toCustomerData(): CustomerData =
     split("\t").let { parts ->
         CustomerData(
             id = parts[0],
@@ -1173,7 +1174,7 @@ private fun List<CustomerData>.summarised(): String =
         "\tTOTAL\t${total.toMoneyString()}"
     }
 
-internal fun String.toCustomerData(): CustomerData =
+fun String.toCustomerData(): CustomerData =
     split("\t").let { parts ->
         CustomerData(
             id = parts[0],
