@@ -551,7 +551,7 @@ public class HighValueCustomersReport {
             .sorted(comparing(customerData -> customerData.score))
             .collect(toList());
 
-        writer.write("ID\tName\tSpend\n");
+        writer.append("ID\tName\tSpend\n");
         for (var customerData: valuableCustomers) {
             writer.append(lineFor(customerData)).append("\n");
         }
@@ -778,7 +778,7 @@ fun generate(reader: Reader?, writer: Writer) {
         .filter { (_, _, _, score) -> score >= 10 }
         .sorted(Comparator.comparing { (_, _, _, score) -> score })
         .collect(Collectors.toList())
-    writer.write("ID\tName\tSpend\n")
+    writer.append("ID\tName\tSpend\n")
     for (customerData in valuableCustomers) {
         writer.append(lineFor(customerData)).append("\n")
     }
@@ -1007,7 +1007,7 @@ fun generate(reader: Reader?, writer: Writer) {
         .filter { (_, _, _, score) -> score >= 10 }
         .sorted(Comparator.comparing { (_, _, _, score) -> score })
         .collect(Collectors.toList())
-    writer.write("ID\tName\tSpend\n")
+    writer.append("ID\tName\tSpend\n")
     for (customerData in valuableCustomers) {
         writer.append(lineFor(customerData)).append("\n")
     }
@@ -1029,7 +1029,7 @@ fun generate(reader: Reader, writer: Writer) {
         .filter { it.score >= 10 }
         .sortedBy(CustomerData::score)
         .toList()
-    writer.write("ID\tName\tSpend\n")
+    writer.append("ID\tName\tSpend\n")
     for (customerData in valuableCustomers) {
         writer.append(lineFor(customerData)).append("\n")
     }
@@ -1038,15 +1038,171 @@ fun generate(reader: Reader, writer: Writer) {
 ----
 // end-insert
 
+Note here that every link in the sequence chain is an extension function not a method!
 
+`Appendable.appendLine()` is another extension function that allows us to simplify a bit:
 
+// begin-insert: tags/functions-to-extension-methods.18:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+[source,kotlin]
+----
+@Throws(IOException::class)
+fun generate(reader: Reader, writer: Writer) {
+    val valuableCustomers = reader
+        .buffered()
+        .lineSequence()
+        .drop(1) // header
+        .map(String::toCustomerData)
+        .filter { it.score >= 10 }
+        .sortedBy(CustomerData::score)
+        .toList()
+    writer.appendLine("ID\tName\tSpend")
+    for (customerData in valuableCustomers) {
+        writer.appendLine(lineFor(customerData))
+    }
+    writer.append(valuableCustomers.summarised())
+}
+----
+// end-insert
 
+It feels like we should be able to remove that `// header` comment by extracting a function, but look at what happens if we do:
 
+// begin-insert: tags/functions-to-extension-methods.19:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+[source,kotlin]
+----
+@Throws(IOException::class)
+fun generate(reader: Reader, writer: Writer) {
+    val valuableCustomers = withoutHeader(reader.buffered().lineSequence())
+        .map(String::toCustomerData)
+        .filter { it.score >= 10 }
+        .sortedBy(CustomerData::score)
+        .toList()
+    writer.appendLine("ID\tName\tSpend")
+    for (customerData in valuableCustomers) {
+        writer.appendLine(lineFor(customerData))
+    }
+    writer.append(valuableCustomers.summarised())
+}
 
+private fun withoutHeader(sequence: Sequence<String>) = sequence.drop(1)
+----
+// end-insert
 
+We've lost the nice pipeline flow from left to right, top to bottom.
+Alt-Enter on `sequence` and "Convert Parameter to Receiver" gives it back:
 
+// begin-insert: tags/functions-to-extension-methods.20:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+[source,kotlin]
+----
+@Throws(IOException::class)
+fun generate(reader: Reader, writer: Writer) {
+    val valuableCustomers = reader.buffered().lineSequence()
+        .withoutHeader()
+        .map(String::toCustomerData)
+        .filter { it.score >= 10 }
+        .sortedBy(CustomerData::score)
+        .toList()
+    writer.appendLine("ID\tName\tSpend")
+    for (customerData in valuableCustomers) {
+        writer.appendLine(lineFor(customerData))
+    }
+    writer.append(valuableCustomers.summarised())
+}
+
+private fun Sequence<String>.withoutHeader() = drop(1)
+----
+// end-insert
+
+We can make this even more expressive with a couple more extension members,`Reader.linesAsSequence()`, `Sequence<String>.valuableCustomers()` and `CustomerData.outputLine.
+<<TODO>> covers how to extract parts of a pipeline to extensions.
+
+// begin-insert: tags/functions-to-extension-methods.21:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+[source,kotlin]
+----
+@Throws(IOException::class)
+fun generate(reader: Reader, writer: Writer) {
+    val valuableCustomers = reader
+        .linesAsSequence()
+        .valuableCustomers()
+        .sortedBy(CustomerData::score)
+        .toList()
+    writer.appendLine("ID\tName\tSpend")
+    for (customerData in valuableCustomers) {
+        writer.appendLine(customerData.outputLine)
+    }
+    writer.append(valuableCustomers.summarised())
+}
+
+private fun Reader.linesAsSequence() = buffered().lineSequence()
+
+private fun Sequence<String>.valuableCustomers() = withoutHeader()
+    .map(String::toCustomerData)
+    .filter { it.score >= 10 }
+----
+// end-insert
+
+This still isn't quite as sweet as we might like - <<TODO>> will finish off this refactoring, we're we've covered the extension function part.
+Here's the whole file:
+
+// begin-insert: tags/functions-to-extension-methods.21:src/main/java/travelator/marketing/HighValueCustomersReport.kt#all
+[source,kotlin]
+----
+@Throws(IOException::class)
+fun generate(reader: Reader, writer: Writer) {
+    val valuableCustomers = reader
+        .linesAsSequence()
+        .valuableCustomers()
+        .sortedBy(CustomerData::score)
+        .toList()
+    writer.appendLine("ID\tName\tSpend")
+    for (customerData in valuableCustomers) {
+        writer.appendLine(customerData.outputLine)
+    }
+    writer.append(valuableCustomers.summarised())
+}
+
+private fun Reader.linesAsSequence() = buffered().lineSequence()
+
+private fun Sequence<String>.valuableCustomers() = withoutHeader()
+    .map(String::toCustomerData)
+    .filter { it.score >= 10 }
+
+private fun Sequence<String>.withoutHeader() = drop(1)
+
+private fun List<CustomerData>.summarised(): String =
+    sumByDouble { it.spend }.let { total ->
+        "\tTOTAL\t${total.toMoneyString()}"
+    }
+
+internal fun String.toCustomerData(): CustomerData =
+    split("\t").let { parts ->
+        CustomerData(
+            id = parts[0],
+            givenName = parts[1],
+            familyName = parts[2],
+            score = parts[3].toInt(),
+            spend = if (parts.size == 4) 0.0 else parts[4].toDouble()
+        )
+    }
+
+private val CustomerData.outputLine: String
+    get() = "$id\t$marketingName\t${spend.toMoneyString()}"
+
+private fun Double.toMoneyString() = this.formattedAs("%#.2f")
+
+private fun Double.formattedAs(format: String) = String.format(format, this)
+
+private val CustomerData.marketingName: String
+    get() = "${familyName.toUpperCase()}, $givenName"
+----
+// end-insert
+
+Note that every function except the entry point is a single-expression (<<multi-to-single-expression-functions>>) extension function.
+We haven't made `generate` an extension function because there isn't a natural parameter to make the receiver - it doesn't feel like a natural operation on `Reader` or `Writer`.
+Duncan thinks that may change when we finish this refactoring - let's see shall we?
 
 === Conclusion
+
+TODO when I've read this back.
 
 Use-cases.
 
