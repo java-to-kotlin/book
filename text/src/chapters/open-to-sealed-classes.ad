@@ -55,14 +55,7 @@ typealias Itinerary = List<ItineraryItem>
 ----
 // end-insert
 
-ItineraryItem is an interface, implemented by the concrete item types: `Journey`, `Accommodation`, `Meal` and `Attraction`.
-
-.Aside
-****
-This has the nice effect that a `Route`, which we get back from our routing service, already _is_ an `Itinerary`.
-Because a `Journey` is a subtype `ItineraryItem`, a `List<Journey>` is a subtype of `List<ItineraryItem>`.
-We can receive a Route from our routing service and start using it as an Itinerary -- for example, to add accommodation -- without having to copy elements from one type to the other.
-****
+ItineraryItem is an interface, implemented by the concrete item types: `Journey`, `Accommodation`, `Restaurant` and `Attraction`.
 
 // begin-insert: tags/open-to-sealed.0:src/main/java/travelator/itinerary/ItineraryItem.kt#item
 [source,kotlin]
@@ -78,7 +71,14 @@ interface ItineraryItem {
 ----
 // end-insert
 
-Giving all itinerary items a polymorphic interface means we can treat all itinerary items the same.
+.Aside
+****
+This design the pleasing effect that a `Route`, which we get back from our routing service, already _is_ an `Itinerary`.
+Because a `Journey` is a subtype `ItineraryItem`, and List declared as `List<out T>` because it is unmodifiable, a `List<Journey>` is a subtype of `List<ItineraryItem>`.
+We can receive a Route from our routing service and start using it as an Itinerary -- for example, to add accommodation -- without having to copy elements from one type to the other.
+****
+
+Giving all itinerary items a polymorphic interface means the itinerary operations do not depend on the concrete type of the items in the itinerary.
 For example:
 
 // begin-insert: tags/open-to-sealed.0:src/main/java/travelator/itinerary/ItineraryCosts.kt
@@ -88,9 +88,11 @@ fun Itinerary.costs() = flatMap(ItineraryItem::costs)
 ----
 // end-insert
 
-However, because `Itinerary` and `ItineraryItem` are such fundamental types in our system, that interface attracts methods to support many different features of the application.
+This lets us easily add new types of `ItineraryItem` to our application.
+However, in practice we do this very rarely.
+`Itinerary` and `ItineraryItem` are such fundamental types in our system, that we are far more likely to add operations to `ItineraryItem` to support new features of the application than to add new types of `ItineraryItem`.
 The more things we want to to do with itineraries, the more methods we end up adding to the `ItineraryItem` interface.
-This is a strong indication that a polymorphic interface is the wrong mechanism for supporting the variability our application requires.
+Clearly a polymorphic interface is the wrong mechanism to support the variability we need for our application.
 Interfaces work well when we have a stable set of operations and a varying set of concrete types that those operations apply to.
 We have a stable set of ItineraryItem types, but a frequently changing set of operations.
 
