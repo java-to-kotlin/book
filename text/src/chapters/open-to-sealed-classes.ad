@@ -27,7 +27,6 @@ The compiler prevents you from subclassing the sealed class elsewhere.
 Thanks to this restriction, run-time type checks on sealed class hierarchies do not have the same drawbacks as run-time type checks in Java.
 The type checker can guarantee that `when` expressions that test the subtype of a sealed class cover all possible cases and only possible cases.
 
-
 Object-oriented polymorphism assumes that the set of operations varies infrequently, and the set of types the operations apply to varies frequently.  It is much easier to extend a program by adding another class that implements an interface than it is to add another method to an interface implemented by many classes.  The JVM can even load new classes into a running program, as long as they implement an interface compiled into the program.
 
 Sealed class hierarchies and `when` expressions assume the opposite: that the set of operations varies more frequently than the set of types they apply to.
@@ -37,6 +36,44 @@ Kotlin has no mechanism that lets you define a type and operations in a way that
 You have to choose which approach you'll use for a class based on which aspect, subtypes or operations, you expect to vary most frequently as the program evolves.
 
 
+== Itinerary -- A Core Type in Our Application
+
+We can see this tension play out in the evolution of the `Itinerary` type.
+The traveller's itinerary is a core concept in our travel planning application.
+Many features of the application present views of, add items to, or calculate information about Itinerary objects.
+
+In <<accumulating-objects-to-transformations>> we modelled the itinerary as a data class with a field holding the route and a field holding a list of accommodation required along the route.
+As we extended the application and added more types of item to the itinerary, it became easier to maintain a single collection of itinerary items than to keep each type of itinerary item in a separate collection.
+In this model, an `Itinerary` is a list of `ItineraryItem`, in the same way that we defined a `Route` to be a list of `Journey` in <<encapsulated-collections-to-typealiases>>.
+
+// begin-insert: tags/open-to-sealed.0:src/main/java/travelator/itinerary/Itinerary.kt
+[source,kotlin]
+----
+typealias Itinerary = List<ItineraryItem>
+----
+// end-insert
+
+ItineraryItem is an interface, implemented by the concrete item types: `Journey`, `Accommodation`, `Meal` and `Attraction`.
+
+// begin-insert: tags/open-to-sealed.0:src/main/java/travelator/itinerary/ItineraryItem.kt
+[source,kotlin]
+----
+interface ItineraryItem {
+    fun description(): String
+    fun costs(): Sequence<Money>
+    fun geoShape(): GeoShape
+    fun timespan(): ClosedRange<ZonedDateTime>?
+    fun sufferScore(): Int = 0
+}
+----
+// end-insert
+
+
+
+
+
+
+TBD below here....
 
 [TIP]
 .Only typecast down a sealed class hierarchy
