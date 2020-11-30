@@ -40,11 +40,13 @@ You have to choose which approach you'll use for a class based on which aspect, 
 
 We can see this tension play out in the evolution of the `Itinerary` type.
 The traveller's itinerary is a core concept in our travel planning application.
-Many features of the application present views of, add items to, or calculate information about Itinerary objects.
+Many features of the application present views of, alter the contents of, or calculate information about Itinerary objects.
 
-In <<accumulating-objects-to-transformations>> we modelled the itinerary as a data class with a field holding the route and a field holding a list of accommodation required along the route.
-As we extended the application and added more types of item to the itinerary, it became easier to maintain a single collection of itinerary items than to keep each type of itinerary item in a separate collection.
-In this model, an `Itinerary` is a list of `ItineraryItem`, in the same way that we defined a `Route` to be a list of `Journey` in <<encapsulated-collections-to-typealiases>>.
+In <<accumulating-objects-to-transformations>> we modelled the itinerary as a data class with fields holding the route and a list of accommodation required along the route.
+As we extended the application and added more types of item to the itinerary, we found it increasingly cumbersome to hold each type of itinerary item in a separate collection.
+Too much of our code involved combining those collections or applying the same filters and transforms to separate collections.
+We decided to maintain a single collection of itinerary items rather than keep each type of itinerary item in a separate collection.
+In this model, an `Itinerary` _is_ a list of `ItineraryItem`, just as we defined a `Route` to be a list of `Journey` in <<encapsulated-collections-to-typealiases>>.
 
 // begin-insert: tags/open-to-sealed.0:src/main/java/travelator/itinerary/Itinerary.kt
 [source,kotlin]
@@ -55,7 +57,14 @@ typealias Itinerary = List<ItineraryItem>
 
 ItineraryItem is an interface, implemented by the concrete item types: `Journey`, `Accommodation`, `Meal` and `Attraction`.
 
-// begin-insert: tags/open-to-sealed.0:src/main/java/travelator/itinerary/ItineraryItem.kt
+.Aside
+****
+This has the nice effect that a `Route`, which we get back from our routing service, already _is_ an `Itinerary`.
+Because a `Journey` is a subtype `ItineraryItem`, a `List<Journey>` is a subtype of `List<ItineraryItem>`.
+We can receive a Route from our routing service and start using it as an Itinerary -- for example, to add accommodation -- without having to copy elements from one type to the other.
+****
+
+// begin-insert: tags/open-to-sealed.0:src/main/java/travelator/itinerary/ItineraryItem.kt#item
 [source,kotlin]
 ----
 interface ItineraryItem {
@@ -64,12 +73,37 @@ interface ItineraryItem {
     fun geoShape(): GeoShape
     fun timespan(): ClosedRange<ZonedDateTime>?
     fun sufferScore(): Int = 0
+    ... and other methods
 }
 ----
 // end-insert
 
+Giving all itinerary items a polymorphic interface means we can treat all itinerary items the same.
+For example:
 
+// begin-insert: tags/open-to-sealed.0:src/main/java/travelator/itinerary/ItineraryCosts.kt
+[source,kotlin]
+----
+fun Itinerary.costs() = flatMap(ItineraryItem::costs)
+----
+// end-insert
 
+However, because `Itinerary` and `ItineraryItem` are such fundamental types in our system, that interface attracts methods to support many different features of the application.
+The more things we want to to do with itineraries, the more methods we end up adding to the `ItineraryItem` interface.
+This is a strong indication that a polymorphic interface is the wrong mechanism for supporting the variability our application requires.
+Interfaces work well when we have a stable set of operations and a varying set of concrete types that those operations apply to.
+We have a stable set of ItineraryItem types, but a frequently changing set of operations.
+
+In Java, we might be tempted to hive each of those operations off into static methods of a helper class, and use run time type checks, with the `instanceof` operator and type casts, to switch on the concrete type of the `ItineraryItem`.
+... write about drawbacks and risks here ...
+... explain why: no support from the type checker.
+
+To be type safe, we might use https://wiki.c2.com/?DoubleDispatch[Double Dispatch], but this involves  a lot of boilerplate code and, in Java, does not play well with checked exceptions.
+
+Those options are possible in Kotlin too, and carry the same overheads and risks.
+Luckily in Kotlin we have another option: _sealed classes_.
+A sealed class has a fixed set of subclasses, that must all be defined in the same source file.
+This allows the compiler to check that run time type checks are exhaustive.   If you do not have a branch for each subclass, compilation fails.  If you do have an exhaustive run time type check, you do not need an `else` clause, and compilation will fail if you add a new subclass and forget to update all the conditional logic.
 
 
 
