@@ -1,9 +1,7 @@
 package extensionFunctions
 
-import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.ObjectWriter
 import java.io.OutputStream
 
 /// begin: customerFull
@@ -170,8 +168,13 @@ fun <T> SOME_CODE(): T = TODO()
 
 fun nullableToString() {
     /// begin: nullableToString
-    val customer: Customer? = SOME_CODE()
-    val s: String = customer.toString()
+    val customer: Customer = SOME_CODE()
+    val customerString: String = customer.toString()
+        // Calls Customer.toString()
+
+    val nullableCustomer: Customer? = SOME_CODE()
+    val nullableCustomerString: String = nullableCustomer.toString()
+        // Calls Any?.toString()
     /// end: nullableToString
 }
 
