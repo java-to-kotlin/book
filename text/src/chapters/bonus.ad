@@ -1,0 +1,621 @@
+[[bonus]]
+== Bonus
+
+Not quite sure where to put this ATM, but I want to finish the refactoring from <<functions-to-extension-functions>>.
+
+When we left the code in <<functions-to-extension-functions>> we had introduced extension functions to the `HighValueCustomersReport`, giving us:
+
+// begin-insert: tags/bonus.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt#all
+[source,kotlin]
+----
+@Throws(IOException::class)
+fun generate(reader: Reader, writer: Writer) {
+    val valuableCustomers = reader
+        .linesAsSequence()
+        .toValuableCustomers()
+        .sortedBy(CustomerData::score)
+        .toList()
+    writer.appendLine("ID\tName\tSpend")
+    for (customerData in valuableCustomers) {
+        writer.appendLine(customerData.outputLine)
+    }
+    writer.append(valuableCustomers.summarised())
+}
+
+private fun Reader.linesAsSequence() = buffered().lineSequence()
+
+private fun Sequence<String>.toValuableCustomers() = withoutHeader()
+    .map(String::toCustomerData)
+    .filter { it.score >= 10 }
+
+private fun Sequence<String>.withoutHeader() = drop(1)
+
+private fun List<CustomerData>.summarised(): String =
+    sumByDouble { it.spend }.let { total ->
+        "\tTOTAL\t${total.toMoneyString()}"
+    }
+
+fun String.toCustomerData(): CustomerData =
+    split("\t").let { parts ->
+        CustomerData(
+            id = parts[0],
+            givenName = parts[1],
+            familyName = parts[2],
+            score = parts[3].toInt(),
+            spend = if (parts.size == 4) 0.0 else parts[4].toDouble()
+        )
+    }
+
+private val CustomerData.outputLine: String
+    get() = "$id\t$marketingName\t${spend.toMoneyString()}"
+
+private fun Double.toMoneyString() = this.formattedAs("%#.2f")
+
+private fun Double.formattedAs(format: String) = String.format(format, this)
+
+private val CustomerData.marketingName: String
+    get() = "${familyName.toUpperCase()}, $givenName"
+----
+// end-insert
+
+Here are the tests:
+
+// begin-insert: tags/bonus.0:src/test/java/travelator/marketing/HighValueCustomersReportTests.java
+[source,java]
+----
+class HighValueCustomersReportTests {
+
+    @Test
+    public void test() throws IOException {
+        List<String> input = List.of(
+            "ID\tFirstName\tLastName\tScore\tSpend",
+            "1\tFred\tFlintstone\t11\t1000.00",
+            "4\tBetty\tRubble\t10\t2000.00",
+            "2\tBarney\tRubble\t0\t20.00",
+            "3\tWilma\tFlintstone\t9\t0.00"
+        );
+        List<String> expected = List.of(
+            "ID\tName\tSpend",
+            "4\tRUBBLE, Betty\t2000.00",
+            "1\tFLINTSTONE, Fred\t1000.00",
+            "\tTOTAL\t3000.00"
+        );
+        check(input, expected);
+    }
+
+    @Test
+    public void emptyTest() throws IOException {
+        List<String> input = List.of(
+            "ID\tFirstName\tLastName\tScore\tSpend"
+        );
+        List<String> expected = List.of(
+            "ID\tName\tSpend",
+            "\tTOTAL\t0.00"
+        );
+        check(input, expected);
+    }
+
+    @Test
+    public void emptySpendIs0() {
+        assertEquals(
+            new CustomerData("1", "Fred", "Flintstone", 0, 0D),
+            HighValueCustomersReport.toCustomerData("1\tFred\tFlintstone\t0")
+        );
+    }
+
+    private void check(
+        List<String> inputLines,
+        List<String> expectedLines
+    ) throws IOException {
+        var output = new StringWriter();
+        HighValueCustomersReport.generate(
+            new StringReader(String.join("\n", inputLines)),
+            output
+        );
+        assertEquals(String.join("\n", expectedLines), output.toString());
+    }
+}
+----
+// end-insert
+
+We didn't really look at the tests in <<functions-to-extension-functions>>, but if we do now, what stands out in the light of our chapters about errors, values, calculations and actions?
+
+Addressing errors first, we see that our tests declare that they throw `IOException`, even though they actually use `StringReader` and `StringWriter` which should never fail.
+Then there's that `check` function.
+It isn't strictly a calculation, but we can see that it is trying to allow us to express the assertions as a comparison of `List<String>` to `List<String>`.
+It's having to work hard, because the interface to `generate` relies on the side-effects of reading and writing from and to its parameters.
+
+In fact the tests are trying to tell us that the fundamental signature of `generate` is something like `(List<String>) -> List<String>`.
+We say _something like_ because at the moment we can read an input that is larger than we could hold in memory, because we filter out non-high-value customers as we read from a sequence.
+So, lets say that `generate` reads from a `Sequence<String>`.
+We could similarly delay creating the report by returning a `Sequence` rather than a list - hold that thought for now.
+
+Reading from `Sequence<String>` would be very easy, because the first thing that `generate` does is to convert the `Reader` to `Sequence`:
+
+// begin-insert: tags/bonus.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+[source,kotlin]
+----
+@Throws(IOException::class)
+fun generate(reader: Reader, writer: Writer) {
+    val valuableCustomers = reader
+        .linesAsSequence()
+        .toValuableCustomers()
+        .sortedBy(CustomerData::score)
+        .toList()
+    writer.appendLine("ID\tName\tSpend")
+    for (customerData in valuableCustomers) {
+        writer.appendLine(customerData.outputLine)
+    }
+    writer.append(valuableCustomers.summarised())
+}
+
+private fun Reader.linesAsSequence() = buffered().lineSequence()
+----
+// end-insert
+
+The refactoring that follows will be easier if the tests are in Kotlin.
+IntelliJ is quite good at refactoring mixed code, but it could be better.
+
+Here are the tests after conversion to Kotlin, and the application of many of the techniques in this book:
+
+// begin-insert: tags/bonus.1:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#all
+[source,kotlin]
+----
+class HighValueCustomersReportTests {
+
+    @Test
+    fun test() {
+        check(
+            inputLines = listOf(
+                "ID\tFirstName\tLastName\tScore\tSpend",
+                "1\tFred\tFlintstone\t11\t1000.00",
+                "4\tBetty\tRubble\t10\t2000.00",
+                "2\tBarney\tRubble\t0\t20.00",
+                "3\tWilma\tFlintstone\t9\t0.00"
+            ),
+            expectedLines = listOf(
+                "ID\tName\tSpend",
+                "4\tRUBBLE, Betty\t2000.00",
+                "1\tFLINTSTONE, Fred\t1000.00",
+                "\tTOTAL\t3000.00"
+            )
+        )
+    }
+
+    ...
+
+    private fun check(
+        inputLines: List<String>,
+        expectedLines: List<String>
+    ) {
+        val output = StringWriter().apply {
+            generate(
+                StringReader(inputLines.joinToString("\n")),
+                this
+            )
+        }
+        assertEquals(expectedLines.joinToString("\n"), output.toString())
+    }
+}
+----
+// end-insert
+
+Now we want to change `generate` to take a `Sequence<String>`.
+If we do this, then the existing clients are going to need to convert `Reader` to `Sequence<String>`, so we make our `Reader.linesAsSequence()` extension function public so that they can:
+
+// begin-insert: tags/bonus.2:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+[source,kotlin]
+----
+@Throws(IOException::class)
+fun generate(reader: Reader, writer: Writer) {
+    val valuableCustomers = reader
+        .linesAsSequence()
+        .toValuableCustomers()
+        .sortedBy(CustomerData::score)
+        .toList()
+    writer.appendLine("ID\tName\tSpend")
+    for (customerData in valuableCustomers) {
+        writer.appendLine(customerData.outputLine)
+    }
+    writer.append(valuableCustomers.summarised())
+}
+
+fun Reader.linesAsSequence() = buffered().lineSequence()
+----
+// end-insert
+
+We can now highlight `reader.linesAsSequence()` in `generate` and "Introduce Parameter", giving the new parameter the name `lines`.
+
+// begin-insert: tags/bonus.3:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+[source,kotlin]
+----
+@Throws(IOException::class)
+fun generate(writer: Writer, lines: Sequence<String>) {
+    val valuableCustomers = lines
+        .toValuableCustomers()
+        .sortedBy(CustomerData::score)
+        .toList()
+    writer.appendLine("ID\tName\tSpend")
+    for (customerData in valuableCustomers) {
+        writer.appendLine(customerData.outputLine)
+    }
+    writer.append(valuableCustomers.summarised())
+}
+----
+// end-insert
+
+IntelliJ has been clever enough to remove the `reader` parameter that is no longer referenced, and fix up the callers!
+
+// begin-insert: tags/bonus.3:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
+[source,kotlin]
+----
+private fun check(
+    inputLines: List<String>,
+    expectedLines: List<String>
+) {
+    val output = StringWriter().apply {
+        val writer = StringReader(inputLines.joinToString("\n"))
+        generate(
+            this,
+            writer.linesAsSequence() // <1>
+        )
+    }
+    assertEquals(expectedLines.joinToString("\n"), output.toString())
+}
+----
+// end-insert
+
+<1> New argument using `Reader.linesAsSequence()`
+
+The parameters to `generate` are now in the wrong order (output then input) now, but we'll suspend our OCD, as we want to remove `writer` as well.
+Focusing on that we see:
+
+// begin-insert: tags/bonus.3:src/main/java/travelator/marketing/HighValueCustomersReport.kt#writer
+[source,kotlin]
+----
+writer.appendLine("ID\tName\tSpend")
+for (customerData in valuableCustomers) {
+    writer.appendLine(customerData.outputLine)
+}
+writer.append(valuableCustomers.summarised())
+----
+// end-insert
+
+Instead of thinking imperatively about the ways that we want to mutate the writer, lets think in terms of the data that we want written and create that (without changing the calls to writer yet):
+
+// begin-insert: tags/bonus.4:src/main/java/travelator/marketing/HighValueCustomersReport.kt#writer
+[source,kotlin]
+----
+val output: List<String> =
+    listOf("ID\tName\tSpend") +
+        valuableCustomers.map(CustomerData::outputLine) +
+        valuableCustomers.summarised()
+writer.appendLine("ID\tName\tSpend")
+for (customerData in valuableCustomers) {
+    writer.appendLine(customerData.outputLine)
+}
+writer.append(valuableCustomers.summarised())
+----
+// end-insert
+
+If we're right, then we just send that data to the writer in one go:
+
+// begin-insert: tags/bonus.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+[source,kotlin]
+----
+@Throws(IOException::class)
+fun generate(writer: Writer, lines: Sequence<String>) {
+    val valuableCustomers = lines
+        .toValuableCustomers()
+        .sortedBy(CustomerData::score)
+        .toList()
+    val output: List<String> =
+        listOf("ID\tName\tSpend") +
+            valuableCustomers.map(CustomerData::outputLine) +
+            valuableCustomers.summarised()
+    writer.write(output.joinToString("\n"))
+}
+----
+// end-insert
+
+Excellent, that passes the tests, so we're on the right track.
+Now what's that you say?
+`writer.write(output.joinToString("\n"))` looks a lot like an extension function trying to get out?
+Let's do that then:
+
+// begin-insert: tags/bonus.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+[source,kotlin]
+----
+@Throws(IOException::class)
+fun generate(writer: Writer, lines: Sequence<String>) {
+    val valuableCustomers = lines
+        .toValuableCustomers()
+        .sortedBy(CustomerData::score)
+        .toList()
+    val output: List<String> =
+        listOf("ID\tName\tSpend") +
+            valuableCustomers.map(CustomerData::outputLine) +
+            valuableCustomers.summarised()
+    writer.writeLines(output)
+}
+
+fun Writer.writeLines(output: List<String>) {
+    write(output.joinToString("\n"))
+}
+----
+// end-insert
+
+Now we can pull the same sort of trick that we did when introducing a parameter, but with the result.
+First extract a public function from `generate` that is everything by the last line:
+
+// begin-insert: tags/bonus.7:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+[source,kotlin]
+----
+@Throws(IOException::class)
+fun generate(writer: Writer, lines: Sequence<String>) {
+    val output: List<String> =
+        generate(lines)
+    writer.writeLines(output)
+}
+
+fun generate(lines: Sequence<String>): List<String> {
+    val valuableCustomers = lines
+        .toValuableCustomers()
+        .sortedBy(CustomerData::score)
+        .toList()
+    val output: List<String> =
+        listOf("ID\tName\tSpend") +
+            valuableCustomers.map(CustomerData::outputLine) +
+            valuableCustomers.summarised()
+    return output
+}
+----
+// end-insert
+
+Then inline the new old function:
+
+// begin-insert: tags/bonus.8:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+[source,kotlin]
+----
+fun generate(lines: Sequence<String>): List<String> {
+    val valuableCustomers = lines
+        .toValuableCustomers()
+        .sortedBy(CustomerData::score)
+        .toList()
+    val output: List<String> =
+        listOf("ID\tName\tSpend") +
+            valuableCustomers.map(CustomerData::outputLine) +
+            valuableCustomers.summarised()
+    return output
+}
+----
+// end-insert
+
+Again, IntelliJ will fix up the clients with our `Writer.writeLines(List<String)` extension function:
+
+// begin-insert: tags/bonus.8:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
+[source,kotlin]
+----
+private fun check(
+    inputLines: List<String>,
+    expectedLines: List<String>
+) {
+    val output = StringWriter().apply {
+        val writer = StringReader(inputLines.joinToString("\n"))
+        val output: List<String> =
+            generate(
+                writer.linesAsSequence()
+            )
+        this.writeLines(output)
+    }
+    assertEquals(expectedLines.joinToString("\n"), output.toString())
+}
+----
+// end-insert
+
+We can now see that the names of variable have got a bit confused as we turned the code inside out.
+We could fix that, or just observe that neither `output` nor `writer` are doing anything useful, and remove them.
+First `writer`:
+
+// begin-insert: tags/bonus.9:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
+[source,kotlin]
+----
+private fun check(
+    inputLines: List<String>,
+    expectedLines: List<String>
+) {
+    val output = StringWriter().apply {
+        val output: List<String> =
+            generate(inputLines.asSequence())
+        this.writeLines(output)
+    }
+    assertEquals(expectedLines.joinToString("\n"), output.toString())
+}
+----
+// end-insert
+
+Then the `StringWriter`:
+
+// begin-insert: tags/bonus.10:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
+[source,kotlin]
+----
+private fun check(
+    inputLines: List<String>,
+    expectedLines: List<String>
+) {
+    val output = generate(inputLines.asSequence())
+    assertEquals(expectedLines, output)
+}
+----
+// end-insert
+
+Finally inline `output`:
+
+// begin-insert: tags/bonus.11:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
+[source,kotlin]
+----
+private fun check(
+    inputLines: List<String>,
+    expectedLines: List<String>
+) {
+    assertEquals(expectedLines, generate(inputLines.asSequence()))
+}
+----
+// end-insert
+
+Here is `generate` after a similar inline of its residual `output` local:
+
+// begin-insert: tags/bonus.11:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+[source,kotlin]
+----
+fun generate(lines: Sequence<String>): List<String> {
+    val valuableCustomers = lines
+        .toValuableCustomers()
+        .sortedBy(CustomerData::score)
+        .toList()
+    return listOf("ID\tName\tSpend") +
+        valuableCustomers.map(CustomerData::outputLine) +
+        valuableCustomers.summarised()
+}
+
+fun Writer.writeLines(output: List<String>) {
+    write(output.joinToString("\n"))
+}
+
+fun Reader.linesAsSequence() = buffered().lineSequence()
+----
+// end-insert
+
+By focusing on removing the actions involved in reading and writing, we have created a purer expression of what the report is, while at the same time simplifying the tests.
+There are costs involved though.
+
+If its input is large, `Writer.writeLines(List<String>)` risks using a great deal of memory, because `joinToString` will end up allocating enough bytes for the whole output.
+We can fix that simply enough by forgoing a tiny amount of functional purity:
+
+// begin-insert: tags/bonus.12:src/main/java/travelator/marketing/HighValueCustomersReport.kt#writeLines
+[source,kotlin]
+----
+fun Writer.writeLines(output: List<String>) {
+    output.forEach { line ->
+        append(line).append("\n")
+    }
+}
+----
+// end-insert
+
+This is, though, subtly different, as it will terminate the last line.
+Our old tests would have picked this up, but not the new ones, which don't now use a `Writer`.
+In this use case it doesn't matter to us, so we'll let it go.
+
+Returning to `generate`, the line `valuableCustomers.map(CustomerData::outputLine)` will be creating a potentially large list of strings in memory too.
+
+// begin-insert: tags/bonus.12:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+[source,kotlin]
+----
+fun generate(lines: Sequence<String>): List<String> {
+    val valuableCustomers = lines
+        .toValuableCustomers()
+        .sortedBy(CustomerData::score)
+        .toList()
+    return listOf("ID\tName\tSpend") +
+        valuableCustomers.map(CustomerData::outputLine) +
+        valuableCustomers.summarised()
+}
+----
+// end-insert
+
+We can address that by returning a `Sequence` instead of a `List` from `generate`. The implementation of this is as simple as:
+
+// begin-insert: tags/bonus.13:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+[source,kotlin]
+----
+fun generate(lines: Sequence<String>): Sequence<String> {
+    val valuableCustomers = lines
+        .toValuableCustomers()
+        .sortedBy(CustomerData::score)
+        .toList()
+    return sequenceOf("ID\tName\tSpend") +
+        valuableCustomers.asSequence().map(CustomerData::outputLine) +
+        valuableCustomers.summarised()
+}
+
+fun Writer.writeLines(output: Sequence<String>) {
+    output.forEach { line ->
+        append(line).append("\n")
+    }
+}
+----
+// end-insert
+
+We will have to make that change gradually though, or go and fix clients by hand.
+
+If we really do have a huge number of high-value customers, there is another issue hiding, which is that we have to traverse the list once for each output line, and again in `valuableCustomers.summarised()`:
+
+// begin-insert: tags/bonus.13:src/main/java/travelator/marketing/HighValueCustomersReport.kt#summarised
+[source,kotlin]
+----
+private fun List<CustomerData>.summarised(): String =
+    sumByDouble { it.spend }.let { total ->
+        "\tTOTAL\t${total.toMoneyString()}"
+    }
+----
+// end-insert
+
+At the expense of having to hand in our functional-programmer badges, we can iterate only once if we peek on the `Sequence` as values rush past with an `onEach`:
+
+// begin-insert: tags/bonus.14:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+[source,kotlin]
+----
+fun generate(lines: Sequence<String>): Sequence<String> {
+    var totalSpend = 0.0
+    val valuableCustomers = lines
+        .toValuableCustomers()
+        .onEach { totalSpend += it.spend }
+        .sortedBy(CustomerData::score)
+        .toList()
+    return sequenceOf("ID\tName\tSpend") +
+        valuableCustomers.asSequence().map(CustomerData::outputLine) +
+        "\tTOTAL\t${totalSpend.toMoneyString()}"
+}
+----
+// end-insert
+
+At this point we're fighting diminishing returns.
+Your authors tried to extract a `SummingSequence` to hide the nastiness, but the details of when we actually iterate over a sequence begin to leak.
+The truth is that `Sequences` are handy, but they are also a stateful abstraction, and so come with the problems that we have with actions - we can't move them around the code safe in the knowledge that we won't change its behaviour.
+The following code works, but only because we resolve one `Sequence` with `toList()` and then defer the `List` again with `asSequence()`.
+
+// begin-insert: tags/bonus.15:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+[source,kotlin]
+----
+fun generate(lines: Sequence<String>): Sequence<String> {
+    val summingCustomers = lines
+        .toValuableCustomers()
+        .summingSequence { it.spend }
+    val bodyLines = summingCustomers.sortedBy(CustomerData::score).toList()
+    return sequenceOf("ID\tName\tSpend") +
+        bodyLines.asSequence().map(CustomerData::outputLine) +
+        "\tTOTAL\t${summingCustomers.total.toMoneyString()}"
+}
+
+class SummingSequence<T>(
+    private val base: Sequence<T>,
+    private val selector: (T) -> Double
+) : Sequence<T> {
+    private var _total = 0.0
+
+    val total get() = _total
+
+    override fun iterator(): Iterator<T> = base
+        .onEach { _total += selector(it) }
+        .iterator()
+}
+
+fun <T> Sequence<T>.summingSequence(selector: (T) -> Double) = SummingSequence(this, selector)
+----
+// end-insert
+
+=== Conclusion
+
+Hmmm
+
