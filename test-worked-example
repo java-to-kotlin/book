@@ -4,7 +4,8 @@ set -eo pipefail
 kotlin_version=${1:-$(head -n 1 "$(dirname "$0")"/.kotlin-version)}
 echo "testing with Kotlin $kotlin_version"
 
-"$(dirname "$0")"/retag-worked-example
+base_dir="$(realpath "$(dirname $0)")"
+"$base_dir"/retag-worked-example
 
 clean_log=$(realpath "$(dirname "$0")"/clean-log)
 
@@ -32,7 +33,7 @@ for tag in $(git tag -l '*.[0-9]*' | sort -V); do
 
   if [ -f "$cached" ]
   then
-    echo "CACHED"
+    echo "CACHED $(realpath --relative-to="$base_dir" "$cached")"
   else
     git checkout --detach "$tag" > /dev/null 2>&1
 
