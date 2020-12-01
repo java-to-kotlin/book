@@ -36,7 +36,7 @@ Kotlin has no mechanism that lets you define a type and operations in a way that
 You have to choose which approach you'll use for a class based on which aspect, subtypes or operations, you expect to vary most frequently as the program evolves.
 
 
-== Itinerary -- A Core Type in Our Application
+=== Itinerary -- A Core Type in Our Application
 
 We can see this tension play out in the evolution of the `Itinerary` type.
 The traveller's itinerary is a core concept in our travel planning application.
@@ -107,6 +107,111 @@ Luckily in Kotlin we have another option: _sealed classes_.
 A sealed class has a fixed set of subclasses, that must all be defined in the same source file.
 This allows the compiler to check that run time type checks are exhaustive.   If you do not have a branch for each subclass, compilation fails.  If you do have an exhaustive run time type check, you do not need an `else` clause, and compilation will fail if you add a new subclass and forget to update all the conditional logic.
 
+
+=== Converting the Interface to a Sealed Class
+
+First move interface and implementations to the same file.
+
+Then make interface a sealed class and the implementations extend the class.
+
+Can't do this automatically.
+Have to do it by manual editing.
+At least having them all in the same file makes that a bit easier.
+
+// begin-insert: tags/open-to-sealed.2:src/main/java/travelator/itinerary/Itinerary.kt#sealed
+[source,kotlin]
+----
+sealed class ItineraryItem {
+    abstract fun description(): String
+    abstract fun costs(): Sequence<Money>
+    abstract fun geoShape(): GeoShape
+    abstract fun timespan(): ClosedRange<ZonedDateTime>?
+    open fun sufferScore(): Int = 0
+    ... and other methods
+}
+
+data class Accommodation(
+    val location: Location,
+    val checkInFrom: ZonedDateTime,
+    val checkOutBefore: ZonedDateTime,
+    val pricePerNight: Money
+) : ItineraryItem() {
+    val nights = Duration.between(checkInFrom, checkOutBefore).toDays().toInt()
+    val totalPrice: Money = pricePerNight * nights
+
+    override fun description() = "$nights nights at ${location.userReadableName}"
+    override fun costs() = sequenceOf(totalPrice)
+    override fun geoShape(): GeoShape = pointShape(location.position)
+    override fun timespan() = checkInFrom..checkOutBefore
+    ... and other methods
+}
+
+... and other subclasses
+----
+// end-insert
+
+Now we can move operations from being polymorphic methods defined on the sealed class and into extension functions that use `when` expressions to switch on the type of item.
+
+Let's do this with the `costs` method.
+
+When we Alt-Enter on the definition of costs in `ItineraryItem`, the context menu includes the action "Convert member to extension".
+Can it really be that easy?
+Unfortunately, no.
+That gets us part of the way there, but leaves `override` modifiers on the `costs` methods in the concrete subclasses that longer override anything, and implements the extension function merely with a `TODO` that throws `UnsupportedOperationException`.
+We'll have to fix it up by hand by removing the `override` modifiers, and implementing the extension method with when expression that switches on the type of `ItineraryItem` and calls the now monomorphic `costs` method on each concrete class.
+
+// begin-insert: tags/open-to-sealed.3:src/main/java/travelator/itinerary/ItineraryCosts.kt
+[source,kotlin]
+----
+fun Itinerary.costs() = flatMap(ItineraryItem::costs)
+
+fun ItineraryItem.costs() = when (this) {
+    is Journey -> costs()
+    is Accommodation -> costs()
+    is Restaurant -> costs()
+    is Attraction -> costs()
+}
+----
+// end-insert
+
+Intellij highlights each monomorphic call to `costs` to indicate that the compiler is "smart casting" the `this` reference from ItineraryItem to the correct subclass thanks to flow typing.
+While we are writing the `when` expression, Intellij marks it as an error, and the compiler will report a type error, until it covers every subclass of `ItineraryItem`.
+
+We can now inline those `costs` methods into the extension function, removing them from the concrete classes.
+
+// begin-insert: tags/open-to-sealed.4:src/main/java/travelator/itinerary/ItineraryCosts.kt
+[source,kotlin]
+----
+fun Itinerary.costs() = flatMap(ItineraryItem::costs)
+
+fun ItineraryItem.costs() = when (this) {
+    is Journey -> sequenceOf(price)
+    is Accommodation -> sequenceOf(totalPrice)
+    is Restaurant -> emptySequence()
+    is Attraction -> emptySequence()
+}
+----
+// end-insert
+
+// begin-insert: tags/open-to-sealed.4:src/main/java/travelator/itinerary/Itinerary.kt#accommodation
+[source,kotlin]
+----
+data class Accommodation(
+    val location: Location,
+    val checkInFrom: ZonedDateTime,
+    val checkOutBefore: ZonedDateTime,
+    val pricePerNight: Money
+) : ItineraryItem() {
+    val nights = Duration.between(checkInFrom, checkOutBefore).toDays().toInt()
+    val totalPrice: Money = pricePerNight * nights
+
+    override fun description() = "$nights nights at ${location.userReadableName}"
+    override fun geoShape(): GeoShape = pointShape(location.position)
+    override fun timespan() = checkInFrom..checkOutBefore
+    ... and other methods
+}
+----
+// end-insert
 
 
 TBD below here....
