@@ -663,7 +663,7 @@ That `double` for spend looks suspicious too, but it hasn't caused us any proble
 
 Normally that would be a really simple job because of the excellent interop, but it turns out that (at the time of writing) the converter cannot believe that anyone would stoop to raw field access, and so it doesn't change Java that accesses, for example `customerData.score`.
 It should change that to `customerData.getScore()` to match the Kotlin property definition, but doesn't, resulting in a slew of compile failures.
-Rather than fixing those, we revert and use the "Encapsulate Fields" refactor to convert all the fields and field accesses in `Customer` to getters.
+Rather than fixing those, we revert, and use the "Encapsulate Fields" refactor to convert all the fields and field accesses in `Customer` to getters.
 
 // begin-insert: tags/functions-to-extension-methods.1:src/main/java/travelator/marketing/CustomerData.java#foo
 [source,java]
@@ -705,7 +705,7 @@ private static String lineFor(CustomerData customer) {
 ----
 // end-insert
 
-So we can now convert `CustomerData` to a Kotlin data class without breaking the Java:
+This allows us to convert `CustomerData` to a Kotlin data class without breaking the Java:
 
 // begin-insert: tags/functions-to-extension-methods.2:src/main/java/travelator/marketing/CustomerData.kt
 [source,kotlin]
@@ -1156,7 +1156,7 @@ private fun Sequence<String>.toValuableCustomers() = withoutHeader()
 // end-insert
 
 This still isn't quite as sweet as we might like, but we've proved the point of extension functions.
-<<TODO>> will finish off this refactoring, looking at the use of the reader and writer.
+<<bonus-refactoring>> will finish off this refactoring, looking at the use of the reader and writer.
 In the meantime, here's the whole file:
 
 // begin-insert: tags/functions-to-extension-methods.21:src/main/java/travelator/marketing/HighValueCustomersReport.kt#all
