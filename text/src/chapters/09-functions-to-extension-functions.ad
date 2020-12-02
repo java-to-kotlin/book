@@ -1031,19 +1031,18 @@ fun generate(reader: Reader?, writer: Writer) {
 ----
 // end-insert
 
-Again, we currently have to convert Java streams to Kotlin sequences by hand:
+Again, we currently have to convert Java streams to Kotlin list operations by hand:
 
 // begin-insert: tags/functions-to-extension-methods.17:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 @Throws(IOException::class)
 fun generate(reader: Reader, writer: Writer) {
-    val valuableCustomers = reader.buffered().lineSequence()
+    val valuableCustomers = reader.readLines()
         .drop(1) // header
         .map(String::toCustomerData)
         .filter { it.score >= 10 }
         .sortedBy(CustomerData::score)
-        .toList()
     writer.append("ID\tName\tSpend\n")
     for (customerData in valuableCustomers) {
         writer.append(lineFor(customerData)).append("\n")
@@ -1062,14 +1061,11 @@ Note here that every link in the sequence chain is an extension function not a m
 ----
 @Throws(IOException::class)
 fun generate(reader: Reader, writer: Writer) {
-    val valuableCustomers = reader
-        .buffered()
-        .lineSequence()
+    val valuableCustomers = reader.readLines()
         .drop(1) // header
         .map(String::toCustomerData)
         .filter { it.score >= 10 }
         .sortedBy(CustomerData::score)
-        .toList()
     writer.appendLine("ID\tName\tSpend")
     for (customerData in valuableCustomers) {
         writer.appendLine(lineFor(customerData))
@@ -1087,11 +1083,10 @@ It feels like we should be able to remove that `// header` comment by extracting
 ----
 @Throws(IOException::class)
 fun generate(reader: Reader, writer: Writer) {
-    val valuableCustomers = withoutHeader(reader.buffered().lineSequence())
+    val valuableCustomers = withoutHeader(reader.readLines())
         .map(String::toCustomerData)
         .filter { it.score >= 10 }
         .sortedBy(CustomerData::score)
-        .toList()
     writer.appendLine("ID\tName\tSpend")
     for (customerData in valuableCustomers) {
         writer.appendLine(lineFor(customerData))
@@ -1099,24 +1094,23 @@ fun generate(reader: Reader, writer: Writer) {
     writer.append(valuableCustomers.summarised())
 }
 
-private fun withoutHeader(sequence: Sequence<String>) = sequence.drop(1)
+private fun withoutHeader(list: List<String>) = list.drop(1)
 ----
 // end-insert
 
 We've lost the nice pipeline flow from left to right, top to bottom.
-Alt-Enter on `sequence` and "Convert Parameter to Receiver" gives it back:
+Alt-Enter on `list` and "Convert Parameter to Receiver" gives it back:
 
 // begin-insert: tags/functions-to-extension-methods.20:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 @Throws(IOException::class)
 fun generate(reader: Reader, writer: Writer) {
-    val valuableCustomers = reader.buffered().lineSequence()
+    val valuableCustomers = reader.readLines()
         .withoutHeader()
         .map(String::toCustomerData)
         .filter { it.score >= 10 }
         .sortedBy(CustomerData::score)
-        .toList()
     writer.appendLine("ID\tName\tSpend")
     for (customerData in valuableCustomers) {
         writer.appendLine(lineFor(customerData))
@@ -1124,11 +1118,11 @@ fun generate(reader: Reader, writer: Writer) {
     writer.append(valuableCustomers.summarised())
 }
 
-private fun Sequence<String>.withoutHeader() = drop(1)
+private fun List<String>.withoutHeader() = drop(1)
 ----
 // end-insert
 
-We can make this even more expressive with three more extensions, `Reader.linesAsSequence()`, `Sequence<String>.toValuableCustomers()` and `CustomerData.outputLine.
+We can make this even more expressive with two more extensions, `List<String>.toValuableCustomers()` and `CustomerData.outputLine.
 
 // begin-insert: tags/functions-to-extension-methods.21:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
@@ -1136,10 +1130,9 @@ We can make this even more expressive with three more extensions, `Reader.linesA
 @Throws(IOException::class)
 fun generate(reader: Reader, writer: Writer) {
     val valuableCustomers = reader
-        .linesAsSequence()
+        .readLines()
         .toValuableCustomers()
         .sortedBy(CustomerData::score)
-        .toList()
     writer.appendLine("ID\tName\tSpend")
     for (customerData in valuableCustomers) {
         writer.appendLine(customerData.outputLine)
@@ -1147,9 +1140,7 @@ fun generate(reader: Reader, writer: Writer) {
     writer.append(valuableCustomers.summarised())
 }
 
-private fun Reader.linesAsSequence() = buffered().lineSequence()
-
-private fun Sequence<String>.toValuableCustomers() = withoutHeader()
+private fun List<String>.toValuableCustomers() = withoutHeader()
     .map(String::toCustomerData)
     .filter { it.score >= 10 }
 ----
@@ -1165,10 +1156,9 @@ In the meantime, here's the whole file:
 @Throws(IOException::class)
 fun generate(reader: Reader, writer: Writer) {
     val valuableCustomers = reader
-        .linesAsSequence()
+        .readLines()
         .toValuableCustomers()
         .sortedBy(CustomerData::score)
-        .toList()
     writer.appendLine("ID\tName\tSpend")
     for (customerData in valuableCustomers) {
         writer.appendLine(customerData.outputLine)
@@ -1176,13 +1166,11 @@ fun generate(reader: Reader, writer: Writer) {
     writer.append(valuableCustomers.summarised())
 }
 
-private fun Reader.linesAsSequence() = buffered().lineSequence()
-
-private fun Sequence<String>.toValuableCustomers() = withoutHeader()
+private fun List<String>.toValuableCustomers() = withoutHeader()
     .map(String::toCustomerData)
     .filter { it.score >= 10 }
 
-private fun Sequence<String>.withoutHeader() = drop(1)
+private fun List<String>.withoutHeader() = drop(1)
 
 private fun List<CustomerData>.summarised(): String =
     sumByDouble { it.spend }.let { total ->
