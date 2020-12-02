@@ -237,7 +237,39 @@ data class Accommodation(
 // end-insert
 
 Intellij highlights each monomorphic call to `timespan` to indicate that the compiler is "smart casting" the `this` reference from ItineraryItem to the correct subclass thanks to flow typing.
-While we are writing the `when` expression, Intellij marks it as an error, and the compiler will report a type error, until it covers every subclass of `ItineraryItem`.
+While we are writing the `when` expression, Intellij highlights it as a type error until it covers all subclasses of `ItineraryItem`.
+
+[WARNING]
+.When expressions are checked for exhaustiveness but when statements are not
+****
+The compiler checks when expressions for exhaustiveness but does not check when _statements_.
+It considers a `when` to be a statement if the value of the entire `when` expression is never used.
+
+You can force an exhaustive check by using the value of the when statement.
+For example, the following extension function will use the value it is called upon.
+
+// begin-insert: src/main/java/exhaustive_when/ExhaustiveWhen.kt#exhaustive_val_definition
+[source,kotlin]
+----
+val <T> T.exhaustive get() = this
+----
+// end-insert
+
+It can be used like this to make the compiler check a `when` statement for exhaustiveness:
+
+// begin-insert: src/main/java/exhaustive_when/ExhaustiveWhen.kt#exhaustive_val_usage
+[source,kotlin]
+----
+when (instanceOfSealedClass) {
+    is SubclassA -> println("A")
+    is SubclassB -> println("B")
+}.exhaustive
+----
+// end-insert
+****
+
+
+
 
 We can inline those `timespan` methods into the extension function, removing them from the concrete classes.
 
@@ -305,28 +337,3 @@ Otherwise, don't cast your way out of the static types.
 
 Example of errors that can occur if casting: listOf(1,2,3) returns a the List interface of a mutable list.  If you cast it to MutableList you can mutate a list that code is expecting to be (and typed) as unmodifiable.
 ****
-
-
-
-[WARNING]
-.When statements are not checked for exhaustiveness
-****
-When expressions are checked for exhaustiveness but when _statements_ are not.  If all the branches of a `when` expression evaluate to `Unit` and the value of the entire `when` expression is never used, the `when` is considered to be a statement. In that case, even if downcasting an instance of a sealed class, the branches will not be checked for exhaustiveness.
-
-You can force an exhaustive check by using the `Unit` value of the when statement.  For example, the following extension function will use the `Unit` value it is called upon.
-
-----
-val Unit.exhaustive get() = this
-----
-
-It can be used like this to make the compiler check a `when` statement for exhaustiveness.
-
-----
-when (instanceOfSealedClass) {
-    is SubclassA => { println("A") }
-    is SubclassB => { println("B") }
-}.exhaustive
-----
-****
-
-

@@ -5,6 +5,14 @@ object SubclassA : Sealed()
 object SubclassB : Sealed()
 //object SubclassC : Sealed()
 
+fun does_not_use_value(x: Sealed) {
+    when (x) {
+        is SubclassA -> 1
+        is SubclassB -> 2
+    }
+}
+
+
 /// begin: exhaustive_not
 operator fun Unit.not() = this
 
@@ -17,13 +25,17 @@ fun a(x: Sealed) {
 /// end: exhaustive_not
 
 /// begin: exhaustive_val
-val Unit.exhaustive get() = this
+/// begin: exhaustive_val_definition
+val <T> T.exhaustive get() = this
+/// end: exhaustive_val_definition
 
-fun b(x: Sealed) {
-    when (x) {
+fun b(instanceOfSealedClass: Sealed) {
+    /// begin: exhaustive_val_usage
+    when (instanceOfSealedClass) {
         is SubclassA -> println("A")
         is SubclassB -> println("B")
     }.exhaustive
+    /// end: exhaustive_val_usage
 }
 /// end: exhaustive_val
 
