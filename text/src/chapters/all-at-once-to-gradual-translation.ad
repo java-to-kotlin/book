@@ -1,16 +1,14 @@
 [[methods-to-operators]]
-== Methods to Operators
+== All At Once to Gradual Translation
 
-Kotlin's data classes greatly reduce the amount of boilerplate we need to write to implement value semantics.
-However, most of the value types in our application domain model are _abstract data types_, and a data class cannot be an abstract data type.
+So far we have shown the translation of code from Java to Kotlin happening all in one go.
+We use refactoring to perform the translation safely, but by the end, all the affected code is idiomatic Kotlin.
 
-An abstract data type represents a concept in our application, and hides the representation of that concept behind an API.
-The API defines the only operations that the rest of the program can use to work with values of the abstract data type, and guarantees that the hidden representation is always correct.
-However, a data class allows direct access to its fields.
-Kotlin generates a constructor and copy method that can bypass any other operations you might define for the data and break any correctness guarantees those operations provide.
+In large codebases this is not always possible.
+We will continue evolving features in Java while we are introducing Kotlin.
+Where there is a boundary between the two, we want to use conventional Java on one side and conventional Kotlin on the other.
 
-In this chapter we translate a Java class is an abstract data type into Kotlin.
-We will support idiomatic usage in both languages while our project is in transition from one to the other.
+What can we do to support the conventions of both languages as we introduce and gradually translate the system to Kotlin?
 
 
 === An Abstract Data Type with Value Semantics
@@ -19,7 +17,12 @@ One of the most fundamental value types in our Travelator application is `Money`
 Travellers need to budget for their trips.
 They want to compare costs of different travel options, see those costs converted to the their preferred currency, and see a grand total of all the costs the trip will involve.
 
-`Money` class is a value type, and an abstract data type:
+`Money` class is a value type, and an abstract data type.
+An abstract data type represents a concept in our application, and hides the representation of that concept behind an API.
+The API defines the only operations that the rest of the program can use to work with values of the abstract data type, and guarantees that the hidden representation is always correct.
+Unlike the value types that we have seen previously, an abstract data type cannot be implemented as a data class because a data class allows direct access to its fields.
+Kotlin generates a constructor and copy method that can bypass any other operations you might define for the data and break any correctness guarantees those operations provide.
+
 
 // begin-insert: tags/value_types.4:src/main/java/travelator/money/Money.java#money
 [source,java]
