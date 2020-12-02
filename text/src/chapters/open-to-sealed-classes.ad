@@ -152,50 +152,28 @@ data class Accommodation(
 
 Now we can move operations from being polymorphic methods defined on the sealed class and into extension functions that use `when` expressions to switch on the type of item.
 
-Let's do this with the `costs` method.
+Let's do this with the `timespan` method.
 
-When we Alt-Enter on the definition of costs in `ItineraryItem`, the context menu includes the action "Convert member to extension".
+When we Alt-Enter on the definition of `timespan` in `ItineraryItem`, the context menu includes the action "Convert member to extension".
 Can it really be that easy?
 Unfortunately, no.
-That gets us part of the way there, but leaves `override` modifiers on the `costs` methods in the concrete subclasses that longer override anything, and implements the extension function merely with a `TODO` that throws `UnsupportedOperationException`.
-We'll have to fix it up by hand by removing the `override` modifiers, and implementing the extension method with when expression that switches on the type of `ItineraryItem` and calls the now monomorphic `costs` method on each concrete class.
+That gets us part of the way there, but leaves `override` modifiers on the `timespan` methods in the concrete subclasses that longer override anything, and implements the extension function merely with a `TODO` that throws `UnsupportedOperationException`.
 
-// begin-insert: tags/open-to-sealed.3:src/main/java/travelator/itinerary/ItineraryCosts.kt
+// begin-insert: tags/open-to-sealed.3:src/main/java/travelator/itinerary/Itinerary.kt#sealed
 [source,kotlin]
 ----
-fun Itinerary.costs() = flatMap(ItineraryItem::costs)
-
-fun ItineraryItem.costs() = when (this) {
-    is Journey -> costs()
-    is Accommodation -> costs()
-    is Restaurant -> costs()
-    is Attraction -> costs()
+sealed class ItineraryItem {
+    abstract fun description(): String
+    abstract fun costs(): Sequence<Money>
+    abstract fun geoShape(): GeoShape
+    open fun sufferScore(): Int = 0
+    ... and other methods
 }
-----
-// end-insert
 
-Intellij highlights each monomorphic call to `costs` to indicate that the compiler is "smart casting" the `this` reference from ItineraryItem to the correct subclass thanks to flow typing.
-While we are writing the `when` expression, Intellij marks it as an error, and the compiler will report a type error, until it covers every subclass of `ItineraryItem`.
-
-We can now inline those `costs` methods into the extension function, removing them from the concrete classes.
-
-// begin-insert: tags/open-to-sealed.4:src/main/java/travelator/itinerary/ItineraryCosts.kt
-[source,kotlin]
-----
-fun Itinerary.costs() = flatMap(ItineraryItem::costs)
-
-fun ItineraryItem.costs() = when (this) {
-    is Journey -> sequenceOf(price)
-    is Accommodation -> sequenceOf(totalPrice)
-    is Restaurant -> emptySequence()
-    is Attraction -> emptySequence()
+fun ItineraryItem.timespan(): ClosedRange<ZonedDateTime>? {
+    TODO("Not yet implemented")
 }
-----
-// end-insert
 
-// begin-insert: tags/open-to-sealed.4:src/main/java/travelator/itinerary/Itinerary.kt#accommodation
-[source,kotlin]
-----
 data class Accommodation(
     val location: Location,
     val checkInFrom: ZonedDateTime,
@@ -206,13 +184,114 @@ data class Accommodation(
     val totalPrice: Money = pricePerNight * nights
 
     override fun description() = "$nights nights at ${location.userReadableName}"
+    override fun costs() = sequenceOf(totalPrice)
     override fun geoShape(): GeoShape = pointShape(location.position)
     override fun timespan() = checkInFrom..checkOutBefore
     ... and other methods
 }
+
+... and other subclasses
 ----
 // end-insert
 
+We'll have to fix it up by hand by removing the `override` modifiers, and implementing the extension method with when expression that switches on the type of `ItineraryItem` and calls the now monomorphic `timespan` method on each concrete class.
+
+// begin-insert: tags/open-to-sealed.4:src/main/java/travelator/itinerary/Itinerary.kt#sealed
+[source,kotlin]
+----
+sealed class ItineraryItem {
+    abstract fun description(): String
+    abstract fun costs(): Sequence<Money>
+    abstract fun geoShape(): GeoShape
+    open fun sufferScore(): Int = 0
+    ... and other methods
+}
+
+fun ItineraryItem.timespan(): ClosedRange<ZonedDateTime>? {
+    return when (this) {
+        is Accommodation -> timespan()
+        is Journey -> timespan()
+        is Restaurant -> timespan()
+        is Attraction -> timespan()
+    }
+}
+
+data class Accommodation(
+    val location: Location,
+    val checkInFrom: ZonedDateTime,
+    val checkOutBefore: ZonedDateTime,
+    val pricePerNight: Money
+) : ItineraryItem() {
+    val nights = Duration.between(checkInFrom, checkOutBefore).toDays().toInt()
+    val totalPrice: Money = pricePerNight * nights
+
+    override fun description() = "$nights nights at ${location.userReadableName}"
+    override fun costs() = sequenceOf(totalPrice)
+    override fun geoShape(): GeoShape = pointShape(location.position)
+    fun timespan() = checkInFrom..checkOutBefore
+    ... and other methods
+}
+
+... and other subclasses
+----
+// end-insert
+
+Intellij highlights each monomorphic call to `timespan` to indicate that the compiler is "smart casting" the `this` reference from ItineraryItem to the correct subclass thanks to flow typing.
+While we are writing the `when` expression, Intellij marks it as an error, and the compiler will report a type error, until it covers every subclass of `ItineraryItem`.
+
+We can inline those `timespan` methods into the extension function, removing them from the concrete classes.
+
+// begin-insert: tags/open-to-sealed.6:src/main/java/travelator/itinerary/Itinerary.kt#inlined
+[source,kotlin]
+----
+fun ItineraryItem.timespan() = when (this) {
+    is Accommodation -> checkInFrom..checkOutBefore
+    is Journey -> departureTime..arrivalTime
+    is Restaurant -> time..time + Duration.ofHours(2)
+    is Attraction -> null
+}
+
+data class Accommodation(
+    val location: Location,
+    val checkInFrom: ZonedDateTime,
+    val checkOutBefore: ZonedDateTime,
+    val pricePerNight: Money
+) : ItineraryItem() {
+    val nights = Duration.between(checkInFrom, checkOutBefore).toDays().toInt()
+    val totalPrice: Money = pricePerNight * nights
+
+    override fun description() = "$nights nights at ${location.userReadableName}"
+    override fun costs() = sequenceOf(totalPrice)
+    override fun geoShape(): GeoShape = pointShape(location.position)
+    ... and other methods
+}
+
+... and other subclasses
+----
+// end-insert
+
+The `ItineraryItem.timespan` does not need to be defined in the same file as the ItineraryItem class hierarchy.
+We can move it to a file or package that is more convenient:
+a good place is next to `Itinerary.timespan`
+
+// begin-insert: tags/open-to-sealed.7:src/main/java/travelator/itinerary/ItineraryTimespan.kt
+[source,kotlin]
+----
+fun Itinerary.timespan(): ClosedRange<ZonedDateTime>? =
+    map(ItineraryItem::timespan)
+        .filterNotNull()
+        .reduceOrNull { a, b ->
+            minOf(a.start, b.start)..maxOf(a.endInclusive, b.endInclusive)
+        }
+
+fun ItineraryItem.timespan() = when (this) {
+    is Accommodation -> checkInFrom..checkOutBefore
+    is Journey -> departureTime..arrivalTime
+    is Restaurant -> time..time + Duration.ofHours(2)
+    is Attraction -> null
+}
+----
+// end-insert
 
 TBD below here....
 
