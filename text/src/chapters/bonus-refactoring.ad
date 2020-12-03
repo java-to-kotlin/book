@@ -470,7 +470,7 @@ We're reading the whole of the input into memory (`readLines()`), processing it,
 
 We sometimes run into these problems like these with functional decomposition.
 Less often than we might anticipate, but in this case it's ironic that the original `Reader` and `Writer` code did not have this issue, so we have brought it on ourselves in the name of good style.
-We could quickly revert our changes and go and see if there is any crumpets left, or we could find a more functional solution.
+We could quickly revert our changes and go and see if there are any crumpets left, or we could find a more functional solution.
 
 Let's go back to `generate` and see what leeway we have.
 
@@ -556,7 +556,7 @@ The operations on `Iterable` are eager, whilst those on `Sequence` are lazy - so
 Nevertheless, the fact that they have such similar APIs means that in situations like this, we can often change very little (source) code when we swap between them.
 ****
 
-It might not _need_ to change, but unless `main` _does_ change we are still creating one large string of all the output.
+It might not _need_ to change, but unless `main` _does_ change, we are still creating one large string of all the output.
 To avoid that we need to get imperative again:
 
 // begin-insert: tags/bonus.14:src/main/java/travelator/marketing/HighValueCustomersMain.kt
@@ -668,7 +668,7 @@ Worse, when we finally get around to passing a `Sequence` reading from a file, w
 In the same way that there are differences in the runtime behaviour of ++Lists++s that are not expressed in the type system, instances of ++Sequence++s differ, and they also carry hidden state.
 Iterating over a `Sequence` looks like iterating over from a `List`, but _may_ change the `Sequence` itself by consuming its contents.
 
-We can check that we aren't abusing this `Sequence`, by adding a `.constrainOnce()` call:
+We can check that we aren't abusing this `Sequence` by adding a `.constrainOnce()` call:
 
 // begin-insert: tags/bonus.17:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
@@ -700,8 +700,9 @@ The simplest fix is to resolve the `Sequence` with a `.toList()` call.
 ----
 // end-insert
 
-This will lead to `generate` reading the whole file before it returns, but at least it will only try once, and that will do for now.
-A little refactoring gives us the following:
+This will lead to our resolving the whole sequence (and hence ultimately reading the whole file) in that statement, but at least it will only try once, and the memory for each line can be discarded as soon as it is parsed.
+
+Now we can replay the "Introduce parameter" refactoring with the `lines.asSequence()` expression to convert `generate` to take `Sequence<String>`:
 
 // begin-insert: tags/bonus.19:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
@@ -725,7 +726,8 @@ private fun List<CustomerData>.summarised(): String =
 ----
 // end-insert
 
-It's worth putting the `constrainOnce()` into the test to check that we don't accidentally try to consume the input twice again.
+As before we can now remove the fake-IO from the tests.
+It's worth putting the `constrainOnce()` into `check` to ensure that we don't accidentally try to consume the input twice again.
 
 // begin-insert: tags/bonus.19:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
 [source,kotlin]
@@ -743,7 +745,21 @@ private fun check(
 ----
 // end-insert
 
-We now get to the point, which was to allow main to pass a `Sequence` representing the input lines rather than reading them all at once.
+We now get to the point, which was to allow `main` to pass a `Sequence` representing the input lines rather than reading them all at once.
+Rather than `readLines()`:
+
+// begin-insert: tags/bonus.18:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
+[source,kotlin]
+----
+fun main() {
+    val reader = System.`in`.reader()
+    val writer = System.out.writer()
+    writer.appendLines(generate(reader.readLines()))
+}
+----
+// end-insert
+
+we use `buffered().lineSequece()`:
 
 // begin-insert: tags/bonus.19:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
 [source,kotlin]
@@ -758,7 +774,44 @@ fun main() {
 ----
 // end-insert
 
-Note again that while the original version of `generate` had to worry about `IOExceptions`, the new version doesn't, but only because it doesn't know that the `Sequence` calls can throw, rather than that they can't.
+We're now really quite efficient in our use of memory, and run pleasingly quickly.
+Can we resist one last tinker?
+How much nicer would `main` read with more extension functions?
+
+// begin-insert: tags/bonus.20:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
+[source,kotlin]
+----
+fun main() {
+    val reader = System.`in`.reader()
+    val writer = System.out.writer()
+    reader
+        .asLineSequence()
+        .toHighValueCustomerReport()
+        .writeTo(writer)
+}
+----
+// end-insert
+
+Which finally answers the question we posed back in <<functions-to-extension-functions>> - yes we do end up with report generation as an extension function.
+
+// begin-insert: tags/bonus.20:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+[source,kotlin]
+----
+fun Sequence<String>.toHighValueCustomerReport(): Sequence<String> {
+    val valuableCustomers = this
+        .withoutHeader()
+        .map(String::toCustomerData)
+        .filter { it.score >= 10 }
+        .sortedBy(CustomerData::score)
+        .toList()
+    return sequenceOf("ID\tName\tSpend") +
+        valuableCustomers.map(CustomerData::outputLine) +
+        valuableCustomers.summarised()
+}
+----
+// end-insert
+
+Before we go, we should note once more that while the original version of `generate` had to worry about `IOExceptions`, the new version doesn't, but only because it doesn't know that the `Sequence` calls can throw, rather than that they can't.
 We'll take a break to see if marketing have any more batter-based rewards before addressing that topic.
 
 
