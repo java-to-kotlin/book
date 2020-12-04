@@ -282,15 +282,17 @@ data class Accommodation(
 While we are writing the `when` expression, Intellij highlights it as a type error until it covers all subclasses of `ItineraryItem`.
 Intellij also highlights each monomorphic call to `timespan` to show that the compiler's flow-sensitive typing is "smart casting" the `this` reference from `ItineraryItem` to the correct subclass.
 
-// TODO: check if this also applies to if statements
 [WARNING]
-.Statements are not checked for exhaustiveness
+.When statements are not checked for exhaustiveness
 ****
 The compiler checks when expressions for exhaustiveness but does not check when _statements_.
 It considers a `when` to be a statement if the value of the entire `when` expression is never used.
 
-You can force an exhaustive check by using the value of the when statement.
-For example, the following extension function will use the value it is called upon.
+You can force the compiler to check for exhaustiveness by using the value of the when statement, even though it is of type `Unit`.
+If the `when` is the only statement in the body of a function, you can refactor the function to single-expression form.
+If the body of the function has multiple statements and the `when` is the last statement, you can explicitly use its value with the `return` keyword.
+If the `when` statement is in the middle of the function body you can extract it to its own function if that makes sense.
+When none of those options apply, you can use the following utility function to use value of the `when` statement and force an exhaustiveness check:
 
 /// begin-insert: src/main/java/exhaustive_when/ExhaustiveWhen.kt#exhaustive_val_definition
 [source,kotlin]
