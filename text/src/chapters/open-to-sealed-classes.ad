@@ -145,11 +145,9 @@ Let's convert `ItineraryItem` from an interface with polymorphic methods into a 
 
 A sealed class and all its subclasses must be defined in the same file.  So we must first use the IDE's Move Class refactoring to move the implementations of `ItineraryItem` into the same file as the interface.
 
-Then make interface a sealed class and the implementations extend the class.
-
-Can't do this automatically.
-Have to do it by manual editing.
-At least having them all in the same file makes that a bit easier.
+Now we can turn the interface and its implementations into a sealed class hieararchy.
+IntelliJ does not have an automated refactoring for this, so we have to do it by manually editing the code.
+At least this is made easier by now having all the classes in the same file.
 
 // begin-insert: tags/open-to-sealed.2:src/main/java/travelator/itinerary/Itinerary.kt#sealed
 [source,kotlin]
@@ -168,7 +166,7 @@ data class Accommodation(
     val checkInFrom: ZonedDateTime,
     val checkOutBefore: ZonedDateTime,
     val pricePerNight: Money
-) : ItineraryItem() {
+) : ItineraryItem() { // <4>
     val nights = Duration.between(checkInFrom, checkOutBefore).toDays().toInt()
     val totalPrice: Money = pricePerNight * nights
 
@@ -189,6 +187,8 @@ data class Accommodation(
 
 <3> Any methods of the interface that had a default implementation must be declared as `open` so they can be overridden by subclasses.
 
+<4> The declaration of the interface in the concrete item classes must be replaced with a call to the superclass constructor, which in our case has no arguments.
+
 Now we can move operations from being polymorphic methods defined on the sealed class and into extension functions that use `when` expressions to switch on the type of item.
 
 Let's do this with the `timespan` method.
@@ -196,7 +196,8 @@ Let's do this with the `timespan` method.
 When we Alt-Enter on the definition of `timespan` in `ItineraryItem`, the context menu includes the action "Convert member to extension".
 Can it really be that easy?
 Unfortunately, no.
-That gets us part of the way there, but leaves `override` modifiers on the `timespan` methods in the concrete subclasses that longer override anything, and implements the extension function merely with a `TODO` that throws `UnsupportedOperationException`.
+At the time of writing, the IDE action only gets us part of the way there and leaves us with code that does not compile.
+It removes the timespan method from the `ItineraryItem` class but leaves `override` modifiers on the `timespan` methods in the concrete subclasses, and generates a `timespan` extension function that contains only a `TODO` that throws `UnsupportedOperationException`.
 
 // begin-insert: tags/open-to-sealed.3:src/main/java/travelator/itinerary/Itinerary.kt#sealed
 [source,kotlin]
@@ -218,7 +219,7 @@ data class Accommodation(
     val checkInFrom: ZonedDateTime,
     val checkOutBefore: ZonedDateTime,
     val pricePerNight: Money
-) : ItineraryItem() {
+) : ItineraryItem() { // <4>
     val nights = Duration.between(checkInFrom, checkOutBefore).toDays().toInt()
     val totalPrice: Money = pricePerNight * nights
 
@@ -260,7 +261,7 @@ data class Accommodation(
     val checkInFrom: ZonedDateTime,
     val checkOutBefore: ZonedDateTime,
     val pricePerNight: Money
-) : ItineraryItem() {
+) : ItineraryItem() { // <4>
     val nights = Duration.between(checkInFrom, checkOutBefore).toDays().toInt()
     val totalPrice: Money = pricePerNight * nights
 
@@ -326,7 +327,7 @@ data class Accommodation(
     val checkInFrom: ZonedDateTime,
     val checkOutBefore: ZonedDateTime,
     val pricePerNight: Money
-) : ItineraryItem() {
+) : ItineraryItem() { // <4>
     val nights = Duration.between(checkInFrom, checkOutBefore).toDays().toInt()
     val totalPrice: Money = pricePerNight * nights
 
