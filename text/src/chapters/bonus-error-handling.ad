@@ -1,0 +1,494 @@
+[[bonus-error-handling]]
+== Bonus Error Handling
+
+In this chapter we'll look at error handling in our valuable customers report.
+Someone new in marketing has taken to tweaking the spreadsheet that generates the high-value customer scores, and they keep on exporting files which cause our parsing to break.
+It's getting a bit embarrassing on both sides of the relationship, so the cake has begun to dry up.
+Could there be any more incentive?
+Well yes, there could.
+We've been asked to write an unattended job so that marketing can save their file onto a server, and "software" will automatically write the summarised version.
+It looks like we're going to have to find a way to report errors properly.
+
+=== Starting Point
+
+Here's the code as we left it:
+
+// begin-insert: tags/bonus-errors.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt
+[source,kotlin]
+----
+@file:JvmName("HighValueCustomersReport")
+
+
+fun Sequence<String>.toHighValueCustomerReport(): Sequence<String> {
+    val valuableCustomers = this
+        .withoutHeader()
+        .map(String::toCustomerData)
+        .filter { it.score >= 10 }
+        .sortedBy(CustomerData::score)
+        .toList()
+    return sequenceOf("ID\tName\tSpend") +
+        valuableCustomers.map(CustomerData::outputLine) +
+        valuableCustomers.summarised()
+}
+
+private fun List<CustomerData>.summarised(): String =
+    sumByDouble { it.spend }.let { total ->
+        "\tTOTAL\t${total.toMoneyString()}"
+    }
+
+private fun Sequence<String>.withoutHeader() = drop(1)
+
+fun String.toCustomerData(): CustomerData =
+    split("\t").let { parts ->
+        CustomerData(
+            id = parts[0],
+            givenName = parts[1],
+            familyName = parts[2],
+            score = parts[3].toInt(),
+            spend = if (parts.size == 4) 0.0 else parts[4].toDouble()
+        )
+    }
+
+private val CustomerData.outputLine: String
+    get() = "$id\t$marketingName\t${spend.toMoneyString()}"
+
+private fun Double.toMoneyString() = this.formattedAs("%#.2f")
+
+private fun Double.formattedAs(format: String) = String.format(format, this)
+
+private val CustomerData.marketingName: String
+    get() = "${familyName.toUpperCase()}, $givenName"
+----
+// end-insert
+
+If we're to do a job of error handling, the first thing we have to do is to establish what might go wrong.
+As we discussed in <<exceptions-to-errors>>, in Kotlin we don't have checked exceptions to give us clue, but these were so badly used in Java that that isn't much of a difference.
+Let's work our way up the functions from the bottom of the listing, looking for potential errors.
+
+`CustomerData.marketingName` looks benign.
+If `CustomerData` were implemented in Java we might find `familyName` resolving to `null` and hence throwing when we try `toUpperCase()`, but it isn't, so it won't.
+As with all code it is subject to subclasses of `Error` such as `OutOfMemoryError` being thrown, but it should be generally safe.
+
+`Double.formattedAs(format: String)` will throw if the `format` is not valid.
+This is a partial function, it will be able to give a result for all values of `Double`, but for almost no values of `format`.
+Luckily we are only feeding it one particular `format`: `#.2f`, which we know works, so this and `Double.toMoneyString()` should not be subject to failure.
+
+By the transitive property of failure, `CustomerData.outputLine` should also be safe.
+
+Note that the reason that this has been so easy so far, is that these are all calculations.
+They don't depend on any external state, so we can reason with them just by looking at them.
+
+So far so good, now `String.toCustomerData()`:
+
+// begin-insert: tags/bonus-errors.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
+[source,kotlin]
+----
+fun String.toCustomerData(): CustomerData =
+    split("\t").let { parts ->
+        CustomerData(
+            id = parts[0],
+            givenName = parts[1],
+            familyName = parts[2],
+            score = parts[3].toInt(),
+            spend = if (parts.size == 4) 0.0 else parts[4].toDouble()
+        )
+    }
+----
+// end-insert
+
+OK, this is another partial function - almost no ++Strings++ will be suitable inputs, but luckily almost all the ones that we are getting in practice are, which is why error handling is only now becoming a priority.
+Starting from the top of the function, `String.split` may behave oddly if we pass it an empty delimiter, but we aren't.
+Then we may not have enough parts, so that `parts[n]` throws `IndexOutOfBoundsException`.
+Finally `parts[3]` may not represent an `Int`, or `parts[4]` may not represent a `Double`, both of which will throw `NumberFormatException`.
+
+Actually, is that it?
+Can constructing the `CustomerData` fail?
+The answer is no, but maybe it should, if, for example, `id` is an empty `String`.
+We'll come back to this.
+
+Having established that `toCustomerData` can fail, what should we do about it?
+At the moment, all the ways that it can fail result in an exception being thrown, and the program being aborted with an unfriendly error message.
+Which leads to two follow-on questions: should we abort?; and how can we improve the error message?
+
+As we discuss in <<exceptions-to-errors>>, your authors are generally not in favour of aborting with exceptions from low-level code.
+The lack of checked-exception in Kotlin (and their lack of use in Java) means that we aren't giving our callers a clue that we could fail, so that they have to do what we are currently doing - reason with every line of code in an implementation.
+And that implementation might change, silently invalidating our findings.
+
+The cheapest change to `toCustomerData()` would be to return `null` when we fail.
+Kotlin callers will be forced to consider the `null` case and act accordingly.
+
+// begin-insert: tags/bonus-errors.1:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
+[source,kotlin]
+----
+fun String.toCustomerData(): CustomerData? =
+    split("\t").let { parts ->
+        if (parts.size < 4)
+            null
+        else
+            CustomerData(
+                id = parts[0],
+                givenName = parts[1],
+                familyName = parts[2],
+                score = parts[3].toInt(),
+                spend = if (parts.size == 4) 0.0 else parts[4].toDouble()
+            )
+    }
+----
+// end-insert
+
+This breaks `toHighValueCustomerReport`:
+
+// begin-insert: tags/bonus-errors.1:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+[source,kotlin]
+----
+fun Sequence<String>.toHighValueCustomerReport(): Sequence<String> {
+    val valuableCustomers = this
+        .withoutHeader()
+        .map(String::toCustomerData)
+        .filter { it.score >= 10 } // <1>
+        .sortedBy(CustomerData::score)
+        .toList()
+    return sequenceOf("ID\tName\tSpend") +
+        valuableCustomers.map(CustomerData::outputLine) +
+        valuableCustomers.summarised()
+}
+----
+// end-insert
+
+<1> Doesn't compile, as `it` is nullable.
+
+Now if we want to just ignore badly formed input lines, we can get everything running again with `filterNotNull`.
+
+// begin-insert: tags/bonus-errors.2:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+[source,kotlin]
+----
+fun Sequence<String>.toHighValueCustomerReport(): Sequence<String> {
+    val valuableCustomers = this
+        .withoutHeader()
+        .map(String::toCustomerData)
+        .filterNotNull()
+        .filter { it.score >= 10 }
+        .sortedBy(CustomerData::score)
+        .toList()
+    return sequenceOf("ID\tName\tSpend") +
+        valuableCustomers.map(CustomerData::outputLine) +
+        valuableCustomers.summarised()
+}
+----
+// end-insert
+
+We don't have any tests to support this, and we really should write some, but for now we'll proceed without a safety net because this is a bit of a spike solution.
+From here, we can use null to represent the other ways that we know `toCustomerData()` can fail:
+
+// begin-insert: tags/bonus-errors.3:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
+[source,kotlin]
+----
+fun String.toCustomerData(): CustomerData? =
+    split("\t").let { parts ->
+        if (parts.size < 4)
+            return null
+        val score = parts[3].toIntOrNull() ?:
+            return null
+        val spend = if (parts.size == 4) 0.0 else parts[4].toDoubleOrNull() ?:
+            return null
+        CustomerData(
+            id = parts[0],
+            givenName = parts[1],
+            familyName = parts[2],
+            score = score,
+            spend = spend
+        )
+    }
+----
+// end-insert
+
+You _may_ be a little disgusted by those early returns, but again, we're just sketching here.
+This will represent all reasonable errors with `null`, so that we can go back to `toHighValueCustomerReport` and work out what to do with them instead of pretending that they haven't happened.
+
+We could abort on the first error, but it seems worth the extra effort to collect all the problem lines and report them somehow.
+_Somehow_ is a bit vague, but funnily enough it has a type: `(String) -> Unit` in this case.
+Which is to say, we can delegate the what-to-do to a function that accepts the errant line and doesn't affect the result.
+We allude to this technique in <<errors-invoking-a-function>>.
+In order to illustrate this, let's add to the tests:
+
+// begin-insert: tags/bonus-errors.4:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#error
+[source,kotlin]
+----
+@Test
+fun `calls back on parsing error`() {
+    val lines = listOf(
+        "ID\tFirstName\tLastName\tScore\tSpend",
+        "INVALID LINE",
+        "1\tFred\tFlintstone\t11\t1000.00",
+    )
+
+    val errorCollector = mutableListOf<String>()
+    val result = lines
+        .asSequence()
+        .constrainOnce()
+        .toHighValueCustomerReport {
+            errorCollector += it
+        }
+        .toList()
+
+    assertEquals(
+        listOf(
+            "ID\tName\tSpend",
+            "1\tFLINTSTONE, Fred\t1000.00",
+            "\tTOTAL\t1000.00"
+        ),
+        result
+    )
+    assertEquals(
+        listOf("INVALID LINE"),
+        errorCollector
+    )
+}
+----
+// end-insert
+
+Let's implement that with the simplest thing that could possibly work:
+
+// begin-insert: tags/bonus-errors.4:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+[source,kotlin]
+----
+fun Sequence<String>.toHighValueCustomerReport(
+    onErrorLine: (String) -> Unit = {}
+): Sequence<String> {
+    val valuableCustomers = this
+        .withoutHeader()
+        .map { line ->
+            val customerData = line.toCustomerData()
+            if (customerData == null)
+                onErrorLine(line)
+            customerData
+        }
+        .filterNotNull()
+        .filter { it.score >= 10 }
+        .sortedBy(CustomerData::score)
+        .toList()
+    return sequenceOf("ID\tName\tSpend") +
+        valuableCustomers.map(CustomerData::outputLine) +
+        valuableCustomers.summarised()
+}
+----
+// end-insert
+
+We can then use it in `main`, to print errors to `System.err` and then abort.
+
+// begin-insert: tags/bonus-errors.4:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
+[source,kotlin]
+----
+fun main() {
+    val reader = System.`in`.reader()
+    val writer = System.out.writer()
+    val error = System.err.writer()
+
+    val errorLines = mutableListOf<String>()
+    val reportLines = reader
+        .asLineSequence()
+        .toHighValueCustomerReport {
+            errorLines += it
+        }
+    if (errorLines.isNotEmpty()) {
+        error.appendLine("Lines with errors")
+        errorLines.asSequence().writeTo(error)
+        exitProcess(-1)
+    } else {
+        reportLines.writeTo(writer)
+    }
+}
+----
+// end-insert
+
+Given how generally keen we are on not mutating things, why are we allowing this to happen?
+We could have returned `Pair<Sequence<String>, List<String>>` where the second half was the errors.
+The main advantage of this scheme is that it allows the caller to abort by throwing an exception in `onErrorLine`.
+For maximum flexibility we could even have an error-handling strategy with signature `(String) -> CustomerData?`, so that the caller could supply a substitute.
+As it is we have polluted our nice report 'calculation' with an action, but only really from the perspective of the caller.
+'Calculation' because `toHighValueCustomerReport` necessarily mutates its input `Sequence` by reading from it.
+This is an expedient error handling solution that is flexible and communicates well, but pure it isn't.
+
+Can we communicate betterer?
+Well it would be nice to know the reason that the parsing failed, rather than just the lines for which it failed.
+In these cases returning a result type rather than nullable is called for.
+Let's edit `String.toCustomerData()` and then fix up the callers again.
+
+// begin-insert: tags/bonus-errors.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
+[source,kotlin]
+----
+fun String.toCustomerData(): Result<CustomerData, ParseFailure> =
+    split("\t").let { parts ->
+        if (parts.size < 4)
+            return Failure(NotEnoughFieldsFailure(this))
+        val score = parts[3].toIntOrNull() ?:
+            return Failure(ScoreIsNotAnIntFailure(this))
+        val spend = if (parts.size == 4) 0.0 else parts[4].toDoubleOrNull() ?:
+            return Failure(SpendIsNotAnDoubleFailure(this))
+        Success(
+            CustomerData(
+                id = parts[0],
+                givenName = parts[1],
+                familyName = parts[2],
+                score = score,
+                spend = spend
+            )
+        )
+    }
+----
+// end-insert
+
+Here we have some sealed classes to represent why parsing failed.
+
+// begin-insert: tags/bonus-errors.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#ParseFailure
+[source,kotlin]
+----
+sealed class ParseFailure(open val line: String)
+data class NotEnoughFieldsFailure(override val line: String) : ParseFailure(line)
+data class ScoreIsNotAnIntFailure(override val line: String) : ParseFailure(line)
+data class SpendIsNotAnDoubleFailure(override val line: String) : ParseFailure(line)
+----
+// end-insert
+
+To be honest this is overkill in this situation, a single data class carrying the errant line and a string reason would do, but we are trying to demonstrate error engineering, so we'll stick with this.
+
+We can fix up the caller by invoking `onErrorLine` and then yielding `null` when we have an `Error` - this passes the current tests.
+
+// begin-insert: tags/bonus-errors.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+[source,kotlin]
+----
+fun Sequence<String>.toHighValueCustomerReport(
+    onErrorLine: (String) -> Unit = {}
+): Sequence<String> {
+    val valuableCustomers = this
+        .withoutHeader()
+        .map { line ->
+            line.toCustomerData().recover {
+                onErrorLine(line)
+                null
+            }
+        }
+        .filterNotNull()
+        .filter { it.score >= 10 }
+        .sortedBy(CustomerData::score)
+        .toList()
+    return sequenceOf("ID\tName\tSpend") +
+        valuableCustomers.map(CustomerData::outputLine) +
+        valuableCustomers.summarised()
+}
+----
+// end-insert
+
+What we really want though is to expose the `ParseFailure`.
+Let change the test first:
+
+// begin-insert: tags/bonus-errors.6:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#error
+[source,kotlin]
+----
+@Test
+fun `calls back on parsing error`() {
+    val lines = listOf(
+        "ID\tFirstName\tLastName\tScore\tSpend",
+        "INVALID LINE",
+        "1\tFred\tFlintstone\t11\t1000.00",
+    )
+
+    val errorCollector = mutableListOf<ParseFailure>()
+    val result = lines
+        .asSequence()
+        .constrainOnce()
+        .toHighValueCustomerReport {
+            errorCollector += it
+        }
+        .toList()
+
+    assertEquals(
+        listOf(
+            "ID\tName\tSpend",
+            "1\tFLINTSTONE, Fred\t1000.00",
+            "\tTOTAL\t1000.00"
+        ),
+        result
+    )
+    assertEquals(
+        listOf(NotEnoughFieldsFailure("INVALID LINE")),
+        errorCollector
+    )
+}
+----
+// end-insert
+
+Now we can change `onErrorLine` to take the failure:
+
+// begin-insert: tags/bonus-errors.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+[source,kotlin]
+----
+fun Sequence<String>.toHighValueCustomerReport(
+    onErrorLine: (ParseFailure) -> Unit = {}
+): Sequence<String> {
+    val valuableCustomers = this
+        .withoutHeader()
+        .map { line ->
+            line.toCustomerData().recover {
+                onErrorLine(it)
+                null
+            }
+        }
+        .filterNotNull()
+        .filter { it.score >= 10 }
+        .sortedBy(CustomerData::score)
+        .toList()
+    return sequenceOf("ID\tName\tSpend") +
+        valuableCustomers.map(CustomerData::outputLine) +
+        valuableCustomers.summarised()
+}
+----
+// end-insert
+
+This lets `main` report the reason and the line:
+
+// begin-insert: tags/bonus-errors.6:src/main/java/travelator/marketing/HighValueCustomersMain.kt#excerpt
+[source,kotlin]
+----
+if (errorLines.isNotEmpty()) {
+    error.appendLine("Lines with errors")
+    errorLines.asSequence().map { parseFailure ->
+        "${parseFailure::class.simpleName} in ${parseFailure.line}"
+    }.writeTo(error)
+    exitProcess(-1)
+} else {
+    reportLines.writeTo(writer)
+}
+----
+// end-insert
+
+We would like to say that there is a much nicer formulation of the `valuableCustomers` expression, but the truth is that everything else is a bit worse in your authors` eyes.
+If you do find a nice simple way then please let us know.
+For now, we're going to try to wrap up this episode so that marketing can see for themselves what issues they have with their export.
+
+Before we go though, we should think about IO errors.
+Since we introduced the `Sequences`, our report generation code does not have to worry about writing failing, as it is the calling (`main`) code's responsibility to iterate over the result and actually write.
+`main` in this case makes the reasonable assumption that `System.out` will always be there, but when we implement the unattended job we will have to deal with the possibility that the file or network socket may disappear even though it was open when we started.
+Reading is a different matter.
+We are now iterating over each `String` in a `Sequence`.
+In the test code these are in memory, but in production they are being fetched from a file (via `System.in`).
+So our `Sequence` operations are subject to failure with `IOExceptions` that the report generation is pretending to be blissfully unaware of.
+
+In fairness, there is little that it can or should do in this case.
+There is no practical way of recovering from IO errors once you have started reading - aborting the whole operation is the sensible thing to do.
+Helpfully now the onus is entirely on the caller.
+It is the caller that is passing an IO-backed `Sequence` into `toHighValueCustomerReport`, the caller should be aware that `toHighValueCustomerReport` may therefore fail with an `IOException`.
+The type system will not help us here, although some, notably Haskell with its IO monad, would.
+
+
+
+
+
+
+
+
+
+
+
+
+
