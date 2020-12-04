@@ -1,8 +1,10 @@
 #!/bin/bash
 set -eou pipefail
+
 basedir="$(realpath $(dirname "$0"))"
 current="$basedir/build/current-tagged"
 last="$basedir/build/last-tagged"
+
 if [ "${1:-}" = "--dry-run" ]
 then
     echo "dry run" 1>&2
@@ -12,19 +14,30 @@ else
     mode=for_real
     gitcmd="git"
 fi
+
 cd ../refactoring-to-kotlin-code
-git branch --list | cut -c 3- | xargs -n 1 git log --format=%H -n 1 | shasum > "$current"
+
+git branch --list | cut -c 3- | xargs -n 1 -I _ git log --format=%H -n 1 _ -- | shasum > "$current"
+
 if ! diff -q -N "$current" "$last" > /dev/null
 then
     tagfmt='*.[0-9]*'
     git tag -l "$tagfmt" | xargs $gitcmd tag -d > /dev/null
-    git log --branches --not --branches="[m]aster" --topo-order --format=oneline | awk '
-        /[0-9a-f]{32} ([a-z0-9_-]+)([.][0-9]+)+ :/ {
-          linerev = $2
-          if (linerev != rev) {
-             rev = linerev
-             print $2, $1
-          }
+    git log --branches --not --branches="[m]aster" --topo-order --format="%H %S %s" | awk '
+        $3 ~ /([a-z0-9_\-]+)([.][0-9]+)+/ && $3 != tagname {
+            commit = $1
+            branch = $2
+            tagname = $3
+
+            if (tagname in commits && commits[tagname] != commit) {
+                print "ERROR: " tagname " refers to different commits in branches " branch " and " branches[tagname] > "/dev/stderr"
+                exit 1
+            }
+
+            branches[tagname] = branch
+            commits[tagname] = commit
+
+            print tagname, commit
         }
     ' | xargs -n 2 $gitcmd tag -f
     mv "$current" "$last"
