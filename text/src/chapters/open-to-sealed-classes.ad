@@ -136,7 +136,7 @@ However, Kotlin provides an alternative that is safer than typechecks and downca
 A sealed class has a fixed set of subclasses, that must all be defined in the same source file.
 This allows the compiler to ensure that run time type checks are exhaustive.
 Compilation fails if you do not have a branch for every subclass.
-If run time type checks are exhaustive, we do have to write an `else` clause.
+If run time type checks are exhaustive, we do not have to write an `else` clause.
 
 Let's convert `ItineraryItem` from an interface with polymorphic methods into a sealed class hierarchy and free-standing functions.
 
@@ -369,17 +369,30 @@ fun ItineraryItem.timespan() = when (this) {
 ----
 /// end-insert
 
-
 [WARNING]
 .Only typecast down a sealed class hierarchy
 ****
 Only use typecasts to cast from the root of a sealed class hierarchy to one of the children in an exhaustive when expression.
-Otherwise, don't cast your way out of the static types.
-
-Example of errors that can occur if casting: listOf(1,2,3) returns a the List interface of a mutable list.  If you cast it to MutableList you can mutate a list that code is expecting to be (and typed) as unmodifiable.
+Otherwise, it is risky to cast away from the static type.
+The actual class used to implement a value may have operations that violate the constraints expressed by the static type.
+For example, as we saw in <<java-to-kotlin-collections>>, the static type List prevents mutation, but Kotlin's higher-order functions return an object of a class that can be mutated if you downcast from List to MutableList.
+Doing so will likely introduce bugs in code that does not expect a value of type List returned from a higher-order function to ever change.
 ****
 
 
 === Conclusion
 
-TBD...
+One of the many difficulties in software design is managing variability: how can we introduce new behaviour without having to change many parts of the code at once.
+We can think of variability on two axes: the set of data types in our system, and the set of operations we need to apply to those data types.
+Object-oriented polymorphism helps programmers cope with variability when the set of data types changes more frequently than the set of operations.
+Java doesn't have a mechanism supporting variability in the opposite case: when the set of operations changes more frequently than the set of data types.
+Programmers have had to work around it by using run time type checks, which make it more difficult and risky to introduce new types when you do need to because the type system cannot help you, or by using double dispatch, which involves a lot of boilerplate code and doesn't play nicely with checked exceptions.
+
+In Kotlin we can use sealed classes when the set of operations is likely to change frequently than the set of types they apply to.
+Our use of sealed classes is checked by the type system, and involves little boilerplate code.
+
+The functional language Haskell introduced _type classes_, which allow you to easily vary both data types _and_ their operations.
+This has been adopted by other languages, such as Scala, Rust and Swift.
+Kotlin does not have a mechanism that supports varying both data types and their operations.
+When modelling your domain you have to make a choice whether operations will be dispatched by object-oriented polymorphism or by testing for subtypes of a sealed class.
+If your bet turns out to have been wrong, you can refactor from one form to the other.
