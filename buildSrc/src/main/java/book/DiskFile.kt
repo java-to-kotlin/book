@@ -3,6 +3,7 @@ package book
 import com.natpryce.Result
 import com.natpryce.Success
 import com.natpryce.map
+import com.natpryce.resultFrom
 import java.io.File
 
 interface CodeFile {
@@ -23,9 +24,7 @@ data class DiskFile(
     override fun toString() = file.canonicalPath
 
     override val lines: Result<List<String>, Exception> by lazy {
-        resultOf {
-            file.readLines()
-        }
+        resultFrom { file.readLines() }
     }
 }
 

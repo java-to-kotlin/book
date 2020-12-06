@@ -111,11 +111,3 @@ private fun expandCodeBlocks(text: String, lookup: (String) -> String): String =
 private val expandedCodeBlockFinder =
     """^(?<intro>///? begin-insert: (?<key>.*?)$)(.*?)^(?<outro>///? end-insert.*?)$"""
         .toRegex(setOf(DOT_MATCHES_ALL, MULTILINE))
-
-
-fun <R> resultOf(f: () -> R): Result<R, Exception> =
-    try {
-        Success(f())
-    } catch (e: Exception) {
-        Failure(e)
-    }
