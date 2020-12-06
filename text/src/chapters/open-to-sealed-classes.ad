@@ -144,7 +144,7 @@ Now we can turn the interface and its implementations into a sealed class hieara
 IntelliJ does not have an automated refactoring for this, so we have to do it by manually editing the code.
 At least this is made easier by now having all the classes in the same file.
 
-/// begin-insert: tags/open-to-sealed.2:src/main/java/travelator/itinerary/Itinerary.kt#sealed
+// begin-insert: tags/open-to-sealed.2:src/main/java/travelator/itinerary/Itinerary.kt#sealed
 [source,kotlin]
 ----
 sealed class ItineraryItem { // <1>
@@ -174,7 +174,7 @@ data class Accommodation(
 
 ... and other subclasses
 ----
-/// end-insert
+// end-insert
 
 <1> The class declaration is marked with the `sealed` modifier.
 
@@ -193,7 +193,7 @@ Can it really be that easy?
 Unfortunately, no.
 At the time of writing, the IDE action only gets us part of the way there and leaves us with code that does not compile.
 
-/// begin-insert: tags/open-to-sealed.3:src/main/java/travelator/itinerary/Itinerary.kt#sealed
+// begin-insert: tags/open-to-sealed.3:src/main/java/travelator/itinerary/Itinerary.kt#sealed
 [source,kotlin]
 ----
 sealed class ItineraryItem {
@@ -226,7 +226,7 @@ data class Accommodation(
 
 ... and other subclasses
 ----
-/// end-insert
+// end-insert
 
 <1> The IDE removed the timespan method from the `ItineraryItem` class
 <2> but it generated a `timespan` extension function that contains only a `TODO` that throws `UnsupportedOperationException`.
@@ -234,7 +234,7 @@ data class Accommodation(
 
 We'll have to fix it up by hand by removing the `override` modifiers, and implementing the body extension method as a when expression that switches on the type of `ItineraryItem` and calls the now monomorphic `timespan` method on each concrete class.
 
-/// begin-insert: tags/open-to-sealed.4:src/main/java/travelator/itinerary/Itinerary.kt#sealed
+// begin-insert: tags/open-to-sealed.4:src/main/java/travelator/itinerary/Itinerary.kt#sealed
 [source,kotlin]
 ----
 sealed class ItineraryItem {
@@ -272,7 +272,7 @@ data class Accommodation(
 
 ... and other subclasses
 ----
-/// end-insert
+// end-insert
 
 While we are writing the `when` expression, Intellij marks it as a type error until it covers all subclasses of `ItineraryItem`.
 Intellij also highlights each monomorphic call to `timespan` to show that the compiler's flow-sensitive typing is "smart casting" the `this` reference from `ItineraryItem` to the correct subclass.
@@ -289,16 +289,16 @@ If the body of the function has multiple statements and the `when` is the last s
 If the `when` statement is in the middle of the function body you can extract it to its own function if that makes sense.
 When none of those options apply, you can use the following utility function to use value of the `when` statement and force an exhaustiveness check:
 
-/// begin-insert: src/main/java/exhaustive_when/ExhaustiveWhen.kt#exhaustive_val_definition
+// begin-insert: src/main/java/exhaustive_when/ExhaustiveWhen.kt#exhaustive_val_definition
 [source,kotlin]
 ----
 val <T> T.exhaustive get() = this
 ----
-/// end-insert
+// end-insert
 
 It can be used like this to make the compiler check a `when` statement for exhaustiveness:
 
-/// begin-insert: src/main/java/exhaustive_when/ExhaustiveWhen.kt#exhaustive_val_usage
+// begin-insert: src/main/java/exhaustive_when/ExhaustiveWhen.kt#exhaustive_val_usage
 [source,kotlin]
 ----
 when (instanceOfSealedClass) {
@@ -306,13 +306,13 @@ when (instanceOfSealedClass) {
     is SubclassB -> println("B")
 }.exhaustive
 ----
-/// end-insert
+// end-insert
 ****
 
 
 We can inline those `timespan` methods into the extension function, removing them from the concrete classes.
 
-/// begin-insert: tags/open-to-sealed.6:src/main/java/travelator/itinerary/Itinerary.kt#inlined
+// begin-insert: tags/open-to-sealed.6:src/main/java/travelator/itinerary/Itinerary.kt#inlined
 [source,kotlin]
 ----
 fun ItineraryItem.timespan() = when (this) {
@@ -339,13 +339,13 @@ data class Accommodation(
 
 ... and other subclasses
 ----
-/// end-insert
+// end-insert
 
 The `ItineraryItem.timespan` does not need to be defined in the same file as the ItineraryItem class hierarchy.
 We can move it to a file or package that is more convenient:
 a good place is next to `Itinerary.timespan`
 
-/// begin-insert: tags/open-to-sealed.7:src/main/java/travelator/itinerary/ItineraryTimespan.kt
+// begin-insert: tags/open-to-sealed.7:src/main/java/travelator/itinerary/ItineraryTimespan.kt
 [source,kotlin]
 ----
 fun Itinerary.timespan(): ClosedRange<ZonedDateTime>? =
@@ -362,7 +362,7 @@ fun ItineraryItem.timespan() = when (this) {
     is Attraction -> null
 }
 ----
-/// end-insert
+// end-insert
 
 [WARNING]
 .Only typecast down a sealed class hierarchy
