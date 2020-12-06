@@ -279,7 +279,7 @@ Intellij also highlights each monomorphic call to `timespan` to show that the co
 
 [WARNING]
 .When statements are not checked for exhaustiveness
-****
+====
 The compiler checks when expressions for exhaustiveness but does not check when _statements_.
 It considers a `when` to be a statement if the value of the entire `when` expression is never used.
 
@@ -307,7 +307,7 @@ when (instanceOfSealedClass) {
 }.exhaustive
 ----
 // end-insert
-****
+====
 
 
 We can inline those `timespan` methods into the extension function, removing them from the concrete classes.
@@ -364,15 +364,15 @@ fun ItineraryItem.timespan() = when (this) {
 ----
 // end-insert
 
-[WARNING]
+[TIP]
 .Only typecast down a sealed class hierarchy
-****
+====
 Only use typecasts to cast from the root of a sealed class hierarchy to one of the children in an exhaustive when expression.
 Otherwise, it is risky to cast away from the static type.
 The actual class used to implement a value may have operations that violate the constraints expressed by the static type.
-For example, as we saw in <<java-to-kotlin-collections>>, the static type List prevents mutation, but Kotlin's higher-order functions return an object of a class that can be mutated if you downcast from List to MutableList.
-Doing so will likely introduce bugs in code that does not expect a value of type List returned from a higher-order function to ever change.
-****
+For example, as we saw in <<java-to-kotlin-collections>>, the static type `List` prevents mutation, but Kotlin's higher-order functions return an object of a class that can be mutated if you downcast from `List` to `MutableList`.
+Doing so will likely introduce bugs in code that does not expect a value of type `List` returned from a higher-order function to ever change.
+====
 
 
 === Conclusion
