@@ -1,39 +1,34 @@
 [[open-to-sealed-classes]]
 == Open to Sealed Classes
 
-In Java, we can define polymorphic methods on classes. We can use interfaces to define sets of polymorphic. methods, independently of any class that implements them.  Later, we can define a class that implements the interface and the implementations of the methods of that interface for that class.
+A constant challenge of software design is managing _variability_: how can we add new behaviour without having to change many parts of the code at once.
+We can think of variability as affecting two dimensions: the set of data types in our system, and the set of operations we need to apply to those data types.
+Different language features, and different languages, provide more or less support for variation along each dimension.
 
-Calling polymorphic methods is supported by the type checker: we cannot call a method if the class does not implement it.
+Java's principal feature to support variability is object-oriented polymorphism.
+We define operations as polymorphic methods on classes or interfaces that can be implemented or overridden by subclasses.
+It is easy to add new types that have their own implementation of existing operations.
+However, every time we want to add a new operation, we have to add it to the supertype and add an implementation to all existing subtypes.
+Also, because we must define operations on the types, interfaces or superclasses tend to "attract" behaviour to support distantly related parts of the application.
+Paradoxically, where we need variability of operations rather than data types, object-oriented polymorphism can _increase_ coupling!
 
-The drawback of interfaces is that you have to declare that a class implements an interface in the definition of a class.  You can't add an interface to a class without changing its definition.  Java programmers turn to design patterns, like the Adapter, Bridge and Decorator patterns, to work around the fact that we cannot add interfaces to a class without recompiling it.
+Java doesn't have a mechanism to support variability when the set of operations changes more frequently than the set of data types.
+Design patterns that help us work around this limitation , such as Double Dispatch or Visitor, require boilerplate code and don't play well with Java's checked exceptions.
+As a last resort, Java programmers turn to run time type checks, using the `instanceof` and downcast operators, to run different code for different classes of object.
+This is risky. The compiler can type check our use of polymorphic methods, but cannot tell if our run time type checks cover all necessary cases, or if they cover _unnecessary_ cases.
+When we change code, it is easy to introduce bugs or leave dead code in the codebase that is hard to recognise and remove.
 
-As a result, key types in a Java application's domain model tend to become "God Objects" with many methods that support different aspects of the application.  Or methods gets moved from the domain model class into "Helper" or "Util" classes that end up a grab-bag of loosely related functionality that is awkward to use compared to a method on the class itself.
-
-As a last resort, when classes do not define a common interfaces, or the operations we want to perform are very different for different types, Java programmers resort to run-time type checks , using the `instanceof` and downcast operators to run different code for different classes of object.
-This is risky: the type checker cannot tell if we have forgotten necessary cases, nor if we are covering _unnecessary_ cases.
-As we change code, it is easy to introduce bugs or leave dead code in the codebase that is hard to identify and remove.
-
-God Objects, Helper classes, and run-time type checks are all considered to be "code smells" -- visible symptoms of design flaws.
-But what's the alternative?
-At the time of writing, Javafootnote:[At least up to Java 14. A future version of Java will have sealed classes.] only gives us classes, methods, and interfaces for modelling.
-The code smells we see in Java are a consequence of this limited set of abstraction mechanisms.
-
-Kotlin classes, like Java classes, can have polymorphic methods and implement interfaces, and classes must be declared to implement an interface.
-This simplifies interop with Java, but means that, like Java, you cannot introduce polymorphism to an object without changing its class definition.
-
+Kotlin classes, like Java classes, can have polymorphic methods and implement interfaces.
 However, Kotlin has another mechanism for organising classes and behaviour: _sealed classes_.
 A sealed class is an abstract class with a fixed set of subclasses, defined in the same source file.
 The compiler prevents you from subclassing the sealed class elsewhere.
 Thanks to this restriction, run-time type checks on sealed class hierarchies do not have the same drawbacks as run-time type checks in Java.
-The type checker can guarantee that `when` expressions that test the subtype of a sealed class cover all possible cases and only possible cases.
-
-Object-oriented polymorphism assumes that the set of operations varies infrequently, and the set of types the operations apply to varies frequently.  It is much easier to extend a program by adding another class that implements an interface than it is to add another method to an interface implemented by many classes.  The JVM can even load new classes into a running program, as long as they implement an interface compiled into the program.
-
-Sealed class hierarchies and `when` expressions assume the opposite: that the set of operations varies more frequently than the set of types they apply to.
+The static type checker can guarantee that `when` expressions that perform run time type checks for a subtype of a sealed class cover all possible cases and only possible cases.
 It is much easier to write another function that is conditional on the concrete subclass of a sealed class than it is to add another subclass to every existing when expressions.
 
-Kotlin has no mechanism that lets you define a type and operations in a way that let you easily vary both the types that the operations apply to, and the operations that apply to the types, with static type safety and without modifying existing code.
-You have to choose which approach you'll use for a class based on which aspect, subtypes or operations, you expect to vary most frequently as the program evolves.
+Managing variability in a Kotlin codebase means recognising when to apply these two mechanisms: object-oriented polymorphism when the set of data types varies more frequently than the set of operations on those data types, and run time type checks of sealed class hierarchies when the set of operations varies more frequently than the set of data types they apply to.
+Unlike Haskell, Scala, Rust or Swift, Kotlin has no mechanism that lets you vary both types _and_ operations without modifying existing code.
+You have to choose which approach you'll use for a class based on which dimension, types or operations, you expect to vary most frequently as the program evolves.
 
 
 === Itinerary -- A Core Type in Our Application
@@ -382,7 +377,7 @@ Doing so will likely introduce bugs in code that does not expect a value of type
 
 === Conclusion
 
-One of the many difficulties in software design is managing variability: how can we introduce new behaviour without having to change many parts of the code at once.
+One of the many difficulties in software design is managing _variability_: how can we add new behaviour without having to change many parts of the code at once.
 We can think of variability on two axes: the set of data types in our system, and the set of operations we need to apply to those data types.
 Object-oriented polymorphism helps programmers cope with variability when the set of data types changes more frequently than the set of operations.
 Java doesn't have a mechanism supporting variability in the opposite case: when the set of operations changes more frequently than the set of data types.
