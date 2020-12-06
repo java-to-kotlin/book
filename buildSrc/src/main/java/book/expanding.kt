@@ -109,5 +109,5 @@ private fun expandCodeBlocks(text: String, lookup: (String) -> String): String =
 
 //language=RegExp
 private val expandedCodeBlockFinder =
-    """^(?<intro>///? begin-insert: (?<key>.*?)$)(.*?)^(?<outro>///? end-insert.*?)$"""
+    """^(?<intro>// begin-insert: (?<key>.*?)$)(.*?)^(?<outro>// end-insert.*?)$"""
         .toRegex(setOf(DOT_MATCHES_ALL, MULTILINE))
