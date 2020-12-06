@@ -2,7 +2,7 @@
 == Open to Sealed Classes
 
 A constant challenge of software design is managing _variability_: how can we add new behaviour without having to change many parts of the code at once.
-We can think of variability as affecting two dimensions: the set of data types in our system, and the set of operations we need to apply to those data types.
+We can think of variability as affecting two dimensions: over the lifetime of our software we change the set of data types in our system, and the set of operations we need to apply to those data types.
 Different language features, and different languages, provide more or less support for variation along each dimension.
 
 Java's principal feature to support variability is object-oriented polymorphism.
@@ -21,7 +21,7 @@ When we change code, it is easy to introduce bugs or leave dead code in the code
 Kotlin classes, like Java classes, can have polymorphic methods and implement interfaces.
 However, Kotlin has another mechanism for organising classes and behaviour: _sealed classes_.
 A sealed class is an abstract class with a fixed set of subclasses, defined in the same source file.
-The compiler prevents you from subclassing the sealed class elsewhere.
+The compiler prevents you from extending the sealed class elsewhere.
 Thanks to this restriction, run-time type checks on sealed class hierarchies do not have the same drawbacks as run-time type checks in Java.
 The static type checker can guarantee that `when` expressions that perform run time type checks for a subtype of a sealed class cover all possible cases and only possible cases.
 It is much easier to write another function that is conditional on the concrete subclass of a sealed class than it is to add another subclass to every existing when expressions.
