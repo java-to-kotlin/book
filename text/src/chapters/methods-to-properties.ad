@@ -264,10 +264,25 @@ Our rule of thumb is to use a property when it depends only on other properties 
 This applies to `fullName`, so that is a good computed property.
 What about age?
 
-We can compute age easily (if only roughly) from the `dateOfBirth` property, so we might be tempted in Java to write `fred.getAge()`, but this is suspect.
+We can compute age easily (ignoring timezones) from the `dateOfBirth` property, so we might be tempted in Java to write `fred.getAge()`, but this is suspect.
 It may be very unlikely, but the fact that the expression `fred.age == fred.age` may return `false` is the clue.
+
 Age is an action (<<actions>>) - its result depends on when it is called.
 Properties should be calculations (<<calculations>>) - timeless and dependent only on their inputs - in this case the `dateOfBirth` property.
+Hence `age()` should be a function, not a property:
+
+// begin-insert: src/main/java/properties/PersonWithProperties.kt#DoB
+[source,kotlin]
+----
+class PersonWithProperties(
+    val givenName: String,
+    val familyName: String,
+    val dateOfBirth: LocalDate
+) {
+    fun age() = Period.between(dateOfBirth, LocalDate.now()).years
+}
+----
+// end-insert
 
 What about a cryptographic hash of all the other properties of the object?
 This is a calculation, but if it is expensive to compute, it should not be a property.
@@ -305,7 +320,7 @@ class PersonWithProperties(
 ----
 // end-insert
 
-In a limited scope this would be fine, but if the class was more widely used, your authors would revert to hinting at  the potential first-invocation performance issue by hiding the computed property behind a function.
+In a limited scope this would be fine, but if the class was more widely used, your authors would revert to hinting at the potential first-invocation performance issue by hiding the computed property behind a function.
 
 // begin-insert: src/main/java/properties/PersonWithProperties.kt#hash3
 [source,kotlin]
