@@ -2,11 +2,10 @@ package properties;
 
 public class CallingComputed {
     /// begin: excerpt
-    public static void print2(PersonWithPublicFields person) {
-        System.out.println(
+    public static String fieldAndAccessor(PersonWithPublicFields person) {
+        return
             person.givenName + " " +
-            person.getFullName()
-        );
+            person.getFullName();
     }
     /// end: excerpt
 }

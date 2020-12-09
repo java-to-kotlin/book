@@ -31,7 +31,7 @@ AGE(WILMA) := AGE(WILMA) + 1;
 ----
 
 the compiler is going to add the number of bytes taken by 20 characters to the place that it has stored `WILMA` in order to know where to find the bytes representing her age, and increment it.
-Records, also known as _structs_ in other languages, are a convenience for grouping together variables - there is no information hiding going on.
+Records, also known as _structs_ in other languages, are a convenience for grouping together related data - there is no information hiding going on.
 
 Most early object-oriented systems (C++ in particular) were based on this record mechanism.
 Instance variables were simply record fields, and member functions (aka methods) were record fields holding pointers to functions.
@@ -45,22 +45,25 @@ This allows us to treat classes as records, whilst allowing the runtime to enfor
 
 While direct access to fields was _permitted_, from the outset it was discouraged.
 If its clients access fields directly, then an implementation cannot change its internal representation without recompiling those clients.
-We also cannot maintain any invariant relationships between fields if clients can mutate them directly, and as we've seen in <<beans-to-values>>, in those days objects were all about the mutation.
+We also cannot maintain any invariant relationships between fields if clients can mutate them directly, and as we've seen in <<beans-to-values>>, in those days objects were all about mutation.
 Finally, direct field access is not polymorphic, so subclasses cannot change its implementation, and in those days objects were all about the subclassing too.
 
-Instead of direct field access then, we write _accessor_ methods - getters and (historically) setters.
-They almost always do nothing mediate access to a field, but sometimes may maintain invariants, or compute a person from other fields rather than access storage.
-Within a codebase that we own, the arguments for encapsulating data are less persuasive, but as developers we ape the patterns we see in the standard APIs and libraries that we use.
+So instead of direct field access, we usually write _accessor_ methods - getters and (historically) setters.
+Getters almost always do nothing except return the value of a field, but they may instead compute a value from other fields.
+Setters may maintain invariants or fire events.
+Within a codebase that we own we need not default to using accessors, but as developers we ape the patterns we see in the standard APIs and libraries that we use.
 They by definition are catering to clients who don't own them, and so make more use of encapsulation then we have to locally.
 
 Where are we going with this?
 Well, sometimes data is just data.
-When it is, then records, or public fields of classes, are perfectly acceptable, especially when we have immutable values.
-As our models become more sophisticated we will person a uniform way of accessing values from either a field or a calculation, or polymorphically, and in these cases accessor methods come into their own.
+When it is, then records, or classes with public fields, are perfectly acceptable, especially when we have immutable values (which is to say, `final` fields of immutable types).
+As models get more complicated, we will prefer a uniform way of accessing values from either a field or a calculation, or polymorphically.
+Then accessor methods come into their own.
 
 The Kotlin designers choose to take the decision away from us and only support accessor methods.
-The language simply does not support giving direct access to the fields of its classes.
+The language doesn't support giving direct access to the fields of its classes.
 It will generate code to access to public fields of Java classes, but has no way of defining public fields itself.
+(A special annotation, `@JvmField` provides a back door if you really need it.)
 Instead, it allows us to generate both a private member-variable and an accessor in a single _property_ declaration.
 
 So in Java we can give access to a field directly:
@@ -129,53 +132,42 @@ class PersonWithProperties(
 ----
 // end-insert
 
-This declaration will emit a private field called `givenName`, an accessor method `getGivenName()`, and a constructor to initialise `givenName`.
+This declaration will emit a private field called `givenName`, an accessor method `getGivenName()`, and a constructor to initialise all the fields.
 
 In Java, we can access (visible) fields directly, or call accessors:
 
 // begin-insert: src/main/java/properties/Calling.java#excerpt
 [source,java]
 ----
-public static void print(PersonWithPublicFields person) {
-    System.out.println(person.givenName); // <1>
+public static String accessField(PersonWithPublicFields person) {
+    return person.givenName;
 }
 
-public static void print(PersonWithAccessor person) {
-    System.out.println(person.getGivenName()); // <2>
+public static String callAccessor(PersonWithAccessor person) {
+    return person.getGivenName();
 }
 
-public static void print(PersonWithProperties person) {
-    System.out.println(person.getGivenName()); // <3>
+public static String callKotlinAccessor(PersonWithProperties person) {
+    return person.getGivenName();
 }
 ----
 // end-insert
-
-<1> Accessing the field
-<2> Calling the Java `getGivenName()`
-<3> Calling the Kotlin `getGivenName()`
 
 In Kotlin, we can access visible fields directly, or call accessors as if they were fields:
 
 // begin-insert: src/main/java/properties/calling.kt
 [source,kotlin]
 ----
-fun print(person: PersonWithPublicFields) {
-    println(person.givenName) // <1>
-}
+fun accessField(person: PersonWithPublicFields): String =
+    person.givenName
 
-fun print(person: PersonWithAccessor) {
-    println(person.givenName) // <2>
-}
+fun callAccessor(person: PersonWithAccessor): String =
+    person.givenName
 
-fun print(person: PersonWithProperties) {
-    println(person.givenName) // <3>
-}
+fun callKotlinAccessor(person: PersonWithProperties): String =
+    person.givenName
 ----
 // end-insert
-
-<1> Accessing the field
-<2> Calling the Java `getGivenName()`
-<3> Calling the Kotlin `getGivenName()`
 
 Properties are a convenience backed by some compiler magic in Kotlin.
 They make it as simple to use fields and accessors as plain old fields in Java, and so we will naturally write code that can take advantage of the encapsulation provided by accessors.
@@ -209,16 +201,15 @@ public class PersonWithPublicFields {
 ----
 // end-insert
 
-In this direct-field-access case in Java, there is now a difference between the stored and computed properties when we come to access them.
+Where we use direct-field-access, there is now a difference between the stored and computed properties when we come to access them.
 
 // begin-insert: src/main/java/properties/CallingComputed.java#excerpt
 [source,java]
 ----
-public static void print2(PersonWithPublicFields person) {
-    System.out.println(
+public static String fieldAndAccessor(PersonWithPublicFields person) {
+    return
         person.givenName + " " +
-        person.getFullName()
-    );
+        person.getFullName();
 }
 ----
 // end-insert
@@ -229,16 +220,13 @@ This uniformity is a goal of properties.
 // begin-insert: src/main/java/properties/calling-computed.kt
 [source,kotlin]
 ----
-fun print2(person: PersonWithPublicFields) {
-    println(
-        person.givenName + " " +
-        person.fullName
-    )
-}
+fun fieldAndAccessor(person: PersonWithPublicFields) =
+    person.givenName + " " +
+    person.fullName
 ----
 // end-insert
 
-We define computed properties outside the constructor in Kotlin:
+In Kotlin, we define computed properties outside the constructor:
 
 // begin-insert: src/main/java/properties/PersonWithProperties.kt#PwP
 [source,kotlin]
@@ -260,11 +248,11 @@ In Kotlin, we cannot _publish_ direct field access, but we can auto-generate acc
 
 Returning to the question at the beginning of the chapter, given that computed properties are just methods with sugar on top, when should we choose a computed property, and when should we choose a method?
 
-Our rule of thumb is to use a property when it depends only on other properties of the type, and is cheap to compute.
+The rule of thumb is to use a property when it depends only on other properties on the type, and is cheap to compute.
 This applies to `fullName`, so that is a good computed property.
 What about age?
 
-We can compute age easily (ignoring timezones) from the `dateOfBirth` property, so we might be tempted in Java to write `fred.getAge()`, but this is suspect.
+We can compute age easily (ignoring timezones) from the `dateOfBirth` property, so we might be tempted in Java to write `fred.getAge()`. But this is suspect.
 It may be very unlikely, but the fact that the expression `fred.age == fred.age` may return `false` is the clue.
 
 Age is an action (<<actions>>) - its result depends on when it is called.
@@ -302,7 +290,7 @@ class PersonWithProperties(
 ----
 // end-insert
 
-This has the disadvantage of making every instance slow to create, whether or not `hash` is required.
+This has the disadvantage of making every instance slow to create, whether or not its `hash` is ever accessed.
 We might split the difference with a lazy property:
 
 // begin-insert: src/main/java/properties/PersonWithProperties.kt#hash2
@@ -320,7 +308,7 @@ class PersonWithProperties(
 ----
 // end-insert
 
-In a limited scope this would be fine, but if the class was more widely used, your authors would revert to hinting at the potential first-invocation performance issue by hiding the computed property behind a function.
+In a limited scope this would be fine, but if the class was more widely used, we should revert to hinting at the potential first-invocation performance issue by hiding the computed property behind a function.
 
 // begin-insert: src/main/java/properties/PersonWithProperties.kt#hash3
 [source,kotlin]

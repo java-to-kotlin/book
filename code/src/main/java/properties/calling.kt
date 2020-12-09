@@ -1,13 +1,10 @@
 package properties
 
-fun print(person: PersonWithPublicFields) {
-    println(person.givenName) // <1>
-}
+fun accessField(person: PersonWithPublicFields): String =
+    person.givenName
 
-fun print(person: PersonWithAccessor) {
-    println(person.givenName) // <2>
-}
+fun callAccessor(person: PersonWithAccessor): String =
+    person.givenName
 
-fun print(person: PersonWithProperties) {
-    println(person.givenName) // <3>
-}
+fun callKotlinAccessor(person: PersonWithProperties): String =
+    person.givenName

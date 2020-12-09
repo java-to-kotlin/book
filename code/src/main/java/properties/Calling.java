@@ -2,16 +2,16 @@ package properties;
 
 public class Calling {
     /// begin: excerpt
-    public static void print(PersonWithPublicFields person) {
-        System.out.println(person.givenName); // <1>
+    public static String accessField(PersonWithPublicFields person) {
+        return person.givenName;
     }
 
-    public static void print(PersonWithAccessor person) {
-        System.out.println(person.getGivenName()); // <2>
+    public static String callAccessor(PersonWithAccessor person) {
+        return person.getGivenName();
     }
 
-    public static void print(PersonWithProperties person) {
-        System.out.println(person.getGivenName()); // <3>
+    public static String callKotlinAccessor(PersonWithProperties person) {
+        return person.getGivenName();
     }
     /// end: excerpt
 }
