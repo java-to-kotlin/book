@@ -15,7 +15,7 @@ fun add(a: Int, b: Int): Int {
 ----
 // end-insert
 
-If the top-level of the code is a single-expression though, we can optionally drop the result type, and define the code with an `=` and the expression.
+If the top-level of the code is a single expression though, we can optionally drop the result type, and define the code with an `=` and the expression.
 
 // begin-insert: src/main/java/singleExpressionFunctions/functions.kt#addToo
 [source,kotlin]
@@ -38,7 +38,7 @@ fun max(a: Int, b: Int): Int =
 ----
 // end-insert
 
-This form is less suitable for functions that have side effects, especially those that write to IO or mutable state.
+This form is less suitable for functions that have side effects, especially those that perform IO or write to mutable state.
 
 // begin-insert: src/main/java/singleExpressionFunctions/functions.kt#printTwice
 [source,kotlin]
@@ -57,8 +57,11 @@ In practice this means that single-expression functions shouldn't return Unit, o
 
 Of course lots of pure calculations consist of more than one top-level expression.
 Your authors have found though, that attempting to make as many as possible into simple single expression functions can improve our software.
-This is because we end up with more calculations (as opposed to side-effecting actions), and they will have reduced complexity.
-As pure functions themselves reduce complexity, this is a double-action complexity reduction.
+For one thing, logic implemented in single-expression form is more terse than its imperative equivalent.
+Even long single-expression functions reduce complexity by being calculations, as opposed to side-effecting actions.
+Expressions are _declarative_: we describe what we want the function to calculate and let the Kotlin compiler and runtime decide _how_ to compute that calculation.
+We don't have to run the code in a simulated computer in our heads to figure out what the function calculates.
+When a pure function does get too large to be instantly understood, single-expression style lets us more easily refactor for clarity, because there is no risk of breaking logic that depends on side-effects and the order in which actions are performed.
 
 For example, at the end of <<java-to-kotlin-classes>> we were left with this code for `EmailAddress`:
 
@@ -654,6 +657,8 @@ We explore how to support both language's conventions during a gradual conversio
 
 Defining our calculations as single-expression functions lets us communicate that they are different to side-effecting actions.
 Trying to express them as a simple single-expressions is a useful discipline that can lead to well factored, clean code.
+
+Aiming for declarative/denotatitive code makes us think about what we are denoting. E.g. splitAroundLast('@') was a more useful thing to denote than "lastIndex < 0 && lastIndex > s.size-2" or whatever it is.
 
 Refactorings don't always succeed the first, or second, time we try them.
 As developers we don't always have the luxury of repeated attempts, but the more we practice improving our communication in code, the more often we'll get there before we give up.
