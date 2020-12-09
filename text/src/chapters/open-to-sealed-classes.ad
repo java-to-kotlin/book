@@ -3,7 +3,7 @@
 
 // TODO: Duncan to add a question
 
-A constant challenge of software design is managing _variability_: how can we add new behaviour without having to change many parts of the code at once.
+A constant challenge of software design is managing _variability_: how can we add new behaviour without having to change many parts of the code at once?
 We can think of variability as affecting two dimensions: over the lifetime of our software we change the set of data types in our system, and the set of operations we need to apply to those data types.
 Different language features, and different languages, provide more or less support for variation along each dimension.
 
@@ -16,21 +16,22 @@ Paradoxically, where we need variability of operations rather than data types, o
 
 Java doesn't have a mechanism to support variability when the set of operations changes more frequently than the set of data types.
 Design patterns that help us work around this limitation , such as Double Dispatch or Visitor, require boilerplate code and don't play well with Java's checked exceptions.
-As a last resort, Java programmers turn to run time type checks, using the `instanceof` and downcast operators, to run different code for different classes of object.
-This is risky. The compiler can type check our use of polymorphic methods, but cannot tell if our run time type checks cover all necessary cases, or if they cover _unnecessary_ cases.
+As a last resort, Java programmers turn to runtime type checks, using the `instanceof` and downcast operators, to run different code for different classes of object.
+This is risky.
+The compiler can type check our use of polymorphic methods, but cannot tell if our runtime type checks cover all necessary cases, or if they cover _unnecessary_ cases.
 When we change code, it is easy to introduce bugs or leave dead code in the codebase that is hard to recognise and remove.
 
 Kotlin classes, like Java classes, can have polymorphic methods and implement interfaces.
 However, Kotlin has another mechanism for organising classes and behaviour: _sealed classes_.
 A sealed class is an abstract class with a fixed set of subclasses, defined in the same source file.
 The compiler prevents you from extending the sealed class elsewhere.
-Thanks to this restriction, run-time type checks on sealed class hierarchies do not have the same drawbacks as run-time type checks in Java.
-The static type checker can guarantee that `when` expressions that perform run time type checks for a subtype of a sealed class cover all possible cases and only possible cases.
+Thanks to this restriction, runtime type checks on sealed class hierarchies do not have the same drawbacks as runtime type checks in Java.
+The static type checker can guarantee that `when` expressions that perform runtime type checks for a subtype of a sealed class cover all possible cases and only possible cases.
 It is much easier to write another function that is conditional on the concrete subclass of a sealed class than it is to add another subclass to every existing when expressions.
 
-Managing variability in a Kotlin codebase means recognising when to apply these two mechanisms: object-oriented polymorphism when the set of data types varies more frequently than the set of operations on those data types, and run time type checks of sealed class hierarchies when the set of operations varies more frequently than the set of data types they apply to.
+Managing variability in a Kotlin codebase means recognising when to apply these two mechanisms: object-oriented polymorphism when the set of data types varies more frequently than the set of operations on those data types, and runtime type checks of sealed class hierarchies when the set of operations varies more frequently than the set of data types they apply to.
 Unlike Haskell, Scala, Rust or Swift, Kotlin has no mechanism that lets us vary both types _and_ operations without modifying existing code.
-We have to choose which approach you'll use for a class based on which dimension, types or operations, we expect to vary most frequently as the program evolves.
+We have to choose which approach to use for a class based on the dimension, types or operations, we expect to vary most frequently as the program evolves.
 
 
 === Itinerary -- A Core Type in Our Application
@@ -99,7 +100,7 @@ We begin to realise that a polymorphic interface is the wrong mechanism to suppo
 Interfaces work well when we have a stable set of operations and a varying set of concrete types that those operations apply to.
 We have a stable set of ItineraryItem types, but a frequently changing set of operations.
 
-In Java, we might be tempted to implement those operations as static methods of a helper class that use run time type checks, with the `instanceof` operator and type casts, to switch on the concrete type of the `ItineraryItem`.
+In Java, we might be tempted to implement those operations as static methods of a helper class that use runtime type checks, with the `instanceof` operator and type casts, to switch on the concrete type of the `ItineraryItem`.
 For example:
 
 // begin-insert: tags/open-to-sealed.0:src/main/java/travelator/itinerary/ItineraryItems.java#type_switch
@@ -132,9 +133,9 @@ Those options are available in Kotlin too, and carry the same overheads and risk
 However, Kotlin provides an alternative that is safer than typechecks and downcasting and more convenient than Double Dispatch: _sealed classes_.
 
 A sealed class has a fixed set of subclasses, that must all be defined in the same source file.
-This allows the compiler to ensure that run time type checks are exhaustive.
+This allows the compiler to ensure that runtime type checks are exhaustive.
 Compilation fails if you do not have a branch for every subclass.
-If run time type checks are exhaustive, we do not have to write an `else` clause.
+If runtime type checks are exhaustive, we do not have to write an `else` clause.
 
 Let's convert `ItineraryItem` from an interface with polymorphic methods into a sealed class hierarchy and free-standing functions.
 
@@ -231,8 +232,8 @@ data class Accommodation(
 ----
 // end-insert
 
-<1> The IDE removed the timespan method from the `ItineraryItem` class
-<2> but it generated a `timespan` extension function that contains only a `TODO` that throws `UnsupportedOperationException`.
+<1> The IDE removed the timespan method from the `ItineraryItem` class ...
+<2> but it generated a `timespan` extension function that contains only a `TODO` that throws `UnsupportedOperationException` ...
 <3> and left `override` modifiers on the `timespan` methods in the concrete subclasses, which no longer have a method in the superclass to override.
 
 We'll have to fix it up by hand by removing the `override` modifiers, and implementing the body extension method as a when expression that switches on the type of `ItineraryItem` and calls the now monomorphic `timespan` method on each concrete class.
@@ -283,7 +284,7 @@ Intellij also highlights each monomorphic call to `timespan` to show that the co
 [WARNING]
 .When statements are not checked for exhaustiveness
 ====
-The compiler checks when expressions for exhaustiveness but does not check when _statements_.
+The compiler checks `when` expressions for exhaustiveness but does not check `when` _statements_.
 It considers a `when` to be a statement if the value of the entire `when` expression is never used.
 
 You can force the compiler to check for exhaustiveness by using the value of the when statement, even though it is of type `Unit`.
@@ -382,7 +383,7 @@ Doing so will likely introduce bugs in code that does not expect a value of type
 
 As our software evolves we have to add new data types and new operations to our system.
 In Kotlin, as in Java, object-oriented polymorphism lets us easily add new data types without changing the code of existing functions.
-We can also used sealed classes and safe run time type checks to easily add new functions over existing data types without changing the code that defines those types.
+We can also used sealed classes and safe runtime type checks to easily add new functions over existing data types without changing the code that defines those types.
 Managing variability in Kotlin means mastering when to apply these two mechanisms to our domain models.
 
 Which to choose depends on what we expect to vary most frequently as the code evolves: data types or operations.
