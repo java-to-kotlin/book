@@ -1,13 +1,14 @@
 [[bonus-error-handling]]
 == Bonus Error Handling
 
-In <<exceptions-to-errors>> we looked at error-handling strategies for Kotlin, and how to refactor from Java, exception-based techniques.
+In <<exceptions-to-errors>> we looked at error-handling strategies for Kotlin, and how to refactor from exceptions in Java to more functional techniques.
 Can we retrofit error-handling to our code after it has shipped?
 
 Someone new in marketing has taken to tweaking the spreadsheet that we last saw in <<bonus-refactoring>>, the one that generates the high-value customer scores.
 We don't know what they are doing in detail, but they keep on exporting files that break our parsing.
 It's getting a bit embarrassing on both sides of the relationship, so the cake has begun to dry up.
 Could there be any more incentive?
+
 Well yes, there could.
 We've also been asked to write an unattended job so that marketing can save their file onto a server, and 'we' will automatically write the summarised version.
 Without a person in the loop to interpret stack-traces, it looks like we're going to have to find a way to report errors properly.
@@ -64,8 +65,8 @@ private val CustomerData.marketingName: String
 ----
 // end-insert
 
-If we're to do a job of error handling, the first thing we have to do is to establish what might go wrong.
-As we discussed in <<exceptions-to-errors>>, in Kotlin we don't have checked exceptions to give us clue, but these were so badly used in Java that that isn't much of a difference between the languages.
+If we're to do a good job of error handling, the first thing we have to do is to establish what might go wrong.
+As we discussed in <<exceptions-to-errors>>, in Kotlin we don't have checked exceptions to give us clue, but these were so badly used in Java that in this respect there isn't much of a difference between the languages.
 Unless the code has been written to communicate the ways that it can fail, we are going to have to rely on examination, intuition, and experience to work it out.
 In this case, experience tells us that the failures we actually get are due to missing fields, so we can concentrate there, but we should still do due-diligence on all the code.
 Let's work our way up the functions from the bottom of the listing, looking for potential errors.
@@ -103,13 +104,13 @@ fun String.toCustomerData(): CustomerData =
 // end-insert
 
 OK, this is another partial function - almost no values of `String` will be suitable inputs.
-Luckily almost all the ones that we are getting in practice are, which is why error handling is only now becoming a priority.
+Luckily almost all the ones that we are getting in practice are OK, which is why error handling is only now becoming a priority.
 Starting from the top of the function, `String.split` may behave oddly if we pass it an empty delimiter, but we aren't.
 Then we may not have enough parts, so that `parts[n]` throws `IndexOutOfBoundsException`.
 Finally `parts[3]` may not represent an `Int`, or `parts[4]` may not represent a `Double`, both of which will throw `NumberFormatException`.
 
 Actually, is that it?
-Can constructing the `CustomerData` fail?
+Can calling the `CustomerData` constructor fail?
 The answer is no, but maybe it should, if, for example, `id` is an empty `String`.
 We'll come back to this.
 
@@ -118,7 +119,7 @@ At the moment, all the ways that it can fail result in an exception being thrown
 Which leads to two follow-on questions: should we abort?; and how can we improve the error message?
 
 As we discuss in <<exceptions-to-errors>>, your authors are generally not in favour of aborting with exceptions from low-level code.
-The lack of checked-exception in Kotlin (and their lack of use in Java) means that we aren't giving our callers a clue that we could fail, so that they have to do what we are currently doing - reason with every line of code in an implementation.
+The lack of checked-exception in Kotlin (and their lack of use in Java) means that we aren't giving our callers a clue that a function could fail, so that they have to do what we are currently doing - reason with every line of code in an implementation.
 And that implementation might change, silently invalidating our findings.
 
 The cheapest change to `toCustomerData()` would be to return `null` when we fail.
@@ -185,7 +186,7 @@ fun Sequence<String>.toHighValueCustomerReport(): Sequence<String> {
 ----
 // end-insert
 
-We don't have any tests to support this, and we really should write some, but for now we'll proceed without a safety net because this is a bit of a spike solution.
+We don't have any tests to support this, and we really should write some, but for now we'll proceed without a safety net because this is a bit of a exploratory spike solution.
 From here, we can use null to represent the other ways that we know `toCustomerData()` can fail:
 
 // begin-insert: tags/bonus-errors.3:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
@@ -362,7 +363,7 @@ data class SpendIsNotADoubleFailure(override val line: String) : ParseFailure(li
 ----
 // end-insert
 
-To be honest this is overkill in this situation, a single data class carrying the failing line and a string reason would do, but we are trying to exemplify excellent error engineering, so we'll stick with this.
+To be honest this is overkill in this situation (a single data class carrying the failing line and a string reason would do) but we are trying to exemplify excellent error engineering, so we'll stick with this.
 
 We can fix up the caller by invoking `onErrorLine` and then yielding `null` when we have an `Error` - this passes the current tests.
 
@@ -485,7 +486,7 @@ fun Sequence<String>.toHighValueCustomerReport(
 ----
 // end-insert
 
-We would like to say that there is a much nicer formulation of the `valuableCustomers` expression, but the truth is that everything else is a bit worse in your authors` eyes.
+We would like to be able to show you a nicer formulation of the `valuableCustomers` expression, but the truth is that everything else is a bit worse in your authors` eyes.
 If you do find a nice simple way then please let us know.
 
 Similarly, the early returns in `toCustomerData` look a bit ugly:
@@ -637,15 +638,15 @@ private fun List<ParseFailure>.writeTo(error: OutputStreamWriter) {
 
 That's probably good enough.
 Before we go though, we should think about IO errors.
-Since we introduced the `Sequences`, our report generation code does not have to worry about writing failing, as it is the calling (`main`) code's responsibility to iterate over the result and actually write.
-`main` in this case makes the reasonable assumption that `System.out` will always be there, but when we implement the unattended job we will have to deal with the possibility that the file or network socket may disappear even though it was open when we started.
+Since we introduced the ++Sequences++s, our report generation code does not have to worry about writing failing, as it is the calling (`main`) code's responsibility to iterate over the result and actually write.
+The `main` function in this case makes the reasonable assumption that `System.out` will always be there, but when we implement the unattended job we will have to deal with the possibility that the file or network socket may disappear even though it was open when we started.
 
-Reading is a different matter.
+There is a similar situation reading.
 We are now iterating over each `String` in a `Sequence`.
 In the test code these are in memory, but in production they are being fetched from a file (via `System.in`).
 So our `Sequence` operations are subject to failure with `IOExceptions` that the report generation is (pretending to be) blissfully unaware of.
 
-In fairness, there is little that it can or should do in this case.
+In fairness, there is little that it can or should do in these cases.
 There is no practical way of recovering from IO errors once you have started reading - aborting the whole operation is the sensible thing to do.
 Helpfully now the onus is entirely on the caller.
 It is the caller that is passing an IO-backed `Sequence` into `toHighValueCustomerReport`, so the caller should be aware that `toHighValueCustomerReport` may therefore fail with an `IOException`.
