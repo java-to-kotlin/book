@@ -290,22 +290,24 @@ We can then use it in `main`, to print errors to `System.err` and then abort.
 [source,kotlin]
 ----
 fun main() {
-    val reader = System.`in`.reader()
-    val writer = System.out.writer()
-    val error = System.err.writer()
-
-    val errorLines = mutableListOf<String>()
-    val reportLines = reader
-        .asLineSequence()
-        .toHighValueCustomerReport {
-            errorLines += it
+    System.`in`.reader().use { reader ->
+        System.out.writer().use { writer ->
+            val errorLines = mutableListOf<String>()
+            val reportLines = reader
+                .asLineSequence()
+                .toHighValueCustomerReport {
+                    errorLines += it
+                }
+            if (errorLines.isNotEmpty()) {
+                System.err.writer().use { error ->
+                    error.appendLine("Lines with errors")
+                    errorLines.asSequence().writeTo(error)
+                }
+                exitProcess(-1)
+            } else {
+                reportLines.writeTo(writer)
+            }
         }
-    if (errorLines.isNotEmpty()) {
-        error.appendLine("Lines with errors")
-        errorLines.asSequence().writeTo(error)
-        exitProcess(-1)
-    } else {
-        reportLines.writeTo(writer)
     }
 }
 ----
@@ -443,10 +445,12 @@ This lets `main` report the reason and the line:
 [source,kotlin]
 ----
 if (errorLines.isNotEmpty()) {
-    error.appendLine("Lines with errors")
-    errorLines.asSequence().map { parseFailure ->
-        "${parseFailure::class.simpleName} in ${parseFailure.line}"
-    }.writeTo(error)
+    System.err.writer().use { error ->
+        error.appendLine("Lines with errors")
+        errorLines.asSequence().map { parseFailure ->
+            "${parseFailure::class.simpleName} in ${parseFailure.line}"
+        }.writeTo(error)
+    }
     exitProcess(-1)
 } else {
     reportLines.writeTo(writer)

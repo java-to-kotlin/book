@@ -425,10 +425,12 @@ It started out as Java:
 public class HighValueCustomersMain {
 
     public static void main(String[] args) throws IOException {
-        HighValueCustomersReport.generate(
-            new InputStreamReader(System.in),
-            new OutputStreamWriter(System.out)
-        );
+        try (
+            var reader = new InputStreamReader(System.in);
+            var writer = new OutputStreamWriter(System.out)
+        ) {
+            HighValueCustomersReport.generate(reader, writer);
+        }
     }
 }
 ----
@@ -439,26 +441,36 @@ We have had two issues with errors, when the input file has been malformed, but 
 They give us cake in these cases, so we're hardly incentivized to do a better job of error handling for now.
 If we can fix the `OutOfMemoryError` quickly we think we saw some crumpets...
 
-At some we converted `main` to Kotlin:
+At some point we converted `main` to Kotlin:
 
-// begin-insert: tags/bonus.4:src/main/java/travelator/marketing/HighValueCustomersMain.kt
+// begin-insert: tags/bonus.0:src/main/java/travelator/marketing/HighValueCustomersMain.kt
 [source,kotlin]
 ----
 fun main() {
-    generate(System.out.writer(), System.`in`.reader().readLines())
+    InputStreamReader(System.`in`).use { reader ->
+        OutputStreamWriter(System.out).use { writer ->
+            generate(reader, writer)
+        }
+    }
 }
 ----
 // end-insert
 
 Then it was refactored with the change to the `generate` parameters:
 
-// begin-insert: tags/bonus.12:src/main/java/travelator/marketing/HighValueCustomersMain.kt
+// begin-insert: tags/bonus.9:src/main/java/travelator/marketing/HighValueCustomersMain.kt
 [source,kotlin]
 ----
 fun main() {
-    System.out.writer().append(
-        generate(System.`in`.reader().readLines()).joinToString("\n")
-    )
+    System.`in`.reader().use { reader ->
+        System.out.writer().use { writer ->
+            writer.append(
+                generate(
+                    reader.readLines()
+                ).joinToString("\n")
+            )
+        }
+    }
 }
 ----
 // end-insert
@@ -538,14 +550,21 @@ Interestingly though, `main` does not:
 [source,kotlin]
 ----
 fun main() {
-    System.out.writer().append(
-        generate(System.`in`.reader().readLines()).joinToString("\n")
-    )
+    System.`in`.reader().use { reader ->
+        System.out.writer().use { writer ->
+            writer.append(
+                generate(
+                    reader.readLines()
+                ).joinToString("\n")
+            )
+        }
+    }
 }
 ----
 // end-insert
 
-`main` needs to be recompiled now that it is receiving a `Stream` rather than a `List`, but its source doesn't need to be changed.
+`main` needs to be recompiled now that `generate` returns a `Sequence` rather than a `List`, but its source doesn't need to be changed.
+This is because there are extension functions `joinToString(...)` defined on both `Iterable` and `Sequence`.
 
 .Swapping Iterables and Sequences
 ****
@@ -564,10 +583,14 @@ To avoid that we need to get imperative again:
 [source,kotlin]
 ----
 fun main() {
-    val reader = System.`in`.reader()
-    val writer = System.out.writer()
-    generate(reader.readLines()).forEach { line ->
-        writer.appendLine(line)
+    System.`in`.reader().use { reader ->
+        System.out.writer().use { writer ->
+            generate(
+                reader.readLines()
+            ).forEach { line ->
+                writer.appendLine(line)
+            }
+        }
     }
 }
 ----
@@ -576,16 +599,21 @@ fun main() {
 The pedantic reader (don't worry, you're amongst friends) will have spotted that this behaviour is subtly different to the `joinToString("\n")` version.
 We're quietly confident that a trailing newline won't break anything, so we press on.
 
-We can alwayes pretend we aren't looping by hiding the iteration:
+We can always pretend we aren't looping by hiding the iteration:
 
 // begin-insert: tags/bonus.15:src/main/java/travelator/marketing/HighValueCustomersMain.kt
 [source,kotlin]
 ----
 fun main() {
-    val reader = System.`in`.reader()
-    val writer = System.out.writer()
-    writer.appendLines(generate(reader.readLines()))
+    System.`in`.reader().use { reader ->
+        System.out.writer().use { writer ->
+            writer.appendLines(
+                generate(reader.readLines())
+            )
+        }
+    }
 }
+
 
 fun Writer.appendLines(lines: Sequence<CharSequence>): Writer {
     return this.also {
@@ -753,9 +781,13 @@ Rather than `readLines()`:
 [source,kotlin]
 ----
 fun main() {
-    val reader = System.`in`.reader()
-    val writer = System.out.writer()
-    writer.appendLines(generate(reader.readLines()))
+    System.`in`.reader().use { reader ->
+        System.out.writer().use { writer ->
+            writer.appendLines(
+                generate(reader.readLines())
+            )
+        }
+    }
 }
 ----
 // end-insert
@@ -766,11 +798,13 @@ we use `buffered().lineSequece()`:
 [source,kotlin]
 ----
 fun main() {
-    val reader = System.`in`.reader()
-    val writer = System.out.writer()
-    writer.appendLines(
-        generate(reader.buffered().lineSequence())
-    )
+    System.`in`.reader().use { reader ->
+        System.out.writer().use { writer ->
+            writer.appendLines(
+                generate(reader.buffered().lineSequence())
+            )
+        }
+    }
 }
 ----
 // end-insert
@@ -783,12 +817,14 @@ How much nicer would `main` read with more extension functions?
 [source,kotlin]
 ----
 fun main() {
-    val reader = System.`in`.reader()
-    val writer = System.out.writer()
-    reader
-        .asLineSequence()
-        .toHighValueCustomerReport()
-        .writeTo(writer)
+    System.`in`.reader().use { reader ->
+        System.out.writer().use { writer ->
+            reader
+                .asLineSequence()
+                .toHighValueCustomerReport()
+                .writeTo(writer)
+        }
+    }
 }
 ----
 // end-insert
@@ -816,5 +852,3 @@ Before we go, we should note once more that while the original version of `gener
 Or at least, the new version doesn't worry about IO errors because they are hidden from it by the `Sequence` abstractions wrapping the `Reader` and `Writer`.
 That doesn't mean that they can't happen, just that `generate` isn't warned that they can.
 We'll take a break to see if marketing have any more batter-based rewards before addressing that topic in <<bonus-error-handling>>.
-
-
