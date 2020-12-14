@@ -211,7 +211,7 @@ private fun check(
 // end-insert
 
 This now shouts what the test was whispering all along.
-We were having to create a `StringReader` (now confusingly called `writer`) from a list of lines just in order to parse the lines back out in `generate`.
+We were having to create a `StringReader` (IntelliJ has very confusingly named it `writer` as part of the refactor) from a list of lines just in order to parse the lines back out in `generate`.
 Now the steps are in the same place in the test we can elide them to remove the `Reader`:
 
 // begin-insert: tags/bonus.5:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
@@ -351,6 +351,7 @@ private fun check(
 // end-insert
 
 This was, after all, what we were aiming for.
+Another way of looking at this is that our original `Writer` was an accumultating object, we have replaced it with a transformation as we saw in <<accumulating-objects-to-transformations>>.
 
 Let's take stock of our new `generate`:
 
@@ -700,7 +701,7 @@ The simplest fix is to resolve the `Sequence` with a `.toList()` call.
 ----
 // end-insert
 
-This will lead to our resolving the whole sequence (and hence ultimately reading the whole file) in that statement, but at least it will only try once, and the memory for each line can be discarded as soon as it is parsed.
+This will lead to our terminating the whole sequence (and hence ultimately reading the whole file) in that statement, but at least it will only try once, and the memory for each line can be discarded as soon as it is parsed.
 
 Now we can replay the "Introduce parameter" refactoring with the `lines.asSequence()` expression to convert `generate` to take `Sequence<String>`:
 
