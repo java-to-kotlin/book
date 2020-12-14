@@ -410,6 +410,9 @@ fun <T> T.printed(): T = this.also(::println)
 ----
 // end-insert
 
+(This definition, by the way, breaks our rule of not defining single-expression functions with side-effects - see <<multi-to-single-expression-functions>>.
+Maybe it's acceptable here?)
+
 We can use this when we want to debug the value of an expression in place.
 For example, remember this:
 
@@ -441,6 +444,19 @@ val marketingLength = jsonNode.toCustomer().printed().nameForMarketing().length
 // end-insert
 
 which is much less disruption, and easy to search for before we check in.
+
+Note that even if we had been able to add a method to `Any?`, there is no way for a method to say that it returns the same type as its receiver.
+Had we written:
+
+[source,kotlin]
+----
+class Any {
+    fun printed() = this.also(::println)
+}
+
+----
+
+the return type would have been `Any`, and so we could not then invoke `nameForMarketing()` etc on the result.
 
 We can also define extension functions for specialised generic types.
 
