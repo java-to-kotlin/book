@@ -552,6 +552,90 @@ fun String.toCustomerData(): Result<CustomerData, ParseFailure> =
 Now we could obviously simplify this by introducing more functions, and other result libraries would let us abuse coroutines to get the same effect as the previous early returns, but your authors are happy that the previous version was close to good enough.
 For now, we're going to try to wrap up this episode so that marketing can see for themselves what issues they have with their export.
 
+Returning to `main`:
+
+// begin-insert: tags/bonus-errors.6:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
+[source,kotlin]
+----
+fun main() {
+    System.`in`.reader().use { reader ->
+        System.out.writer().use { writer ->
+            val errorLines = mutableListOf<ParseFailure>()
+            val reportLines = reader
+                .asLineSequence()
+                .toHighValueCustomerReport {
+                    errorLines += it
+                }
+            if (errorLines.isNotEmpty()) {
+                System.err.writer().use { error ->
+                    error.appendLine("Lines with errors")
+                    errorLines.asSequence().map { parseFailure ->
+                        "${parseFailure::class.simpleName} in ${parseFailure.line}"
+                    }.writeTo(error)
+                }
+                exitProcess(-1)
+            } else {
+                reportLines.writeTo(writer)
+            }
+        }
+    }
+}
+----
+// end-insert
+
+Those three levels of nested `use` obfuscate the actual structure, and that `exitProcess` from deep in the bowels of the function is also a bit iffy.
+We can extract an extension function to print the errors too:
+
+// begin-insert: tags/bonus-errors.8:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
+[source,kotlin]
+----
+fun main() {
+    val statusCode = using(
+        System.`in`.reader(),
+        System.out.writer(),
+        System.err.writer()
+    ) { reader, writer, error ->
+        val errorLines = mutableListOf<ParseFailure>()
+        val reportLines = reader
+            .asLineSequence()
+            .toHighValueCustomerReport {
+                errorLines += it
+            }
+        if (errorLines.isEmpty()) {
+            reportLines.writeTo(writer)
+            0
+        } else {
+            errorLines.writeTo(error)
+            -1
+        }
+    }
+    exitProcess(statusCode)
+}
+
+inline fun <A : Closeable, B : Closeable, C : Closeable, R> using(
+    a: A,
+    b: B,
+    c: C,
+    block: (A, B, C) -> R
+): R =
+    a.use {
+        b.use {
+            c.use {
+                block(a, b, c)
+            }
+        }
+    }
+
+private fun List<ParseFailure>.writeTo(error: OutputStreamWriter) {
+    error.appendLine("Lines with errors")
+    asSequence().map { parseFailure ->
+        "${parseFailure::class.simpleName} in ${parseFailure.line}"
+    }.writeTo(error)
+}
+----
+// end-insert
+
+That's probably good enough.
 Before we go though, we should think about IO errors.
 Since we introduced the `Sequences`, our report generation code does not have to worry about writing failing, as it is the calling (`main`) code's responsibility to iterate over the result and actually write.
 `main` in this case makes the reasonable assumption that `System.out` will always be there, but when we implement the unattended job we will have to deal with the possibility that the file or network socket may disappear even though it was open when we started.
