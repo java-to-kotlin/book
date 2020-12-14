@@ -272,7 +272,7 @@ static Customer toCustomer(JsonNode node) {
 ----
 // end-insert
 
-or Duncan's preference:
+or Nat and Duncan's preference:
 
 // begin-insert: src/main/java/extensionFunctions/SomeJava.java#customerFrom
 [source,java]
@@ -283,7 +283,55 @@ static Customer customerFrom(JsonNode node) {
 ----
 // end-insert
 
-Calling these individually isn't too horrible:
+.Naming Conversions
+****
+A function converting a `JsonNode` to a `Customer` might be called `nodeToCustomer`, `createCustomer`, `toCustomer`, `customerFrom` or `customerFor`.
+Why should we pick `customerFrom`?
+
+Let's examine the alternatives where they are invoked:
+
+[source,java]
+----
+var customer = nodeToCustomer(node)
+----
+
+This is OK, but the repetition of `node` is irritating.
+
+[source,java]
+----
+var customer = createCustomer(node)
+----
+
+This is better, but doesn't hint at the relationship between `node` and `customer`.
+
+[source,java]
+----
+var customer = toCustomer(node)
+----
+
+This lets us know that `node` contains everything we need to create a `Customer`, but doesn't flow in English.
+
+[source,java]
+----
+var customer = customerFrom(node)
+----
+
+This flows, and hints that we are extracting the data for `customer` from `node`.
+
+[source,java]
+----
+var customer = customerFor(node)
+----
+
+This also flows, but suggests a different relationship than parsing.
+_For_ implies a lookup operation: `phoneNumberFor(customer)`, or composition: `wheelFor(bicycle)`.
+
+Do these distinctions actually matter?
+Mostly no, but `customerFrom(node)` may just reduce the cognitive burden enough compared to `createCustomer(node)` that the reader is able to understand what is happening in one pass rather than two, or not make an incorrect assumption that leads to an error.
+We can make small but significant improvements by looking at how our code reads in context.
+****
+
+Calling the conversions individually isn't too horrible:
 
 // begin-insert: src/main/java/extensionFunctions/SomeJava.java#calling
 [source,java]

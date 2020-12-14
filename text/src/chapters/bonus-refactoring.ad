@@ -1,12 +1,8 @@
 [[bonus-refactoring]]
 == Bonus Refactoring
 
-Your authors' first vision for this book was to introduce Kotlin by refactoring Java code.
-Each chapter would refactor some Java until we were completely finished with the conversion, and we would introduce differences and techniques along the way.
-In practice, it turned out to be very hard to create examples that brought things up in the right order, so we settled on a chapter per topic rather than a chapter per code sample.
-
-This has inevitably led to our ending chapters before the code is sufficiently Kotlin, because the techniques necessary to finish the job have not been introduced yet.
-This chapter is to finish the job that was started in <<functions-to-extension-functions>>, bringing concepts from <<exceptions-to-errors>>, <<actions-to-calculations>> and <<code-to-data>> to bear on the problem.
+In <<functions-to-extension-functions>>, we started with some Java code that produced a report for marketing.
+In this chapter we'll continue to refactor the resulting Kotlin, bringing concepts from <<exceptions-to-errors>>, <<actions-to-calculations>> and <<code-to-data>> to bear on the problem.
 
 === Starting Point
 
@@ -89,7 +85,7 @@ We didn't really look at the tests in <<functions-to-extension-functions>>, but 
 Look at that `check` function.
 It isn't strictly a calculation, but we can see that it is _trying_ to allow us to express the assertions as a comparison of `List<String>` to `List<String>`.
 It's having to work hard, because `generate` relies on the side effects of reading and writing from and to its parameters.
-In other words, we have a function that works by mutating both of its parameters - it is an action <<actions-to-calculations>>.
+In other words, we have a function that works by mutating both of its parameters - it is an action (see <<actions>>.
 
 If we stop for a moment and listen, we may hear the tests talking to us.
 They are saying, "Look, that report generation is fundamentally a calculation. It converts a `List<String>` to a `List<String>`. We know it does, because that's what we are checking."
@@ -103,7 +99,7 @@ Shall we refactor towards this goal?
 You're right, that was a rhetorical question.
 
 The refactoring that follows will be easier if the tests are in Kotlin.
-IntelliJ is quite good at refactoring mixed code, but it could be better.
+IntelliJ is getting every-better at refactoring mixed code, but when we wrote this it wasn't quite good enough.
 
 Here are the tests after conversion to Kotlin, and the application of some of the techniques in this book:
 
@@ -191,7 +187,7 @@ fun generate(writer: Writer, lines: List<String>) {
 ----
 // end-insert
 
-The parameters to `generate` are now in the wrong order (output then input), but we'll suspend our OCD, as we want to remove `writer` as well.
+The parameters to `generate` are now in the wrong order (output then input), but we'll let that go for now, as we want to remove `writer` as well.
 
 The refactoring has also moved the `readLines()` out into the callers - here is the result in test:
 
@@ -233,7 +229,8 @@ private fun check(
 ----
 // end-insert
 
-We are now we are reading from a `List`, let's go back and look at how to return a `List` rather than modifying the `Writer`.
+We are now reading from a `List`.
+Let's go back and look at how to return a `List` rather than modifying the `Writer`.
 Here is the code:
 
 // begin-insert: tags/bonus.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#writer
@@ -338,7 +335,7 @@ private fun check(
 ----
 // end-insert
 
-This is an application of the techniques in <<code-to-data>> - instead of writing code to perform an action, return the data required to perfom it and move the (in this case IO) towards the outer edges of the system.
+This is an application of the techniques in <<code-to-data>> - instead of writing code to perform an action, return the data required to perform it and move the (in this case IO) towards the outer edges of the system.
 As this is the test, we don't really want any IO at all, and can simplify everything to:
 
 // begin-insert: tags/bonus.10:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
@@ -492,7 +489,7 @@ fun generate(lines: List<String>): List<String> {
 
 Concentrating on the output for now, we can see that we are building a list of the lines of the output
  - each of those strings won't be sharing any memory with the data that we parsed from the input.
-This is then conbined into one large string in `main`, that again doesn't share any memory with the lines that created it.
+This is then combined into one large string in `main`, that again doesn't share any memory with the lines that created it.
 In these situations we want to defer the creation of the intermediates, and `Seqeuences` are designed for just that.
 As we'll see, they aren't a panacea, but here they will do nicely.
 
@@ -514,7 +511,8 @@ fun generate(lines: List<String>): Sequence<String> {
 ----
 // end-insert
 
-Now we will only be creating the output lines one at a time when the stream is iterated - each will be able to be freed quickly, if indeed they were ever allocated on the heap at all.
+Now we will only be creating the output lines one at a time when the stream is iterated.
+So each line can be disposed of quickly rather than hanging around until we have written the whole file.
 
 The tests have to change to realise the `Sequence`:
 
@@ -545,6 +543,8 @@ fun main() {
 }
 ----
 // end-insert
+
+`main` needs to be recompiled now that it is receiving a `Stream` rather than a `List`, but its source doesn't need to be changed.
 
 .Swapping Iterables and Sequences
 ****
@@ -811,7 +811,9 @@ fun Sequence<String>.toHighValueCustomerReport(): Sequence<String> {
 ----
 // end-insert
 
-Before we go, we should note once more that while the original version of `generate` had to worry about `IOExceptions`, the new version doesn't, but only because it doesn't know that the `Sequence` calls can throw, rather than that they can't.
-We'll take a break to see if marketing have any more batter-based rewards before addressing that topic.
+Before we go, we should note once more that while the original version of `generate` had to worry about `IOExceptions`, the new version doesn't.
+Or at least, the new version doesn't worry about IO errors because they are hidden from it by the `Sequence` abstractions wrapping the `Reader` and `Writer`.
+That doesn't mean that they can't happen, just that `generate` isn't warned that they can.
+We'll take a break to see if marketing have any more batter-based rewards before addressing that topic in <<bonus-error-handling>>.
 
 
