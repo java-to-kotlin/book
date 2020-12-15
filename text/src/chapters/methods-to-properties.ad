@@ -328,12 +328,223 @@ class PersonWithProperties(
 
 === Refactoring to Properties
 
+IntelliJ provides excellent refactoring support for converting between Kotlin methods and properties.
+This is on one hand simple, because both are simply method calls, and on the other complicated, because Java interop relies on naming conventions to identify accessors.
+Let's look at an example from Travelator.
 
+Some of our hardier clients like to camp, so we list camp sites in the application:
+
+// begin-insert: methods-to-properties.0:src/main/java/travelator/CampSite.java#excerpt
+[source,java]
+----
+public class CampSite {
+    private final String id;
+    private final String name;
+    private final Address address;
+    ...
+
+    public CampSite(
+        String id,
+        String name,
+        Address address
+        ...
+    ) {
+        this.id = id;
+        this.name = name;
+        this.address = address;
+        ...
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public Address getAddress() {
+        return address;
+    }
+
+    public String getCountryCode() {
+        return address.getCountryCode();
+    }
+
+    public String region() {
+        return address.getRegion();
+    }
+
+    ...
+}
+----
+// end-insert
+
+This is typical of a domain class that has grown over the years.
+It has lots of properties, some backed by fields like `id` and `name`, and some computed (for low values of compute) like `countryCode` and `region`.
+Someone eschewed bean conventions by naming the `region` accessor `region` rather than `getRegion`, but it is clear to us what they meant.
+Here's some code that uses the accessors:
+
+// begin-insert: methods-to-properties.0:src/main/java/travelator/CampSites.java#excerpt
+[source,java]
+----
+public static Set<CampSite> sitesInRegion(
+    Set<CampSite> sites,
+    String countryISO,
+    String region
+) {
+    return sites.stream()
+        .filter( campSite ->
+            campSite.getCountryCode().equals(countryISO) &&
+                campSite.region().equalsIgnoreCase(region)
+        )
+        .collect(toUnmodifiableSet());
+}
+----
+// end-insert
+
+Let's convert `Campsite` to Kotlin (and then make it a data class):
+
+// begin-insert: methods-to-properties.1:src/main/java/travelator/CampSite.kt#excerpt
+[source,kotlin]
+----
+data class CampSite(
+    val id: String,
+    val name: String,
+    val address: Address,
+    ...
+) {
+    val countryCode: String
+        get() = address.countryCode
+
+    fun region(): String {
+        return address.region
+    }
+
+    ...
+}
+----
+// end-insert
+
+Our field-backed properties have become constructor properties, and the computed `countryCode` a computed property.
+Because it didn't obey getter naming conventions though, IntelliJ has not realised that `region` is a property, and has simply converted the method.
+The net result is that client code doesn't need to change.
+If we want to correct the oversight, we can Alt-Enter on `region` and "Convert function to property", yielding:
+
+// begin-insert: methods-to-properties.2:src/main/java/travelator/CampSite.kt#excerpt
+[source,kotlin]
+----
+val region: String
+    get() {
+        return address.region
+    }
+----
+// end-insert
+
+As with most computed properties, this is better as a single expression (see <<multi-to-single-expression-functions>>):
+
+// begin-insert: methods-to-properties.3:src/main/java/travelator/CampSite.kt#excerpt
+[source,kotlin]
+----
+val region: String get() = address.region
+----
+// end-insert
+
+Changing the Kotlin `region` method to a property means that the accessor method will now be named `getRegion` - thankfully IntelliJ is smart enough to fix up our clients for us:
+
+// begin-insert: methods-to-properties.3:src/main/java/travelator/CampSites.java#excerpt
+[source,java]
+----
+public static Set<CampSite> sitesInRegion(
+    Set<CampSite> sites,
+    String countryISO,
+    String region
+) {
+    return sites.stream()
+        .filter( campSite ->
+            campSite.getCountryCode().equals(countryISO) &&
+                campSite.getRegion().equalsIgnoreCase(region) // <1>
+        )
+        .collect(toUnmodifiableSet());
+}
+----
+// end-insert
+
+<1> `campsite.region()` has been replaced by `campsite.getRegion()`.
+
+If we now convert `sitesInRegion` to Kotlin, using Static Methods to Top Level Functions (<<static-methods-to-top-level-functions>>),
+Streams to Sequences (<<streams-to-sequences>>), Multi to Single-Expression Functions (<<multi-to-single-expression-functions>>) and Functions to Extension Functions (<<functions-to-extension-functions>>), we have:
+
+// begin-insert: methods-to-properties.4:src/main/java/travelator/CampSites.kt
+[source,kotlin]
+----
+fun Iterable<CampSite>.sitesInRegion(
+    countryISO: String,
+    region: String
+): Set<CampSite> =
+    filter { site ->
+        site.countryCode == countryISO &&
+            site.region.equals(region, ignoreCase = true)
+    }.toSet()
+----
+// end-insert
+
+The getters are now hidden behind the property access syntax, `campsite.countryCode` etc.
+
+Before we finish, it's worth observing that `sitesInRegion` is a bit of an odd method.
+It is making up for a deficiency in our modelling, which is that regions are just `Strings` not entities.
+If we filter just on region name "Hampshire", we risk returning a set of sites some of which are in an English county and some on a Canadian island.
+Until we can fix that, what if we pull the filter predicate out into its own method?
+
+// begin-insert: methods-to-properties.5:src/main/java/travelator/CampSites.kt
+[source,kotlin]
+----
+fun Iterable<CampSite>.sitesInRegion(
+    countryISO: String,
+    region: String
+): Set<CampSite> =
+    filter { site ->
+        site.isIn(countryISO, region)
+    }.toSet()
+
+fun CampSite.isIn(countryISO: String, region: String) =
+    countryCode == countryISO &&
+        this.region.equals(region, ignoreCase = true)
+----
+// end-insert
+
+Armed with `Campsite.isIn(...)`, maybe `sitesInRegion` could be inlined into the places that call it, as the code is now really quite self-explanatory.
+This is an example of finding the fundamental operations that clients can build on, rather hiding them inside functions.
+Pulling on this thread, we might expand the functionality of `isIn` by making `region` optional:
+
+// begin-insert: methods-to-properties.6:src/main/java/travelator/CampSites.kt#excerpt
+[source,kotlin]
+----
+fun CampSite.isIn(countryISO: String, region: String? = null) =
+    if (region == null)
+        countryCode == countryISO
+    else
+        countryCode == countryISO &&
+            region.equals(this.region, ignoreCase = true)
+----
+// end-insert
+
+Nat prefers the same, but with an elvis operator:
+
+// begin-insert: methods-to-properties.7:src/main/java/travelator/CampSites.kt#excerpt
+[source,kotlin]
+----
+fun CampSite.isIn(countryISO: String, region: String? = null) =
+    countryCode == countryISO &&
+        region?.equals(this.region, ignoreCase = true) ?: true
+----
+// end-insert
+
+Such a fundamental operation might now be converted to a method on `Campsite`, or, even better, `Address`.
+This way the problem of regions not being entities is confined to the type closest to the problem, and fixing it there will have least effect on the rest of the codebase.
 
 === Conclusion
 
-Short answer:
-
-* when it's defined on a value
-* and depends only on the value
-* and is not expensive to compute
+Kotlin provides a convenient syntax for both field-backed and computed properties that allows us to express the difference between accessing a property and calling a function, even if they are the same message-passing mechanism under the hood.
+We should prefer a property to a method when it applies to a value type, depends only on the value, and is not expensive to compute.
+In these cases refactoring from a method to a property is simple and makes our code easier to understand.
