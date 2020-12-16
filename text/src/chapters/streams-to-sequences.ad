@@ -1,0 +1,65 @@
+[[streams-to-sequences]]
+== Streams to Sequences
+
+Java and Kotlin both allow us to transform and summarise collections.
+They have different design goals and implementations though.
+What does Kotlin use instead of streams, when should we convert, and how?
+
+Java 8 introduced streams in 2014, making good use of the new lambdas.
+Previously we might have written:
+
+// begin-insert: src/main/java/sequences/Sequences.java#loop
+[source,java]
+----
+public static double averageLengthOfNonBlanks(List<String> strings) {
+    var sum = 0;
+    for (var s : strings) {
+        if (!s.isBlank())
+            sum += s.length();
+    }
+    return sum / (double) strings.size();
+}
+----
+// end-insert
+
+Now we could filter, map and reduce:
+
+// begin-insert: src/main/java/sequences/Sequences.java#sequence
+[source,java]
+----
+public static double averageLengthOfNonBlanks(List<String> strings) {
+    return strings
+        .stream()
+        .filter(s -> !s.isBlank())
+        .mapToInt(String::length)
+        .sum()
+        / (double) strings.size();
+}
+----
+// end-insert
+
+If we are really in a hurry for those results we can even write:
+
+// begin-insert: src/main/java/sequences/Sequences.java#parallelSequence
+[source,java]
+----
+public static double averageLengthOfNonBlanks(List<String> strings) {
+    return strings
+        .parallelStream() // <1>
+        .filter(s -> !s.isBlank())
+        .mapToInt(String::length)
+        .sum()
+        / (double) strings.size();
+}
+----
+// end-insert
+
+<1> `parallelStream` will divide the work across multiple threads.
+
+We soon learned that streams are lazy: `strings.filter(...).mapToInt(...)` does nothing but set up a pipeline for some terminal operation (`sum()` in this case) to suck values out of.
+On the subject of sucking and performance, we also discovered that streams could be surprisingly slow for small collections.
+They are great for large-scale data crunching where we want to throw all available cores at a problem; not so great for summing the cost of 5 items in a shopping cart.
+
+=== Refactoring from Streams to Sequences
+
+=== Conclusion
