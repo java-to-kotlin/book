@@ -3,12 +3,12 @@ package properties;
 import java.time.LocalDate;
 
 /// begin: excerpt
-public class PersonWithAccessor {
+public class PersonWithAccessors {
     private final String givenName;
     private final String familyName;
     private final LocalDate dateOfBirth;
 
-    public PersonWithAccessor(
+    public PersonWithAccessors(
         String givenName,
         String familyName,
         LocalDate dateOfBirth

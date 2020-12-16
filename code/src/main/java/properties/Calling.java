@@ -6,7 +6,7 @@ public class Calling {
         return person.givenName;
     }
 
-    public static String callAccessor(PersonWithAccessor person) {
+    public static String callAccessor(PersonWithAccessors person) {
         return person.getGivenName();
     }
 

@@ -5,7 +5,7 @@ import java.time.Period
 
 /// begin: PwP
 /// begin: excerpt
-class PersonWithProperties(
+data class PersonWithProperties(
     val givenName: String,
     val familyName: String,
     val dateOfBirth: LocalDate
@@ -19,7 +19,7 @@ class PersonWithProperties(
 
 object DoB {
     /// begin: DoB
-    class PersonWithProperties(
+    data class PersonWithProperties(
         val givenName: String,
         val familyName: String,
         val dateOfBirth: LocalDate
@@ -29,9 +29,22 @@ object DoB {
     /// end: DoB
 }
 
+object Hash0 {
+    /// begin: hash0
+    data class PersonWithProperties(
+        val givenName: String,
+        val familyName: String,
+        val dateOfBirth: LocalDate
+    ) {
+        fun computeHash(): ByteArray =
+            someSlowHashOf(givenName, familyName, dateOfBirth.toString())
+    }
+    /// end: hash0
+}
+
 object Hash {
     /// begin: hash
-    class PersonWithProperties(
+    data class PersonWithProperties(
         val givenName: String,
         val familyName: String,
         val dateOfBirth: LocalDate
@@ -44,7 +57,7 @@ object Hash {
 
 object Hash2 {
     /// begin: hash2
-    class PersonWithProperties(
+    data class PersonWithProperties(
         val givenName: String,
         val familyName: String,
         val dateOfBirth: LocalDate
@@ -59,7 +72,7 @@ object Hash2 {
 
 object Hash3 {
     /// begin: hash3
-    class PersonWithProperties(
+    data class PersonWithProperties(
         val givenName: String,
         val familyName: String,
         val dateOfBirth: LocalDate

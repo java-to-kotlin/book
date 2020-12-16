@@ -23,7 +23,7 @@ RECORD PERSON (
 Things were different then, real programmers only had CAPITAL LETTERS, and gender was a boolean.
 
 We can also see by the `STRING(20)` that this record really cares about its layout in memory.
-That's because when we write an expression like
+That's because when we write an statement like
 
 [source,algol-w]
 ----
@@ -31,10 +31,11 @@ AGE(WILMA) := AGE(WILMA) + 1;
 ----
 
 the compiler is going to add the number of bytes taken by 20 characters to the place that it has stored `WILMA` in order to know where to find the bytes representing her age, and increment it.
-Records, also known as _structs_ in other languages, are a convenience for grouping together related data - there is no information hiding going on.
+Records, also known as _structs_ (for structures) in other languages, are a convenience for grouping together related data.
+There is no information hiding here, just composition.
 
 Most early object-oriented systems (C++ in particular) were based on this record mechanism.
-Instance variables were simply record fields, and member functions (aka methods) were record fields holding pointers to functions.
+Instance variables were simply record fields, and methods (aka member functions) were fields holding pointers to functions.
 Smalltalk was different.
 Smalltalk objects can have instance variables, but access to this state is by sending a message to the object asking it for the person.
 Messages not fields is the fundamental abstraction.
@@ -45,25 +46,22 @@ This allows us to treat classes as records, whilst allowing the runtime to enfor
 
 While direct access to fields was _permitted_, from the outset it was discouraged.
 If its clients access fields directly, then an implementation cannot change its internal representation without recompiling those clients.
-We also cannot maintain any invariant relationships between fields if clients can mutate them directly, and as we've seen in <<beans-to-values>>, in those days objects were all about mutation.
-Finally, direct field access is not polymorphic, so subclasses cannot change its implementation, and in those days objects were all about the subclassing too.
+We also cannot maintain any invariant relationships between fields if clients can mutate them directly, and as we've seen in Beans to Values (<<beans-to-values>>), in those days objects were all about mutation.
+Another reason for not accessing fields directly is that it is not polymorphic, so subclasses cannot change its implementation.
+In those days objects were all about the subclassing too.
 
-So instead of direct field access, we usually write _accessor_ methods - getters and (historically) setters.
-Getters almost always do nothing except return the value of a field, but they may instead compute a value from other fields.
+So instead of direct field access in Java, we usually write _accessor_ methods - getters and (historically) setters.
+Getters usually do nothing except return the value of a field, but they may instead compute a value from other fields.
 Setters may maintain invariants or fire events.
-Within a codebase that we own we need not default to using accessors, but as developers we ape the patterns we see in the standard APIs and libraries that we use.
-They by definition are catering to clients who don't own them, and so make more use of encapsulation then we have to locally.
-
-Where are we going with this?
-Well, sometimes data is just data.
-When it is, then records, or classes with public fields, are perfectly acceptable, especially when we have immutable values (which is to say, `final` fields of immutable types).
+Sometimes data is just data.
+When it is, then direct access to public fields, is perfectly acceptable, especially when we have immutable values (which is to say, `final` fields of immutable types).
 As models get more complicated, we will prefer a uniform way of accessing values from either a field or a calculation, or polymorphically.
 Then accessor methods come into their own.
 
 The Kotlin designers choose to take the decision away from us and only support accessor methods.
-The language doesn't support giving direct access to the fields of its classes.
-It will generate code to access to public fields of Java classes, but has no way of defining public fields itself.
-(A special annotation, `@JvmField` provides a back door if you really need it.)
+The language doesn't support giving direct access to the fields of its classes. (A special annotation, `@JvmField` provides a back door if you really need it.)
+Kotlin will generate code to access to public fields of Java classes, but does not define public fields itself.
+
 Instead, it allows us to generate both a private member-variable and an accessor in a single _property_ declaration.
 
 So in Java we can give access to a field directly:
@@ -91,15 +89,15 @@ public class PersonWithPublicFields {
 
 Alternatively, we can write our own accessor:
 
-// begin-insert: src/main/java/properties/PersonWithAccessor.java#excerpt
+// begin-insert: src/main/java/properties/PersonWithAccessors.java#excerpt
 [source,java]
 ----
-public class PersonWithAccessor {
+public class PersonWithAccessors {
     private final String givenName;
     private final String familyName;
     private final LocalDate dateOfBirth;
 
-    public PersonWithAccessor(
+    public PersonWithAccessors(
         String givenName,
         String familyName,
         LocalDate dateOfBirth
@@ -118,12 +116,12 @@ public class PersonWithAccessor {
 ----
 // end-insert
 
-In Kotlin, we cannot give access to the field directly:
+In Kotlin, we don't give access to the field directly:
 
 // begin-insert: src/main/java/properties/PersonWithProperties.kt#excerpt
 [source,kotlin]
 ----
-class PersonWithProperties(
+data class PersonWithProperties(
     val givenName: String,
     val familyName: String,
     val dateOfBirth: LocalDate
@@ -143,7 +141,7 @@ public static String accessField(PersonWithPublicFields person) {
     return person.givenName;
 }
 
-public static String callAccessor(PersonWithAccessor person) {
+public static String callAccessor(PersonWithAccessors person) {
     return person.getGivenName();
 }
 
@@ -161,7 +159,7 @@ In Kotlin, we can access visible fields directly, or call accessors as if they w
 fun accessField(person: PersonWithPublicFields): String =
     person.givenName
 
-fun callAccessor(person: PersonWithAccessor): String =
+fun callAccessor(person: PersonWithAccessors): String =
     person.givenName
 
 fun callKotlinAccessor(person: PersonWithProperties): String =
@@ -171,7 +169,7 @@ fun callKotlinAccessor(person: PersonWithProperties): String =
 
 Properties are a convenience backed by some compiler magic in Kotlin.
 They make it as simple to use fields and accessors as plain old fields in Java, and so we will naturally write code that can take advantage of the encapsulation provided by accessors.
-For example, we might find that we want to define a property in an interface, or compute a property that we used to store
+For example, we might find that we want to define a property in an interface, or compute a property that we used to store.
 
 Computed properties are those not backed by a field.
 If we have `givenName` and `familyName` backed by fields, there is no need to store `fullName`, we can compute it when we need it.
@@ -201,7 +199,7 @@ public class PersonWithPublicFields {
 ----
 // end-insert
 
-Where we use direct-field-access, there is now a difference between the stored and computed properties when we come to access them.
+Where we use direct-field-access in Java, there is now a difference between the way that we access the stored and computed properties.
 
 // begin-insert: src/main/java/properties/CallingComputed.java#excerpt
 [source,java]
@@ -231,7 +229,7 @@ In Kotlin, we define computed properties outside the constructor:
 // begin-insert: src/main/java/properties/PersonWithProperties.kt#PwP
 [source,kotlin]
 ----
-class PersonWithProperties(
+data class PersonWithProperties(
     val givenName: String,
     val familyName: String,
     val dateOfBirth: LocalDate
@@ -252,7 +250,8 @@ The rule of thumb is to use a property when it depends only on other properties 
 This applies to `fullName`, so that is a good computed property.
 What about age?
 
-We can compute age easily (ignoring timezones) from the `dateOfBirth` property, so we might be tempted in Java to write `fred.getAge()`. But this is suspect.
+We can compute age easily (ignoring timezones) from the `dateOfBirth` property, so we might be tempted in Java to write `fred.getAge()`.
+But this doesn't depend only on other properties, it also depends on when we call it.
 It may be very unlikely, but the fact that the expression `fred.age == fred.age` may return `false` is the clue.
 
 Age is an action (<<actions>>) - its result depends on when it is called.
@@ -262,7 +261,7 @@ Hence `age()` should be a function, not a property:
 // begin-insert: src/main/java/properties/PersonWithProperties.kt#DoB
 [source,kotlin]
 ----
-class PersonWithProperties(
+data class PersonWithProperties(
     val givenName: String,
     val familyName: String,
     val dateOfBirth: LocalDate
@@ -273,13 +272,29 @@ class PersonWithProperties(
 // end-insert
 
 What about a cryptographic hash of all the other properties of the object?
-This is a calculation, but if it is expensive to compute, it should not be a property.
-We can fudge this by calculating it up-front and storing it in a field:
+This is a calculation, but if it is expensive to compute, it should be a method not be a property.
+We might even want to hint at the cost of the method in its name:
+
+// begin-insert: src/main/java/properties/PersonWithProperties.kt#hash0
+[source,kotlin]
+----
+data class PersonWithProperties(
+    val givenName: String,
+    val familyName: String,
+    val dateOfBirth: LocalDate
+) {
+    fun computeHash(): ByteArray =
+        someSlowHashOf(givenName, familyName, dateOfBirth.toString())
+}
+----
+// end-insert
+
+We could make a property by calculating it up-front and storing it in a field:
 
 // begin-insert: src/main/java/properties/PersonWithProperties.kt#hash
 [source,kotlin]
 ----
-class PersonWithProperties(
+data class PersonWithProperties(
     val givenName: String,
     val familyName: String,
     val dateOfBirth: LocalDate
@@ -296,7 +311,7 @@ We might split the difference with a lazy property:
 // begin-insert: src/main/java/properties/PersonWithProperties.kt#hash2
 [source,kotlin]
 ----
-class PersonWithProperties(
+data class PersonWithProperties(
     val givenName: String,
     val familyName: String,
     val dateOfBirth: LocalDate
@@ -308,12 +323,12 @@ class PersonWithProperties(
 ----
 // end-insert
 
-In a limited scope this would be fine, but if the class was more widely used, we should revert to hinting at the potential first-invocation performance issue by hiding the computed property behind a function.
+In a limited scope this would be fine, but if the class was more widely used, we should at least hint at the potential first-invocation performance issue by hiding the computed property behind a function.
 
 // begin-insert: src/main/java/properties/PersonWithProperties.kt#hash3
 [source,kotlin]
 ----
-class PersonWithProperties(
+data class PersonWithProperties(
     val givenName: String,
     val familyName: String,
     val dateOfBirth: LocalDate
@@ -325,6 +340,10 @@ class PersonWithProperties(
 }
 ----
 // end-insert
+
+In this particular case, perhaps an extension property would be as appropriate.
+As we discuss in <<functions-to-extension-functions>>, extension properties can only be computed rather than backed by a field.
+As a result, the guidance in this chapter for deciding whether functionality should be implemented as a method or a property, also applies to extension functions versus extension properties.
 
 === Refactoring to Properties
 
@@ -363,10 +382,6 @@ public class CampSite {
         return name;
     }
 
-    public Address getAddress() {
-        return address;
-    }
-
     public String getCountryCode() {
         return address.getCountryCode();
     }
@@ -383,6 +398,7 @@ public class CampSite {
 This is typical of a domain class that has grown over the years.
 It has lots of properties, some backed by fields like `id` and `name`, and some computed (for low values of compute) like `countryCode` and `region`.
 Someone eschewed bean conventions by naming the `region` accessor `region` rather than `getRegion`, but it is clear to us what they meant.
+
 Here's some code that uses the accessors:
 
 // begin-insert: methods-to-properties.0:src/main/java/travelator/CampSites.java#excerpt
@@ -472,7 +488,7 @@ public static Set<CampSite> sitesInRegion(
 
 <1> `campsite.region()` has been replaced by `campsite.getRegion()`.
 
-If we now convert `sitesInRegion` to Kotlin, using Static Methods to Top Level Functions (<<static-methods-to-top-level-functions>>),
+If we now convert `sitesInRegion` to Kotlin, using the techniques from Static Methods to Top Level Functions (<<static-methods-to-top-level-functions>>),
 Streams to Sequences (<<streams-to-sequences>>), Multi to Single-Expression Functions (<<multi-to-single-expression-functions>>) and Functions to Extension Functions (<<functions-to-extension-functions>>), we have:
 
 // begin-insert: methods-to-properties.4:src/main/java/travelator/CampSites.kt
@@ -513,8 +529,8 @@ fun CampSite.isIn(countryISO: String, region: String) =
 ----
 // end-insert
 
-Armed with `Campsite.isIn(...)`, maybe `sitesInRegion` could be inlined into the places that call it, as the code is now really quite self-explanatory.
-This is an example of finding the fundamental operations that clients can build on, rather hiding them inside functions.
+Now we have `Campsite.isIn(...)`, maybe `sitesInRegion` could be inlined into the places that call it, as the code is now really quite self-explanatory.
+We prefer to find and publish the fundamental operations that clients can build on, rather hiding them inside functions.
 Pulling on this thread, we might expand the functionality of `isIn` by making `region` optional:
 
 // begin-insert: methods-to-properties.6:src/main/java/travelator/CampSites.kt#excerpt
@@ -541,7 +557,7 @@ fun CampSite.isIn(countryISO: String, region: String? = null) =
 // end-insert
 
 Such a fundamental operation might now be converted to a method on `Campsite`, or, even better, `Address`.
-This way the problem of regions not being entities is confined to the type closest to the problem, and fixing it there will have least effect on the rest of the codebase.
+This way the fundamental problem of regions not being entities is confined to the type closest to the problem, and fixing it there will have the least effect on the rest of the codebase.
 
 === Conclusion
 
