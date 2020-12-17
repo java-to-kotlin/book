@@ -564,17 +564,7 @@ fun main() {
 // end-insert
 
 `main` needs to be recompiled now that `generate` returns a `Sequence` rather than a `List`, but its source doesn't need to be changed.
-This is because there are extension functions `joinToString(...)` defined on both `Iterable` and `Sequence`.
-
-.Swapping Iterables and Sequences
-****
-Both the `Iterable` and `Sequence` interfaces have only a single method: `public operator fun iterator(): Iterator<T>`.
-They both also have extension functions for `map`, `filter`, `reduce` etc which take the same parameters.
-But they are different types because their semantics are very different.
-The operations on `Iterable` are eager, whilst those on `Sequence` are lazy - so we cannot swap one for the other with impunity (as we will see later in this chapter).
-
-Nevertheless, the fact that they have such similar APIs means that in situations like this, we can often change very little (source) code when we swap between them.
-****
+This is because there are extension functions `joinToString(...)` defined on both `Iterable` and `Sequence`, and the `Sequence` version is a terminal operation.
 
 It might not _need_ to change, but unless `main` _does_ change, we are still creating one large string of all the output.
 To avoid that we need to get imperative again:

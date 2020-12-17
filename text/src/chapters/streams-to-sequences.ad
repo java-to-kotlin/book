@@ -3,15 +3,17 @@
 
 Java and Kotlin both allow us to transform and summarise collections.
 They have different design goals and implementations though.
-What does Kotlin use instead of streams, when should we convert, and how?
+What does Kotlin use instead of Java streams, when should we convert, and how?
+
+=== Java Streams
 
 Java 8 introduced streams in 2014, making good use of the new lambdas.
 Previously we might have written:
 
-// begin-insert: src/main/java/sequences/Sequences.java#loop
+// begin-insert: src/main/java/sequences/Streams.java#loop
 [source,java]
 ----
-public static double averageLengthOfNonBlanks(List<String> strings) {
+public static double averageNonBlankLength(List<String> strings) {
     var sum = 0;
     for (var s : strings) {
         if (!s.isBlank())
@@ -22,12 +24,12 @@ public static double averageLengthOfNonBlanks(List<String> strings) {
 ----
 // end-insert
 
-Now we could filter, map and reduce:
+Now we could `filter`, `map` and `reduce` by converting the `List` to a `Stream`.
 
-// begin-insert: src/main/java/sequences/Sequences.java#sequence
+// begin-insert: src/main/java/sequences/Streams.java#stream
 [source,java]
 ----
-public static double averageLengthOfNonBlanks(List<String> strings) {
+public static double averageNonBlankLength(List<String> strings) {
     return strings
         .stream()
         .filter(s -> !s.isBlank())
@@ -40,10 +42,10 @@ public static double averageLengthOfNonBlanks(List<String> strings) {
 
 If we are really in a hurry for those results we can even write:
 
-// begin-insert: src/main/java/sequences/Sequences.java#parallelSequence
+// begin-insert: src/main/java/sequences/Streams.java#parallelStream
 [source,java]
 ----
-public static double averageLengthOfNonBlanks(List<String> strings) {
+public static double averageNonBlankLength(List<String> strings) {
     return strings
         .parallelStream() // <1>
         .filter(s -> !s.isBlank())
@@ -56,10 +58,125 @@ public static double averageLengthOfNonBlanks(List<String> strings) {
 
 <1> `parallelStream` will divide the work across multiple threads.
 
-We soon learned that streams are lazy: `strings.filter(...).mapToInt(...)` does nothing but set up a pipeline for some terminal operation (`sum()` in this case) to suck values out of.
+We soon learned that ++Stream++s are lazy: `strings.filter(...).mapToInt(...)` does nothing but set up a pipeline for some terminal operation (`sum()` in this case) to suck values out of.
 On the subject of sucking and performance, we also discovered that streams could be surprisingly slow for small collections.
 They are great for large-scale data crunching where we want to throw all available cores at a problem; not so great for summing the cost of 5 items in a shopping cart.
 
+=== Kotlin Iterables
+
+Instead of defining a new interface to host collections operations, Kotlin provides extension functions on `Iterable`.
+The simplest Kotlin expression of the same algorithm is:
+
+// begin-insert: src/main/java/sequences/sequences.kt#lists
+[source,kotlin]
+----
+fun averageNonBlankLength(strings: List<String>): Double =
+    (strings
+        .filter { it.isNotBlank() }
+        .map(String::length)
+        .sum()
+        / strings.size.toDouble())
+----
+// end-insert
+
+Here `filter` is an extension function on `Iterable`.
+Unlike the `Stream.filter` though, which returns another `Stream`, the Kotlin `filter` returns a `List`.
+As does `map`, so the net result is that this single expression creates two additional lists in memory.
+The first is a `List` of the non-blank strings, the second is a `List` of the lengths of those strings.
+When (if) we care about performance, this can be a problem, because both of those lists will take time to populate and memory to support.
+The `List` of lengths is a particular issue, because the integers will have had to be boxed (wrapped in an `Integer` object) to fit in the list.
+The Java streams example used `mapToInt(String::length)` to avoid this problem.
+`IntStream` (and `LongStream` and `DoubleStream`, but curiously not `BooleanStream` or `CharStream`) were created to prevent streams having to boxing and unbox, but you have to remember to use them, and `IntStream` is not a `Stream<E>`.
+
+Anyway, should we care about performance?
+Mostly no - the Kotlin will be fast enough _unless_ we have large collections; the opposite of streams, which are only fast enough _if_ we have large collections.
+When we do have large collections, we can switch over to sequences.
+
+=== Kotlin Sequences
+
+The Kotlin `Sequence` abstraction offers the same lazy evaluation as Java streams.
+`map` on a `Sequence` returns another `Sequence`: the operations in a filter chain are only performed when some terminal operation requires their evaluation.
+`Iterable.asSequence()` converts a collection to a `Sequence`, after that the API is suspiciously familiar:
+
+// begin-insert: src/main/java/sequences/sequences.kt#sequences
+[source,kotlin]
+----
+fun averageNonBlankLength(strings: List<String>): Double =
+    (strings
+        .asSequence()
+        .filter { it.isNotBlank() }
+        .map(String::length)
+        .sum()
+        / strings.size.toDouble())
+----
+// end-insert
+
+The familiarity is suspicious because all those operations (`filter`, `map`, `sum`) are now extensions not on `Iterable` but `Sequence`, and they don't return a `List`, they return another `Sequence`.
+Except for `sum`, which can't even pretend to do its job without reading all the data, and so is a terminal operation.
+
+.Swapping Iterables and Sequences
+****
+`Iterable<T>` and `Sequence<T>` have the same single method signature: `public operator fun iterator(): Iterator<T>`
+They both also have extension functions for `map`, `filter`, `reduce` etc which take the same parameters.
+But they are not the same type.
+They are different types because their semantics are very different.
+The operations on `Iterable` are eager, whilst those on `Sequence` are lazy - so we cannot swap one for the other with impunity (as we will see later in this chapter).
+
+Nevertheless, the fact that they have such similar APIs means that in situations like this, we can often change very little (source) code when we swap between them.
+****
+
+This sequence version won't pay the price of creating intermediate collections, but it will still box the lengths, albeit one at a time rather than creating a whole list of them.
+In many cases the API designers will have provided a clever solution to remove boxing: in this case it is `sumBy`:
+
+// begin-insert: src/main/java/sequences/sequences.kt#sumBy
+[source,kotlin]
+----
+fun averageNonBlankLength(strings: List<String>): Double =
+    (strings
+        .asSequence()
+        .filter { it.isNotBlank() }
+        .sumBy(String::length)
+        / strings.size.toDouble())
+----
+// end-insert
+
+`sumBy` avoids the boxing by taking a function that returns an `int`.
+IntelliJ is getting increasingly good at spotting when pipeline stages can be merged like this, although it failed to spot this one.
+There are also times when it will suggest converting an `Iterable` chain to a `Sequence` chain, although the heuristics that it uses seem to vary over Kotlin plugin releases.
+
+=== Choosing between Streams, Iterables and Sequences
+
+If you already have code using Java streams, it will continue to run just fine on the JVM, even when converted to Kotlin.
+It will even look a little nicer, as Kotlin will move the lambda outside the method, and allow the use of `it`.
+
+// begin-insert: src/main/java/sequences/sequences.kt#streams
+[source,kotlin]
+----
+fun averageNonBlankLength(strings: List<String>): Double =
+    (strings
+        .stream()
+        .filter { it.isNotBlank() }
+        .mapToInt(String::length)
+        .sum()
+        / strings.size.toDouble())
+----
+// end-insert
+
+If your code is working on large collections, and in particular using `parallelStream()`, then the default should be to leave it using ++Stream++s, as these are well optimised by HotSpot.
+The Kotlin standard library even provides extensions `Stream<T>.asSequence()` and `Sequence<T>.asStream()` to swap horses.
+For smaller collections, or when writing from scratch in Kotlin, `Iterable` pipelines are simple, generally quick, and easy to reason with.
+Your authors will often convert ++Stream++s to ++Iterables++ in order to take advantage of the far richer API that Kotlin provides.
+If ++Iterable++s prove too slow (or sometimes too greedy for memory) with large collections, then we can convert to ++Sequence++s.
+If that still isn't enough, we can move on (hopefully not back) to ++Stream++s, and maybe even take advantage of parallelism.
+
+=== The Problem of State
+
+So far we have only looked at implementing a calculation using ++Stream++s, ++Iterable++s and ++Sequence++s.
+Our choice of implementation has not leaked out of the single function, so we can choose whichever suits.
+
+
 === Refactoring from Streams to Sequences
+
+Something about test cases, in particular for empty collections.
 
 === Conclusion
