@@ -1,16 +1,19 @@
 package collections
 
-import junit.framework.ComparisonFailure
-import junit.framework.TestCase
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.lang.ClassCastException
 
-class ListInteropTest : TestCase() {
+class ListInteropTest {
+    @Test
     fun testJavaCodeCanRemoveElementFromKotlin_Unmodifiable_List() {
         val l = listOf(1,2,3,4).toList()
         SomeJavaCode.removeElement(l, 1)
         assertEquals(listOf(1,3,4), l)
     }
 
+    @Test
     fun testJavaCodeCanRemoveElementFromKotlin_Unmodifiable_Iterator() {
         val l = listOf(1,2,3,4).toList()
         val i = l.iterator()
@@ -19,12 +22,14 @@ class ListInteropTest : TestCase() {
         assertEquals(listOf(2,3,4), l)
     }
 
+    @Test
     fun testJavaCodeCanSetElementOfListArrayWrapper() {
         val l = listOf(1,2,3,4)
         SomeJavaCode.setElement(l, 1, 99)
         assertEquals(listOf(1, 99, 3, 4), l)
     }
 
+    @Test
     fun testKotlinCanAcceptJavaListAsImmutableList() {
         /// begin: immutable
         val aList: List<String> = SomeJavaCode.mutableListOfStrings("0", "1")
@@ -38,6 +43,7 @@ class ListInteropTest : TestCase() {
         assertEquals(listOf("0", "1"), aList)
     }
 
+    @Test
     fun testKotlinCanAcceptJavaListAsMutableList() {
         /// begin: mutable
         val aMutableList: MutableList<String> = SomeJavaCode.mutableListOfStrings("0", "1")
@@ -46,6 +52,7 @@ class ListInteropTest : TestCase() {
         /// end: mutable
     }
 
+    @Test
     fun testKotlinCanCastAwayJavaImmutabilty() {
         /// begin: cast
         val aList: List<String> = SomeJavaCode.mutableListOfStrings("0", "1")
@@ -55,17 +62,18 @@ class ListInteropTest : TestCase() {
         /// end: cast
     }
 
+    @Test
     fun testKotlinLiteralsCanBeDowncastButCannotBeResizedAtRuntime() {
-        try {
+        assertThrows<UnsupportedOperationException> {
             /// begin: kotlinCastFail
             val aList: List<String> = listOf("0", "1")
             val aMutableList: MutableList<String> = aList as MutableList<String>
             aMutableList.removeAt(1) // throws UnsupportedOperationException
             /// end: kotlinCastFail
-            fail()
-        } catch (x: UnsupportedOperationException) {}
+        }
     }
 
+    @Test
     fun testKotlinLiteralsCanBeEditedInPlaceAtRuntime() {
         val aList: List<String> = listOf("0", "1")
         val aMutableList: MutableList<String> = aList as MutableList<String>
@@ -73,6 +81,7 @@ class ListInteropTest : TestCase() {
         assertEquals(listOf("0", "banana"), aMutableList)
     }
 
+    @Test
     fun testKotlinHOFResultsCanBeModified() {
         /// begin: kotlinHOF
         val aList: List<String> = listOf("0", "1").map { it}
@@ -82,16 +91,17 @@ class ListInteropTest : TestCase() {
         /// end: kotlinHOF
     }
 
+    @Test
     fun testCannotDowncastWillyNilly() {
-        try {
+        assertThrows<ClassCastException> {
             /// begin: downCastSupported
             val aList: List<String> = MyList("0", "1")
             val aMutableList: MutableList<String> = aList as MutableList<String> // throws ClassCastException
             /// end: downCastSupported
-            fail()
-        } catch (x: ClassCastException) {}
+        }
     }
 
+    @Test
     fun testJavaCanAcceptMutableList() {
         /// begin: javaAcceptMutableList
         val aMutableList: MutableList<String> = mutableListOf("0", "1")
@@ -99,6 +109,7 @@ class ListInteropTest : TestCase() {
         /// end: javaAcceptMutableList
     }
 
+    @Test
     fun testJavaCanAcceptImmutableList() {
         /// begin: javaAcceptList
         val aList: List<String> = listOf("0", "1")
@@ -106,6 +117,7 @@ class ListInteropTest : TestCase() {
         /// end: javaAcceptList
     }
 
+    @Test
     fun testJustAReadOnlyView() {
         /// begin: upCast
         val aMutableList = mutableListOf("0", "1")
@@ -117,13 +129,11 @@ class ListInteropTest : TestCase() {
         assertEquals(holdsState.first, holdsState.strings.first())
         /// end: passAsList
 
-        try {
+        assertThrows<AssertionError> {
             /// begin: mutate
             aMutableList[0] = "banana"
             assertEquals(holdsState.first, holdsState.strings.first()) // Expected "0", actual "banana"
             /// end: mutate
-        } catch (expected: ComparisonFailure) {
-
         }
     }
 }

@@ -1,13 +1,17 @@
 package grain.java2;
 
-import junit.framework.TestCase;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class TheGrainOfJavaTest extends TestCase {
+
+public class TheGrainOfJavaTest{
+
+    @Test
     public void testMap() {
         List words = Arrays.asList("a", "b", "c");
 
@@ -24,6 +28,7 @@ public class TheGrainOfJavaTest extends TestCase {
         assertEquals(expected, upperCaseWords);
     }
 
+    @Test
     public void testMutateList() {
         List words = Arrays.asList("a", "b", "c");
 
@@ -40,6 +45,7 @@ public class TheGrainOfJavaTest extends TestCase {
     }
 
 
+    @Test
     public void testReduce() {
         List counts = Arrays.asList(new Integer(1), new Integer(20), new Integer(12));
 
@@ -57,6 +63,7 @@ public class TheGrainOfJavaTest extends TestCase {
         assertEquals(33, sum);
     }
 
+    @Test
     public void testReduceByIteration() {
         List counts = Arrays.asList(new Integer(1), new Integer(20), new Integer(12));
 

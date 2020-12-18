@@ -1,14 +1,16 @@
 package grain.java8;
 
-import junit.framework.TestCase;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.List;
 
 import static java.util.stream.Collectors.toList;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 
-public class TheGrainOfJavaTest extends TestCase {
+public class TheGrainOfJavaTest{
+    @Test
     public void testMap() {
         List<String> words = Arrays.asList("a", "b", "c");
 
@@ -19,6 +21,7 @@ public class TheGrainOfJavaTest extends TestCase {
         assertEquals(Arrays.asList("A", "B", "C"), upperCaseWords);
     }
 
+    @Test
     public void testReduce() {
         List<Integer> counts = Arrays.asList(1, 20, 12);
 

@@ -1,11 +1,14 @@
 package grain.java1;
 
-import junit.framework.TestCase;
+import org.junit.jupiter.api.Test;
 
 import java.util.Vector;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class TheGrainOfJavaTest extends TestCase {
+
+public class TheGrainOfJavaTest {
+    @Test
     public void testMap() {
         Vector words = new Vector();
         words.add("a");
@@ -24,6 +27,7 @@ public class TheGrainOfJavaTest extends TestCase {
         assertEquals(expected, upperCaseWords);
     }
 
+    @Test
     public void testMutateList() {
         Vector words = new Vector();
         words.add("a");
@@ -46,6 +50,7 @@ public class TheGrainOfJavaTest extends TestCase {
     }
 
 
+    @Test
     public void testReduce() {
         Vector counts = new Vector();
         counts.add(new Integer(1));
@@ -60,6 +65,7 @@ public class TheGrainOfJavaTest extends TestCase {
         assertEquals(33, sum);
     }
 
+    @Test
     public void testReduceByIteration() {
         Vector counts = new Vector();
         counts.add(new Integer(1));

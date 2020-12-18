@@ -13,21 +13,30 @@ dependencies {
     implementation "com.fasterxml.jackson.core:jackson-databind:2.10.3"
     implementation "com.natpryce:result4k:2.0.0"
 
-    testImplementation "junit:junit:3.8.2"
+    testImplementation "org.junit.jupiter:junit-jupiter-api:5.4.2"
+    testImplementation "org.junit.jupiter:junit-jupiter-params:5.4.2"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.5.2"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher:1.4.2"
 }
 
-compileKotlin {
-    kotlinOptions.jvmTarget = "1.8"
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
     kotlinOptions {
-        freeCompilerArgs = ["-XXLanguage:+InlineClasses"]
+        jvmTarget = "11"
+        javaParameters = true
+        freeCompilerArgs = ["-Xjvm-default=all"]
     }
-}
-
-compileTestKotlin {
-    kotlinOptions.jvmTarget = "1.8"
 }
 
 java {
     sourceCompatibility = JavaVersion.VERSION_11
     targetCompatibility = JavaVersion.VERSION_11
+}
+
+test {
+    useJUnitPlatform {
+        includeEngines "junit-jupiter"
+    }
+    testLogging {
+        events "skipped", "failed"
+    }
 }
