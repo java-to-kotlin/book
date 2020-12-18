@@ -217,7 +217,7 @@ var reordered = sorted(items, byPriceLowToHigh());
 ----
 // end-insert
 
-We can't _just_ move the methods out of the scope of the object, but we _can_ move them if we tell the Kotlin compiler that we would like it to host the top-level functions in a class called `Suffering`.
+We can't _just_ move the methods out of the scope of the object, but we _can_ move them if we tell the Kotlin compiler that we would like it to host the top-level functions in a class called `Shortlists`.
 That's the job of the `file:JvmName` annotation we mentioned earlier.
 However, There's no nice automated refactoring here.
 We have to manually add the annotation at the top of the file, and remove the `object` scope and `@JvmStatic` annotations to get:
@@ -255,8 +255,8 @@ fun byRelevance() =
 // end-insert
 
 This keeps our Java happy, but irritatingly breaks Kotlin code that was calling the methods.
-This was importing the methods as, for example `import travelator.Suffering.longestJourneys`, but Kotlin can't see top-level functions that way, even though that is the JVM class that is hosting them.
-Ho hum, the fix is to manually change to `import travelator.longestJourneys`, or even remove the import altogether if the calling code is in the same package.
+This was importing the methods as, for example `import travelator.Shortlists.sorted`, but Kotlin can't see top-level functions that way, even though they are hosted in a JVM class called `Shortlists`.
+Ho hum, the fix is to manually change to `import travelator.sorted`, or even remove the import altogether if the calling code is in the same package.
 Easy enough if the change affects a few classes, but if the change is wide-ranging, we should -- and can -- make better use of our IDE's refactoring tools.
 
 Let's revert and take another run at it.
