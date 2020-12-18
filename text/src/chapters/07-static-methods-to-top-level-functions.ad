@@ -499,42 +499,41 @@ fun byRelevance() =
 Nothing refers to our object declaration any more.
 We can safely delete it.
 (Even when I'm sure there are no references, I like to use the "Safe Delete" refactoring for peace of mind).
-That leaves us with only the top-level functions we saw earlier:
+That leaves us with only the top-level functions we saw earlier.
+We can tidy them up a bit more by using the Kotlin standard library instead of Java Streams.
+This leaves us with:
 
-// begin-insert: tags/static-to-object-to-functions.11:src/main/java/travelator/Shortlists.kt
+// begin-insert: tags/static-to-object-to-functions.12:src/main/java/travelator/Shortlists.kt
 [source,kotlin]
 ----
 @file:JvmName("Shortlists")
 
-
 fun <T> shortlistOf(items: Collection<T>) =
-    java.util.List.copyOf(items)
+    items.toList()
 
 fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>) =
-    shortlist.stream().sorted(ordering).collect(toUnmodifiableList())
+    shortlist.sortedWith(ordering)
 
 fun <T> removeItemAt(shortlist: List<T>, index: Int) =
-    Stream.concat(
-        shortlist.stream().limit(index.toLong()),
-        shortlist.stream().skip((index + 1).toLong())
-    ).collect(toUnmodifiableList())
+    shortlist.take(index) + shortlist.drop(index+1)
 
 fun byRating() =
-    comparingDouble(HasRating::rating).reversed()
+    compareByDescending(HasRating::rating)
 
 fun byPriceLowToHigh() =
-    comparing(HasPrice::price)
+    compareBy(HasPrice::price)
 
 fun <T> byValue() where T : HasPrice, T : HasRating =
-    comparingDouble { t: T -> t.rating / t.price }.reversed()
+    compareByDescending { t: T -> t.rating / t.price }
 
 fun byRelevance() =
-    comparingDouble(HasRelevance::relevance).reversed()
+    compareByDescending(HasRelevance::relevance)
 ----
 // end-insert
 
-Now we have top-level functions that we can call from Java and Kotlin.
-The `file:JvmName` annotation is harmless, but if we want to remove it we can update our Java classes to call `SufferingKt.sufferScoreFor`.
+That's a good place to leave this code.
+We now have top-level functions that we can call from Java and Kotlin.
+The `file:JvmName` annotation is harmless, but if we want to remove it we can update our Java classes to refer to `ShortlistsKt` instead of `Shortlists`.
 That's also the easiest technique if you're writing new Java code that needs to reference top-level Kotlin functions that you either can't, or can't be bothered, to add the annotation to.
 
 [[moving-top-level-functions]]
@@ -553,11 +552,11 @@ None of our tests or example code will have had to change to warn us about the b
 
 === Conclusion
 
-// TODO: nat to write more conclusion
-
 Static functions are the bread and butter of our programs.
 In Java these have to be static methods on a class, but in Kotlin we can and should default to defining them as top-level functions.
-Converting Java to Kotlin will instead create `object` declarations, but these are easily converted.
+Converting a Java class of static methods to Kotlin will, however, create an `object` declaration.
+This can be converted to top level functions by a sequence of safe refactoring steps that does not affect the code that uses the object and minimises manual editing.
 
-You may have noticed that we glossed over whether the function `fun List<Journey>.longestJourneys(limit)` is a top-level function, or an extension function.
-As we can define extension functions in other scopes, let's call it a top-level extension function. See <<functions-to-extension-functions>> for more discussion.
+Some of the top-level functions we ended up with are good candidates to refactor to _extension functions_.
+Extension functions can make our Kotlin code more concise, and are easier to discover with autocomplete.
+We discuss extension functions in more detail in <<functions-to-extension-functions>>.
