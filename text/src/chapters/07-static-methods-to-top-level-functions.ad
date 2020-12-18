@@ -145,7 +145,7 @@ public class Shortlists {
 
 Converting this to Kotlin we get:
 
-// begin-insert: tags/static-to-object-to-functions.5:src/main/java/travelator/Shortlists.kt
+// begin-insert: tags/static-to-object-to-functions.5:src/main/java/travelator/Shortlists.kt#functions
 [source,kotlin]
 ----
 object Shortlists {
@@ -183,10 +183,7 @@ object Shortlists {
         return comparingDouble { t: T -> t.rating / t.price }.reversed()
     }
 
-    @JvmStatic
-    fun byRelevance(): Comparator<HasRelevance> {
-        return comparingDouble(HasRelevance::relevance).reversed()
-    }
+    ... and other comparators
 }
 ----
 // end-insert
@@ -270,7 +267,7 @@ So we'll name them after the method but prefixed with an underscore, and name th
 Extracting all the methods to top level functions leaves the code looking like this:
 
 // TODO mark up the code to show only one or two methods and extracted functions
-// begin-insert: tags/static-to-object-to-functions.6:src/main/java/travelator/Shortlists.kt
+// begin-insert: tags/static-to-object-to-functions.6:src/main/java/travelator/Shortlists.kt#functions
 [source,kotlin]
 ----
 object Shortlists {
@@ -284,30 +281,7 @@ object Shortlists {
         return _sorted(shortlist, ordering)
     }
 
-    @JvmStatic
-    fun <T> removeItemAt(shortlist: List<T>, index: Int): List<T> {
-        return _removeItemAt(shortlist, index)
-    }
-
-    @JvmStatic
-    fun byRating(): Comparator<HasRating> {
-        return _byRating()
-    }
-
-    @JvmStatic
-    fun byPriceLowToHigh(): Comparator<HasPrice> {
-        return _byPriceLowToHigh()
-    }
-
-    @JvmStatic
-    fun <T> byValue(): Comparator<T> where T : HasPrice, T : HasRating {
-        return _byValue<T>()
-    }
-
-    @JvmStatic
-    fun byRelevance(): Comparator<HasRelevance> {
-        return _byRelevance()
-    }
+    ... etc.
 }
 
 private fun <T> _shortlistOf(items: Collection<T>) =
@@ -316,29 +290,13 @@ private fun <T> _shortlistOf(items: Collection<T>) =
 private fun <T> _sorted(shortlist: List<T>, ordering: Comparator<in T>) =
     shortlist.stream().sorted(ordering).collect(toUnmodifiableList())
 
-private fun <T> _removeItemAt(shortlist: List<T>, index: Int) =
-    Stream.concat(
-        shortlist.stream().limit(index.toLong()),
-        shortlist.stream().skip((index + 1).toLong())
-    ).collect(toUnmodifiableList())
-
-private fun _byRating() =
-    comparingDouble(HasRating::rating).reversed()
-
-private fun _byPriceLowToHigh() =
-    comparing(HasPrice::price)
-
-private fun <T> _byValue() where T : HasPrice, T : HasRating =
-    comparingDouble { t: T -> t.rating / t.price }.reversed()
-
-private fun _byRelevance() =
-    comparingDouble(HasRelevance::relevance).reversed()
+... etc.
 ----
 // end-insert
 
 We now make the functions public, so that they can be called by code outside this file.
 
-// begin-insert: tags/static-to-object-to-functions.7:src/main/java/travelator/Shortlists.kt
+// begin-insert: tags/static-to-object-to-functions.7:src/main/java/travelator/Shortlists.kt#functions
 [source,kotlin]
 ----
 object Shortlists {
@@ -352,30 +310,7 @@ object Shortlists {
         return _sorted(shortlist, ordering)
     }
 
-    @JvmStatic
-    fun <T> removeItemAt(shortlist: List<T>, index: Int): List<T> {
-        return _removeItemAt(shortlist, index)
-    }
-
-    @JvmStatic
-    fun byRating(): Comparator<HasRating> {
-        return _byRating()
-    }
-
-    @JvmStatic
-    fun byPriceLowToHigh(): Comparator<HasPrice> {
-        return _byPriceLowToHigh()
-    }
-
-    @JvmStatic
-    fun <T> byValue(): Comparator<T> where T : HasPrice, T : HasRating {
-        return _byValue<T>()
-    }
-
-    @JvmStatic
-    fun byRelevance(): Comparator<HasRelevance> {
-        return _byRelevance()
-    }
+    ... etc.
 }
 
 fun <T> _shortlistOf(items: Collection<T>) =
@@ -384,23 +319,7 @@ fun <T> _shortlistOf(items: Collection<T>) =
 fun <T> _sorted(shortlist: List<T>, ordering: Comparator<in T>) =
     shortlist.stream().sorted(ordering).collect(toUnmodifiableList())
 
-fun <T> _removeItemAt(shortlist: List<T>, index: Int) =
-    Stream.concat(
-        shortlist.stream().limit(index.toLong()),
-        shortlist.stream().skip((index + 1).toLong())
-    ).collect(toUnmodifiableList())
-
-fun _byRating() =
-    comparingDouble(HasRating::rating).reversed()
-
-fun _byPriceLowToHigh() =
-    comparing(HasPrice::price)
-
-fun <T> _byValue() where T : HasPrice, T : HasRating =
-    comparingDouble { t: T -> t.rating / t.price }.reversed()
-
-fun _byRelevance() =
-    comparingDouble(HasRelevance::relevance).reversed()
+... etc.
 ----
 // end-insert
 
