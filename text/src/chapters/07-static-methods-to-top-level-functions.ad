@@ -102,63 +102,92 @@ While we prefer to use top-level declarations where possible when writing Kotlin
 It converts our Java statics into object methods.
 Let's see how to refactor from Java, through object declarations, to top-level functions.
 
-In <<java-to-kotlin-collections>> we saw a typical collection of static functions acting on collections.
+In <<java-to-kotlin-collections>> we saw how the grain of Java nudges us to write classes that hold static functions to act on collections.
+We have similar code in other parts of the application.
 
-// begin-insert: tags/java-to-kotlin-collections.7:src/main/java/travelator/Suffering.java
+// begin-insert: tags/static-to-object-to-functions.0:src/main/java/travelator/Shortlists.java#functions
 [source,java]
 ----
-public class Suffering {
-
-    public static int sufferScoreFor(List<Journey> route) {
-        return sufferScore(
-            longestJourneysIn(route, 3),
-            getDepartsFrom(route));
+public class Shortlists {
+    public static <T> List<T> shortlistOf(Collection<T> items) {
+        return List.copyOf(items);
     }
 
-    static List<Journey> longestJourneysIn(List<Journey> journeys, int limit) {
-        var actualLimit = Math.min(journeys.size(), limit);
-        return sorted(journeys, comparing(Journey::getDuration).reversed())
-            .subList(0, actualLimit);
+    public static <T> List<T> sorted(List<T> shortlist, Comparator<? super T> ordering) {
+        return shortlist.stream().sorted(ordering).collect(toUnmodifiableList());
     }
 
-    public static List<List<Journey>> routesToShowFor(String itineraryId) {
-        return bearable(routesFor(itineraryId));
+    public static <T> List<T> removeItemAt(List<T> shortlist, int index) {
+        return Stream.concat(
+            shortlist.stream().limit(index),
+            shortlist.stream().skip(index + 1)
+        ).collect(toUnmodifiableList());
     }
 
-    private static List<List<Journey>> bearable(List<List<Journey>> routes) {
-        return routes.stream()
-            .filter(route -> sufferScoreFor(route) <= 10)
-            .collect(toUnmodifiableList());
+    public static Comparator<HasRating> byRating() {
+        return comparingDouble(HasRating::getRating).reversed();
     }
+
+    public static Comparator<HasPrice> byPriceLowToHigh() {
+        return comparing(HasPrice::getPrice);
+    }
+
+    public static <T extends HasPrice & HasRating> Comparator<T> byValue() {
+        return comparingDouble((T t) -> t.getRating() / t.getPrice()).reversed();
+    }
+
+    ... and other comparators
 }
 ----
 // end-insert
 
-Converting this to Kotlin we ended up with:
+Converting this to Kotlin we get:
 
-// begin-insert: tags/static-methods-to-top-level-functions.0:src/main/java/travelator/Suffering.kt
+// begin-insert: tags/static-to-object-to-functions.5:src/main/java/travelator/Shortlists.kt
 [source,kotlin]
 ----
-object Suffering {
+/**
+ * Functions for working with immutable shortlists for comparison shopping.
+ */
+object Shortlists {
     @JvmStatic
-    fun sufferScoreFor(route: List<Journey>): Int {
-        return sufferScore(
-            route.longestJourneys(3),
-            Routes.getDepartsFrom(route)
-        )
+    fun <T> shortlistOf(items: Collection<T>): List<T> {
+        return java.util.List.copyOf(items)
     }
 
     @JvmStatic
-    fun List<Journey>.longestJourneys(limit: Int): List<Journey> =
-        sortedByDescending { it.duration }.take(limit)
-
-    @JvmStatic
-    fun routesToShowFor(itineraryId: String): List<List<Journey>> {
-        return bearable(routesFor(itineraryId))
+    fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>): List<T> {
+        return shortlist.stream().sorted(ordering)
+            .collect(toUnmodifiableList())
     }
 
-    private fun bearable(routes: List<List<Journey>>): List<List<Journey>> = routes
-        .filter { sufferScoreFor(it) <= 10 }
+    @JvmStatic
+    fun <T> removeItemAt(shortlist: List<T>, index: Int): List<T> {
+        return Stream.concat(
+            shortlist.stream().limit(index.toLong()),
+            shortlist.stream().skip((index + 1).toLong())
+        ).collect(toUnmodifiableList())
+    }
+
+    @JvmStatic
+    fun byRating(): Comparator<HasRating> {
+        return comparingDouble(HasRating::rating).reversed()
+    }
+
+    @JvmStatic
+    fun byPriceLowToHigh(): Comparator<HasPrice> {
+        return comparing(HasPrice::price)
+    }
+
+    @JvmStatic
+    fun <T> byValue(): Comparator<T> where T : HasPrice, T : HasRating {
+        return comparingDouble { t: T -> t.rating / t.price }.reversed()
+    }
+
+    @JvmStatic
+    fun byRelevance(): Comparator<HasRelevance> {
+        return comparingDouble(HasRelevance::relevance).reversed()
+    }
 }
 ----
 // end-insert
@@ -169,60 +198,340 @@ That's because the Java in this case had no non-static methods, so they don't ha
 Had the conversion instead produced a class with a companion object, that would have been a sign that this is a less suitable candidate for conversion to top-level functions.
 
 We can't just move the functions out of the scope of the object, because they are called from Java, and Java doesn't understand top-level Kotlin functions.
-At the moment, due to the `@JvmStatic` annotations, the Java code is seeing them as static methods on a `Suffering` class.
-Here for example is some rendering code.
+At the moment, due to the `@JvmStatic` annotations, the Java code is seeing them as static methods on a `Shortlists` class.
+For example:
 
-// begin-insert: tags/static-methods-to-top-level-functions.0:src/main/java/travelator/UI.java#tableData
+// begin-insert: tags/static-to-object-to-functions.5:src/test/java/travelator/ShortlistsTest.java#example_usage
 [source,java]
 ----
-public static List<RouteRow> tableData(List<List<Journey>> routes) {
-    return routes.stream().map( (route) ->
-        new RouteRow(route, Suffering.sufferScoreFor(route)) // <1>
-    ).collect(toList());
-}
+var reordered = Shortlists.sorted(items, Shortlists.byValue());
 ----
 // end-insert
 
-<1> Call to static method `Suffering.sufferScoreFor`.
+The methods of the `Shortlists` class are usually imported statically by the code that uses them, and are named to be read better that way:
 
-// TODO: nat to add walk through of the refactoring steps from prefix-to-infix-syntax to do this without breaking existing code
+// begin-insert: tags/static-to-object-to-functions.5:src/test/java/travelator/ShortlistsTest.java#example_usage_imported
+[source,java]
+----
+var reordered = sorted(items, byPriceLowToHigh());
+----
+// end-insert
 
 We can't _just_ move the methods out of the scope of the object, but we _can_ move them if we tell the Kotlin compiler that we would like it to host the top-level functions in a class called `Suffering`.
 That's the job of the `file:JvmName` annotation we mentioned earlier.
-There's no nice automated refactoring here.
+However, There's no nice automated refactoring here.
 We have to manually add the annotation at the top of the file, and remove the `object` scope and `@JvmStatic` annotations to get:
 
-// begin-insert: tags/static-methods-to-top-level-functions.1:src/main/java/travelator/Suffering.kt#foo
+// begin-insert: tags/static-to-object-to-functions.11:src/main/java/travelator/Shortlists.kt
 [source,kotlin]
 ----
-@file:JvmName("Suffering")
-package travelator
+@file:JvmName("Shortlists")
 
-import travelator.Other.routesFor
-import travelator.Other.sufferScore
 
-fun sufferScoreFor(route: List<Journey>): Int {
-    return sufferScore(
-        route.longestJourneys(3),
-        Routes.getDepartsFrom(route)
-    )
-}
+fun <T> shortlistOf(items: Collection<T>) =
+    java.util.List.copyOf(items)
 
-fun List<Journey>.longestJourneys(limit: Int): List<Journey> =
-    sortedByDescending { it.duration }.take(limit)
+fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>) =
+    shortlist.stream().sorted(ordering).collect(toUnmodifiableList())
 
-fun routesToShowFor(itineraryId: String): List<List<Journey>> {
-    return bearable(routesFor(itineraryId))
-}
+fun <T> removeItemAt(shortlist: List<T>, index: Int) =
+    Stream.concat(
+        shortlist.stream().limit(index.toLong()),
+        shortlist.stream().skip((index + 1).toLong())
+    ).collect(toUnmodifiableList())
 
-private fun bearable(routes: List<List<Journey>>): List<List<Journey>> = routes
-    .filter { sufferScoreFor(it) <= 10 }
+fun byRating() =
+    comparingDouble(HasRating::rating).reversed()
+
+fun byPriceLowToHigh() =
+    comparing(HasPrice::price)
+
+fun <T> byValue() where T : HasPrice, T : HasRating =
+    comparingDouble { t: T -> t.rating / t.price }.reversed()
+
+fun byRelevance() =
+    comparingDouble(HasRelevance::relevance).reversed()
 ----
 // end-insert
 
 This keeps our Java happy, but irritatingly breaks Kotlin code that was calling the methods.
-This was importing the methods as, for example `import travelator.Suffering.longestJourneys`, but Kotlin can't see top-level functions that way, even though that is the class hosting them.
-Ho hum, the fix is as easy as changing to `import travelator.longestJourneys`, or even removing the import altogether if the calling code is in the same package.
+This was importing the methods as, for example `import travelator.Suffering.longestJourneys`, but Kotlin can't see top-level functions that way, even though that is the JVM class that is hosting them.
+Ho hum, the fix is to manually change to `import travelator.longestJourneys`, or even remove the import altogether if the calling code is in the same package.
+Easy enough if the change affects a few classes, but if the change is wide-ranging, we should -- and can -- make better use of our IDE's refactoring tools.
+
+Let's revert and take another run at it.
+
+=== Take 2
+
+This time, we will _extract_ the bodies of the object methods to top-level functions in the same source file, using the "Extract/Introduce > Function to Scope" item on the "Refactor" menu.
+
+To avoid name clash, we have to -- temporarily -- give the functions a different name to the methods they were extracted from.
+So we'll name them after the method but prefixed with an underscore, and name them back when we can remove the object declaration.
+
+Extracting all the methods to top level functions leaves the code looking like this:
+
+// TODO mark up the code to show only one or two methods and extracted functions
+// begin-insert: tags/static-to-object-to-functions.6:src/main/java/travelator/Shortlists.kt
+[source,kotlin]
+----
+/**
+ * Functions for working with immutable shortlists for comparison shopping.
+ */
+object Shortlists {
+    @JvmStatic
+    fun <T> shortlistOf(items: Collection<T>): List<T> {
+        return _shortlistOf(items)
+    }
+
+    @JvmStatic
+    fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>): List<T> {
+        return _sorted(shortlist, ordering)
+    }
+
+    @JvmStatic
+    fun <T> removeItemAt(shortlist: List<T>, index: Int): List<T> {
+        return _removeItemAt(shortlist, index)
+    }
+
+    @JvmStatic
+    fun byRating(): Comparator<HasRating> {
+        return _byRating()
+    }
+
+    @JvmStatic
+    fun byPriceLowToHigh(): Comparator<HasPrice> {
+        return _byPriceLowToHigh()
+    }
+
+    @JvmStatic
+    fun <T> byValue(): Comparator<T> where T : HasPrice, T : HasRating {
+        return _byValue<T>()
+    }
+
+    @JvmStatic
+    fun byRelevance(): Comparator<HasRelevance> {
+        return _byRelevance()
+    }
+}
+
+private fun <T> _shortlistOf(items: Collection<T>) =
+    java.util.List.copyOf(items)
+
+private fun <T> _sorted(shortlist: List<T>, ordering: Comparator<in T>) =
+    shortlist.stream().sorted(ordering).collect(toUnmodifiableList())
+
+private fun <T> _removeItemAt(shortlist: List<T>, index: Int) =
+    Stream.concat(
+        shortlist.stream().limit(index.toLong()),
+        shortlist.stream().skip((index + 1).toLong())
+    ).collect(toUnmodifiableList())
+
+private fun _byRating() =
+    comparingDouble(HasRating::rating).reversed()
+
+private fun _byPriceLowToHigh() =
+    comparing(HasPrice::price)
+
+private fun <T> _byValue() where T : HasPrice, T : HasRating =
+    comparingDouble { t: T -> t.rating / t.price }.reversed()
+
+private fun _byRelevance() =
+    comparingDouble(HasRelevance::relevance).reversed()
+----
+// end-insert
+
+We now make the functions public, so that they can be called by code outside this file.
+
+// begin-insert: tags/static-to-object-to-functions.7:src/main/java/travelator/Shortlists.kt
+[source,kotlin]
+----
+/**
+ * Functions for working with immutable shortlists for comparison shopping.
+ */
+object Shortlists {
+    @JvmStatic
+    fun <T> shortlistOf(items: Collection<T>): List<T> {
+        return _shortlistOf(items)
+    }
+
+    @JvmStatic
+    fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>): List<T> {
+        return _sorted(shortlist, ordering)
+    }
+
+    @JvmStatic
+    fun <T> removeItemAt(shortlist: List<T>, index: Int): List<T> {
+        return _removeItemAt(shortlist, index)
+    }
+
+    @JvmStatic
+    fun byRating(): Comparator<HasRating> {
+        return _byRating()
+    }
+
+    @JvmStatic
+    fun byPriceLowToHigh(): Comparator<HasPrice> {
+        return _byPriceLowToHigh()
+    }
+
+    @JvmStatic
+    fun <T> byValue(): Comparator<T> where T : HasPrice, T : HasRating {
+        return _byValue<T>()
+    }
+
+    @JvmStatic
+    fun byRelevance(): Comparator<HasRelevance> {
+        return _byRelevance()
+    }
+}
+
+fun <T> _shortlistOf(items: Collection<T>) =
+    java.util.List.copyOf(items)
+
+fun <T> _sorted(shortlist: List<T>, ordering: Comparator<in T>) =
+    shortlist.stream().sorted(ordering).collect(toUnmodifiableList())
+
+fun <T> _removeItemAt(shortlist: List<T>, index: Int) =
+    Stream.concat(
+        shortlist.stream().limit(index.toLong()),
+        shortlist.stream().skip((index + 1).toLong())
+    ).collect(toUnmodifiableList())
+
+fun _byRating() =
+    comparingDouble(HasRating::rating).reversed()
+
+fun _byPriceLowToHigh() =
+    comparing(HasPrice::price)
+
+fun <T> _byValue() where T : HasPrice, T : HasRating =
+    comparingDouble { t: T -> t.rating / t.price }.reversed()
+
+fun _byRelevance() =
+    comparingDouble(HasRelevance::relevance).reversed()
+----
+// end-insert
+
+To make our Kotlin code call the top-level functions instead of the object, we apply the "Inline Function" refactoring to all the object methods, choosing the option "Inline all references and keep the function".
+
+If a method is called from Java, IntelliJ will show a dialog telling us that it "Cannot inline reference from Kotlin to Java" and asking if we want to continue.
+Yes we do.
+We _want_ to leave the Java code unchanged, and will make it call the top-level functions with the `@file:JvmName` annotation.
+
+Now we can rename the top-level functions to remove the leading underscores.
+As we do so, IntelliJ changes the bodies of the object methods to refer to the functions by fully qualified name, to ensure there is no name clash.
+(At the time of writing, IntelliJ only does this when we rename the extracted functions, but not when we extract them.)
+
+We can now add the `@file:JvmName` annotation to make the Java code call the top level functions with only two manual edits in the `Shortlists.kt` file, and no other code changes.
+We add the annotation at the top of the file, and insert an underscore at the start of the object's name -- by editing the text, _not_ with a Rename refactoring -- so that the JVM class name `Shortlists` is used by the file of top level functions instead of the object declaration.
+
+// begin-insert: tags/static-to-object-to-functions.10:src/main/java/travelator/Shortlists.kt
+[source,kotlin]
+----
+@file:JvmName("Shortlists")
+
+
+/**
+ * Functions for working with immutable shortlists for comparison shopping.
+ */
+object _Shortlists {
+    @JvmStatic
+    fun <T> shortlistOf(items: Collection<T>): List<T> {
+        return travelator.shortlistOf(items)
+    }
+
+    @JvmStatic
+    fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>): List<T> {
+        return travelator.sorted(shortlist, ordering)
+    }
+
+    @JvmStatic
+    fun <T> removeItemAt(shortlist: List<T>, index: Int): List<T> {
+        return travelator.removeItemAt(shortlist, index)
+    }
+
+    @JvmStatic
+    fun byRating(): Comparator<HasRating> {
+        return travelator.byRating()
+    }
+
+    @JvmStatic
+    fun byPriceLowToHigh(): Comparator<HasPrice> {
+        return travelator.byPriceLowToHigh()
+    }
+
+    @JvmStatic
+    fun <T> byValue(): Comparator<T> where T : HasPrice, T : HasRating {
+        return travelator.byValue<T>()
+    }
+
+    @JvmStatic
+    fun byRelevance(): Comparator<HasRelevance> {
+        return travelator.byRelevance()
+    }
+}
+
+fun <T> shortlistOf(items: Collection<T>) =
+    java.util.List.copyOf(items)
+
+fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>) =
+    shortlist.stream().sorted(ordering).collect(toUnmodifiableList())
+
+fun <T> removeItemAt(shortlist: List<T>, index: Int) =
+    Stream.concat(
+        shortlist.stream().limit(index.toLong()),
+        shortlist.stream().skip((index + 1).toLong())
+    ).collect(toUnmodifiableList())
+
+fun byRating() =
+    comparingDouble(HasRating::rating).reversed()
+
+fun byPriceLowToHigh() =
+    comparing(HasPrice::price)
+
+fun <T> byValue() where T : HasPrice, T : HasRating =
+    comparingDouble { t: T -> t.rating / t.price }.reversed()
+
+fun byRelevance() =
+    comparingDouble(HasRelevance::relevance).reversed()
+----
+// end-insert
+
+Nothing refers to our object declaration any more.
+We can safely delete it.
+(Even when I'm sure there are no references, I like to use the "Safe Delete" refactoring for peace of mind).
+That leaves us with only the top-level functions we saw earlier:
+
+// begin-insert: tags/static-to-object-to-functions.11:src/main/java/travelator/Shortlists.kt
+[source,kotlin]
+----
+@file:JvmName("Shortlists")
+
+
+fun <T> shortlistOf(items: Collection<T>) =
+    java.util.List.copyOf(items)
+
+fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>) =
+    shortlist.stream().sorted(ordering).collect(toUnmodifiableList())
+
+fun <T> removeItemAt(shortlist: List<T>, index: Int) =
+    Stream.concat(
+        shortlist.stream().limit(index.toLong()),
+        shortlist.stream().skip((index + 1).toLong())
+    ).collect(toUnmodifiableList())
+
+fun byRating() =
+    comparingDouble(HasRating::rating).reversed()
+
+fun byPriceLowToHigh() =
+    comparing(HasPrice::price)
+
+fun <T> byValue() where T : HasPrice, T : HasRating =
+    comparingDouble { t: T -> t.rating / t.price }.reversed()
+
+fun byRelevance() =
+    comparingDouble(HasRelevance::relevance).reversed()
+----
+// end-insert
 
 Now we have top-level functions that we can call from Java and Kotlin.
 The `file:JvmName` annotation is harmless, but if we want to remove it we can update our Java classes to call `SufferingKt.sufferScoreFor`.
