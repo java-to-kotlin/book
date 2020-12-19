@@ -259,10 +259,12 @@ Easy enough if the change affects a few classes, but if the change is wide-rangi
 
 Let's revert and take another run at it.
 
-=== Take 2
+=== Take 2: Refactoring Steps That Minimise Text Edits
 
-This time, we will _extract_ the bodies of the object methods to top-level functions in the same source file, using the "Extract/Introduce > Function to Scope" item on the "Refactor" menu.
+This time we'll do as much as we can with our IDE's automatic refactoring to keep the amount of text editing we need to do to an absolute minimum.
+We will _extract_ top-level functions from the object's methods, _inline_ the object methods into the Kotlin code to make it call those top level functions, and finally use the @file:JvmName annotation to make the Java code call the top-level functions as well.
 
+We extract the bodies of the object methods to top-level functions in the same source file by using the "Extract/Introduce > Function to Scope" refactoring.
 To avoid name clash, we have to -- temporarily -- give the functions a different name to the methods they were extracted from.
 So we'll name them after the method but prefixed with an underscore, and name them back when we can remove the object declaration.
 While we're about it, we'll also make them public so that code outside this class can call them.
