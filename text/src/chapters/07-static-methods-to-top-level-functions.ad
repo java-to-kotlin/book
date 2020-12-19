@@ -230,6 +230,7 @@ fun <T> shortlistOf(items: Collection<T>) =
 fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>) =
     shortlist.stream().sorted(ordering).collect(toUnmodifiableList())
 
+
 fun <T> removeItemAt(shortlist: List<T>, index: Int) =
     Stream.concat(
         shortlist.stream().limit(index.toLong()),
@@ -263,38 +264,9 @@ This time, we will _extract_ the bodies of the object methods to top-level funct
 
 To avoid name clash, we have to -- temporarily -- give the functions a different name to the methods they were extracted from.
 So we'll name them after the method but prefixed with an underscore, and name them back when we can remove the object declaration.
+While we're about it, we'll also make them public so that code outside this class can call them.
 
-Extracting all the methods to top level functions leaves the code looking like this:
-
-// TODO mark up the code to show only one or two methods and extracted functions
-// begin-insert: tags/static-to-object-to-functions.6:src/main/java/travelator/Shortlists.kt#functions
-[source,kotlin]
-----
-object Shortlists {
-    @JvmStatic
-    fun <T> shortlistOf(items: Collection<T>): List<T> {
-        return _shortlistOf(items)
-    }
-
-    @JvmStatic
-    fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>): List<T> {
-        return _sorted(shortlist, ordering)
-    }
-
-    ... etc.
-}
-
-private fun <T> _shortlistOf(items: Collection<T>) =
-    java.util.List.copyOf(items)
-
-private fun <T> _sorted(shortlist: List<T>, ordering: Comparator<in T>) =
-    shortlist.stream().sorted(ordering).collect(toUnmodifiableList())
-
-... etc.
-----
-// end-insert
-
-We now make the functions public, so that they can be called by code outside this file.
+Extracting all the methods to public, top-level functions leaves the code looking like this:
 
 // begin-insert: tags/static-to-object-to-functions.7:src/main/java/travelator/Shortlists.kt#functions
 [source,kotlin]
@@ -325,23 +297,43 @@ fun <T> _sorted(shortlist: List<T>, ordering: Comparator<in T>) =
 
 To make our Kotlin code call the top-level functions instead of the object, we apply the "Inline Function" refactoring to all the object methods, choosing the option "Inline all references and keep the function".
 
-If a method is called from Java, IntelliJ will show a dialog telling us that it "Cannot inline reference from Kotlin to Java" and asking if we want to continue.
+For methods called from Java, IntelliJ shows a dialog telling us that it "Cannot inline reference from Kotlin to Java" and asking if we want to continue.
 Yes we do.
-We _want_ to leave the Java code unchanged, and will make it call the top-level functions with the `@file:JvmName` annotation.
+We _want_ to leave the Java code unchanged, and will later make it call the top-level functions with the `@file:JvmName` annotation.
 
-Now we can rename the top-level functions to remove the leading underscores.
-As we do so, IntelliJ changes the bodies of the object methods to refer to the functions by fully qualified name, to ensure there is no name clash.
-(At the time of writing, IntelliJ only does this when we rename the extracted functions, but not when we extract them.)
+This leaves the Java code calling the `Shortlists` object, and the Kotlin code calling the top-level functions.
+However, because we prefixed the names of those functions with an underscore, we have changed the Kotlin code from:
 
-We can now add the `@file:JvmName` annotation to make the Java code call the top level functions with only two manual edits in the `Shortlists.kt` file, and no other code changes.
-We add the annotation at the top of the file, and insert an underscore at the start of the object's name -- by editing the text, _not_ with a Rename refactoring -- so that the JVM class name `Shortlists` is used by the file of top level functions instead of the object declaration.
-
-// begin-insert: tags/static-to-object-to-functions.10:src/main/java/travelator/Shortlists.kt
+// begin-insert: tags/static-to-object-to-functions.7:src/test/java/travelator/hotels/ShortlistScenarioTest.kt#usage
 [source,kotlin]
 ----
-@file:JvmName("Shortlists")
+val hotelsByPrice = sorted(hotels, byPriceLowToHigh())
+----
+// end-insert
 
+to:
 
+// begin-insert: tags/static-to-object-to-functions.8:src/test/java/travelator/hotels/ShortlistScenarioTest.kt#usage
+[source,kotlin]
+----
+val hotelsByPrice = _sorted(hotels, _byPriceLowToHigh())
+----
+// end-insert
+
+Don't worry, this ugliness will be short lived.
+We will now rename the top-level functions to remove those underscores so that the functions have the same name as the methods of the `Shortlists` object.
+That will allow us to safely switch from object to functions by manually editing the `Shortlists.kt` file to add the `file:JvmName` annotation.
+
+As we do the renames, IntelliJ changes the bodies of the object methods to refer to the functions by fully qualified name, to ensure there is no name clash.
+
+When we're done, we can use the `@file:JvmName` annotation to make the Java code call the top level functions.
+This now takes only two small edits in the `Shortlists.kt` file, and no other code changes.
+We add the annotation at the top of the file, and insert an underscore at the start of the object's name -- _not_ with a Rename refactoring, but by editing the text.
+The JVM class name `Shortlists` refers to the file of top level functions instead of the object declaration.
+
+// begin-insert: tags/static-to-object-to-functions.10:src/main/java/travelator/Shortlists.kt#functions
+[source,kotlin]
+----
 object _Shortlists {
     @JvmStatic
     fun <T> shortlistOf(items: Collection<T>): List<T> {
@@ -353,30 +345,7 @@ object _Shortlists {
         return travelator.sorted(shortlist, ordering)
     }
 
-    @JvmStatic
-    fun <T> removeItemAt(shortlist: List<T>, index: Int): List<T> {
-        return travelator.removeItemAt(shortlist, index)
-    }
-
-    @JvmStatic
-    fun byRating(): Comparator<HasRating> {
-        return travelator.byRating()
-    }
-
-    @JvmStatic
-    fun byPriceLowToHigh(): Comparator<HasPrice> {
-        return travelator.byPriceLowToHigh()
-    }
-
-    @JvmStatic
-    fun <T> byValue(): Comparator<T> where T : HasPrice, T : HasRating {
-        return travelator.byValue<T>()
-    }
-
-    @JvmStatic
-    fun byRelevance(): Comparator<HasRelevance> {
-        return travelator.byRelevance()
-    }
+    ... etc.
 }
 
 fun <T> shortlistOf(items: Collection<T>) =
@@ -385,46 +354,28 @@ fun <T> shortlistOf(items: Collection<T>) =
 fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>) =
     shortlist.stream().sorted(ordering).collect(toUnmodifiableList())
 
-fun <T> removeItemAt(shortlist: List<T>, index: Int) =
-    Stream.concat(
-        shortlist.stream().limit(index.toLong()),
-        shortlist.stream().skip((index + 1).toLong())
-    ).collect(toUnmodifiableList())
-
-fun byRating() =
-    comparingDouble(HasRating::rating).reversed()
-
-fun byPriceLowToHigh() =
-    comparing(HasPrice::price)
-
-fun <T> byValue() where T : HasPrice, T : HasRating =
-    comparingDouble { t: T -> t.rating / t.price }.reversed()
-
-fun byRelevance() =
-    comparingDouble(HasRelevance::relevance).reversed()
+... etc.
 ----
 // end-insert
 
-Nothing refers to our object declaration any more.
-We can safely delete it.
+Nothing refers to the `_Shortlists` object any more.
+IntelliJ highlights it as unused and we can safely delete it with the "Safe Delete" refactoring, or hitting Alt-Enter on the name of the object.
 (Even when I'm sure there are no references, I like to use the "Safe Delete" refactoring for peace of mind).
-That leaves us with only the top-level functions we saw earlier.
-We can tidy them up a bit more by using the Kotlin standard library instead of Java Streams.
-This leaves us with:
 
-// begin-insert: tags/static-to-object-to-functions.12:src/main/java/travelator/Shortlists.kt
+That leaves us with only the top-level functions we saw earlier.
+We can tidy them up a bit more by using the Kotlin standard library instead of the Java Stream and Comparator methods, which removes some lingering warnings our use of platform types, and leaves us with:
+
+// begin-insert: tags/static-to-object-to-functions.12:src/main/java/travelator/Shortlists.kt#functions
 [source,kotlin]
 ----
-@file:JvmName("Shortlists")
-
 fun <T> shortlistOf(items: Collection<T>) =
-    items.toList()
+    listOf(items)
 
 fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>) =
     shortlist.sortedWith(ordering)
 
 fun <T> removeItemAt(shortlist: List<T>, index: Int) =
-    shortlist.take(index) + shortlist.drop(index+1)
+    shortlist.take(index) + shortlist.drop(index + 1)
 
 fun byRating() =
     compareByDescending(HasRating::rating)
@@ -433,14 +384,13 @@ fun byPriceLowToHigh() =
     compareBy(HasPrice::price)
 
 fun <T> byValue() where T : HasPrice, T : HasRating =
-    compareByDescending { t: T -> t.rating / t.price }
+    compareByDescending<T> { it.rating / it.price }
 
-fun byRelevance() =
-    compareByDescending(HasRelevance::relevance)
+... and other comparators
 ----
 // end-insert
 
-That's a good place to leave this code.
+That's a good place to stop and take stock.
 We now have top-level functions that we can call from Java and Kotlin.
 The `file:JvmName` annotation is harmless, but if we want to remove it we can update our Java classes to refer to `ShortlistsKt` instead of `Shortlists`.
 That's also the easiest technique if you're writing new Java code that needs to reference top-level Kotlin functions that you either can't, or can't be bothered, to add the annotation to.
@@ -457,6 +407,8 @@ Unfortunately, build systems have to pick one version of each library from the s
 This can lead to running code compiled against one library version running against a newer version.
 If this happens, and a called top-level function has moved, we can get `NoSuchMethodError` thrown at runtime.
 None of our tests or example code will have had to change to warn us about the breakage - we just have to take extra care if we move top-level functions published in a library.
+
+// TODO discuss the @JvmMultifileClass annotation here
 ====
 
 === Conclusion
