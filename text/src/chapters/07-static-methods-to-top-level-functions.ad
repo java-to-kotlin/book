@@ -218,11 +218,13 @@ That's the job of the `file:JvmName` annotation we mentioned earlier.
 However, There's no nice automated refactoring here.
 We have to manually add the annotation at the top of the file, and remove the `object` scope and `@JvmStatic` annotations to get:
 
-// begin-insert: tags/static-to-object-to-functions.11:src/main/java/travelator/Shortlists.kt
+// begin-insert: tags/static-to-object-to-functions.11:src/main/java/travelator/Shortlists.kt#all_functions
 [source,kotlin]
 ----
 @file:JvmName("Shortlists")
+package travelator
 
+...
 
 fun <T> shortlistOf(items: Collection<T>) =
     java.util.List.copyOf(items)
@@ -246,8 +248,7 @@ fun byPriceLowToHigh() =
 fun <T> byValue() where T : HasPrice, T : HasRating =
     comparingDouble { t: T -> t.rating / t.price }.reversed()
 
-fun byRelevance() =
-    comparingDouble(HasRelevance::relevance).reversed()
+... and other comparators
 ----
 // end-insert
 
@@ -334,6 +335,11 @@ The JVM class name `Shortlists` refers to the file of top level functions instea
 // begin-insert: tags/static-to-object-to-functions.10:src/main/java/travelator/Shortlists.kt#functions
 [source,kotlin]
 ----
+@file:JvmName("Shortlists")
+package travelator
+
+...
+
 object _Shortlists {
     @JvmStatic
     fun <T> shortlistOf(items: Collection<T>): List<T> {
@@ -390,7 +396,7 @@ fun <T> byValue() where T : HasPrice, T : HasRating =
 ----
 // end-insert
 
-That's a good place to stop and take stock.
+That's a good place to pause and take stock.
 We now have top-level functions that we can call from Java and Kotlin.
 The `file:JvmName` annotation is harmless, but if we want to remove it we can update our Java classes to refer to `ShortlistsKt` instead of `Shortlists`.
 That's also the easiest technique if you're writing new Java code that needs to reference top-level Kotlin functions that you either can't, or can't be bothered, to add the annotation to.
