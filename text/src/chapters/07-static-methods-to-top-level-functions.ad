@@ -424,12 +424,17 @@ None of our tests or example code will have had to change to warn us about the b
 Static functions are the bread and butter of our programs.
 In Java these have to be static methods on a class, but in Kotlin we can and should default to defining them as top-level functions.
 Converting a Java class of static methods to Kotlin will, however, create an `object` declaration.
-This can be converted to top level functions by a sequence of safe refactoring steps that does not affect the code that uses the object and minimises manual editing.
+We have to refactor that object into top-level functions.
 
+As we described in <<minimise-text-edits>>, refactoring by editing text is tedious and error prone.
+We prefer to use the IDE's refactoring tools whenever we can.
+However, IntelliJ does not have an automatic refactoring that can transform an object to top-level functions.
+Therefore, we used a combination of automatic refactorings -- extract, inline and rename -- to transform the code to a state that let us swap out the object for the top-level functions with the absolute minimum of manual text editing,
+and then further automatic refactorings to tidy up the code.
 
-// TODO talk about refactoring to reduce the amount of editing to the bare minimum
-
-// TODO talk about taking multiple runs at a refactoring, and link to <<multi-to-single-expression-functions>> for deeper discussion.
+It took us a couple of attempts to find the right sequence of refactorings.
+This is par for the course -- design is an exploratory and iterative process, especially in an unfamiliar language.
+We encounter it again in <<multi-to-single-expression-functions>>.
 
 // TODO talk about refactoring making it worse to allow it to get better -- trough of disillusionment
 
