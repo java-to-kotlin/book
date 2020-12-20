@@ -432,11 +432,16 @@ However, IntelliJ does not have an automatic refactoring that can transform an o
 Therefore, we used a combination of automatic refactorings -- extract, inline and rename -- to transform the code to a state that let us swap out the object for the top-level functions with the absolute minimum of manual text editing,
 and then further automatic refactorings to tidy up the code.
 
+A counterintuitive aspect of the refactoring steps we took in this chapter was that we had to make the code worse before we could make it better.
+Extracting top-level functions from the `Shortlist` object's method made the code in `Shortlists.kt` more complicated.
+Inlining the object's methods into out Kotlin code made their awkward temporary names visible across our codebase.
+Subsequent steps tidied everything up to an implementation that was simpler than where we started.
+This is quite common when refactoring.
+We have to break down existing structures in order to introduce better ones, which is fine as long as we don't stop half way through.
+
 It took us a couple of attempts to find the right sequence of refactorings.
 This is par for the course -- design is an exploratory and iterative process, especially in an unfamiliar language.
-We encounter it again in <<multi-to-single-expression-functions>>.
-
-// TODO talk about refactoring making it worse to allow it to get better -- trough of disillusionment
+We will see this again in <<multi-to-single-expression-functions>>.
 
 Some of the top-level functions we ended up with are good candidates to refactor to _extension functions_.
 Extension functions can make our Kotlin code more concise, and are easier to discover with autocomplete.
