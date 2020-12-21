@@ -1,0 +1,553 @@
+[[kotlin-from-scratch]]
+== Kotlin From Scratch
+
+Create an empty test, run it
+
+// begin-insert: tags/table-reader.0:src/test/java/travelator/tablereader/TableReaderTests.kt
+[source,kotlin]
+----
+class TableReaderTests {
+    @Test
+    fun test() {
+
+    }
+}
+----
+// end-insert
+
+Sketch out the interface we want.
+No need for a class - take a value, return a value.
+No need for abstractions for values, List and Map are fine.
+
+// begin-insert: tags/table-reader.1:src/test/java/travelator/tablereader/TableReaderTests.kt
+[source,kotlin]
+----
+class TableReaderTests {
+    @Test
+    fun test() {
+        assertEquals(
+            emptyList<Map<String, String>>(),
+            readTable(emptyList<String>())
+        )
+    }
+}
+----
+// end-insert
+
+Generate the interface (lower l)
+
+// begin-insert: tags/table-reader.1:src/main/java/travelator/tablereader/table-reading.kt
+[source,kotlin]
+----
+fun readTable(lines: List<String>): List<Map<String, String>> {
+    TODO()
+}
+----
+// end-insert
+
+Get the tests to pass in the simplest way
+
+// begin-insert: tags/table-reader.2:src/main/java/travelator/tablereader/table-reading.kt
+[source,kotlin]
+----
+fun readTable(lines: List<String>): List<Map<String, String>> {
+    return emptyList()
+}
+----
+// end-insert
+
+Add a test to make them fail, then make it pass
+
+// begin-insert: tags/table-reader.3:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
+[source,kotlin]
+----
+@Test
+fun `empty list returns empty list`() {
+    assertEquals(
+        emptyList<Map<String, String>>(),
+        readTable(emptyList())
+    )
+}
+
+@Test
+fun `one line of input with default field names`() {
+    assertEquals(
+        listOf(
+            mapOf("0" to "field0", "1" to "field1")
+        ),
+        readTable(listOf(
+            "field0,field1"
+        ))
+    )
+}
+----
+// end-insert
+
+// begin-insert: tags/table-reader.3:src/main/java/travelator/tablereader/table-reading.kt
+[source,kotlin]
+----
+fun readTable(lines: List<String>): List<Map<String, String>> {
+    return if (lines.isEmpty())
+        emptyList()
+    else listOf(
+        mapOf("0" to "field0", "1" to "field1")
+    )
+}
+----
+// end-insert
+
+Now we have to remove the literal.
+But first, we know we want one line of output per line of input (excluding header), so we can use `map`
+
+// begin-insert: tags/table-reader.4:src/main/java/travelator/tablereader/table-reading.kt
+[source,kotlin]
+----
+fun readTable(lines: List<String>): List<Map<String, String>> {
+    return lines.map(::parseLine)
+}
+
+private fun parseLine(line: String) = mapOf("0" to "field0", "1" to "field1")
+----
+// end-insert
+
+Now build the map from its keys and values separately
+
+// begin-insert: tags/table-reader.5:src/main/java/travelator/tablereader/table-reading.kt#parseLine
+[source,kotlin]
+----
+private fun parseLine(line: String): Map<String, String> {
+    val values = listOf("field0", "field1")
+    val keys = listOf("0", "1")
+    return keys.zip(values).toMap()
+}
+----
+// end-insert
+
+Now generate the keys
+
+// begin-insert: tags/table-reader.6:src/main/java/travelator/tablereader/table-reading.kt#parseLine
+[source,kotlin]
+----
+private fun parseLine(line: String): Map<String, String> {
+    val values = listOf("field0", "field1")
+    val keys = (0 .. values.size).map(Integer::toString)
+    return keys.zip(values).toMap()
+}
+----
+// end-insert
+
+Now extract the values
+
+// begin-insert: tags/table-reader.7:src/main/java/travelator/tablereader/table-reading.kt#parseLine
+[source,kotlin]
+----
+private fun parseLine(line: String): Map<String, String> {
+    val values = line.split(",")
+    val keys = (0 .. values.size).map(Integer::toString)
+    return keys.zip(values).toMap()
+}
+----
+// end-insert
+
+Spidey senses around string split
+
+// begin-insert: tags/table-reader.8:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
+[source,kotlin]
+----
+@Test
+fun `empty list returns empty list`() {
+    assertEquals(
+        emptyList<Map<String, String>>(),
+        readTable(emptyList())
+    )
+}
+
+@Test
+fun `one line of input with default field names`() {
+    assertEquals(
+        listOf(
+            mapOf("0" to "field0", "1" to "field1")
+        ),
+        readTable(listOf(
+            "field0,field1"
+        ))
+    )
+}
+
+@Test
+fun `empty line returns empty map`() {
+    assertEquals(
+        listOf(
+            emptyMap<String, String>()
+        ),
+        readTable(listOf(
+            ""
+        ))
+    )
+}
+----
+// end-insert
+
+----
+org.opentest4j.AssertionFailedError:
+Expected :[{}]
+Actual   :[{0=}]
+----
+
+// begin-insert: tags/table-reader.8:src/main/java/travelator/tablereader/table-reading.kt#parseLine
+[source,kotlin]
+----
+private fun parseLine(line: String): Map<String, String> {
+    val values = line.split(",")
+    if (values.size == 1 && values.first().isEmpty())
+        return emptyMap()
+    val keys = (0 .. values.size).map(Integer::toString)
+    return keys.zip(values).toMap()
+}
+----
+// end-insert
+
+Early return is a bit cheeky.
+Let's pull out a variable
+
+// begin-insert: tags/table-reader.9:src/main/java/travelator/tablereader/table-reading.kt#parseLine
+[source,kotlin]
+----
+private fun parseLine(line: String): Map<String, String> {
+    val sussValues = line.split(",")
+    val values = if (sussValues.size == 1 && sussValues.first().isEmpty())
+        emptyList<String>() else sussValues
+    val keys = (0 .. values.size).map(Integer::toString)
+    return keys.zip(values).toMap()
+}
+----
+// end-insert
+
+Extract to a function
+
+// begin-insert: tags/table-reader.10:src/main/java/travelator/tablereader/table-reading.kt#parseLine
+[source,kotlin]
+----
+private fun parseLine(line: String): Map<String, String> {
+    val values = splitFields(line)
+    val keys = (0 .. values.size).map(Integer::toString)
+    return keys.zip(values).toMap()
+}
+
+private fun splitFields(line: String): List<String> {
+    val sussValues = line.split(",")
+    val values = if (sussValues.size == 1 && sussValues.first().isEmpty())
+        emptyList<String>() else sussValues
+    return values
+}
+----
+// end-insert
+
+Tidy `splitFields`
+
+// begin-insert: tags/table-reader.11:src/main/java/travelator/tablereader/table-reading.kt#splitFields
+[source,kotlin]
+----
+private fun String.splitFields(separators: String): List<String> =
+    split(separators).let { fields ->
+        if (fields.size == 1 && fields.first().isEmpty())
+            emptyList()
+        else
+            fields
+    }
+----
+// end-insert
+
+We expect more lines to work because of the map, but let's just check:
+
+// begin-insert: tags/table-reader.12:src/test/java/travelator/tablereader/TableReaderTests.kt#twoLines
+[source,kotlin]
+----
+@Test
+fun `two lines of input with default field names`() {
+    assertEquals(
+        listOf(
+            mapOf("0" to "row0field0", "1" to "row0field1"),
+            mapOf("0" to "row1field0", "1" to "row1field1")
+        ),
+        readTable(listOf(
+            "row0field0,row0field1",
+            "row1field0,row1field1"
+        ))
+    )
+}
+----
+// end-insert
+
+Passes
+
+Now consider a header line.
+Write a failing test to get an interface:
+
+// begin-insert: tags/table-reader.13:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
+[source,kotlin]
+----
+@Test
+fun `takes headers from header line`() {
+    assertEquals(
+        listOf(
+            mapOf("H0" to "field0", "H1" to "field1")
+        ),
+        readTable(
+            "H0,H1",
+            listOf("field0,field1")
+        )
+    )
+}
+----
+// end-insert
+
+Implement, this won't pass
+
+// begin-insert: tags/table-reader.13:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTable(header: String, lines: List<String>): List<Map<String, String>> {
+    return readTable(lines)
+}
+
+fun readTable(lines: List<String>): List<Map<String, String>> {
+    return lines.map(::parseLine)
+}
+----
+// end-insert
+
+Now we have to get header information to `parseLine`, currently:
+
+// begin-insert: tags/table-reader.13:src/main/java/travelator/tablereader/table-reading.kt#parseLine
+[source,kotlin]
+----
+private fun parseLine(line: String): Map<String, String> {
+    val values = line.splitFields(",")
+    val keys = (0..values.size).map(Integer::toString)
+    return keys.zip(values).toMap()
+}
+----
+// end-insert
+
+`Integer::toString` is our current mapping from index to key.
+Let's make it more explicit:
+
+// begin-insert: tags/table-reader.14:src/main/java/travelator/tablereader/table-reading.kt#parseLine
+[source,kotlin]
+----
+private fun parseLine(line: String): Map<String, String> {
+    val values = line.splitFields(",")
+    val headerProvider: (Int) -> String = Integer::toString
+    val keys = (0..values.size).map(headerProvider)
+    return keys.zip(values).toMap()
+}
+----
+// end-insert
+
+Extract `headerProvider` as a parameter:
+
+// begin-insert: tags/table-reader.15:src/main/java/travelator/tablereader/table-reading.kt#parseLine
+[source,kotlin]
+----
+private fun parseLine(line: String, headerProvider: (Int) -> String): Map<String, String> {
+    val values = line.splitFields(",")
+    val keys = (0..values.size).map(headerProvider)
+    return keys.zip(values).toMap()
+}
+----
+// end-insert
+
+This breaks `readTable`
+
+// begin-insert: tags/table-reader.15:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTable(header: String, lines: List<String>): List<Map<String, String>> {
+    return readTable(lines)
+}
+
+fun readTable(lines: List<String>): List<Map<String, String>> {
+    return lines.map(::parseLine) // <1>
+}
+----
+// end-insert
+
+<1> Function references won't do now
+
+"Replace function reference with lamba" and adding the default header provider gets us compiling.
+
+// begin-insert: tags/table-reader.16:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTable(header: String, lines: List<String>): List<Map<String, String>> {
+    return readTable(lines)
+}
+
+fun readTable(lines: List<String>): List<Map<String, String>> {
+    return lines.map { parseLine(it, Integer::toString) }
+}
+----
+// end-insert
+
+All our original tests still pass, although the new test is still failing, it's been a while.
+
+Now the original `readTable` also needs to all callers to specify the `headerProvider`, so its "Extract Parameter" (with "Introduce Default Value") again:
+
+// begin-insert: tags/table-reader.17:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTable(header: String, lines: List<String>): List<Map<String, String>> {
+    return readTable(lines)
+}
+
+fun readTable(
+    lines: List<String>,
+    headerProvider: KFunction1<Int, String> = Integer::toString // <1>
+): List<Map<String, String>> {
+    return lines.map { parseLine(it, headerProvider) }
+}
+----
+// end-insert
+
+<1> `Unresolved reference: KFunction1`
+
+Annoyingly rubbish IDE - fix by hand:
+
+// begin-insert: tags/table-reader.18:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTable(header: String, lines: List<String>): List<Map<String, String>> {
+    return readTable(lines)
+}
+
+fun readTable(
+    lines: List<String>,
+    headerProvider: (Int) -> String = Integer::toString
+): List<Map<String, String>> {
+    return lines.map { parseLine(it, headerProvider) }
+}
+----
+// end-insert
+
+Now we're in a position to convert the `header` in the first `readTable` to the `headerProvider` needed by the second.
+A nested function will do for now:
+
+// begin-insert: tags/table-reader.19:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTable(header: String, lines: List<String>): List<Map<String, String>> {
+    fun headerProvider(index: Int): String {
+        val headers: List<String> = header.splitFields(",")
+        return headers[index]
+    }
+    return readTable(lines, ::headerProvider)
+}
+
+fun readTable(
+    lines: List<String>,
+    headerProvider: (Int) -> String = Integer::toString
+): List<Map<String, String>> {
+    return lines.map { parseLine(it, headerProvider) }
+}
+----
+// end-insert
+
+Test still fails with `java.lang.IndexOutOfBoundsException: Index 2 out of bounds for length 2`.
+Hmmm, ah:
+
+// begin-insert: tags/table-reader.19:src/main/java/travelator/tablereader/table-reading.kt#parseLine
+[source,kotlin]
+----
+private fun parseLine(line: String, headerProvider: (Int) -> String): Map<String, String> {
+    val values = line.splitFields(",")
+    val keys = (0..values.size).map(headerProvider)
+    return keys.zip(values).toMap()
+}
+----
+// end-insert
+
+`values.size` is suspicious, replace it:
+
+// begin-insert: tags/table-reader.20:src/main/java/travelator/tablereader/table-reading.kt#parseLine
+[source,kotlin]
+----
+private fun parseLine(line: String, headerProvider: (Int) -> String): Map<String, String> {
+    val values = line.splitFields(",")
+    val keys = (values.indices).map(headerProvider)
+    return keys.zip(values).toMap()
+}
+----
+// end-insert
+
+Now the tests all pass!
+
+Returning to `readTable`:
+
+// begin-insert: tags/table-reader.20:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTable(header: String, lines: List<String>): List<Map<String, String>> {
+    fun headerProvider(index: Int): String {
+        val headers: List<String> = header.splitFields(",")
+        return headers[index]
+    }
+    return readTable(lines, ::headerProvider)
+}
+----
+// end-insert
+
+We want to create a function that will create a header provider from the header.
+Took a bit to work out:
+
+// begin-insert: tags/table-reader.21:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTable(header: String, lines: List<String>): List<Map<String, String>> {
+    fun headerProvider(index: Int): String {
+        val headers: List<String> = header.splitFields(",")
+        return headers[index]
+    }
+    val headerProvider = ::headerProvider
+    return readTable(lines, headerProvider)
+}
+----
+// end-insert
+
+Now extract
+
+// begin-insert: tags/table-reader.22:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTable(header: String, lines: List<String>): List<Map<String, String>> {
+    val headerProvider = headerProviderFrom(header)
+    return readTable(lines, headerProvider)
+}
+
+private fun headerProviderFrom(header: String): KFunction1<Int, String> {
+    fun headerProvider(index: Int): String {
+        val headers: List<String> = header.splitFields(",")
+        return headers[index]
+    }
+
+    val headerProvider = ::headerProvider
+    return headerProvider
+}
+----
+// end-insert
+
+Then tidy, making sure that the parsing happens outside the function rather than every time:
+
+// begin-insert: tags/table-reader.23:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTable(header: String, lines: List<String>): List<Map<String, String>> =
+    readTable(lines, headerProviderFrom(header))
+
+private fun headerProviderFrom(header: String): (Int) -> String {
+    val headers: List<String> = header.splitFields(",")
+    return fun (index: Int) = headers[index]
+}
+----
+// end-insert
+
