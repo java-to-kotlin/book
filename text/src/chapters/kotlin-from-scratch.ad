@@ -1,6 +1,8 @@
 [[kotlin-from-scratch]]
 == Kotlin From Scratch
 
+Mission - create a parser for a file with a single-character delimiter (`,` for now), where the first row may or may not specify the field names.
+
 Create an empty test, run it
 
 // begin-insert: tags/table-reader.0:src/test/java/travelator/tablereader/TableReaderTests.kt
@@ -350,7 +352,10 @@ Extract `headerProvider` as a parameter:
 // begin-insert: tags/table-reader.15:src/main/java/travelator/tablereader/table-reading.kt#parseLine
 [source,kotlin]
 ----
-private fun parseLine(line: String, headerProvider: (Int) -> String): Map<String, String> {
+private fun parseLine(
+    line: String,
+    headerProvider: (Int) -> String
+): Map<String, String> {
     val values = line.splitFields(",")
     val keys = (0..values.size).map(headerProvider)
     return keys.zip(values).toMap()
@@ -459,7 +464,10 @@ Hmmm, ah:
 // begin-insert: tags/table-reader.19:src/main/java/travelator/tablereader/table-reading.kt#parseLine
 [source,kotlin]
 ----
-private fun parseLine(line: String, headerProvider: (Int) -> String): Map<String, String> {
+private fun parseLine(
+    line: String,
+    headerProvider: (Int) -> String
+): Map<String, String> {
     val values = line.splitFields(",")
     val keys = (0..values.size).map(headerProvider)
     return keys.zip(values).toMap()
@@ -472,7 +480,10 @@ private fun parseLine(line: String, headerProvider: (Int) -> String): Map<String
 // begin-insert: tags/table-reader.20:src/main/java/travelator/tablereader/table-reading.kt#parseLine
 [source,kotlin]
 ----
-private fun parseLine(line: String, headerProvider: (Int) -> String): Map<String, String> {
+private fun parseLine(
+    line: String,
+    headerProvider: (Int) -> String
+): Map<String, String> {
     val values = line.splitFields(",")
     val keys = (values.indices).map(headerProvider)
     return keys.zip(values).toMap()
@@ -541,8 +552,17 @@ Then tidy, making sure that the parsing happens outside the function rather than
 // begin-insert: tags/table-reader.23:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
-fun readTable(header: String, lines: List<String>): List<Map<String, String>> =
+fun readTable(
+    header: String,
+    lines: List<String>
+): List<Map<String, String>> =
     readTable(lines, headerProviderFrom(header))
+
+fun readTable(
+    lines: List<String>,
+    headerProvider: (Int) -> String = Integer::toString
+): List<Map<String, String>> =
+    lines.map { parseLine(it, headerProvider) }
 
 private fun headerProviderFrom(header: String): (Int) -> String {
     val headers: List<String> = header.splitFields(",")
@@ -551,3 +571,919 @@ private fun headerProviderFrom(header: String): (Int) -> String {
 ----
 // end-insert
 
+This is a nice API - our clients can read with or without a header row, and if they want to specify their own field names they can override the default.
+Let's write a test to demonstrate that last feature:
+
+// begin-insert: tags/table-reader.24:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
+[source,kotlin]
+----
+@Test
+fun `can specify header names`() {
+    val headers = mapOf(0 to "apple", 1 to "banana")
+    assertEquals(
+        listOf(
+            mapOf(
+                "apple" to "field0",
+                "banana" to "field1",
+            )
+        ),
+        readTable(
+            listOf("field0,field1"),
+            headers::getValue
+        )
+    )
+}
+----
+// end-insert
+
+Note that we haven't had to create any abstractions for this.
+
+At the moment our format is fixed as comma-separated, and with no quoting or escaping rules.
+It would be nice to be more flexible, what is the abstraction here?
+Looking at the code we see that the header and body parsing both call `splitFields`
+
+// begin-insert: tags/table-reader.25:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+private fun headerProviderFrom(header: String): (Int) -> String {
+    val headers: List<String> = header.splitFields(",")
+    return fun (index: Int) = headers[index]
+}
+
+private fun parseLine(
+    line: String,
+    headerProvider: (Int) -> String
+): Map<String, String> {
+    val values = line.splitFields(",")
+    val keys = (values.indices).map(headerProvider)
+    return keys.zip(values).toMap()
+}
+
+private fun String.splitFields(separators: String): List<String> =
+    split(separators).let { fields ->
+        if (fields.size == 1 && fields.first().isEmpty())
+            emptyList()
+        else
+            fields
+    }
+----
+// end-insert
+
+Neither really wants to know the details of how the splitting should happen, so let's abstract that behind a function `(String) -> List<String>`.
+Why that signature rather than just parameterizing the character?
+Well we'd like to be able to cope with quoting fields and escaping etc, and they can all be hidden behind that function.
+In `parseLine` we can select `line.splitFields(",")` and "Introduce Functional Parameter", choosing the parameter name `splitter`:
+
+// begin-insert: tags/table-reader.26:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTable(
+    lines: List<String>,
+    headerProvider: (Int) -> String = Integer::toString
+): List<Map<String, String>> =
+    lines.map {
+        parseLine(it, headerProvider) { line -> // <1>
+            line.splitFields(",")
+        }
+    }
+
+...
+
+private fun parseLine(
+    line: String,
+    headerProvider: (Int) -> String,
+    splitter: (String) -> List<String>, // <2>
+): Map<String, String> {
+    val values = splitter(line)
+    val keys = (values.indices).map(headerProvider)
+    return keys.zip(values).toMap()
+}
+----
+// end-insert
+
+<1> This lambda ...
+<2> ... implements the splitter
+
+We want to be able to reuse that lambda, so select it and "Introduce Variable" named `splitter`:
+
+// begin-insert: tags/table-reader.27:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTable(
+    lines: List<String>,
+    headerProvider: (Int) -> String = Integer::toString
+): List<Map<String, String>> =
+    lines.map {
+        val splitter: (String) -> List<String> = { line ->
+            line.splitFields(",")
+        }
+        parseLine(it, headerProvider, splitter)
+    }
+----
+// end-insert
+
+We'd like to have a function reference for that `splitter` that we can pass around, so select the lambda, Alt-Enter and "Convert to anonymous function":
+
+// begin-insert: tags/table-reader.28:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTable(
+    lines: List<String>,
+    headerProvider: (Int) -> String = Integer::toString
+): List<Map<String, String>> =
+    lines.map {
+        val splitter: (String) -> List<String> = fun(line: String): List<String> {
+            return line.splitFields(",")
+        }
+        parseLine(it, headerProvider, splitter)
+    }
+----
+// end-insert
+
+A little manual editing will convert this to a local function:
+
+// begin-insert: tags/table-reader.29:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTable(
+    lines: List<String>,
+    headerProvider: (Int) -> String = Integer::toString
+): List<Map<String, String>> =
+    lines.map {
+        fun splitOnComma(line: String): List<String> {
+            return line.splitFields(",")
+        }
+        parseLine(it, headerProvider, ::splitOnComma)
+    }
+----
+// end-insert
+
+We can then pull this to the top level:
+
+// begin-insert: tags/table-reader.30:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTable(
+    lines: List<String>,
+    headerProvider: (Int) -> String = Integer::toString
+): List<Map<String, String>> =
+    lines.map {
+        parseLine(it, headerProvider, ::splitOnComma)
+    }
+
+fun splitOnComma(line: String): List<String> = line.splitFields(",")
+----
+// end-insert
+
+Now extract the "Introduce Parameter" on the function reference `::splitOnComma`, selecting "Introduce default value" to give a `splitter` parameter:
+
+// begin-insert: tags/table-reader.31:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTable(
+    lines: List<String>,
+    headerProvider: (Int) -> String = Integer::toString,
+    splitter: (String) -> List<String> = ::splitOnComma
+): List<Map<String, String>> =
+    lines.map {
+        parseLine(it, headerProvider, splitter)
+    }
+----
+// end-insert
+
+We haven't had to change our tests, which is nice.
+
+Now we "Introduce Functional Parameter" in `headerProviderFrom`.
+This was:
+
+// begin-insert: tags/table-reader.31:src/main/java/travelator/tablereader/table-reading.kt#headerProviderFrom
+[source,kotlin]
+----
+private fun headerProviderFrom(header: String): (Int) -> String {
+    val headers: List<String> = header.splitFields(",")
+    return fun (index: Int) = headers[index]
+}
+----
+// end-insert
+
+Now it is called from `readTable` with a lambda:
+
+// begin-insert: tags/table-reader.32:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTable(
+    header: String,
+    lines: List<String>
+): List<Map<String, String>> =
+    readTable(
+        lines,
+        headerProviderFrom(header) { header ->
+            header.splitFields(",")
+        }
+    )
+
+...
+
+private fun headerProviderFrom(
+    header: String,
+    splitter: (String) -> List<String>
+): (Int) -> String {
+    val headers: List<String> = splitter(header)
+    return fun (index: Int) = headers[index]
+}
+----
+// end-insert
+
+Full disclosure, when we wrote this we had the `KFunction1` nonsense again and had to fix it manually.
+
+Now that lambda is the same code as `splitOnComma`, so we use that instead:
+
+// begin-insert: tags/table-reader.33:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTable(
+    header: String,
+    lines: List<String>
+): List<Map<String, String>> =
+    readTable(
+        lines,
+        headerProviderFrom(header, ::splitOnComma)
+    )
+----
+// end-insert
+
+Make it a parameter (again, manual editing required to fix):
+
+// begin-insert: tags/table-reader.34:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTable(
+    header: String,
+    lines: List<String>,
+    splitter: (String) -> List<String> = ::splitOnComma
+): List<Map<String, String>> =
+    readTable(
+        lines,
+        headerProviderFrom(header, splitter)
+    )
+----
+// end-insert
+
+Finally, the header and body should be using the same splitter, so we pass it from the outer to the inner `readTable`:
+
+// begin-insert: tags/table-reader.35:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTable(
+    header: String,
+    lines: List<String>,
+    splitter: (String) -> List<String> = ::splitOnComma
+): List<Map<String, String>> =
+    readTable(
+        lines,
+        headerProviderFrom(header, splitter),
+        splitter
+    )
+
+fun readTable(
+    lines: List<String>,
+    headerProvider: (Int) -> String = Integer::toString,
+    splitter: (String) -> List<String> = ::splitOnComma
+): List<Map<String, String>> =
+    lines.map {
+        parseLine(it, headerProvider, splitter)
+    }
+----
+// end-insert
+
+We should probably write a test to show the use of the `splitter`, but just before we do, let's make it more convenient to make one.
+Here is `splitOnComma`:
+
+// begin-insert: tags/table-reader.35:src/main/java/travelator/tablereader/table-reading.kt#splitOnComma
+[source,kotlin]
+----
+fun splitOnComma(line: String): List<String> = line.splitFields(",")
+----
+// end-insert
+
+Can we make a more generic `splitOn`?
+
+We can if we call a function to initialise a value of function type.
+Let's write that:
+
+// begin-insert: tags/table-reader.36:src/main/java/travelator/tablereader/table-reading.kt#splitOn1
+[source,kotlin]
+----
+val splitOnComma: (String) -> List<String> = splitOn(",")
+----
+// end-insert
+
+Alt-Enter on `splitOn(` creates the function for us:
+
+// begin-insert: tags/table-reader.36:src/main/java/travelator/tablereader/table-reading.kt#splitOn2
+[source,kotlin]
+----
+fun splitOn(separators: String): (String) -> List<String> {
+    TODO("Not yet implemented")
+}
+----
+// end-insert
+
+Now we can implement it:
+
+// begin-insert: tags/table-reader.37:src/main/java/travelator/tablereader/table-reading.kt#splitOn2
+[source,kotlin]
+----
+fun splitOn(
+    separators: String
+) = { line: String ->
+    line.splitFields(separators)
+}
+----
+// end-insert
+
+Now we can replace the function reference `::splitOnComma` with the value `splitOnComma`.
+While we're there we can create a `splitOnTab` too:
+
+// begin-insert: tags/table-reader.38:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTable(
+    header: String,
+    lines: List<String>,
+    splitter: (String) -> List<String> = splitOnComma
+): List<Map<String, String>> =
+    readTable(
+        lines,
+        headerProviderFrom(header, splitter),
+        splitter
+    )
+
+fun readTable(
+    lines: List<String>,
+    headerProvider: (Int) -> String = Integer::toString,
+    splitter: (String) -> List<String> = splitOnComma
+): List<Map<String, String>> =
+    lines.map {
+        parseLine(it, headerProvider, splitter)
+    }
+
+val splitOnComma: (String) -> List<String> = splitOn(",")
+val splitOnTab: (String) -> List<String> = splitOn("\t")
+
+fun splitOn(
+    separators: String
+) = { line: String ->
+    line.splitFields(separators)
+}
+----
+// end-insert
+
+Now we can write a new test to show that it all works:
+
+// begin-insert: tags/table-reader.38:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
+[source,kotlin]
+----
+@Test
+fun `can specify splitter`() {
+    assertEquals(
+        listOf(
+            mapOf(
+                "header1" to "field0",
+                "header2" to "field1",
+            )
+        ),
+        readTable(
+            "header1\theader2",
+            listOf("field0\tfield1"),
+            splitOnTab
+        )
+    )
+}
+----
+// end-insert
+
+This passes, hooray!
+
+We now have the basics of a CSV or TSV parser, with no new types introduced.
+
+=== Sequences
+
+The design as it is suffers from one major problem - it works on a `List<String>` loaded into memory, and produces a `List<Map<String, String>>`
+Roughly speaking, the memory footprint of `readTable` is twice the number of bytes of the input, which is probably twice the size of a UTF-8 encoded file containing the data.
+In order to process large files it would be nice to work in terms of ++Sequence++s rather than ++List++s, as these can keep only one item in memory at a time.
+
+We can convert from one to the other very easily, so lets leave our tests alone and introduce `Sequence` variants that the current `List` functions can delegate to.
+
+The inner `readTable` currently looks like this:
+
+// begin-insert: tags/table-reader.39:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTable(
+    lines: List<String>,
+    headerProvider: (Int) -> String = Integer::toString,
+    splitter: (String) -> List<String> = splitOnComma
+): List<Map<String, String>> =
+    lines.map {
+        parseLine(it, headerProvider, splitter)
+    }
+----
+// end-insert
+
+Let's see if that works converting to and from `Sequence` in the middle:
+
+// begin-insert: tags/table-reader.40:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTable(
+    lines: List<String>,
+    headerProvider: (Int) -> String = Integer::toString,
+    splitter: (String) -> List<String> = splitOnComma
+): List<Map<String, String>> =
+    lines
+        .asSequence()
+        .map {
+            parseLine(it, headerProvider, splitter)
+        }
+        .toList()
+----
+// end-insert
+
+That passes the tests, and they all funnel through there, so that's reassuring.
+Now we can extract the inner workings into a function taking and returning a `Sequence` - this is extracting part of a chain as described in <<functions-to-extension-functions>>.
+
+// begin-insert: tags/table-reader.41:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTable(
+    lines: List<String>,
+    headerProvider: (Int) -> String = Integer::toString,
+    splitter: (String) -> List<String> = splitOnComma
+): List<Map<String, String>> =
+    readTable(
+        lines.asSequence(),
+        headerProvider,
+        splitter
+    ).toList()
+
+fun readTable(
+    lines: Sequence<String>,
+    headerProvider: (Int) -> String = Integer::toString,
+    splitter: (String) -> List<String> = splitOnComma
+) = lines.map {
+        parseLine(it, headerProvider, splitter)
+    }
+----
+// end-insert
+
+Still passing, excellent.
+Now for the outer `readTable` - it looks like this:
+
+// begin-insert: tags/table-reader.42:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTable(
+    header: String,
+    lines: List<String>,
+    splitter: (String) -> List<String> = splitOnComma
+): List<Map<String, String>> =
+    readTable(
+        lines,
+        headerProviderFrom(header, splitter),
+        splitter
+    )
+----
+// end-insert
+
+We want to produce a `Sequence` version of this.
+It's a little around-the-houses, but if we inline the `readTable` call there:
+
+// begin-insert: tags/table-reader.43:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTable(
+    header: String,
+    lines: List<String>,
+    splitter: (String) -> List<String> = splitOnComma
+): List<Map<String, String>> =
+    readTable(
+        lines.asSequence(),
+        headerProviderFrom(header, splitter),
+        splitter
+    ).toList()
+----
+// end-insert
+
+Now extract `lines.asSequence()` as a variable:
+
+// begin-insert: tags/table-reader.44:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTable(
+    header: String,
+    lines: List<String>,
+    splitter: (String) -> List<String> = splitOnComma
+): List<Map<String, String>> {
+    val lines1 = lines.asSequence()
+    return readTable(
+        lines1,
+        headerProviderFrom(header, splitter),
+        splitter
+    ).toList()
+}
+----
+// end-insert
+
+That expresssion between `return` and `.toList()` is the function we want - extract it:
+
+// begin-insert: tags/table-reader.45:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTable(
+    header: String,
+    lines: List<String>,
+    splitter: (String) -> List<String> = splitOnComma
+): List<Map<String, String>> {
+    val lines1 = lines.asSequence()
+    return readTable(lines1, header, splitter).toList()
+}
+
+fun readTable(
+    lines1: Sequence<String>,
+    header: String,
+    splitter: (String) -> List<String>
+) = readTable(
+    lines1,
+    headerProviderFrom(header, splitter),
+    splitter
+)
+----
+// end-insert
+
+This just leaves tidying up by inlining `lines1`, converting to a single expression, and changing the ordering and defaults for the `Sequence` version of `readTable`:
+
+// begin-insert: tags/table-reader.46:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTable(
+    header: String,
+    lines: List<String>,
+    splitter: (String) -> List<String> = splitOnComma
+): List<Map<String, String>> =
+    readTable(
+        header,
+        lines.asSequence(),
+        splitter
+    ).toList()
+
+fun readTable(
+    header: String,
+    lines: Sequence<String>,
+    splitter: (String) -> List<String> = splitOnComma
+) = readTable(
+    lines,
+    headerProviderFrom(header, splitter),
+    splitter
+)
+----
+// end-insert
+
+At this point, we have two versions of two `readTables`.
+Given how easy it is to convert to and from `List` and `Sequence`, maybe the `List` variants aren't paying their way?
+While we don't have any production uses, let's just move them into the tests - that way the tests are and the production code are kept simple.
+
+Here then is the entire public interface:
+
+// begin-insert: tags/table-reader.47:src/main/java/travelator/tablereader/table-reading.kt#public
+[source,kotlin]
+----
+fun readTable(
+    header: String,
+    lines: Sequence<String>,
+    splitter: (String) -> List<String> = splitOnComma
+) = readTable(
+    lines,
+    headerProviderFrom(header, splitter),
+    splitter
+)
+
+fun readTable(
+    lines: Sequence<String>,
+    headerProvider: (Int) -> String = Integer::toString,
+    splitter: (String) -> List<String> = splitOnComma
+) = lines.map {
+        parseLine(it, headerProvider, splitter)
+    }
+
+val splitOnComma: (String) -> List<String> = splitOn(",")
+val splitOnTab: (String) -> List<String> = splitOn("\t")
+
+fun splitOn(
+    separators: String
+) = { line: String ->
+    line.splitFields(separators)
+}
+----
+// end-insert
+
+This is supported by three utility functions:
+
+// begin-insert: tags/table-reader.47:src/main/java/travelator/tablereader/table-reading.kt#private
+[source,kotlin]
+----
+private fun headerProviderFrom(
+    header: String,
+    splitter: (String) -> List<String>
+): (Int) -> String {
+    val headers: List<String> = splitter(header)
+    return fun(index: Int) = headers[index]
+}
+
+private fun parseLine(
+    line: String,
+    headerProvider: (Int) -> String,
+    splitter: (String) -> List<String>,
+): Map<String, String> {
+    val values = splitter(line)
+    val keys = (values.indices).map(headerProvider)
+    return keys.zip(values).toMap()
+}
+
+// Necessary because String.split returns a list of an empty string
+// when called on an empty string.
+private fun String.splitFields(separators: String): List<String> =
+    split(separators).let { fields ->
+        if (fields.size == 1 && fields.first().isEmpty())
+            emptyList()
+        else
+            fields
+    }
+----
+// end-insert
+
+You can see that we took the liberty of writing a comment explaining why `splitFields` had to exist - apart from that we think that the code is pretty self-explanitory.
+Sometimes we're wrong about that.
+If it takes us more than a glance to work out what is going on next time we read this file, then we'll take the opportunity then to add comments, or better, refactor to be more expressive.
+
+=== Reading from a File
+
+This seems a fine interface in the abstract, but the first time we come to use it in anger, we hit on a snag.
+Let's illustrate the problem with a test.
+
+// begin-insert: tags/table-reader.48:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
+[source,kotlin]
+----
+@Test
+fun `read from reader`() {
+    val fileContents = """
+        H0,H1
+        row0field0,row0field1
+        row1field0,row1field1
+    """.trimIndent()
+    StringReader(fileContents).useLines { lines ->
+        val result = readTable(
+            lines.first(),
+            lines.drop(1)
+        ).toList()
+        assertEquals(
+            listOf(
+                mapOf("H0" to "row0field0", "H1" to "row0field1"),
+                mapOf("H0" to "row1field0", "H1" to "row1field1")
+            ),
+            result
+        )
+    }
+}
+----
+// end-insert
+
+Can you see why this fails?
+What if we say that it fails with `java.lang.IllegalStateException: This sequence can be consumed only once.`?
+
+As we saw in <<streams-to-sequences>>, sequences cannot in general be consumed more than once.
+`lines.first()` and `lines.drop(1)` are both terminal operations, and when reading from a `Reader` we can't just go back and start again.
+We don't have an equivalent test that starts from a `List` of all the file lines, but if we did it would pass, because a `Sequence` from a `List` can be consumed again.
+
+In order to use our `Sequence` interface on data in files we are either going to have to load it all into memory, or find a way to fetch the first and rest of a `Sequence` without trying to read it twice.
+
+The secret is to destructure the `Sequence` with a function like this:
+
+// begin-insert: tags/table-reader.49:src/main/java/travelator/tablereader/table-reading.kt#destruct
+[source,kotlin]
+----
+fun <T> Sequence<T>.destruct()
+    : Pair<T, Sequence<T>>? {
+    val iterator = this.iterator()
+    return when {
+        iterator.hasNext() ->
+            iterator.next() to iterator.asSequence()
+        else -> null
+    }
+}
+----
+// end-insert
+
+This can be used thus:
+
+// begin-insert: tags/table-reader.49:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
+[source,kotlin]
+----
+@Test
+fun `read from reader`() {
+    val fileContents = """
+        H0,H1
+        row0field0,row0field1
+        row1field0,row1field1
+    """.trimIndent()
+    StringReader(fileContents).useLines { lines ->
+        val (first, rest) = lines.destruct()!!
+        val result = readTable(
+            first,
+            rest
+        ).toList()
+        assertEquals(
+            listOf(
+                mapOf("H0" to "row0field0", "H1" to "row0field1"),
+                mapOf("H0" to "row1field0", "H1" to "row1field1")
+            ),
+            result
+        )
+    }
+}
+----
+// end-insert
+
+That seems quite a high hoop to jump through to use the API in such a common case, so we can add a public API function:
+
+// begin-insert: tags/table-reader.50:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTableWithHeader(
+    lines: Sequence<String>,
+    splitter: (String) -> List<String> = splitOnComma
+): Sequence<Map<String, String>> =
+    lines.destruct()?.let { (first, rest) ->
+        readTable(
+            first,
+            rest,
+            splitter
+        )
+    } ?: emptySequence()
+
+fun readTable(
+    header: String,
+    lines: Sequence<String>,
+    splitter: (String) -> List<String> = splitOnComma
+): Sequence<Map<String, String>> = readTable(
+    lines,
+    headerProviderFrom(header, splitter),
+    splitter
+)
+----
+// end-insert
+
+We can call the new function from the tests:
+
+// begin-insert: tags/table-reader.50:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
+[source,kotlin]
+----
+@Test
+fun `read from reader`() {
+    val fileContents = """
+        H0,H1
+        row0field0,row0field1
+        row1field0,row1field1
+    """.trimIndent()
+    StringReader(fileContents).useLines { lines ->
+        val result = readTableWithHeader(lines).toList()
+        assertEquals(
+            listOf(
+                mapOf("H0" to "row0field0", "H1" to "row0field1"),
+                mapOf("H0" to "row1field0", "H1" to "row1field1")
+            ),
+            result
+        )
+    }
+}
+----
+// end-insert
+
+We are almost done.
+We really need a test to show what happens when there is only a header row (the `?: emptySequence()` expression in `readTableWithHeader`) - we'll see that in a minute.
+On the API front - we've now discovered that `readTable` that supplies the header row separately is practically useless given ++Sequence++s, so we should remove it in favour of the new `readTableWithHeader`.
+This requires a bit of refactoring of the tests too, the details of which we'll elide.
+
+The net result is a public API like this:
+
+// begin-insert: tags/table-reader.52:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+fun readTableWithHeader(
+    lines: Sequence<String>,
+    splitter: (String) -> List<String> = splitOnComma
+): Sequence<Map<String, String>> =
+    lines.destruct()?.let { (first, rest) ->
+        readTable(
+            rest,
+            headerProviderFrom(first, splitter),
+            splitter
+        )
+    } ?: emptySequence()
+
+fun readTable(
+    lines: Sequence<String>,
+    headerProvider: (Int) -> String = Integer::toString,
+    splitter: (String) -> List<String> = splitOnComma
+): Sequence<Map<String, String>> = lines.map {
+    parseLine(it, headerProvider, splitter)
+}
+----
+// end-insert
+
+The tests have been made really quite expressive now that we know what we are doing:
+
+// begin-insert: tags/table-reader.52:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
+[source,kotlin]
+----
+class TableReaderTests {
+    @Test
+    fun `empty input returns empty`() {
+        checkReadTable(
+            lines = emptyList(),
+            shouldReturn = emptyList()
+        )
+    }
+
+    @Test
+    fun `one line of input with default field names`() {
+        checkReadTable(
+            lines = listOf("field0,field1"),
+            shouldReturn = listOf(
+                mapOf("0" to "field0", "1" to "field1")
+            )
+        )
+    }
+
+    ...
+    @Test
+    fun `can specify header names`() {
+        val headers = mapOf(0 to "apple", 1 to "banana")
+        checkReadTable(
+            lines = listOf("field0,field1"),
+            withHeaderProvider = headers::getValue,
+            shouldReturn = listOf(
+                mapOf(
+                    "apple" to "field0",
+                    "banana" to "field1",
+                )
+            )
+        )
+    }
+
+    @Test
+    fun `readTableWithHeader takes headers from header line`() {
+        checkReadTableWithHeader(
+            lines = listOf(
+                "H0,H1",
+                "field0,field1"
+            ),
+            shouldReturn = listOf(
+                mapOf("H0" to "field0", "H1" to "field1")
+            )
+        )
+    }
+
+    ...
+}
+
+private fun checkReadTable(
+    lines: List<String>,
+    withHeaderProvider: (Int) -> String = Integer::toString,
+    shouldReturn: List<Map<String, String>>,
+) {
+    assertEquals(
+        shouldReturn,
+        readTable(
+            lines.asSequence().constrainOnce(),
+            headerProvider = withHeaderProvider,
+            splitter = splitOnComma
+        ).toList()
+    )
+}
+
+private fun checkReadTableWithHeader(
+    lines: List<String>,
+    withSplitter: (String) -> List<String> = splitOnComma,
+    shouldReturn: List<Map<String, String>>,
+) {
+    assertEquals(
+        shouldReturn,
+        readTableWithHeader(
+            lines.asSequence().constrainOnce(),
+            splitter = withSplitter
+        ).toList()
+    )
+}
+----
+// end-insert
