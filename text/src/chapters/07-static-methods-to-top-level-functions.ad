@@ -111,10 +111,6 @@ A shortlist is stored as an immutable list, and the functions for manipulating a
 [source,java]
 ----
 public class Shortlists {
-    public static <T> List<T> shortlistOf(Collection<T> items) {
-        return List.copyOf(items);
-    }
-
     public static <T> List<T> sorted(List<T> shortlist, Comparator<? super T> ordering) {
         return shortlist.stream().sorted(ordering).collect(toUnmodifiableList());
     }
@@ -134,10 +130,6 @@ public class Shortlists {
         return comparing(HasPrice::getPrice);
     }
 
-    public static <T extends HasPrice & HasRating> Comparator<T> byValue() {
-        return comparingDouble((T t) -> t.getRating() / t.getPrice()).reversed();
-    }
-
     ... and other comparators
 }
 ----
@@ -149,11 +141,6 @@ Converting this to Kotlin we get:
 [source,kotlin]
 ----
 object Shortlists {
-    @JvmStatic
-    fun <T> shortlistOf(items: Collection<T>): List<T> {
-        return java.util.List.copyOf(items)
-    }
-
     @JvmStatic
     fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>): List<T> {
         return shortlist.stream().sorted(ordering)
@@ -176,11 +163,6 @@ object Shortlists {
     @JvmStatic
     fun byPriceLowToHigh(): Comparator<HasPrice> {
         return comparing(HasPrice::price)
-    }
-
-    @JvmStatic
-    fun <T> byValue(): Comparator<T> where T : HasPrice, T : HasRating {
-        return comparingDouble { t: T -> t.rating / t.price }.reversed()
     }
 
     ... and other comparators
@@ -225,9 +207,6 @@ We have to manually add the annotation at the top of the file, and remove the `o
 package travelator
 
 ...
-
-fun <T> shortlistOf(items: Collection<T>) =
-    java.util.List.copyOf(items)
 
 fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>) =
     shortlist.stream().sorted(ordering).collect(toUnmodifiableList())
@@ -276,20 +255,13 @@ Extracting all the methods to public, top-level functions leaves the code lookin
 ----
 object Shortlists {
     @JvmStatic
-    fun <T> shortlistOf(items: Collection<T>): List<T> {
-        return _shortlistOf(items)
-    }
-
-    @JvmStatic
     fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>): List<T> {
         return _sorted(shortlist, ordering)
     }
 
     ... etc.
+    ... and other comparators
 }
-
-fun <T> _shortlistOf(items: Collection<T>) =
-    java.util.List.copyOf(items)
 
 fun <T> _sorted(shortlist: List<T>, ordering: Comparator<in T>) =
     shortlist.stream().sorted(ordering).collect(toUnmodifiableList())
@@ -344,20 +316,13 @@ package travelator
 
 object _Shortlists {
     @JvmStatic
-    fun <T> shortlistOf(items: Collection<T>): List<T> {
-        return travelator.shortlistOf(items)
-    }
-
-    @JvmStatic
     fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>): List<T> {
         return travelator.sorted(shortlist, ordering)
     }
 
     ... etc.
+    ... and other comparators
 }
-
-fun <T> shortlistOf(items: Collection<T>) =
-    java.util.List.copyOf(items)
 
 fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>) =
     shortlist.stream().sorted(ordering).collect(toUnmodifiableList())
@@ -376,9 +341,6 @@ We can tidy them up a bit more by using the Kotlin standard library instead of t
 // begin-insert: tags/static-to-object-to-functions.12:src/main/java/travelator/Shortlists.kt#functions
 [source,kotlin]
 ----
-fun <T> shortlistOf(items: Collection<T>) =
-    listOf(items)
-
 fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>) =
     shortlist.sortedWith(ordering)
 
@@ -390,9 +352,6 @@ fun byRating() =
 
 fun byPriceLowToHigh() =
     compareBy(HasPrice::price)
-
-fun <T> byValue() where T : HasPrice, T : HasRating =
-    compareByDescending<T> { it.rating / it.price }
 
 ... and other comparators
 ----
