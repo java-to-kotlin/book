@@ -231,10 +231,13 @@ fun <T> byValue() where T : HasPrice, T : HasRating =
 ----
 // end-insert
 
+
 This keeps our Java happy, but irritatingly breaks Kotlin code that was calling the methods.
 This was importing the methods as, for example `import travelator.Shortlists.sorted`, but Kotlin can't see top-level functions that way, even though they are hosted in a JVM class called `Shortlists`.
 Ho hum, the fix is to manually change to `import travelator.sorted`, or even remove the import altogether if the calling code is in the same package.
 Easy enough if the change affects a few classes, but if the change is wide-ranging, we should -- and can -- make better use of our IDE's refactoring tools.
+
+// TODO: talk more about trade-offs between text edits and automatic refactoring
 
 Let's revert and take another run at it.
 
@@ -367,6 +370,8 @@ That's also the easiest technique if you're writing new Java code that needs to 
 We can move a Kotlin top-level function between files within a package without changing the Kotlin source that calls it.
 But, unless we use a `file:@JvmName` annotation to fix things, a move will change the host class file, the name of which is compiled into the client code.
 If we publish Kotlin library code in a jar file, all is fine provided we compile against the same version of the library as we run against.
+
+// TODO simplify this, talk about binary compatibility, not build systems
 
 Unfortunately, build systems have to pick one version of each library from the set of versions declared by all dependencies.
 This can lead to running code compiled against one library version running against a newer version.
