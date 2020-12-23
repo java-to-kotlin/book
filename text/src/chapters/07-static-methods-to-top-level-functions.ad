@@ -7,6 +7,8 @@ When should we prefer top-level functions, and how do we refactor our way there 
 
 === Java Statics
 
+// TODO We don't need to explain classes, objects and statics to our readers.  Rewrite to explain differences between Java and Kotlin and how the compiler targets the JVM
+
 All values and functions in a Java program have to belong to a class: they are _members_ of that class.
 Java calls member-values _fields_, and member-functions _methods_.
 By default, fields values are per-instance of the class: different instances have different values.
@@ -22,7 +24,7 @@ The designers then carried this language design decision forward to the Java Vir
 
 .Static State
 ****
-In the early days of Java, static state was a lot more prevalent than it is today.
+In the early days of Java, static state was a lot more common than it is today.
 We wrote singletons, and argued about how to initialise them in a lazy but safe way.
 We used static fields to implement per-class caches of instances.
 Then the new millennium fad for testing code all-but killed static state.
@@ -72,16 +74,16 @@ For the same reason, while Kotlin does have top-level functions, they too are im
 === Kotlin Top-Level Functions, Objects and Companion Objects
 
 Kotlin allows functions (and properties and constants) to be declared outside of classes.
-In this case the compiler creates a class declaration with static members for the top-level declarations, as the JVM has nowhere else for them to go.
+In this case, because the JVM has nowhere else for them to go, the compiler generates a class with static members for the top-level declarations.
 By default, it derives the name of the class from the name of the file defining the functions.
 For example, functions defined in `top-level.kt` end up as static methods on a class called `Top_levelKt`.
 If we know the name of the class we can reference it from Java, and either static import or directly invoke `Top_levelKt.foo()`.
-If we don't like the name `Top_levelKt`, then we can add a `file:JvmName` annotation to the top of the file as we'll see later.
+If we don't like the name `Top_levelKt`, we can explicitly name the generated class by adding a `file:JvmName` annotation to the top of the file, as we'll see later.
 
 As well as these top-level functions, Kotlin also allows us to define properties and functions scoped to a class like Java.
 Instead of just marking these as `static`, Kotlin borrows from Scala and collects them together into `object` declarations.
-`object` declarations define singletons - there is only one instance of each type.
-All the members of an `object` will be compiled to members of a class with the same name as the object.
+An `object` declaration define a singleton - there is only one instance of each type.
+All the members of an `object` will be compiled to members of a class with the name of the object.
 They won't actually be static methods unless specifically marked with an `@JvmStatic` though.
 This is because Kotlin allows objects to extend other types, and that's incompatible with static declarations.
 
@@ -91,10 +93,9 @@ It also makes everything just a bit too cumbersome if we just want to define one
 
 All things being equal, in Kotlin we favour top-level functions over methods on an `object`.
 When referenced from Kotlin, top-level declarations can be moved from file to file within a package without affecting client code (but see the caveat in <<moving-top-level-functions>>.
-This flexibility is nice, as is the lack of irritating indentation associated with objects.
-We will use an `object` instead of top-level functions where we need the ability to implement an interface.
+We use an `object` instead of top-level functions where we need the ability to implement an interface.
 We have no choice but to use a `companion object` when we need to mix static and non-static behaviour within a class.
-This happens largely for factory methods, allowing us to write for example `MyType.of(...)`, and also access private constructors.
+This happens largely for factory methods, allowing us to write for example `MyType.of(...)`, and allow the methods of the companion object to access private features of the class.
 
 === Refactoring From Static Methods to Top-Level Functions
 
