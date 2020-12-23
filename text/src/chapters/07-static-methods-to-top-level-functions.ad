@@ -7,7 +7,7 @@ When should we prefer top-level functions, and how do we refactor our way there 
 
 === Java Statics
 
-// TODO We don't need to explain classes, objects and statics to our readers.  Rewrite to explain differences between Java and Kotlin and how the compiler targets the JVM
+// TODO We don't need to explain classes, objects and statics to our readers.  Rewrite to explain differences between Java and Kotlin and how the compiler targets the JVM.
 
 All values and functions in a Java program have to belong to a class: they are _members_ of that class.
 Java calls member-values _fields_, and member-functions _methods_.
@@ -29,7 +29,7 @@ We wrote singletons, and argued about how to initialise them in a lazy but safe 
 We used static fields to implement per-class caches of instances.
 Then the new millennium fad for testing code all-but killed static state.
 That's because it's very difficult to isolate one test from another when they are coupled by state, and very hard to uncouple them when that state is static and so shared between all tests in a JVM.
-(Note that _state_ here refers to mutable data. Immutable data is less of an issue.)
+(Note that _state_ here refers to mutable data. Immutable data -- constants -- are less of an problem.)
 
 So we learned to keep otherwise-static state in object fields and used dependency injection to arrange for there to be one shared instance of the object in our application.
 When we say "dependency injection" here your authors mean "passing an object to a constructor", rather than the use of a framework.
@@ -173,7 +173,7 @@ object Shortlists {
 
 In <<java-to-kotlin-classes>>, we saw that converting a Java class with static and non-static methods produced a Kotlin class with a companion object.
 Here we have no class, just a top-level object.
-That's because the Java in this case had no non-static methods, so they don't have to share a namespace with any instances.
+That's because in this case the Java had no non-static methods, so they don't have to share a namespace with any instance methods.
 Had the conversion instead produced a class with a companion object, that would have been a sign that this is a less suitable candidate for conversion to top-level functions.
 
 We can't just move the functions out of the scope of the object, because they are called from Java, and Java doesn't understand top-level Kotlin functions.
@@ -187,7 +187,7 @@ var reordered = Shortlists.sorted(items, Shortlists.byValue());
 ----
 // end-insert
 
-The methods of the `Shortlists` class are usually imported statically by the code that uses them, and are named to be read better that way:
+The methods of the `Shortlists` class are usually imported statically by the code that uses them, and are named to read better that way:
 
 // begin-insert: tags/static-to-object-to-functions.5:src/test/java/travelator/ShortlistsTest.java#example_usage_imported
 [source,java]
@@ -198,8 +198,9 @@ var reordered = sorted(items, byPriceLowToHigh());
 
 We can't _just_ move the methods out of the scope of the object, but we _can_ move them if we tell the Kotlin compiler that we would like it to host the top-level functions in a class called `Shortlists`.
 That's the job of the `file:JvmName` annotation we mentioned earlier.
-However, There's no nice automated refactoring here.
-We have to manually add the annotation at the top of the file, and remove the `object` scope and `@JvmStatic` annotations to get:
+However, There's no nice automated refactoring that can transform an object to a file of top-level functions that will appear the same to Java code.
+
+We can manually add the annotation at the top of the file, and remove the `object` scope and `@JvmStatic` annotations to get:
 
 // begin-insert: tags/static-to-object-to-functions.11:src/main/java/travelator/Shortlists.kt#all_functions
 [source,kotlin]
@@ -233,7 +234,7 @@ fun <T> byValue() where T : HasPrice, T : HasRating =
 // end-insert
 
 
-This keeps our Java happy, but irritatingly breaks Kotlin code that was calling the methods.
+This keeps our Java happy, but irritatingly breaks any Kotlin code that was calling the methods.
 This was importing the methods as, for example `import travelator.Shortlists.sorted`, but Kotlin can't see top-level functions that way, even though they are hosted in a JVM class called `Shortlists`.
 Ho hum, the fix is to manually change to `import travelator.sorted`, or even remove the import altogether if the calling code is in the same package.
 Easy enough if the change affects a few classes, but if the change is wide-ranging, we should -- and can -- make better use of our IDE's refactoring tools.
@@ -384,17 +385,17 @@ That's also the easiest technique if you're writing new Java code that needs to 
 [WARNING]
 ====
 We can move a Kotlin top-level function between files within a package without changing the Kotlin source that calls it.
-But, unless we use a `file:@JvmName` annotation to fix things, a move will change the host class file, the name of which is compiled into the client code.
-If we publish Kotlin library code in a jar file, all is fine provided we compile against the same version of the library as we run against.
+However, in the compiled output that function will now be defined as a static method of a different JVM class.
 
-// TODO simplify this, talk about binary compatibility, not build systems
+If we publish Kotlin library code in a JAR file, all is fine provided dependent code is recompiled against the new version.
+The Kotlin compiler generates classfiles with metadata sections that let it map Kotlin names to JVM classes and methods.
+All may _not_ be fine if dependent code uses our JAR as a binary dependency, and upgrades without recompiling.
+The JVM doesn't use the metadata that the Kotlin compiler generated.
+If a top-level function has moved from one class to another between versions of a binary dependency, dependent code can get `NoSuchMethodError` thrown at runtime.
 
-Unfortunately, build systems have to pick one version of each library from the set of versions declared by all dependencies.
-This can lead to running code compiled against one library version running against a newer version.
-If this happens, and a called top-level function has moved, we can get `NoSuchMethodError` thrown at runtime.
-None of our tests or example code will have had to change to warn us about the breakage - we just have to take extra care if we move top-level functions published in a library.
-
-We can maintain binary compatibility by using the `@JvmMultifileClass` and `@JvmName` annotations to compile top-level declarations of multiple Kotlin source files to the same JVM classfile.
+We can use the `@JvmMultifileClass` and `@JvmName` annotations to control how our top-level declarations appear in JVM classfiles, so that moving declarations between source files won't break binary compatibility.
+However, non of our Kotlin test or example code will have changed, so we can't rely on them to warn is about this kind of breakage.
+We just have to take extra care if we move top-level functions published in a library.
 ====
 
 === Conclusion
