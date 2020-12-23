@@ -152,7 +152,7 @@ fun Iterable<String>.snipped(tagName: String?, kotlinVersion: String): List<Stri
                     exdent = ""
                 }
             is Ellipsis ->
-                if (line.appliesToTag(tagName)) {
+                if (currentRegionIsSelected && line.appliesToTag(tagName)) {
                     if (line.ellipsis.isNotEmpty()) result.add(line.replacementLine)
                     if (line.mute) currentRegionIsSelected = false
                 }
