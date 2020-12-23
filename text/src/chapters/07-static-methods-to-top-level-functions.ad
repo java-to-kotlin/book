@@ -303,20 +303,14 @@ That will allow us to safely switch from object to functions by manually editing
 
 As we do the renames, IntelliJ changes the bodies of the object methods to refer to the functions by fully qualified name, to ensure there is no name clash.
 
-When we're done, we can use the `@file:JvmName` annotation to make the Java code call the top level functions.
-This now takes only two small edits in the `Shortlists.kt` file, and no other code changes.
-We add the annotation at the top of the file, and insert an underscore at the start of the object's name -- _not_ with a Rename refactoring, but by editing the text.
-The JVM class name `Shortlists` refers to the file of top level functions instead of the object declaration.
-
-// begin-insert: tags/static-to-object-to-functions.10:src/main/java/travelator/Shortlists.kt#functions
+// begin-insert: tags/static-to-object-to-functions.9:src/main/java/travelator/Shortlists.kt#functions
 [source,kotlin]
 ----
-@file:JvmName("Shortlists")
 package travelator
 
-...
+... imports
 
-object _Shortlists {
+object Shortlists {
     @JvmStatic
     fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>): List<T> {
         return travelator.sorted(shortlist, ordering)
@@ -329,6 +323,27 @@ fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>) =
     shortlist.stream().sorted(ordering).collect(toUnmodifiableList())
 
 ... etc.
+----
+// end-insert
+
+When we're done, we can use the `@file:JvmName` annotation to make the Java code call the top level functions.
+This now takes only two small edits in the `Shortlists.kt` file, and no other code changes.
+We add the annotation at the top of the file, and insert an underscore at the start of the object's name -- _not_ with a Rename refactoring, but by editing the text.
+The JVM class name `Shortlists` refers to the file of top level functions instead of the object declaration.
+
+// begin-insert: tags/static-to-object-to-functions.10:src/main/java/travelator/Shortlists.kt#switch
+[source,kotlin]
+----
+@file:JvmName("Shortlists")
+package travelator
+
+...
+
+object _Shortlists {
+    ...
+}
+
+...
 ----
 // end-insert
 
