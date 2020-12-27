@@ -148,7 +148,7 @@ Not only that, but by using standard types, we know that we have rich Kotlin API
 
 It's always a good idea to have a test for empty input - the more complicated our algorithm the more it is likely to fail in this case.
 But it's also a poor parser that always returns an empty result, so let's crack on.
-Your authors are still Extreme Programmers at heart, so lets add a failing test first to give us a reason to change the implementation:
+Your authors are still Extreme Programmers at heart, so let's add a failing test first to give us a reason to change the implementation:
 
 // begin-insert: tags/table-reader.3:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
 [source,kotlin]
@@ -1104,11 +1104,13 @@ Nevertheless, values like Kotlin's `List<String>` are not without their problems
 
 === Sequences
 
-The design as it is suffers from one major problem - it works on a `List<String>` loaded into memory, and produces a `List<Map<String, String>>`
+The design as it is suffers from one major issue - it works on a `List<String>` loaded into memory, and produces a `List<Map<String, String>>`
 Roughly speaking, the memory footprint of `readTable` is twice the number of bytes of the input, which is probably twice the size of a UTF-8 encoded file containing the data.
-In order to process large files it would be nice to work in terms of ++Sequence++s rather than ++List++s, as these can keep only one item in memory at a time.
+In order to process large files it would be nice to work in terms of ++Sequence++s rather than ++List++s, as these can keep only one item a pipeline in memory at a time.
 
-We can convert from one to the other very easily, so lets leave our tests alone and introduce `Sequence` variants that the current `List` functions can delegate to.
+As we saw in <<streams-to-sequences>>, we can convert a `Sequence` to a `List` and back (with some caveats) very easily.
+If our aim is to reduce our memory footprint, there is little point in implementing a `Sequence` API in terms of a `List` API, so we will write the `Sequence` versions and delegate the `List` versions to them.
+If we're clever we can test through the convenient `List` API thus getting two sets of tests for the price of one.
 
 `readTable` currently looks like this:
 
@@ -1126,7 +1128,7 @@ fun readTable(
 ----
 // end-insert
 
-Let's see if that works converting to and from `Sequence` in the middle:
+We can try out our plan by converting to and from `Sequence` in the middle:
 
 // begin-insert: tags/table-reader.40:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
@@ -1145,7 +1147,7 @@ fun readTable(
 ----
 // end-insert
 
-That passes the tests, and they all funnel through there, so that's reassuring.
+That passes the tests, and they all funnel through this function, so that's reassuring.
 Now we can extract the inner workings into a function taking and returning a `Sequence` - this is extracting part of a chain as described in <<functions-to-extension-functions>>.
 
 // begin-insert: tags/table-reader.41:src/main/java/travelator/tablereader/table-reading.kt#excerpt
@@ -1172,7 +1174,7 @@ fun readTable(
 ----
 // end-insert
 
-Still passing, excellent.
+This still passing, excellent.
 Now for the outer `readTableWithHeader` - it looks like this:
 
 // begin-insert: tags/table-reader.42:src/main/java/travelator/tablereader/table-reading.kt#excerpt
@@ -1230,7 +1232,7 @@ fun readTableWithHeader(
 ----
 // end-insert
 
-That expression between `return` and `.toList()` is the function we want - extract it to a new function also named `readTableWithHeader`:
+That expression between `return` and `.toList()` is the function we want - we extract it to a new function also named `readTableWithHeader`:
 
 // begin-insert: tags/table-reader.45:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
@@ -1256,7 +1258,7 @@ fun readTableWithHeader(
 ----
 // end-insert
 
-This just leaves tidying up by inlining `lines1`, converting to a single expression, and changing the ordering and defaults for the `Sequence` version of `readTableWithHeader`:
+This just leaves tidying up by inlining `lines1`, converting to a single expression, and changing the parameter ordering and defaults for the `Sequence` version of `readTableWithHeader`:
 
 // begin-insert: tags/table-reader.46:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
@@ -1286,9 +1288,9 @@ fun readTableWithHeader(
 
 At this point, we have two versions of `readTable` and `readTableWithHeaders`, a `List` and a `Sequence` version of each.
 Given how easy it is to convert to and from `List` and `Sequence`, maybe the `List` variants aren't paying their way?
-While we don't have any production uses, let's just move them into the tests - that way the tests are and the production code are kept simple.
+While we don't have any production uses, let's just move their definitions into the tests - that way the tests can use them to stay simple, and the production code is kept minimal.
 
-Here then is the entire public interface:
+Here then is the entire public interface to our table parser:
 
 // begin-insert: tags/table-reader.47:src/main/java/travelator/tablereader/table-reading.kt#public
 [source,kotlin]
@@ -1357,7 +1359,7 @@ private fun String.splitFields(separators: String): List<String> =
 ----
 // end-insert
 
-You can see that we took the liberty of writing a comment explaining why `splitFields` had to exist - apart from that we think that the code is pretty self-explanitory.
+You can see that we took the liberty of writing a comment explaining why `splitFields` had to exist - apart from that we think that the code is pretty self-explanatory.
 Sometimes we're wrong about that.
 If it takes us more than a glance to work out what is going on next time we read this file, then we'll take the opportunity then to add comments, or better, refactor to be more expressive.
 
@@ -1365,6 +1367,7 @@ If it takes us more than a glance to work out what is going on next time we read
 
 This seems a fine interface in the abstract, but the first time we come to use it in anger, we hit on a snag.
 Let's illustrate the problem with a test.
+This calls the `Sequence` version of `readTableWithHeader`:
 
 // begin-insert: tags/table-reader.48:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
 [source,kotlin]
@@ -1398,9 +1401,10 @@ What if we say that it fails with `java.lang.IllegalStateException: This sequenc
 
 As we saw in <<streams-to-sequences>>, sequences cannot in general be consumed more than once.
 `lines.first()` and `lines.drop(1)` are both terminal operations, and when reading from a `Reader` we can't just go back and start again.
-We don't have an equivalent test that starts from a `List` of all the file lines, but if we did it would pass, because a `Sequence` from a `List` can be consumed again.
+We don't have an equivalent test that starts from a `List` of all the file lines, but if we did it would pass, because a `Sequence` from a `List` _can_ be consumed again.
 
 In order to use our `Sequence` interface on data in files we are either going to have to load it all into memory, or find a way to fetch the first and rest of a `Sequence` without trying to read it twice.
+Given that we introduced the `Sequence` specifically in order to avoid loading all the data into memory, let's go with the latter.
 
 The secret is to destructure the `Sequence` with a function like this:
 
@@ -1419,7 +1423,9 @@ fun <T> Sequence<T>.destruct()
 ----
 // end-insert
 
-This can be used thus:
+This consumes the `Sequence` receiver (by calling `iterator()`), but creates another `Sequence` from any remains that have not been consumed (`iterator.asSequence()`).
+It returns `null` if `this` is empty, otherwise a `Pair` of the head and the tail.
+We can use it to get our test to pass as follows:
 
 // begin-insert: tags/table-reader.49:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
 [source,kotlin]
@@ -1449,7 +1455,7 @@ fun `read from reader`() {
 ----
 // end-insert
 
-That seems quite a high hoop to jump through to use the API in such a common case, so we can add a public API function:
+Knowing to destruct the `Sequence` in order to call `readTableWithHeader` is a high hoop to jump through to use the API in such a common case, so we'll move the logic into a public API function `readTableWithHeader` that takes the header and body in a single `Sequence`.
 
 // begin-insert: tags/table-reader.50:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
@@ -1478,7 +1484,7 @@ fun readTableWithHeader(
 ----
 // end-insert
 
-We can call the new function from the tests:
+We can call the new function from the tests to show that it works:
 
 // begin-insert: tags/table-reader.50:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
 [source,kotlin]
@@ -1506,9 +1512,9 @@ fun `read from reader`() {
 ----
 // end-insert
 
-We are almost done.
-We really need a test to show what happens when there is only a header row (the `?: emptySequence()` expression in `readTableWithHeader`) - we'll see that in a minute.
-On the API front - we've now discovered that `readTable` that supplies the header row separately is practically useless given ++Sequence++s, so we should remove it in favour of the new `readTableWithHeader`.
+We are almost done, we promise.
+We really need a test to show what happens when there is only a header row (the `?: emptySequence()` expression in `readTableWithHeader`) - you can trust us sort this out.
+On the API front - we've now discovered that `readTableWithHeader` that supplies the header row separately is practically useless given ++Sequence++s, so we remove it in favour of the new `readTableWithHeader`.
 This requires a bit of refactoring of the tests too, the details of which we'll elide.
 
 The net result is a public API like this:
@@ -1538,7 +1544,9 @@ fun readTable(
 ----
 // end-insert
 
-The tests have been made really quite expressive now that we know what we are doing:
+We've can also take the opportunity to make the tests more expressive now that we know what we are doing.
+This is an important step - finding the patterns in our tests and expressing them in functions like the `checkReadTable` that follows both help readers of the tests to see what the code is doing, and can help us find gaps in our test coverage.
+For example, what is the behaviour of our parser when there are more fields than headers, or vice-versa.
 
 // begin-insert: tags/table-reader.52:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
 [source,kotlin]
@@ -1624,6 +1632,7 @@ private fun checkReadTableWithHeader(
 }
 ----
 // end-insert
+
 
 
 What if we have multiple fields with the same name?
