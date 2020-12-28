@@ -1636,9 +1636,214 @@ private fun checkReadTableWithHeader(
 === Comparison with Commons CSV
 
 We started this chapter by saying that in most real-world situations, we would reach for Apache Commons CSV rather than rolling our own parser.
-Before we finish this chapter, let's compare our API with that of the Commons equivalent.
+Before we finish the chapter, let's compare our API with that of the Commons equivalent.
 
+The most common use case for a table parser is to read a file with known columns, translating each row into some data class that represents the data there.
+Here is how we do that with our parser, expressed as a test that we probably should have written before now!
 
+// begin-insert: tags/table-reader.53:src/test/java/travelator/tablereader/CsvExampleTests.kt#ours
+[source,kotlin]
+----
+@Test
+fun example() {
+    reader.useLines { lines ->
+        val measurements: Sequence<Measurement> =
+            readTableWithHeader(lines, splitOnComma)
+                .map { record ->
+                    Measurement(
+                        t = record["time"]!!.toDouble(),
+                        x = record["x"]!!.toDouble(),
+                        y = record["y"]!!.toDouble(),
+                    )
+                }
+        assertEquals(
+            expected,
+            measurements.toList()
+        )
+    }
+}
+----
+// end-insert
+
+Real-world code would probably need more error handling (we see how in <<bonus-error-handling>>), but this shows the basic use case.
+We use the Kotlin `Reader.useLines` extension function to produce a `Sequence<String>`, which our parser transforms into a `Sequence<Map<String, String>>`.
+We can `map` over the ++Map++s, indexing by field name to extract the data we need and transform it the type (`Measurement`) that we actually want.
+This design didn't happen by accident - it was the decision that we made at the very start, albeit with `List` rather than `Sequence` for simplicity.
+
+Here is the Commons CSV version:
+
+// begin-insert: tags/table-reader.53:src/test/java/travelator/tablereader/CsvExampleTests.kt#commons
+[source,kotlin]
+----
+@Test
+fun `commons csv`() {
+    reader.use { reader ->
+        val parser = CSVParser.parse(reader, CSVFormat.DEFAULT)
+        val measurements: Sequence<Measurement> = parser
+            .asSequence()
+            .map { record ->
+                Measurement(
+                    t = record["time"]!!.toDouble(),
+                    x = record["x"]!!.toDouble(),
+                    y = record["y"]!!.toDouble(),
+                )
+            }
+        assertEquals(
+            expected,
+            measurements.toList()
+        )
+    }
+}
+----
+// end-insert
+
+It too has a static function entry point, `CSVParser.parse`, which also takes configuration about the table format (in this case `CSVFormat.DEFAULT`, in ours `splitOnComma`).
+The Commons `parse` takes a `Reader` though, rather than a `Sequence<String>`.
+This allows it to handle newlines in the middle of fields, but leads to a proliferation of `parse` methods - there are variants taking `Path`, `File`, `InputStream`, `String` and `URL`.
+We suspect that the developers felt these were necessary because Java provides little support for converting between these types of sources and disposing of them safely.
+The `CSVParser` returned by the `parse` static method has a lot of code to manage resources that our API delegates to the workings of `Sequence` and Kotlin lifecycle functions like `use` and `useLines`.
+
+On the subject of lines, you have to read between them in the code example to see it, but `CSVParser` implements `<Iterable<CSVRecord>>`.
+This is a clever design choice, as it allows Java developers to use `for` to loop over the records, or Kotlin developers to convert to a `Sequence` with `.asSequence`.
+Actually the Kotlin usability is due to the design of the Kotlin standard library building on the same `Iterable` abstraction that the Apache developers also alighted on.
+
+Moving on, the code to create an individual `Measurement` looks identical in both examples:
+// begin-insert: tags/table-reader.53:src/test/java/travelator/tablereader/CsvExampleTests.kt#map
+[source,kotlin]
+----
+.map { record ->
+    Measurement(
+        t = record["time"]!!.toDouble(),
+        x = record["x"]!!.toDouble(),
+        y = record["y"]!!.toDouble(),
+    )
+}
+----
+// end-insert
+
+While with our parser the type of `record` is <Map<String, String>>, in the Commons case it is `CSVRecord`.
+`CSVRecord` has a `get(String)` method, which is how `record["time"]` etc are resolved.
+It also has methods `get(int)` to retrieve a field by index, where we could use `Map.values[Int]`;
+`size()` rather than `Map.size()`, and `isSet(String)` where `Map.hasKey(String)` would do.
+Basically `CSVRecord` is having to reproduce the `Map` interface by hand, rather than just _being_ a `Map`.
+Why?
+Because, as we discussed in <<java-to-kotlin-collections>>, the Java `Map` interface is mutable, and mutation makes no sense in the context of reading fields from a file - mutations certainly aren't going to be written back to the file.
+When programming in Java we find ourselves having to create new types to solve problems, where in Kotlin we can express operations in standard types and enjoy the richness of the Kotlin API on those types.
+
+One area in which the Commons library Excels, is its provision of ready-made parser defaults.
+These are expressed as constants in the `CSVFormat` class - we've seen `CSVFormat.DEFAULT`, but there are many others, including `CSVFormat.EXCEL`.
+Armed with a `CSVFormat` you can pass it to the `CSVParser.parse` method as we saw, or use it directly, for example `CSVFormat.EXCEL.parse(reader)`.
+Can we provide this facility without defining new types?
+How about:
+
+// begin-insert: tags/table-reader.54:src/test/java/travelator/tablereader/CsvExampleTests.kt#extension
+[source,kotlin]
+----
+@Test
+fun example2() {
+    reader.use { reader ->
+        val measurements = splitOnComma.readTableWithHeader(reader)
+            .map { record ->
+                Measurement(
+                    t = record["time"]!!.toDouble(),
+                    x = record["x"]!!.toDouble(),
+                    y = record["y"]!!.toDouble(),
+                )
+            }
+        assertEquals(
+            expected,
+            measurements.toList()
+        )
+    }
+}
+----
+// end-insert
+
+Here `splitOnComma.readTableWithHeader(reader)` is invoking an extension function on the function type:
+
+// begin-insert: tags/table-reader.54:src/main/java/travelator/tablereader/table-reading.kt#extension
+[source,kotlin]
+----
+fun ((String) -> List<String>).readTableWithHeader(
+    reader: StringReader
+): Sequence<Map<String, String>> =
+    readTableWithHeader(reader.buffered().lineSequence(), this)
+----
+// end-insert
+
+In reality, `CSVFormat` represents a whole package of strategies for escaping rules, what to do with blank lines etc, not just how to split a line.
+When our parser grows these facilities, then we will probably want to create a data class to collect them.
+Until that point, it is truly impressive how much progress we have been able to make using just the built-in types.
+
+There is one particular feature that the Commons interface provides that ours doesn't, and that we will want to add a type to implement.
+Commons CSV has `CSVParser.getHeaderNames` to provide access to the header information.
+Can we add this facility without modifying our current API?
+
+For many inputs we could just call `Map.keys` on the first of the output `Sequence`, but this won't work if the table has no rows, only a header.
+In order to return header information _and_ the parsed records we could return a `Pair<List<String>, Sequence<Map<String, String>>`, but this will force our current clients to discard the first of the pair.
+Instead, we can return a type that implements `Sequence<Map<String, String>>`, but also has a header property.
+We'll spare the reader the refactoring steps, but this way all our current callers remain unchanged, but we can access `headers` when required:
+
+// begin-insert: tags/table-reader.55:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
+[source,kotlin]
+----
+@Test
+fun `Table contains headers`() {
+    val result: Table = readTableWithHeader(
+        listOf(
+            "H0,H1",
+            "field0,field1"
+        ).asSequence()
+    )
+    assertEquals(
+        listOf("H0", "H1"),
+        result.headers
+    )
+}
+
+@Test
+fun `Table contains empty headers for empty input`() {
+    assertEquals(
+        emptyList<String>(),
+        readTableWithHeader(emptySequence()).headers
+    )
+}
+----
+// end-insert
+
+Here is the implementation:
+
+// begin-insert: tags/table-reader.55:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+[source,kotlin]
+----
+class Table(
+    val headers: List<String>,
+    val records: Sequence<Map<String, String>>
+) : Sequence<Map<String, String>> by records
+
+fun readTableWithHeader(
+    lines: Sequence<String>,
+    splitter: (String) -> List<String> = splitOnComma
+): Table =
+    lines.destruct()?.let { (first, rest) ->
+        tableOf(splitter, first, rest)
+    } ?: Table(emptyList(), emptySequence())
+
+private fun tableOf(
+    splitter: (String) -> List<String>,
+    first: String,
+    rest: Sequence<String>
+): Table {
+    val headers = splitter(first)
+    val sequence = readTable(
+        rest,
+        headerProviderFrom(headers),
+        splitter
+    )
+    return Table(headers, sequence)
+}
+----
+// end-insert
 
 
 What if we have multiple fields with the same name?
