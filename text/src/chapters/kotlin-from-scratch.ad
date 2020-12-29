@@ -1678,7 +1678,10 @@ Here is the Commons CSV version:
 @Test
 fun `commons csv`() {
     reader.use { reader ->
-        val parser = CSVParser.parse(reader, CSVFormat.DEFAULT)
+        val parser = CSVParser.parse(
+            reader,
+            CSVFormat.DEFAULT.withFirstRecordAsHeader()
+        )
         val measurements: Sequence<Measurement> = parser
             .asSequence()
             .map { record ->
@@ -1845,9 +1848,6 @@ private fun tableOf(
 ----
 // end-insert
 
+=== Conclusion
 
-What if we have multiple fields with the same name?
-What if we have fields with embedded LF?
-Why not extension functions?
-Querying field names.
-Getting fields by index
+TODO
