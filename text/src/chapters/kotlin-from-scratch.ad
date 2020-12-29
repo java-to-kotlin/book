@@ -1099,17 +1099,17 @@ We check it in and relax for a few minutes, before coming back to take stock.
 We now have the basics of a CSV or TSV parser, with no new types introduced.
 This is often the way with a more functional approach.
 The grain of Kotlin is to leverage the rich abstractions provided by the standard library, where Java programs are more likely to define new types.
-Your authors think that one reason for the difference is that Kotlin's support for value-types is so much better, and these are more predictably composed that Java's mutable objects.
-Nevertheless, values like Kotlin's `List<String>` are not without their problems.
+One reason for the difference is that Kotlin's support for value-types (<<beans-to-values>>), is so much better, and these are more predictably composed that Java's mutable objects.
 
 === Sequences
 
-The design as it is suffers from one major issue - it works on a `List<String>` loaded into memory, and produces a `List<Map<String, String>>`
+Value types may make for APIs composed of predictable calculations (<<calculations>>), but they can bring their own problems.
+Our API design as it is suffers from one major issue - it works on a `List<String>` loaded into memory, and produces a `List<Map<String, String>>`
 Roughly speaking, the memory footprint of `readTable` is twice the number of bytes of the input, which is probably twice the size of a UTF-8 encoded file containing the data.
-In order to process large files it would be nice to work in terms of ++Sequence++s rather than ++List++s, as these can keep only one item a pipeline in memory at a time.
+In order to process large files it would be nice to work in terms of ++Sequence++s rather than ++List++s, as if necessary these can keep only one item in a pipeline in memory at a time.
 
 As we saw in <<streams-to-sequences>>, we can convert a `Sequence` to a `List` and back (with some caveats) very easily.
-If our aim is to reduce our memory footprint, there is little point in implementing a `Sequence` API in terms of a `List` API, so we will write the `Sequence` versions and delegate the `List` versions to them.
+We could implement a `Sequence` API in terms of our existing `List` API, but as our aim is to reduce our memory footprint, we will write the `Sequence` versions and delegate the `List` versions to them.
 If we're clever we can test through the convenient `List` API thus getting two sets of tests for the price of one.
 
 `readTable` currently looks like this:
@@ -1128,7 +1128,7 @@ fun readTable(
 ----
 // end-insert
 
-We can try out our plan by converting to and from `Sequence` in the middle:
+We can try out our plan by converting to and from `Sequence` in the middle of the pipeline:
 
 // begin-insert: tags/table-reader.40:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
@@ -1194,7 +1194,7 @@ fun readTableWithHeader(
 // end-insert
 
 We want to produce a `Sequence` version of this.
-It's a little around-the-houses, but if we inline the `readTable` call there:
+It's a little around-the-houses, but if we first inline the `readTable` call there:
 
 // begin-insert: tags/table-reader.43:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
@@ -1286,7 +1286,7 @@ fun readTableWithHeader(
 ----
 // end-insert
 
-At this point, we have two versions of `readTable` and `readTableWithHeaders`, a `List` and a `Sequence` version of each.
+At this point, we have two versions of `readTable` and `readTableWithHeader`, a `List` and a `Sequence` version of each.
 Given how easy it is to convert to and from `List` and `Sequence`, maybe the `List` variants aren't paying their way?
 While we don't have any production uses, let's just move their definitions into the tests - that way the tests can use them to stay simple, and the production code is kept minimal.
 
@@ -1514,8 +1514,8 @@ fun `read from reader`() {
 
 We are almost done, we promise.
 We really need a test to show what happens when there is only a header row (the `?: emptySequence()` expression in `readTableWithHeader`) - you can trust us sort this out.
-On the API front - we've now discovered that `readTableWithHeader` that supplies the header row separately is practically useless given ++Sequence++s, so we remove it in favour of the new `readTableWithHeader`.
-This requires a bit of refactoring of the tests too, the details of which we'll elide.
+On the API front - we've now discovered that the `readTableWithHeader` that supplies the header row separately is practically useless given a `Sequence`, so we remove it in favour of the new version.
+This requires a bit of refactoring of the tests too, the details of which we'll gloss over.
 
 The net result is a public API like this:
 
@@ -1544,7 +1544,7 @@ fun readTable(
 ----
 // end-insert
 
-We've can also take the opportunity to make the tests more expressive now that we know what we are doing.
+Now that the API has crystallised around two functions, we can also take the opportunity to make the tests more expressive.
 This is an important step - finding the patterns in our tests and expressing them in functions like the `checkReadTable` that follows both help readers of the tests to see what the code is doing, and can help us find gaps in our test coverage.
 For example, what is the behaviour of our parser when there are more fields than headers, or vice-versa.
 
@@ -1638,7 +1638,7 @@ private fun checkReadTableWithHeader(
 We started this chapter by saying that in most real-world situations, we would reach for Apache Commons CSV rather than rolling our own parser.
 Before we finish the chapter, let's compare our API with that of the Commons equivalent.
 
-The most common use case for a table parser is to read a file with known columns, translating each row into some data class that represents the data there.
+The most common use case for a table parser is to read a file with known columns, translating each row into some data class.
 Here is how we do that with our parser, expressed as a test that we probably should have written before now!
 
 // begin-insert: tags/table-reader.53:src/test/java/travelator/tablereader/CsvExampleTests.kt#ours
@@ -1667,7 +1667,7 @@ fun example() {
 
 Real-world code would probably need more error handling (we see how in <<bonus-error-handling>>), but this shows the basic use case.
 We use the Kotlin `Reader.useLines` extension function to produce a `Sequence<String>`, which our parser transforms into a `Sequence<Map<String, String>>`.
-We can `map` over the ++Map++s, indexing by field name to extract the data we need and transform it the type (`Measurement`) that we actually want.
+We can `map` over the ++Map++s, indexing by field name to extract the data we need and transform it to the type (`Measurement`) that we actually want.
 This design didn't happen by accident - it was the decision that we made at the very start, albeit with `List` rather than `Sequence` for simplicity.
 
 Here is the Commons CSV version:
@@ -1700,15 +1700,16 @@ fun `commons csv`() {
 ----
 // end-insert
 
-It too has a static function entry point, `CSVParser.parse`, which also takes configuration about the table format (in this case `CSVFormat.DEFAULT`, in ours `splitOnComma`).
+It too has a static function entry point, `CSVParser.parse`, which also takes configuration about the table format (in this case `CSVFormat.DEFAULT.withFirstRecordAsHeader()`, in ours `splitOnComma`).
+We have two functions to differentiate between files with or without headers, the Apache API rolls this into the `CSVFormat`.
 The Commons `parse` takes a `Reader` though, rather than a `Sequence<String>`.
 This allows it to handle newlines in the middle of fields, but leads to a proliferation of `parse` methods - there are variants taking `Path`, `File`, `InputStream`, `String` and `URL`.
 We suspect that the developers felt these were necessary because Java provides little support for converting between these types of sources and disposing of them safely.
 The `CSVParser` returned by the `parse` static method has a lot of code to manage resources that our API delegates to the workings of `Sequence` and Kotlin lifecycle functions like `use` and `useLines`.
 
 On the subject of lines, you have to read between them in the code example to see it, but `CSVParser` implements `<Iterable<CSVRecord>>`.
-This is a clever design choice, as it allows Java developers to use `for` to loop over the records, or Kotlin developers to convert to a `Sequence` with `.asSequence`.
-Actually the Kotlin usability is due to the design of the Kotlin standard library building on the same `Iterable` abstraction that the Apache developers also alighted on.
+This is a clever design choice, as it allows Java developers to use a `for` statement to loop over the records, and Kotlin developers to convert to a `Sequence` with `.asSequence`.
+Actually the Kotlin usability is due to the design of the Kotlin standard library building on the same `Iterable` abstraction that the Apache developers also leverage.
 
 Moving on, the code to create an individual `Measurement` looks identical in both examples:
 // begin-insert: tags/table-reader.53:src/test/java/travelator/tablereader/CsvExampleTests.kt#map
@@ -1724,26 +1725,26 @@ Moving on, the code to create an individual `Measurement` looks identical in bot
 ----
 // end-insert
 
-While with our parser the type of `record` is <Map<String, String>>, in the Commons case it is `CSVRecord`.
+While with our parser the type of `record` is `<Map<String, String>>`, in the Commons case it is `CSVRecord`.
 `CSVRecord` has a `get(String)` method, which is how `record["time"]` etc are resolved.
-It also has methods `get(int)` to retrieve a field by index, where we could use `Map.values[Int]`;
-`size()` rather than `Map.size()`, and `isSet(String)` where `Map.hasKey(String)` would do.
+It also has methods: `get(int)` to retrieve a field by index, where we could use `Map.values[Int]`;
+`size()` rather than `Map.size()`; and `isSet(String)` where `Map.hasKey(String)` would do.
 Basically `CSVRecord` is having to reproduce the `Map` interface by hand, rather than just _being_ a `Map`.
 Why?
 Because, as we discussed in <<java-to-kotlin-collections>>, the Java `Map` interface is mutable, and mutation makes no sense in the context of reading fields from a file - mutations certainly aren't going to be written back to the file.
 When programming in Java we find ourselves having to create new types to solve problems, where in Kotlin we can express operations in standard types and enjoy the richness of the Kotlin API on those types.
 
-One area in which the Commons library Excels, is its provision of ready-made parser defaults.
+One area in which the Commons CSV library Excels, is its provision of ready-made parser defaults.
 These are expressed as constants in the `CSVFormat` class - we've seen `CSVFormat.DEFAULT`, but there are many others, including `CSVFormat.EXCEL`.
 Armed with a `CSVFormat` you can pass it to the `CSVParser.parse` method as we saw, or use it directly, for example `CSVFormat.EXCEL.parse(reader)`.
-Can we provide this facility without defining new types?
+Can we provide this facility without defining new types in our API?
 How about:
 
 // begin-insert: tags/table-reader.54:src/test/java/travelator/tablereader/CsvExampleTests.kt#extension
 [source,kotlin]
 ----
 @Test
-fun example2() {
+fun `configuration example`() {
     reader.use { reader ->
         val measurements = splitOnComma.readTableWithHeader(reader)
             .map { record ->
@@ -1762,7 +1763,7 @@ fun example2() {
 ----
 // end-insert
 
-Here `splitOnComma.readTableWithHeader(reader)` is invoking an extension function on the function type:
+Here `splitOnComma.readTableWithHeader(reader)` is an extension function on the function type:
 
 // begin-insert: tags/table-reader.54:src/main/java/travelator/tablereader/table-reading.kt#extension
 [source,kotlin]
@@ -1780,12 +1781,12 @@ Until that point, it is truly impressive how much progress we have been able to 
 
 There is one particular feature that the Commons interface provides that ours doesn't, and that we will want to add a type to implement.
 Commons CSV has `CSVParser.getHeaderNames` to provide access to the header information.
-Can we add this facility without modifying our current API?
+Can we add this facility without modifying our current API, or at least requiring changes to our clients's code?
 
-For many inputs we could just call `Map.keys` on the first of the output `Sequence`, but this won't work if the table has no rows, only a header.
+For many inputs we could just call `Map.keys` on the first of the output `Sequence`, but this won't work if the table has no data rows, only a header.
 In order to return header information _and_ the parsed records we could return a `Pair<List<String>, Sequence<Map<String, String>>`, but this will force our current clients to discard the first of the pair.
-Instead, we can return a type that implements `Sequence<Map<String, String>>`, but also has a header property.
-We'll spare the reader the refactoring steps, but this way all our current callers remain unchanged, but we can access `headers` when required:
+Instead, we can return a type `Table` that implements `Sequence<Map<String, String>>`, but also has a header property.
+This way all our current callers remain unchanged, but we can access `headers` when required:
 
 // begin-insert: tags/table-reader.55:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
 [source,kotlin]
@@ -1814,7 +1815,7 @@ fun `Table contains empty headers for empty input`() {
 ----
 // end-insert
 
-Here is the implementation:
+We'll spare you the refactoring steps, but here is the implementation:
 
 // begin-insert: tags/table-reader.55:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
