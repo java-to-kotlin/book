@@ -270,7 +270,7 @@ We're still resolutely cheating, but we can now see the pattern in the keys and 
 ----
 private fun parseLine(line: String): Map<String, String> {
     val values = listOf("field0", "field1")
-    val keys = (0 .. values.size).map(Integer::toString)
+    val keys = values.indices.map(Integer::toString)
     return keys.zip(values).toMap()
 }
 ----
@@ -283,7 +283,7 @@ Now we split the line around the comma to extract the values, removing the dupli
 ----
 private fun parseLine(line: String): Map<String, String> {
     val values = line.split(",")
-    val keys = (0 .. values.size).map(Integer::toString)
+    val keys = values.indices.map(Integer::toString)
     return keys.zip(values).toMap()
 }
 ----
@@ -331,63 +331,43 @@ That doesn't seem all that sensible, but we have to work around it:
 [source,kotlin]
 ----
 private fun parseLine(line: String): Map<String, String> {
-    val values = line.split(",")
-    if (values.size == 1 && values.first().isEmpty())
-        return emptyMap()
-    val keys = (0 .. values.size).map(Integer::toString)
+    val values = if (line.isEmpty()) emptyList() else line.split(",")
+    val keys = values.indices.map(Integer::toString)
     return keys.zip(values).toMap()
 }
 ----
 // end-insert
 
 That gets the tests passing, but muddies the waters of the function.
-Let's pull out a variable:
-
-// begin-insert: tags/table-reader.9:src/main/java/travelator/tablereader/table-reading.kt#parseLine
-[source,kotlin]
-----
-private fun parseLine(line: String): Map<String, String> {
-    val sussValues = line.split(",")
-    val values = if (sussValues.size == 1 && sussValues.first().isEmpty())
-        emptyList<String>() else sussValues
-    val keys = (0 .. values.size).map(Integer::toString)
-    return keys.zip(values).toMap()
-}
-----
-// end-insert
-
-Extract the muddy lines to a function:
+So we extract the muddy line to a function `splitFields`:
 
 // begin-insert: tags/table-reader.10:src/main/java/travelator/tablereader/table-reading.kt#parseLine
 [source,kotlin]
 ----
 private fun parseLine(line: String): Map<String, String> {
     val values = splitFields(line)
-    val keys = (0 .. values.size).map(Integer::toString)
+    val keys = values.indices.map(Integer::toString)
     return keys.zip(values).toMap()
 }
 
-private fun splitFields(line: String): List<String> {
-    val sussValues = line.split(",")
-    val values = if (sussValues.size == 1 && sussValues.first().isEmpty())
-        emptyList<String>() else sussValues
-    return values
-}
+private fun splitFields(line: String): List<String> =
+    if (line.isEmpty()) emptyList() else line.split(",")
 ----
 // end-insert
 
-Now we're just three wafer-thin refactorings from making `splitFields` the single-expression-extension-function it was born to be - here's the result:
+If we make `splitFields` an extension function and pull the separators out as a parameter we get the function we always really wanted `split` to be:
 
-// begin-insert: tags/table-reader.11:src/main/java/travelator/tablereader/table-reading.kt#splitFields
+// begin-insert: tags/table-reader.11:src/main/java/travelator/tablereader/table-reading.kt#parseLine
 [source,kotlin]
 ----
+private fun parseLine(line: String): Map<String, String> {
+    val values = line.splitFields(",")
+    val keys = values.indices.map(Integer::toString)
+    return keys.zip(values).toMap()
+}
+
 private fun String.splitFields(separators: String): List<String> =
-    split(separators).let { fields ->
-        if (fields.size == 1 && fields.first().isEmpty())
-            emptyList()
-        else
-            fields
-    }
+    if (isEmpty()) emptyList() else split(separators)
 ----
 // end-insert
 
@@ -481,7 +461,7 @@ In order to do that we need to get header information to `parseLine`, which is c
 ----
 private fun parseLine(line: String): Map<String, String> {
     val values = line.splitFields(",")
-    val keys = (0..values.size).map(Integer::toString)
+    val keys = values.indices.map(Integer::toString)
     return keys.zip(values).toMap()
 }
 ----
@@ -496,7 +476,7 @@ Let's prepare to make this configurable by introducing a variable named `headerP
 private fun parseLine(line: String): Map<String, String> {
     val values = line.splitFields(",")
     val headerProvider: (Int) -> String = Integer::toString
-    val keys = (0..values.size).map(headerProvider)
+    val keys = values.indices.map(headerProvider)
     return keys.zip(values).toMap()
 }
 ----
@@ -512,7 +492,7 @@ private fun parseLine(
     headerProvider: (Int) -> String
 ): Map<String, String> {
     val values = line.splitFields(",")
-    val keys = (0..values.size).map(headerProvider)
+    val keys = values.indices.map(headerProvider)
     return keys.zip(values).toMap()
 }
 ----
@@ -620,43 +600,7 @@ fun readTable(
 ----
 // end-insert
 
-Run the tests and, oh, the new test still fails.
-Its in a different way though, now it says `java.lang.IndexOutOfBoundsException: Index 2 out of bounds for length 2`.
-We're evidently reading outside our `headers` `List`, but why now?
-
-// begin-insert: tags/table-reader.19:src/main/java/travelator/tablereader/table-reading.kt#parseLine
-[source,kotlin]
-----
-private fun parseLine(
-    line: String,
-    headerProvider: (Int) -> String
-): Map<String, String> {
-    val values = line.splitFields(",")
-    val keys = (0..values.size).map(headerProvider)
-    return keys.zip(values).toMap()
-}
-----
-// end-insert
-
-Scouring the code, `values.size` is suspicious - it looks like we were always trying to get one header too many!
-We can fix that:
-
-// begin-insert: tags/table-reader.20:src/main/java/travelator/tablereader/table-reading.kt#parseLine
-[source,kotlin]
-----
-private fun parseLine(
-    line: String,
-    headerProvider: (Int) -> String
-): Map<String, String> {
-    val values = line.splitFields(",")
-    val keys = (values.indices).map(headerProvider)
-    return keys.zip(values).toMap()
-}
-----
-// end-insert
-
-Now the tests all pass, and about time too.
-
+Run the tests and they pass, so we're still on the right track.
 `readTableWithHeader` is still a bit untidy though:
 
 // begin-insert: tags/table-reader.20:src/main/java/travelator/tablereader/table-reading.kt#excerpt
@@ -788,17 +732,12 @@ private fun parseLine(
     headerProvider: (Int) -> String
 ): Map<String, String> {
     val values = line.splitFields(",")
-    val keys = (values.indices).map(headerProvider)
+    val keys = values.indices.map(headerProvider)
     return keys.zip(values).toMap()
 }
 
 private fun String.splitFields(separators: String): List<String> =
-    split(separators).let { fields ->
-        if (fields.size == 1 && fields.first().isEmpty())
-            emptyList()
-        else
-            fields
-    }
+    if (isEmpty()) emptyList() else split(separators)
 ----
 // end-insert
 
@@ -828,7 +767,7 @@ private fun parseLine(
     splitter: (String) -> List<String>, // <2>
 ): Map<String, String> {
     val values = splitter(line)
-    val keys = (values.indices).map(headerProvider)
+    val keys = values.indices.map(headerProvider)
     return keys.zip(values).toMap()
 }
 ----
@@ -1387,19 +1326,14 @@ private fun parseLine(
     splitter: (String) -> List<String>,
 ): Map<String, String> {
     val values = splitter(line)
-    val keys = (values.indices).map(headerProvider)
+    val keys = values.indices.map(headerProvider)
     return keys.zip(values).toMap()
 }
 
 // Necessary because String.split returns a list of an empty string
 // when called on an empty string.
 private fun String.splitFields(separators: String): List<String> =
-    split(separators).let { fields ->
-        if (fields.size == 1 && fields.first().isEmpty())
-            emptyList()
-        else
-            fields
-    }
+    if (isEmpty()) emptyList() else split(separators)
 ----
 // end-insert
 
