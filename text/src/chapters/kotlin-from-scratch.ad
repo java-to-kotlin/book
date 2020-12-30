@@ -103,7 +103,7 @@ private fun readTable(input: List<String>): Any {
 We haven't really given IntelliJ enough clues about the return type of `readTable`, so it chose `Any`, and so `someFunction` still doesn't compile.
 What could we return to fix that?
 Well `List<Map<String, String>>` very nearly works, except that `record["time"]` etc could be `null`.
-That's close enough, let's take account it in `someFunction` and write:
+That's close enough, let's take account of it in `someFunction` and write:
 
 // begin-insert: tags/table-reader.0.3:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt
 [source,kotlin]
@@ -111,9 +111,9 @@ That's close enough, let's take account it in `someFunction` and write:
 private fun someFunction(input: List<String>): List<Measurement> =
     readTable(input).map { record ->
         Measurement(
-            record["time"]?.toDouble() ?: error("missing time"),
-            record["x"]?.toDouble() ?: error("missing x"),
-            record["y"]?.toDouble() ?: error("missing y"),
+            record["time"]?.toDoubleOrNull() ?: error("in time"),
+            record["x"]?.toDoubleOrNull() ?: error("in x"),
+            record["y"]?.toDoubleOrNull() ?: error("in y"),
         )
     }
 
@@ -146,9 +146,9 @@ fun `acceptance test`() {
         expected,
         readTable(input).map { record ->
             Measurement(
-                t = record["time"]?.toDouble() ?: error("missing time"),
-                x = record["x"]?.toDouble() ?: error("missing x"),
-                y = record["y"]?.toDouble() ?: error("missing y"),
+                t = record["time"]?.toDoubleOrNull() ?: error("in time"),
+                x = record["x"]?.toDoubleOrNull() ?: error("in x"),
+                y = record["y"]?.toDoubleOrNull() ?: error("in y"),
             )
         }
     )
@@ -673,15 +673,71 @@ fun `can specify header names`() {
 Its worth noting how easy it is to convert from a `Map<Int, String>` to our header provider function (Int) -> String - with the method reference `headers::getValue`.
 There is also a pleasing symmetry between this map and the maps in the output.
 Such symmetry doesn't guarantee that our design is on the right tracks, but it is a good sign.
+
+Also a good sign is that we are now in a position to try running our acceptance test.
+This was:
+
+// begin-insert: tags/table-reader.23:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt
+[source,kotlin]
+----
+@Disabled
+@Test
+fun `acceptance test`() {
+    val input = listOf(
+        "time,x,y",
+        "0.0,  1,  1",
+        "0.1,1.1,1.2",
+        "0.2,1.2,1.4",
+    )
+    val expected = listOf(
+        Measurement(0.0, 1.0, 1.0),
+        Measurement(0.1, 1.1, 1.2),
+        Measurement(0.2, 1.2, 1.4)
+    )
+    assertEquals(
+        expected,
+        readTable(input).map { record ->
+            Measurement(
+                t = record["time"]?.toDoubleOrNull() ?: error("in time"),
+                x = record["x"]?.toDoubleOrNull() ?: error("in x"),
+                y = record["y"]?.toDoubleOrNull() ?: error("in y"),
+            )
+        }
+    )
+}
+----
+// end-insert
+
+We now know that we have a slightly different interface when our table has a header, so we call that:
+
+// begin-insert: tags/table-reader.24:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt
+[source,kotlin]
+----
+assertEquals(
+    expected,
+    readTableWithHeader(
+        header = input.first(),
+        lines = input.drop(1)
+    ).map { record ->
+        Measurement(
+            t = record["time"]?.toDoubleOrNull() ?: error("in time"),
+            x = record["x"]?.toDoubleOrNull() ?: error("in x"),
+            y = record["y"]?.toDoubleOrNull() ?: error("in y"),
+        )
+    }
+----
+// end-insert
+
+It passes!
 We'll check in the code with a little smug satisfaction before the next feature.
 
 === Different Field Separators
 
-At the moment our format is fixed as comma-separated, and with no quoting or escaping rules.
+At the moment we are able to read tables with fields delimted by commas, and with no quoting or escaping rules.
 It would be nice to be more flexible.
 In order to add flexibility we need to identify an abstraction - as we did with the `headerProvider` previously.
 What is the abstraction here?
-Looking at the code we see that the header and body parsing both call `splitFields`
+Looking at the code we see that the header and body parsing both call `splitFields`:
 
 // begin-insert: tags/table-reader.25:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
@@ -906,7 +962,7 @@ fun readTableWithHeader(
 ----
 // end-insert
 
-Finally, the header and body should be using the same splitter, so we pass it from `reatTableWithHeader` to the inner `readTable`:
+Finally, the header and body should be using the same splitter, so we pass it from `readTableWithHeader` to the inner `readTable`:
 
 // begin-insert: tags/table-reader.35:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
@@ -1581,7 +1637,7 @@ We started this chapter by saying that in most real-world situations, we would r
 Before we finish the chapter, let's compare our API with that of the Commons equivalent.
 
 The most common use case for a table parser is to read a file with known columns, translating each row into some data class.
-Here is how we do that with our parser, expressed as a test that we probably should have written before now!
+Here is how we do that with our parser:
 
 // begin-insert: tags/table-reader.53:src/test/java/travelator/tablereader/CsvExampleTests.kt#ours
 [source,kotlin]
@@ -1593,9 +1649,12 @@ fun example() {
             readTableWithHeader(lines, splitOnComma)
                 .map { record ->
                     Measurement(
-                        t = record["time"]!!.toDouble(),
-                        x = record["x"]!!.toDouble(),
-                        y = record["y"]!!.toDouble(),
+                        t = record["time"]?.toDoubleOrNull()
+                            ?: error("in time"),
+                        x = record["x"]?.toDoubleOrNull()
+                            ?: error("in x"),
+                        y = record["y"]?.toDoubleOrNull()
+                            ?: error("in y"),
                     )
                 }
         assertEquals(
@@ -1628,9 +1687,12 @@ fun `commons csv`() {
             .asSequence()
             .map { record ->
                 Measurement(
-                    t = record["time"]!!.toDouble(),
-                    x = record["x"]!!.toDouble(),
-                    y = record["y"]!!.toDouble(),
+                    t = record["time"]?.toDoubleOrNull()
+                        ?: error("in time"),
+                    x = record["x"]?.toDoubleOrNull()
+                        ?: error("in x"),
+                    y = record["y"]?.toDoubleOrNull()
+                        ?: error("in y"),
                 )
             }
         assertEquals(
@@ -1659,9 +1721,12 @@ Moving on, the code to create an individual `Measurement` looks identical in bot
 ----
 .map { record ->
     Measurement(
-        t = record["time"]!!.toDouble(),
-        x = record["x"]!!.toDouble(),
-        y = record["y"]!!.toDouble(),
+        t = record["time"]?.toDoubleOrNull()
+            ?: error("in time"),
+        x = record["x"]?.toDoubleOrNull()
+            ?: error("in x"),
+        y = record["y"]?.toDoubleOrNull()
+            ?: error("in y"),
     )
 }
 ----
@@ -1691,9 +1756,9 @@ fun `configuration example`() {
         val measurements = splitOnComma.readTableWithHeader(reader)
             .map { record ->
                 Measurement(
-                    t = record["time"]!!.toDouble(),
-                    x = record["x"]!!.toDouble(),
-                    y = record["y"]!!.toDouble(),
+                    t = record.getDoubleOrError("time"),
+                    x = record.getDoubleOrError("x"),
+                    y = record.getDoubleOrError("y")
                 )
             }
         assertEquals(
@@ -1702,6 +1767,9 @@ fun `configuration example`() {
         )
     }
 }
+
+private fun Map<String, String>.getDoubleOrError(key: String) =
+    this[key]?.toDoubleOrNull() ?: error("Error parsing double from field $key")
 ----
 // end-insert
 
@@ -1782,9 +1850,9 @@ private fun tableOf(
 ): Table {
     val headers = splitter(first)
     val sequence = readTable(
-        rest,
-        headerProviderFrom(headers, splitter),
-        splitter
+        lines = rest,
+        headerProvider = headers::get,
+        splitter = splitter
     )
     return Table(headers, sequence)
 }
