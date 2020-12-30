@@ -128,17 +128,30 @@ Now we have a plausible API, we can move the definition of `readTable` in `src/m
 // begin-insert: tags/table-reader.0.4:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt
 [source,kotlin]
 ----
-private fun someFunction(input: List<String>): List<Measurement> =
-    readTable(input).map { record ->
-        Measurement(
-            record["time"]?.toDouble() ?: error("missing time"),
-            record["x"]?.toDouble() ?: error("missing x"),
-            record["y"]?.toDouble() ?: error("missing y"),
-        )
-    }
-
-fun readTable(input: List<String>): List<Map<String, String>> {
-    TODO("Not yet implemented")
+@Disabled
+@Test
+fun `acceptance test`() {
+    val input = listOf(
+        "time,x,y",
+        "0.0,  1,  1",
+        "0.1,1.1,1.2",
+        "0.2,1.2,1.4",
+    )
+    val expected = listOf(
+        Measurement(0.0, 1.0, 1.0),
+        Measurement(0.1, 1.1, 1.2),
+        Measurement(0.2, 1.2, 1.4)
+    )
+    assertEquals(
+        expected,
+        readTable(input).map { record ->
+            Measurement(
+                t = record["time"]?.toDouble() ?: error("missing time"),
+                x = record["x"]?.toDouble() ?: error("missing x"),
+                y = record["y"]?.toDouble() ?: error("missing y"),
+            )
+        }
+    )
 }
 ----
 // end-insert
@@ -578,86 +591,42 @@ fun readTable(
 Because the `headerProvider` parameter has a default, our tests are unchanged and continue to pass (except, sigh, for the one we still haven't implemented).
 
 Now we're in a position to convert the `header` in `readTableWithHeader` to the `headerProvider` needed by the `readTable`.
-A nested function will do for now:
+We'll pretend that we have a function to do that called `headerProviderFrom(String)`:
 
-// begin-insert: tags/table-reader.19:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: tags/table-reader.19:src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader
 [source,kotlin]
 ----
 fun readTableWithHeader(header: String, lines: List<String>): List<Map<String, String>> {
-    fun headerProvider(index: Int): String {
-        val headers: List<String> = header.splitFields(",")
-        return headers[index]
-    }
-    return readTable(lines, ::headerProvider)
-}
-
-fun readTable(
-    lines: List<String>,
-    headerProvider: (Int) -> String = Integer::toString
-): List<Map<String, String>> {
-    return lines.map { parseLine(it, headerProvider) }
+    return readTable(lines, headerProviderFrom(header))
 }
 ----
 // end-insert
 
-Run the tests and they pass, so we're still on the right track.
-`readTableWithHeader` is still a bit untidy though:
+Alt-Enter to create it gives us:
 
-// begin-insert: tags/table-reader.20:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: tags/table-reader.19:src/main/java/travelator/tablereader/table-reading.kt#headerProviderFrom
 [source,kotlin]
 ----
-fun readTableWithHeader(header: String, lines: List<String>): List<Map<String, String>> {
-    fun headerProvider(index: Int): String {
-        val headers: List<String> = header.splitFields(",")
-        return headers[index]
-    }
-    return readTable(lines, ::headerProvider)
+fun headerProviderFrom(header: String): (Int) -> String {
+    TODO("Not yet implemented")
 }
 ----
 // end-insert
 
-We'd like to move the `headerProvider()` function into the top level, but IntelliJ can't do that without a bit of persuasion.
-If we select `::headerProvider` and "Introduce Variable" we get:
+This we can implement with our `splitFields` again:
 
-// begin-insert: tags/table-reader.21:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: tags/table-reader.20:src/main/java/travelator/tablereader/table-reading.kt#headerProviderFrom
 [source,kotlin]
 ----
-fun readTableWithHeader(header: String, lines: List<String>): List<Map<String, String>> {
-    fun headerProvider(index: Int): String {
-        val headers: List<String> = header.splitFields(",")
-        return headers[index]
-    }
-    val headerProvider = ::headerProvider
-    return readTable(lines, headerProvider)
+private fun headerProviderFrom(header: String): (Int) -> String {
+    val headers = header.splitFields(",")
+    return { index -> headers[index] }
 }
 ----
 // end-insert
 
-Now "Extract Function", calling it `headerProviderFrom`:
-
-// begin-insert: tags/table-reader.22:src/main/java/travelator/tablereader/table-reading.kt#excerpt
-[source,kotlin]
-----
-fun readTableWithHeader(header: String, lines: List<String>): List<Map<String, String>> {
-    val headerProvider = headerProviderFrom(header)
-    return readTable(lines, headerProvider)
-}
-
-private fun headerProviderFrom(header: String): KFunction1<Int, String> {
-    fun headerProvider(index: Int): String {
-        val headers: List<String> = header.splitFields(",")
-        return headers[index]
-    }
-
-    val headerProvider = ::headerProvider
-    return headerProvider
-}
-----
-// end-insert
-
-This is a function that will take a header line and return a function that will provide the column header given an index.
-There are a lot of unnecessary lines there though, and at the moment the nested `headerProvider` function will reparse the header line every time it is invoked.
-We can fix that by moving the parsing out of the function definition, and refactor our way to:
+Note that provided we split the `header` outside the lambda, this will be called only once per table.
+Our public API is now:
 
 // begin-insert: tags/table-reader.23:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
@@ -673,15 +642,10 @@ fun readTable(
     headerProvider: (Int) -> String = Integer::toString
 ): List<Map<String, String>> =
     lines.map { parseLine(it, headerProvider) }
-
-private fun headerProviderFrom(header: String): (Int) -> String {
-    val headers: List<String> = header.splitFields(",")
-    return fun (index: Int) = headers[index]
-}
 ----
 // end-insert
 
-This is a nice API - our clients can read with or without a header row, and if they want to specify their own field names they can override the default `headerProvider`.
+This is nice - our clients can read with or without a header row, and if they want to specify their own field names they can override the default `headerProvider`.
 Let's write a test to demonstrate that last feature:
 
 // begin-insert: tags/table-reader.24:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
@@ -723,8 +687,8 @@ Looking at the code we see that the header and body parsing both call `splitFiel
 [source,kotlin]
 ----
 private fun headerProviderFrom(header: String): (Int) -> String {
-    val headers: List<String> = header.splitFields(",")
-    return fun (index: Int) = headers[index]
+    val headers = header.splitFields(",")
+    return { index -> headers[index] }
 }
 
 private fun parseLine(
@@ -743,7 +707,7 @@ private fun String.splitFields(separators: String): List<String> =
 
 Neither the header parsing nor the body parsing really wants to know the details of how the splitting should happen, so let's abstract that behind a function `(String) -> List<String>`.
 Why that signature rather than just parameterizing the character?
-Well we'd like to be able to cope with quoting fields and escaping etc, and they can all be hidden behind that function.
+Well we'd like to be able to cope with quoting fields and escaping etc, and they can all be hidden behind that function signature.
 To extract the current implementation from `parseLine` we can select `line.splitFields(",")` and "Introduce Functional Parameter", choosing the parameter name `splitter`:
 
 // begin-insert: tags/table-reader.26:src/main/java/travelator/tablereader/table-reading.kt#excerpt
@@ -873,8 +837,8 @@ This was:
 [source,kotlin]
 ----
 private fun headerProviderFrom(header: String): (Int) -> String {
-    val headers: List<String> = header.splitFields(",")
-    return fun (index: Int) = headers[index]
+    val headers = header.splitFields(",")
+    return { index -> headers[index] }
 }
 ----
 // end-insert
@@ -901,8 +865,8 @@ private fun headerProviderFrom(
     header: String,
     splitter: (String) -> List<String>
 ): (Int) -> String {
-    val headers: List<String> = splitter(header)
-    return fun (index: Int) = headers[index]
+    val headers = splitter(header)
+    return { index -> headers[index] }
 }
 ----
 // end-insert
@@ -1316,8 +1280,8 @@ private fun headerProviderFrom(
     header: String,
     splitter: (String) -> List<String>
 ): (Int) -> String {
-    val headers: List<String> = splitter(header)
-    return fun(index: Int) = headers[index]
+    val headers = splitter(header)
+    return { index -> headers[index] }
 }
 
 private fun parseLine(
@@ -1819,7 +1783,7 @@ private fun tableOf(
     val headers = splitter(first)
     val sequence = readTable(
         rest,
-        headerProviderFrom(headers),
+        headerProviderFrom(headers, splitter),
         splitter
     )
     return Table(headers, sequence)
