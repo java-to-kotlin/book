@@ -54,7 +54,7 @@ This was because we wrote our programs by adding more and more methods to types 
 Static functions are useful when want to add functionality _without_ adding a (non-static) method.
 This might be because our classes are already sagging under the weight of all the methods that we have already added to them.
 It might be because we don't own the class and so can't add the method to it.
-Or it might be because the function only applies to some instantiations of a generic type, and so cannot be declared as a member of the generic.
+Or it might be because the functionality only applies to some instantiations of a generic type, and so cannot be declared as a member of the generic.
 For example, `Collections.max` only applies to a collection with comparable elements.
 
 Over time, we began to appreciate the advantages of using standard interfaces, like the Java collections, instead of working with our own abstractions.
@@ -240,22 +240,28 @@ fun <T> byValue() where T : HasPrice, T : HasRating =
 
 
 This keeps our Java happy, but irritatingly breaks any Kotlin code that was calling the methods.
-This was importing the methods as, for example `import travelator.Shortlists.sorted`, but Kotlin can't see top-level functions that way, even though they are hosted in a JVM class called `Shortlists`.
-Ho hum, the fix is to manually change to `import travelator.sorted`, or even remove the import altogether if the calling code is in the same package.
-Easy enough if the change affects a few classes, but if the change is wide-ranging, we should -- and can -- make better use of our IDE's refactoring tools.
+This was importing the methods from an object, for example `import travelator.Shortlists.sorted`, but Kotlin can't import top-level functions that way.
+As far as Kotlin is concerned, the functions are defined at the package scope.
+They may be compiled to static methods of a JVM class called `Shortlists`, but that class is an implementation detail of how the compiler maps Kotlin language concepts to the JVM platform.
 
-// TODO: talk more about trade-offs between text edits and automatic refactoring
+We'll have to go through all the compilation errors and manually fix the imports to refer to the function at package scope.
+For example, we'll have to change `import travelator.Shortlists.sorted` to `import travelator.sorted`.
+This is easy enough if the change affects a few files, but when the change has had a wide impact, fixing all the imports is a tedious job.
+We can make the job easier by making more methodical use of our IDE's refactoring tools.
 
-Let's revert and take another run at it.
+Let's revert our Kotlin code back to the object declaration and try again.
 
-=== Take 2: Refactoring Steps That Minimise Text Edits
+=== Extract and Inline to Minimise Text Edits
 
-This time we'll do as much as we can with our IDE's automatic refactoring to keep the amount of text editing we need to do to an absolute minimum.
-We will _extract_ top-level functions from the object's methods, _inline_ the object methods into the Kotlin code to make it call those top level functions, and finally use the @file:JvmName annotation to make the Java code call the top-level functions as well.
+This time we'll do as much as we can with IntelliJ's automatic refactoring to keep the amount of text editing we need to do to an absolute minimum, so that if dependent code must be changed to reflect our changes, the IDE takes care of it for us.
+The strategy we will use is to _extract_ and _inline_:
+we will _extract_ top-level functions from the object's methods,
+_inline_ the object methods into the Kotlin code to make it call the top level functions directly,
+and finally use the @file:JvmName annotation to make the Java code call the top-level functions as well.
 
-We extract the bodies of the object methods to top-level functions in the same source file by using the "Extract/Introduce > Function to Scope" refactoring.
-To avoid name clash, we have to -- temporarily -- give the functions a different name to the methods they were extracted from.
-So we'll name them after the method but prefixed with an underscore, and name them back when we can remove the object declaration.
+We start by extracting the bodies of the object methods to top-level functions in the same source file with IntelliJ's "Extract/Introduce > Function to Scope" refactoring.
+At the time of writing, we have to -- temporarily -- give the functions a different name to the methods they were extracted from to avoid name clash.
+We'll name them after the method but prefixed with an underscore, and rename them to remove the underscore as soon as we can.
 While we're about it, we'll also make them public so that code outside this class can call them.
 
 Extracting all the methods to public, top-level functions leaves the code looking like this:
@@ -279,14 +285,16 @@ fun <T> _sorted(shortlist: List<T>, ordering: Comparator<in T>) =
 ----
 // end-insert
 
-To make our Kotlin code call the top-level functions instead of the object, we apply the "Inline Function" refactoring to all the object methods, choosing the option "Inline all references and keep the function".
+Now we want our Kotlin code call the top-level functions instead of the object methods.
+We apply the "Inline Function" refactoring to the object methods, choosing the option "Inline all references and keep the function".
 
-For methods called from Java, IntelliJ shows a dialog telling us that it "Cannot inline reference from Kotlin to Java" and asking if we want to continue.
+When we inline a method that is called from Java, IntelliJ pops up a dialog telling us that it "Cannot inline reference from Kotlin to Java" and asking if we want to continue.
 Yes we do.
 We _want_ to leave the Java code unchanged, and will later make it call the top-level functions with the `@file:JvmName` annotation.
 
-This leaves the Java code calling the `Shortlists` object, and the Kotlin code calling the top-level functions.
-However, because we prefixed the names of those functions with an underscore, we have changed the Kotlin code from:
+After inlining the object's methods, all our Kotlin code is calling the top-level functions and only the Java code is using the `Shortlists` object.
+
+However, because we prefixed the names of those functions with an underscore, inlining the methods changed the Kotlin code from looking like:
 
 // begin-insert: tags/static-to-object-to-functions.7:src/test/java/travelator/hotels/ShortlistScenarioTest.kt#usage
 [source,kotlin]
@@ -305,7 +313,7 @@ val hotelsByPrice = _sorted(hotels, _byPriceLowToHigh())
 // end-insert
 
 Don't worry, this ugliness will be short lived.
-We will now rename the top-level functions to remove those underscores so that the functions have the same name as the methods of the `Shortlists` object.
+We now rename the top-level functions to remove those underscores so that the functions have the same name as the methods of the `Shortlists` object.
 That will allow us to safely switch from object to functions by manually editing the `Shortlists.kt` file to add the `file:JvmName` annotation.
 
 As we do the renames, IntelliJ changes the bodies of the object methods to refer to the functions by fully qualified name, to ensure there is no name clash.
@@ -333,7 +341,7 @@ fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>) =
 ----
 // end-insert
 
-When we're done, we can use the `@file:JvmName` annotation to make the Java code call the top level functions.
+Finally we can use the `@file:JvmName` annotation to make the Java code call the top level functions without breaking our Kotlin code.
 This now takes only two small edits in the `Shortlists.kt` file, and no other code changes.
 We add the annotation at the top of the file, and insert an underscore at the start of the object's name -- _not_ with a Rename refactoring, but by editing the text.
 The JVM class name `Shortlists` refers to the file of top level functions instead of the object declaration.
@@ -412,20 +420,22 @@ We have to refactor that object into top-level functions.
 
 As we described in <<minimise-text-edits>>, refactoring by editing text is tedious and error prone.
 We prefer to use the IDE's refactoring tools whenever we can.
-However, IntelliJ does not have an automatic refactoring that can transform an object to top-level functions.
-Therefore, we used a combination of automatic refactorings -- extract, inline and rename -- to transform the code to a state that let us swap out the object for the top-level functions with the absolute minimum of manual text editing,
-and then further automatic refactorings to tidy up the code.
+However, IntelliJ cannot automaticaly refactor an object to top-level functions.
+We therefore have to make a judgement call.
+If there are a few call sites, we can make the change by editing the source text, rely on the compiler to tell us where the code no longer compiles, and fix the errors by hand.
+If there are a few methods and lots of call sites, it's easier to combine automatic refactorings -- extract, inline and rename -- to transform the code to a state that let us swap out the object for the top-level functions with the absolute minimum of manual text editing.
+
+In practice, your authors would probably start by editing the text and if there are too many compilation errors, revert and use the more methodical approach of refactoring in small steps.
+This is par for the course -- design is an exploratory and iterative process, especially in an unfamiliar language.
+It often takes a couple of attempts to find the right sequence of refactorings to get from where we are to where we want to be.
+We will see this again in <<multi-to-single-expression-functions>>.
 
 A counterintuitive aspect of the refactoring steps we took in this chapter was that we had to make the code worse before we could make it better.
 Extracting top-level functions from the `Shortlist` object's method made the code in `Shortlists.kt` more complicated.
 Inlining the object's methods into out Kotlin code made their awkward temporary names visible across our codebase.
 Subsequent steps tidied everything up to an implementation that was simpler than where we started.
-This is quite common when refactoring.
-We have to break down existing structures in order to introduce better ones, which is fine as long as we don't stop half way through.
-
-It took us a couple of attempts to find the right sequence of refactorings.
-This is par for the course -- design is an exploratory and iterative process, especially in an unfamiliar language.
-We will see this again in <<multi-to-single-expression-functions>>.
+This is quite common when refactoring: we have to break down existing structures in order to introduce better ones.
+This is fine as long as we don't stop half way through.
 
 Some of the top-level functions we ended up with are good candidates to refactor to _extension functions_.
 Extension functions can make our Kotlin code more concise, and are easier to discover with autocomplete.
