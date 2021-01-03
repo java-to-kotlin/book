@@ -7,17 +7,17 @@ In this chapter we'll apply the lessons we've learned to write some Kotlin from 
 
 === Our Mission
 
-As we've seen in other chapters, Travelator has to import data from a lot of sources, much of it tabular, which is to say, in regular rows of columns.
+As we've seen in other chapters, Travelator has to import data from a lot of sources, much of it tabular, which is to say, in regular rows and columns.
 Often, but not always, these tables will have a header row naming the columns for the remaining rows.
 In <<bonus-refactoring>> we saw that one team had created their own parser, in other places we use the tried-and-trusted http://commons.apache.org/proper/commons-csv/[Apache Commons CSV library].
 Honestly, for most uses we would still use Commons CSV, because it works out of the box, is nicely configurable for special cases, and plays really nicely with Kotlin.
 Today though we're going to see what a clean-room Kotlin parser would look like.
-When we're done, we'll compare what we come up with to the Commons CSV functionality, so that we can see how Kotlin and Java approaches differ.
+When we're done, we'll compare what we come up with to the Commons CSV functionality, so that we can see how the Kotlin and Java approaches differ.
 
 === An Acceptance Test
 
-We're going to write the code test-first, so the first thing we need is somewhere to put the tests.
-We're working on a table reader, we create a `TableReaderAcceptanceTests` with a stub method and check that it runs:
+Your authors are still Extreme Programmers at heart, and like to write code test-first, starting with a high-level acceptance test.
+We're working on a table reader, so we create a class `TableReaderAcceptanceTests` with a stub method and check that it runs:
 
 // begin-insert: tags/table-reader.0.0:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt
 [source,kotlin]
@@ -30,11 +30,11 @@ class TableReaderAcceptanceTests {
 ----
 // end-insert
 
-It does run, so now we can start coding-proper.
+It does run (and even passes;-), so now we can start coding-proper.
 
-What should our interface look like?
+Part of the acceptance test's job is to help us decide what our interface should look like.
 Having parsed a few files in our time, we know that what we almost always want to do is to read a file and return a list of values, one for each (non-header) row.
-Let's sketch that as an acceptance test before we go on.
+Let's sketch that as our test:
 
 // begin-insert: tags/table-reader.0.1:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt
 [source,kotlin]
@@ -72,8 +72,14 @@ class TableReaderAcceptanceTests {
 ----
 // end-insert
 
-We could imagine all sorts of magic ways that our API could implement `someFunction`, but in the absence of reflection or lots configuration, the simplest thing would be to hand our API a way to convert a representation of a record to the type that we ultimately want - `Measurement`.
-Something like the lambda here:
+
+Here `Measurement` is a value type that represents the data that we want to extract from each row of the table.
+In Java, we might start by creating a `TableReader` class, but we can see that reading a table is simply a calculation: a mapping of the input lines to a list of the data that we want (<<calculations>>).
+So we'll default to using a top-level `someFunction` until that becomes more work than it is worth.
+
+We could imagine all sorts of magic ways that our API could implement `someFunction`, but unless it has some special knowledge of the `Measurement` type, we are going to have to tell it how to map from some representation of a row to a `Measurement`.
+That's twice we've used the word _map_, maybe map holds the key?
+What if `someFunction` looked like this:
 
 // begin-insert: tags/table-reader.0.2:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#someFunction
 [source,kotlin]
@@ -100,10 +106,12 @@ private fun readTable(input: List<String>): Any {
 ----
 // end-insert
 
-We haven't really given IntelliJ enough clues about the return type of `readTable`, so it chose `Any`, and so `someFunction` still doesn't compile.
-What could we return to fix that?
-Well `List<Map<String, String>>` very nearly works, except that `record["time"]` etc could be `null`.
-That's close enough, let's take account of it in `someFunction` and write:
+We haven't given IntelliJ enough clues about the return type of `readTable`, so it chose `Any`, and so `someFunction` still doesn't compile.
+What type could we return to fix that?
+Well if we return a `List` from `readTable` then we can `map` over it.
+And if that `List` contained `<Map<String, String>>` then that would be the type of `record`, so we could call `record["time"]` etc.
+The only issue is that `Map.get` returns a nullable value.
+That's close enough - let's take account of it in `someFunction` and write:
 
 // begin-insert: tags/table-reader.0.3:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt
 [source,kotlin]
@@ -123,7 +131,9 @@ fun readTable(input: List<String>): List<Map<String, String>> {
 ----
 // end-insert
 
-Now we have a plausible API, we can move the definition of `readTable` in `src/main` and inline `someFunction` to give us an acceptance test like this:
+This compiles, although obviously the `TODO` fails the test.
+With our client hats on we can see that we can at least use `readTable` to convert lines to a list of `Measurement`.
+Now that we have a plausible API, we can move the definition of `readTable` into `src/main/travelator/tableReading/table-reading.kt` and inline `someFunction` to give us an acceptance test like this:
 
 // begin-insert: tags/table-reader.0.4:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt
 [source,kotlin]
@@ -158,8 +168,9 @@ fun `acceptance test`() {
 
 Note that we have disabled the test, as it will be a while before we get it running.
 For now, it has done its job, helping us sketch a simple API that we can aim for.
+
 Before we go on, let's just reflect on the fact that we have managed to define the interface to our parser without defining any new types.
-Not only that, but by using standard types, we know that we have rich Kotlin APIs to supply the `List` that are reading from, and to interpret the ++List++s and ++Map++s that we are returning.
+Not only that, but by using standard types, we know that we have rich Kotlin APIs to supply the `List` that are reading from, and to interpret the `List` of ++Map++s that we are returning.
 
 === Unit Testing
 
@@ -195,11 +206,10 @@ fun readTable(input: List<String>): List<Map<String, String>> {
 ----
 // end-insert
 
-=== The Non-Trivial Case
-
-It's always a good idea to have a test for empty input - the more complicated our algorithm, the more it is likely to fail in this case.
+This passes.
+It may seem trivial, but it's always a good idea to have a test for empty input - the more complicated our algorithm, the more it is likely to fail in this case.
 But it's also a poor parser that always returns an empty result, so let's crack on.
-Your authors are still Extreme Programmers at heart, so let's add a failing test first to give us a reason to change the implementation:
+Following Test Driven Development, let's add a failing test first to give us a reason to change the implementation:
 
 // begin-insert: tags/table-reader.2:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
 [source,kotlin]
@@ -226,13 +236,16 @@ fun `one line of input with default field names`() {
 ----
 // end-insert
 
-We've made the design decision to name the fields with the +String+ representation of their index when we don't have a header row.
+Here we are reading a table without a header row.
+We’ve made the design decision to name the fields with the `String` representation of
+their position in the row.
 Why?
-Well we know that their names should be a `String`, so that we can populate them from a header if we have one.
-When we don't have a header, all we have is the index, so stringifying that is the simplest thing we can do.
-We don't have much information to make a better choice at the moment, so _the simplest thing that could possibly work_ it is.
+Well if the field names are to be a `String`, but in the absence of a header all we have is their index, then converting the index to a `String` is the simplest thing we can do.
+We don't have information to make a better choice at the moment, so _the simplest thing that could possibly work_ it is.
+We _could_ instead have made `readTable` return `<Map<Int, String>>` when we don't have a header row.
+If you have some spare time, that might be a path worth following to see where it leads.
 
-On the subject of which, we have a failing test, and we can be clever, or we can be quick.
+Back in our current predicament, we have a failing test, and we can be clever, or we can be quick.
 We choose to get the test passing straight away by hard-coding the result again:
 
 // begin-insert: tags/table-reader.2:src/main/java/travelator/tablereader/table-reading.kt
@@ -248,8 +261,8 @@ fun readTable(lines: List<String>): List<Map<String, String>> {
 ----
 // end-insert
 
-Now we can refactor with our tests passing to remove the duplication between the test and the code.
-We could do this straight away, but we can simplify what we have and prepare the ground by noticing that we want a line in the output for every line in the input (excluding header).
+Now we can refactor, with our tests passing, to remove the duplication between the test and the code.
+We could do this straight away, but we can simplify what we have by noticing that we want a line in the output for every line in the input (excluding header).
 This would happen naturally if we used `map`, so we can remove the `if` and `emptyList()`:
 
 // begin-insert: tags/table-reader.4:src/main/java/travelator/tablereader/table-reading.kt
@@ -263,7 +276,8 @@ private fun parseLine(line: String) = mapOf("0" to "field0", "1" to "field1")
 ----
 // end-insert
 
-That's nicer, and gives us the place to build the map, this time by splitting the pairs:
+That's nicer, and `parseLine` gives us the place to build each `Map`.
+We'll start removing the hard-coded values by splitting the pairs:
 
 // begin-insert: tags/table-reader.5:src/main/java/travelator/tablereader/table-reading.kt#parseLine
 [source,kotlin]
@@ -289,7 +303,7 @@ private fun parseLine(line: String): Map<String, String> {
 ----
 // end-insert
 
-Now we split the line around the comma to extract the values, removing the duplication:
+For the `values`, we can split the line around the commas:
 
 // begin-insert: tags/table-reader.7:src/main/java/travelator/tablereader/table-reading.kt#parseLine
 [source,kotlin]
@@ -303,14 +317,13 @@ private fun parseLine(line: String): Map<String, String> {
 // end-insert
 
 
-We haven't talked about how fields are separated yet.
-Obviously this is something we'd like to parameterise, but that doesn't feel like much of a risk, so we'll leave it for now.
-Running the tests all is fine, so some of our credibility is restored.
+We haven't talked about how fields are separated from each other yet.
+Obviously this is something we'd like to parameterise at some point, but that doesn't feel like much of a risk, so we'll leave it for now.
+We have no other hard-coded values, and running the tests they all pass, so some of our credibility is restored.
 
 Maybe not all though.
-Nat and Duncan are both old, although not equally old.
-Duncan is old enough to have spidey-senses for code, and they are tingling when he looks at that `split`.
-Splitting is odd if there is nothing to split around, so let's write a test to see what happens with an empty line:
+If you are as old as your authors (or younger and gifted) you may have developed spidey-senses for code, and they may be tingling when you look at that `split`.
+Splitting things is odd if there is nothing to split around, so let's write a test to see what happens with an empty line:
 
 // begin-insert: tags/table-reader.8:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
 [source,kotlin]
@@ -338,7 +351,7 @@ Actual   :[{0=}]
 ----
 
 Digging a little, it seems that `split` on an empty `String` returns a `List` with one empty `String` in it.
-That doesn't seem all that sensible, but we have to work around it:
+Maybe that makes sense in other applications, but it messes us up, so we have to work around it:
 
 // begin-insert: tags/table-reader.8:src/main/java/travelator/tablereader/table-reading.kt#parseLine
 [source,kotlin]
@@ -351,7 +364,7 @@ private fun parseLine(line: String): Map<String, String> {
 ----
 // end-insert
 
-That gets the tests passing, but muddies the waters of the function.
+That gets the tests passing, but muddies the waters of the `parseLine` function.
 So we extract the muddy line to a function `splitFields`:
 
 // begin-insert: tags/table-reader.10:src/main/java/travelator/tablereader/table-reading.kt#parseLine
@@ -384,8 +397,10 @@ private fun String.splitFields(separators: String): List<String> =
 ----
 // end-insert
 
-So far we started from an empty input, and then implemented the ability to handle one line.
-Had we written an imperative solution we might have to add a loop to handle more input, but `map` has our back.
+So far we have gotten the code working with an empty input, and then an input of a single line.
+If we had we written an imperative solution we might now have to add a loop to handle more input, but `map` has our back.
+We think that `readTable` should work for all the numbers known to programmers, 0, 1, and infinity.
+Well, OK, maybe 2^32^ - 1 rather than actual infinity.
 Trust but verify they say though, so we add a test:
 
 // begin-insert: tags/table-reader.12:src/test/java/travelator/tablereader/TableReaderTests.kt#twoLines
@@ -407,18 +422,16 @@ fun `two lines of input with default field names`() {
 ----
 // end-insert
 
-It passes - we always said it would!
-This seems like a good places to check-in, make a fresh coffee and dispose of the last one before getting back to work.
+It passes, and we reason that 0, 1, 2 is close enough to 0, 1, 2147483647 that we are done for now.
+This seems like a good place to check-in, make a fresh coffee and dispose of the last one before getting back to work.
 
 === Headers
 
 Ready to go again?
 OK, what about a header line?
-First of all, how should our API change to account for one?
+First of all, how should our API know to expect one?
 We could add a flag to `readTable` to tell it that our data has a header, or we can add another function.
-Generally we prefer a different function for different functionality, so let's add a function named `readTableWithHeader`, taking the header as a separate parameter.
-Given the extra parameter we might not usually give it a different name, but it will help us to differentiate between them in the book text.
-Taking the header as a different parameter rather than the first in the `List<String>` is a bit arbitrary (and we'll see later that it turns out to be a bad call), but we need to do something, and this is a thing, and a simple one at that.
+Generally we prefer a different function for different functionality, so let's add a function named `readTableWithHeader`.
 
 As before, we can add a test that calls the function that we wish we had:
 
@@ -442,7 +455,7 @@ fun `takes headers from header line`() {
 ----
 // end-insert
 
-Alt-Enter on `readTableWithHeader` and IntelliJ will then create it for us, then we can name the parameters and delegate to our original function for now:
+Alt-Enter on the compilation error at `readTableWithHeader` and IntelliJ will create it for us, then we can name the parameters, and delegate to our original function for now:
 
 // begin-insert: tags/table-reader.13:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
@@ -465,9 +478,9 @@ Expected :[{H0=field0, H1=field1}]
 Actual   :[{0=H0, 1=H1}, {0=field0, 1=field1}]
 ----
 
-To get them to pass, we could hard-code the result as before, but this time we're going to modify the code to make room for the functionality.
-When we say _make room_, what we are aiming for is code that does the current thing (using `Integer::toString` field names), and which can support the new functionality as an addition rather than a modification.
-In order to do that we need to get header information to `parseLine`, which is currently:
+To get the tests to pass, we could hard-code the result as before, but this time we're going to modify the code to make room for the functionality.
+When we say _make room_, what we are aiming for is code that does the current thing (using `Integer::toString` field names), and which we augment rather than modify to support the new functionality as an addition rather than a modification (the https://en.wikipedia.org/wiki/Open%E2%80%93closed_principle[Open Closed Principle]).
+Currently, the field name information is buried in `parseLine`:
 
 // begin-insert: tags/table-reader.13:src/main/java/travelator/tablereader/table-reading.kt#parseLine
 [source,kotlin]
@@ -479,6 +492,8 @@ private fun parseLine(line: String): Map<String, String> {
 }
 ----
 // end-insert
+
+We're going to pull it out from here to a place where we can use the header line to supply it.
 
 `Integer::toString` is our current mapping from index to key.
 Let's prepare to make this configurable by introducing a variable named `headerProvider`:
@@ -497,9 +512,9 @@ private fun parseLine(line: String): Map<String, String> {
 
 This still passes our tests, except for the new `takes headers from header line`, which is still failing.
 We shouldn't really be refactoring with a failing test, as every time we run the tests we have to check that any failure is actually the one we expect.
-So we'll `@Disabled` it for now.
+We `@Disabled` it for now, so that we are only running tests for completed features while we are refactoring.
 
-"Extracting Parameter" on the `headerProvider` line and naming it `headerProvider` will allow us to inject a different behaviour:
+"Introduce Parameter" on the `headerProvider` line and naming it `headerProvider` will allow us to support  different behaviours:
 
 // begin-insert: tags/table-reader.15:src/main/java/travelator/tablereader/table-reading.kt#parseLine
 [source,kotlin]
@@ -532,7 +547,7 @@ fun readTable(lines: List<String>): List<Map<String, String>> {
 
 <1> We could use the function reference when `parseLine` only had one parameter. Now it needs two arguments, but `map` can only supply one.
 
-"Replace function reference with lamba" before the refactor would have made everything OK, but we'll fail forward by doing it now and adding `Integer::toString` as the `headerProvider` to get things compiling again:
+"Replace function reference with lamba" before the refactor would have made everything OK, but we'll fail forward by replacing the lamba now and adding `Integer::toString` as the `headerProvider` to get things compiling again:
 
 // begin-insert: tags/table-reader.16:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
@@ -550,9 +565,9 @@ fun readTable(lines: List<String>): List<Map<String, String>> {
 All our tests still pass, so we're quietly confident that we haven't broken anything.
 
 Where are we going with this?
-We want our new `readTableWithHeader` to call the old `readTable` with a `headerProvider` derived from the header line.
-So we need to pull the `headerProvider` out as a parameter to the old `readTable`, as we did with `parseLine`.
-So its "Extract Parameter" (with "Introduce Default Value") again:
+Our new `readTableWithHeader` should be able to parse the header line to create a `headerProvider` to pass to `parseLine`.
+`readTableWithHeader` calls `readTable`, which calls `parseLine`, so we need to pull the `headerProvider` out as a parameter to `readTable`.
+So its "Introduce Parameter" (with "Introduce Default Value") again, this time on `Integer::toString` in `readTable`:
 
 // begin-insert: tags/table-reader.17:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
@@ -573,7 +588,7 @@ fun readTable(
 <1> Doesn't compile: `Unresolved reference: KFunction1`
 
 It's hard to say why IntelliJ (at the time of writing) sometimes uses function types and sometimes `KFunctionN` types when refactoring.
-It would be nice if it was consistent, or at least generated code that compiled..
+It would be nice if it was consistent, or at least generated code that compiled.
 We'll fix this one by translating the `KFunction1` to a `(Int) -> String` by hand and hold just a little grudge for this second failed refactor in a row:
 
 // begin-insert: tags/table-reader.18:src/main/java/travelator/tablereader/table-reading.kt#excerpt
@@ -592,11 +607,12 @@ fun readTable(
 ----
 // end-insert
 
-Because the `headerProvider` parameter has a default, our tests are unchanged and continue to pass.
+On the plus side, because the `headerProvider` parameter has a default value, our tests are unchanged and continue to pass.
 
 Now we're in a position to convert the first line in `readTableWithHeader` to the `headerProvider` needed by the `readTable`.
-This means splitting the lines into the header and the rest, which can fail if their are no lines, so we make a note to add a test for this case.
-As for converting the header line into a header provider, we'll pretend that we have a function to do that called `headerProviderFrom(String)`:
+This means splitting the lines into the header (`first()`) and the rest (`drop(1)`).
+This will fail if there are no lines, so we make a note to add a test for this case.
+As for converting the header line into a `headerProvider`, we'll pretend that we have a function to do that called `headerProviderFrom(String)`:
 
 // begin-insert: tags/table-reader.19:src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader
 [source,kotlin]
@@ -621,7 +637,8 @@ fun headerProviderFrom(header: String): (Int) -> String {
 ----
 // end-insert
 
-This we can implement with our `splitFields` again:
+This is a function that needs to return a function.
+We can implement it with our `splitFields` again, now inside a lambda:
 
 // begin-insert: tags/table-reader.20:src/main/java/travelator/tablereader/table-reading.kt#headerProviderFrom
 [source,kotlin]
@@ -634,7 +651,7 @@ private fun headerProviderFrom(header: String): (Int) -> String {
 // end-insert
 
 Note that provided we split the `header` outside the lambda, it will be parsed only once per table.
-Our tests still pass, and if we're right, so will our test for `readTableWithHeader`.
+Our tests still pass, and if we're right, so will the test for `readTableWithHeader` that we disabled previously.
 Let's un-`@Disabled` it:
 
 // begin-insert: tags/table-reader.23:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
@@ -657,7 +674,7 @@ fun `takes headers from header line`() {
 ----
 // end-insert
 
-This passes, but we look down at our TODO list and remember that we wanted to check this API with an empty input.
+This passes, and we're about to celebrate until we look down at our TODO list and remember that we wanted to check this API with an empty input.
 
 // begin-insert: tags/table-reader.23:src/test/java/travelator/tablereader/TableReaderTests.kt#empty
 [source,kotlin]
@@ -674,7 +691,7 @@ fun `readTableWithHeader on empty list returns empty list`() {
 ----
 // end-insert
 
-This fails with `java.util.NoSuchElementException: List is empty.`, because we are trying to call `lines.first()` on a empty `List`:
+This fails with `java.util.NoSuchElementException: List is empty.`, because `readTableWithHeader` is trying to call `lines.first()` on a empty `List`:
 
 // begin-insert: tags/table-reader.20:src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader
 [source,kotlin]
@@ -688,8 +705,10 @@ fun readTableWithHeader(lines: List<String>): List<Map<String, String>> {
 ----
 // end-insert
 
+Our irritation at not being finished is offset by being right about having to add a test!
 The simplest fix is to split our function into two definitions, with a `when` to choose between them:
-This passes all the tests and makes our public API:
+This passes all the tests, and our TODO list is empty for now.
+Here then is our public API:
 
 // begin-insert: tags/table-reader.23:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
@@ -713,8 +732,10 @@ fun readTable(
 ----
 // end-insert
 
-This is nice - our clients can read with or without a header row, and if they want to specify their own field names they can override the default `headerProvider`.
-Let's write a test to demonstrate that last feature:
+This is nice - our clients now can read with or without a header row.
+But wait!
+Looking at the code we realise that, if they want to specify their own field names for `readTable`, they can do this by overriding the default `headerProvider` in `readTable` - we have a feature for free!
+Let's write a test to demonstrate it:
 
 // begin-insert: tags/table-reader.24:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
 [source,kotlin]
@@ -738,7 +759,7 @@ fun `can specify header names`() {
 ----
 // end-insert
 
-Its worth noting how easy it is to convert from a `Map<Int, String>` to our header provider function (Int) -> String - with the method reference `headers::getValue`.
+Its worth noting how easy it is to convert from a `Map<Int, String>` to our header provider function `(Int) -> String` - with the method reference `headers::getValue`.
 There is also a pleasing symmetry between this map and the maps in the output.
 Such symmetry doesn't guarantee that our design is on the right tracks, but it is a good sign.
 
@@ -798,10 +819,11 @@ We'll check in the code with a little smug satisfaction before the next feature.
 
 === Different Field Separators
 
-At the moment we are able to read tables with fields delimted by commas, and with no quoting or escaping rules.
+At the moment we are able to read tables with fields, but only when delimited by commas, and with no quoting or escaping rules.
 It would be nice to be more flexible.
 In order to add flexibility we need to identify an abstraction - as we did with the `headerProvider` previously.
 What is the abstraction here?
+
 Looking at the code we see that the header and body parsing both call `splitFields`:
 
 // begin-insert: tags/table-reader.25:src/main/java/travelator/tablereader/table-reading.kt#excerpt
@@ -861,7 +883,7 @@ private fun parseLine(
 <1> This lambda ...
 <2> ... implements the splitter
 
-We want to be able to reuse that lambda, so select it and "Introduce Variable" named `splitter`:
+We want to be able to reuse the lambda, which represents our current strategy, so select it and "Introduce Variable" named `splitter`:
 
 // begin-insert: tags/table-reader.27:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
@@ -932,7 +954,7 @@ fun splitOnComma(line: String): List<String> = line.splitFields(",")
 ----
 // end-insert
 
-Now "Introduce Parameter" on the function reference `::splitOnComma`, selecting "Introduce default value" to give a `splitter` parameter:
+Now "Introduce Parameter" on the function reference `::splitOnComma`, selecting "Introduce default value" to give a `splitter` parameter for `readTable`:
 
 // begin-insert: tags/table-reader.31:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
@@ -964,7 +986,7 @@ private fun headerProviderFrom(header: String): (Int) -> String {
 ----
 // end-insert
 
-Now it is called from `readTableWithHeader` passing a lambda:
+After the refactor it is called from `readTableWithHeader` passing a lambda:
 
 // begin-insert: tags/table-reader.32:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
@@ -994,7 +1016,7 @@ private fun headerProviderFrom(
 ----
 // end-insert
 
-Full disclosure, when we wrote this we had the `KFunction1` nonsense again and had to fix it manually.
+Full disclosure: when we wrote this we had the `KFunction1` nonsense again and had to fix it manually.
 
 Now that lambda is the same code as `splitOnComma`, so we use that instead:
 
@@ -1014,7 +1036,7 @@ fun readTableWithHeader(
 ----
 // end-insert
 
-Make it a parameter `splitter` (again, manual editing was required to fix `KFunction1` irritations):
+Making `::splitOnComma` a parameter `named splitter` (again, manual editing was required to fix `KFunction1` irritations) gives:
 
 // begin-insert: tags/table-reader.34:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
@@ -1184,13 +1206,13 @@ One reason for the difference is that Kotlin's support for value-types (<<beans-
 === Sequences
 
 Value types may make for APIs composed of predictable calculations (<<calculations>>), but they can bring their own problems.
-Our API design as it is suffers from one major issue - it works on a `List<String>` loaded into memory, and produces a `List<Map<String, String>>`
+Our API design as it is suffers from one major issue - it works on a `List<String>` loaded into memory, and produces a `List<Map<String, String>>`.
 Roughly speaking, the memory footprint of `readTable` is twice the number of bytes of the input, which is probably twice the size of a UTF-8 encoded file containing the data.
 In order to process large files it would be nice to work in terms of ++Sequence++s rather than ++List++s, as if necessary these can keep only one item in a pipeline in memory at a time.
 
 As we saw in <<streams-to-sequences>>, we can convert a `Sequence` to a `List` and back (with some caveats) very easily.
-We could implement a `Sequence` API in terms of our existing `List` API, but as our aim is to reduce our memory footprint, we will write the `Sequence` versions and delegate the `List` versions to them.
-If we're clever we can test through the convenient `List` API thus getting two sets of tests for the price of one.
+We could implement `Sequence` functions by delegating to our existing `List` API, but as our aim is to reduce our memory footprint, we will write the `Sequence` versions and delegate the `List` versions to them.
+If we're clever we can test through the convenient `List` API, thus getting two sets of tests for the price of one.
 
 `readTable` currently looks like this:
 
@@ -1254,7 +1276,7 @@ fun readTable(
 ----
 // end-insert
 
-This still passing, excellent.
+This gives us a `Sequence` version of `readTable` which the `List` version calls, and the `List` version is well tested.
 Now for the outer `readTableWithHeader` - it looks like this:
 
 // begin-insert: tags/table-reader.42:src/main/java/travelator/tablereader/table-reading.kt#excerpt
@@ -1276,9 +1298,7 @@ fun readTableWithHeader(
 // end-insert
 
 We want to produce a `Sequence` version of this.
-We can try the same transformation - to and from `Sequence`, like this:
-
-It's a little around-the-houses, but if we first inline the `readTable` call there:
+We can try the same transformation - to and from `Sequence`, but first inlining the `readTable` call there:
 
 // begin-insert: tags/table-reader.43:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
@@ -1298,7 +1318,8 @@ fun readTableWithHeader(
 ----
 // end-insert
 
-Now extract `lines.asSequence()` as a variable:
+Now, by hand, create a `linesAsSequence` as a variable and use it in place of `lines`.
+This nearly works:
 
 // begin-insert: tags/table-reader.44:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
@@ -1348,8 +1369,8 @@ fun readTableWithHeader(
 ----
 // end-insert
 
-This passes the tests, so we can again extract the expression between the `return` and `.toList()` as function we are looking for.
-Extracting it and tidying up we have:
+This passes the tests, so we can again extract the expression between the `return` and `.toList()` as the function we are looking for.
+Extracting it and tidying up we have the `Sequence` version of `readTableWithHeader`:
 
 // begin-insert: tags/table-reader.46:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
@@ -1380,8 +1401,8 @@ fun readTableWithHeader(
 // end-insert
 
 At this point, we have two versions of `readTable` and `readTableWithHeader`, a `List` and a `Sequence` version of each.
-Given how easy it is to convert to and from `List` and `Sequence`, maybe the `List` variants aren't paying their way?
-While we don't have any production uses, let's just move their definitions into the tests - that way the tests can use them to stay simple, and the production code is kept minimal.
+Given how easy it is to convert a `List` argument to a `Sequence`, and a `Sequence` result to a `List`, maybe the `List` variants aren't paying their way?
+Let's just move their definitions into the tests while we don't have any production uses - that way the tests can use them to stay simple, and the production code is kept minimal.
 
 Here then is the entire public interface to our table parser:
 
@@ -1451,9 +1472,11 @@ private fun String.splitFields(separators: String): List<String> =
 ----
 // end-insert
 
-You can see that we took the liberty of writing a comment explaining why `splitFields` had to exist - apart from that we think that the code is pretty self-explanatory.
+Looking back at the code we realised that it wasn't clear _why_ we needed `splitFields`, so we added a comment.
+It's often easier to do this in retrospect, when we are trying to understand code we are returning to, rather than code we have just written.
+Apart from that we think that the code is pretty self-explanatory.
 Sometimes we're wrong about that.
-If it takes us more than a glance to work out what is going on next time we read this file, then we'll take the opportunity then to add comments, or better, refactor to be more expressive.
+If it takes us more than a glance to work out what is going on next time we read this code, then we'll take the opportunity then to add more comments, or better, refactor to be more expressive.
 
 === Reading from a File
 
@@ -1509,10 +1532,10 @@ fun readTableWithHeader(
 // end-insert
 
 `lines.firstOrNull()` consumes the sequence, and when reading from a `Reader` we can't just go back and start again in order to evaluate `lines.drop(1)` and `lines.first()`.
-Our unit tests were all starting from a `List` of all the file lines - those sequences can  _can_ be consumed again.
+Our unit tests were all starting from a `List` of all the file lines - those sequences can  _can_ be consumed again, as they are held in memory.
 
 In order to use our `Sequence` interface on data in files we are either going to have to load it all into memory, or find a way to fetch the first and rest of a `Sequence` without trying to read it twice.
-Given that we introduced the `Sequence` specifically in order to avoid loading all the data into memory, let's go with the latter.
+Given that we introduced the `Sequence` specifically in order to avoid loading all the data into memory at once, let's go with the latter.
 
 What we need to do is to check whether the `Sequence` has any items, and if so split it into the head and tail, all without consuming it more than once.
 The secret is to destructure the `Sequence` with a function like this:
@@ -1532,9 +1555,8 @@ fun <T> Sequence<T>.destruct()
 ----
 // end-insert
 
-This consumes the `Sequence` receiver (by calling `iterator()`), but creates another `Sequence` from any remains that have not been consumed (`iterator.asSequence()`).
-It returns `null` if `this` is empty, otherwise a `Pair` of the head and the tail.
-We can use it to refactor `readTableWithHeader`:
+This returns `null` if `this` is empty, otherwise it returns a `Pair` of the head and the tail, creating a new `Sequence` from any remains. It consumes the original (by calling `iterator()`), but provides a fresh `Sequence` to continue processing.
+We can use it to refactor `readTableWithHeader` from this:
 
 // begin-insert: tags/table-reader.48:src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader
 [source,kotlin]
@@ -1554,7 +1576,7 @@ fun readTableWithHeader(
 ----
 // end-insert
 
-The new form passes all the tests, because is doesn't consume `lines` more than once:
+to this:
 
 // begin-insert: tags/table-reader.49:src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader
 [source,kotlin]
@@ -1576,7 +1598,8 @@ fun readTableWithHeader(
 ----
 // end-insert
 
-We can simplify this, although you have to be pretty familiar with Kotlin to consider it simpler!
+The new form passes all the tests, because it doesn't consume `lines` more than once:
+We can simplify it, although you have to be pretty familiar with the Kotlin we write to consider it simpler!
 The result is this public API:
 
 // begin-insert: tags/table-reader.50:src/main/java/travelator/tablereader/table-reading.kt#public
@@ -1742,7 +1765,7 @@ fun example() {
 Real-world code would probably need more error handling (we see how in <<bonus-error-handling>>), but this shows the basic use case.
 We use the Kotlin `Reader.useLines` extension function to produce a `Sequence<String>`, which our parser transforms into a `Sequence<Map<String, String>>`.
 We can `map` over the ++Map++s, indexing by field name to extract the data we need and transform it to the type (`Measurement`) that we actually want.
-This design didn't happen by accident - it was the decision that we made at the very start, albeit with `List` rather than `Sequence` for simplicity.
+This design didn't happen by accident - it was the decision that we made at the very start, albeit with `List` rather than `Sequence` at the time.
 
 Here is the Commons CSV version:
 
@@ -1777,10 +1800,11 @@ fun `commons csv`() {
 ----
 // end-insert
 
-It too has a static function entry point, `CSVParser.parse`, which also takes configuration about the table format (in this case `CSVFormat.DEFAULT.withFirstRecordAsHeader()`, in ours `splitOnComma`).
-We have two functions to differentiate between files with or without headers, the Apache API rolls this into the `CSVFormat`.
-The Commons `parse` takes a `Reader` though, rather than a `Sequence<String>`.
-This allows it to handle newlines in the middle of fields, but leads to a proliferation of `parse` methods - there are variants taking `Path`, `File`, `InputStream`, `String` and `URL`.
+It too has a static function entry point, `CSVParser.parse`, which also takes configuration about the table format (in this case `CSVFormat.DEFAULT.withFirstRecordAsHeader()`; in ours `splitOnComma`).
+We have two functions to differentiate between files with or without headers; the Apache API rolls this into the `CSVFormat`.
+
+The Commons `parse` takes a `Reader` though, rather than our `Sequence<String>`.
+This allows it to handle record separators other than newLine, and newlines in the middle of fields, but leads to a proliferation of `parse` methods - there are variants taking `Path`, `File`, `InputStream`, `String` and `URL`.
 We suspect that the developers felt these were necessary because Java provides little support for converting between these types of sources and disposing of them safely.
 The `CSVParser` returned by the `parse` static method has a lot of code to manage resources that our API delegates to the workings of `Sequence` and Kotlin lifecycle functions like `use` and `useLines`.
 
@@ -1808,13 +1832,13 @@ Moving on, the code to create an individual `Measurement` looks identical in bot
 While with our parser the type of `record` is `<Map<String, String>>`, in the Commons case it is `CSVRecord`.
 `CSVRecord` has a `get(String)` method, which is how `record["time"]` etc are resolved.
 It also has methods: `get(int)` to retrieve a field by index, where we could use `Map.values[Int]`;
-`size()` rather than `Map.size()`; and `isSet(String)` where `Map.hasKey(String)` would do.
+`size()` rather than `Map.size()`; and `isSet(String)` to substitute for `Map.hasKey(String)`.
 Basically `CSVRecord` is having to reproduce the `Map` interface by hand, rather than just _being_ a `Map`.
 Why?
 Because, as we discussed in <<java-to-kotlin-collections>>, the Java `Map` interface is mutable, and mutation makes no sense in the context of reading fields from a file - mutations certainly aren't going to be written back to the file.
 When programming in Java we find ourselves having to create new types to solve problems, where in Kotlin we can express operations in standard types and enjoy the richness of the Kotlin API on those types.
 
-One area in which the Commons CSV library Excels, is its provision of ready-made parser defaults.
+One area in which the Commons CSV library Excels is its provision of ready-made parser defaults.
 These are expressed as constants in the `CSVFormat` class - we've seen `CSVFormat.DEFAULT`, but there are many others, including `CSVFormat.EXCEL`.
 Armed with a `CSVFormat` you can pass it to the `CSVParser.parse` method as we saw, or use it directly, for example `CSVFormat.EXCEL.parse(reader)`.
 Can we provide this facility without defining new types in our API?
@@ -1829,9 +1853,12 @@ fun `configuration example`() {
         val measurements = splitOnComma.readTableWithHeader(reader)
             .map { record ->
                 Measurement(
-                    t = record.getDoubleOrError("time"),
-                    x = record.getDoubleOrError("x"),
-                    y = record.getDoubleOrError("y")
+                    t = record["time"]?.toDoubleOrNull()
+                        ?: error("in time"),
+                    x = record["x"]?.toDoubleOrNull()
+                        ?: error("in x"),
+                    y = record["y"]?.toDoubleOrNull()
+                        ?: error("in y"),
                 )
             }
         assertEquals(
@@ -1840,9 +1867,6 @@ fun `configuration example`() {
         )
     }
 }
-
-private fun Map<String, String>.getDoubleOrError(key: String) =
-    this[key]?.toDoubleOrNull() ?: error("Error parsing double from field $key")
 ----
 // end-insert
 
@@ -1860,11 +1884,11 @@ fun ((String) -> List<String>).readTableWithHeader(
 
 In reality, `CSVFormat` represents a whole package of strategies for escaping rules, what to do with blank lines etc, not just how to split a line.
 When our parser grows these facilities, then we will probably want to create a data class to collect them.
-Until that point, it is truly impressive how much progress we have been able to make using just the built-in types.
+Until that point, it is interesting how much progress we have been able to make using just the built-in types and Kotlin language features.
 
-There is one particular feature that the Commons interface provides that ours doesn't, and that we will want to add a type to implement.
+There is, though, another useful feature that the Commons interface provides that ours doesn't, and that we will need to create a type to implement.
 Commons CSV has `CSVParser.getHeaderNames` to provide access to the header information.
-Can we add this facility without modifying our current API, or at least requiring changes to our clients's code?
+Can we add this facility without modifying our current API, or at least requiring changes to our client code?
 
 For many inputs we could just call `Map.keys` on the first of the output `Sequence`, but this won't work if the table has no data rows, only a header.
 In order to return header information _and_ the parsed records we could return a `Pair<List<String>, Sequence<Map<String, String>>`, but this will force our current clients to discard the first of the pair.
@@ -1934,4 +1958,4 @@ private fun tableOf(
 
 === Conclusion
 
-TODO
+To cover - types, the problem with sequences, customisation with functions, where errors can occur, actual CSV parsing.
