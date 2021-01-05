@@ -86,7 +86,7 @@ The first is a `List` of the non-blank strings, the second is a `List` of the le
 When (if) we care about performance, this can be a problem, because both of those lists will take time to populate and memory to support.
 The `List` of lengths is a particular issue, because the integers will have had to be boxed (wrapped in an `Integer` object) to fit in the list.
 The Java streams example used `mapToInt(String::length)` to avoid this problem.
-`IntStream` (and `LongStream` and `DoubleStream`, but curiously not `BooleanStream` or `CharStream`) were created to prevent streams having to boxing and unbox, but you have to remember to use them, and `IntStream` is not a `Stream<E>`.
+`IntStream` (and `LongStream` and `DoubleStream`, but curiously not `BooleanStream` or `CharStream`) were created to prevent streams having to boxing and unbox, but you have to remember to use them, and `IntStream` is not a `Stream<Integer>`.
 
 Anyway, should we care about performance?
 Mostly no - the Kotlin will be fast enough _unless_ we have large collections; the opposite of streams, which are only fast enough _if_ we have large collections.
@@ -162,7 +162,7 @@ fun averageNonBlankLength(strings: List<String>): Double =
 ----
 // end-insert
 
-In addition, we can use extension methods to 'add' operations to ++Stream++s, in the same way as Kotlin defines its `Sequence` operations.
+In addition, we can use extension functions to 'add' operations to ++Stream++s, in the same way as Kotlin defines its `Sequence` operations.
 
 If your code is working on large collections, and in particular using `parallelStream()`, then the default should be to leave it using ++Stream++s, as these are well optimised by HotSpot.
 The Kotlin standard library even provides extensions `Stream<T>.asSequence()` and `Sequence<T>.asStream()` to swap horses.
