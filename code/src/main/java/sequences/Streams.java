@@ -1,7 +1,10 @@
 package sequences;
 
-import java.util.Collection;
-import java.util.List;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.*;
+import java.util.function.*;
+import java.util.stream.*;
 
 class Loop {
     /// begin: loop
@@ -16,7 +19,7 @@ class Loop {
     /// end: loop
 }
 
-class Stream {
+class StreamEx {
     /// begin: stream
     public static double averageNonBlankLength(List<String> strings) {
         return strings
@@ -53,4 +56,21 @@ class NaiveStream {
             / (double) strings.size();
     }
     /// end: naiveStream
+}
+
+
+class ConsumingTwice {
+    /// begin: consumingTwice
+    public static double averageNonBlankLength(List<String> strings) {
+        return averageNonBlankLength(strings.stream());
+    }
+
+    public static double averageNonBlankLength(Stream<String> strings) {
+        return strings
+            .filter(s -> !s.isBlank())
+            .mapToInt(String::length)
+            .sum()
+            / (double) strings.count();
+    }
+    /// end: consumingTwice
 }
