@@ -1,7 +1,7 @@
 [[streams-to-sequences]]
 == Streams to Sequences
 
-Java and Kotlin both allow us to transform and summarise collections.
+Java and Kotlin both allow us to transform and reduce collections.
 They have different design goals and implementations though.
 What does Kotlin use instead of Java streams, when should we convert, and how?
 
@@ -24,7 +24,7 @@ public static double averageNonBlankLength(List<String> strings) {
 ----
 // end-insert
 
-Now we could `filter`, `map` and `reduce` by converting the `List` to a `Stream`.
+Now we can `filter`, `map` and `reduce` by converting the `List` to a `Stream`.
 
 // begin-insert: src/main/java/sequences/Streams.java#stream
 [source,java]
@@ -58,9 +58,20 @@ public static double averageNonBlankLength(List<String> strings) {
 
 <1> `parallelStream` will divide the work across multiple threads.
 
-We soon learned that ++Stream++s are lazy: `strings.filter(...).mapToInt(...)` does nothing but set up a pipeline for some terminal operation (`sum()` in this case) to suck values out of.
+Note that there are different types of fundamental operations going on here.
+`map` changes the type of items, but there are the same number of them.
+`filter` keeps or rejects items depending on some property, but keeps their type the same.
+`sum' is a _reduction_ of the collection to a single property.
+Not shown in this example are the operations `skip(int n)` and `limit(int n)`.
+These return streams without the first and last `n` elements respectively.
+Finally, Java 9 introduced `dropWhile` and `takeWhile`, which are like `filter` in that they limit the items which are passed on, but unlike `filter`, they latch, so once their predicate return `false` they no longer try any more items.
+
+We soon learned that streams are lazy: `strings.filter(...).mapToInt(...)` does nothing but set up a pipeline for some terminal operation (`sum()` in this case) to suck values out of.
 On the subject of sucking and performance, we also discovered that streams could be surprisingly slow for small collections.
 They are great for large-scale data crunching where we want to throw all available cores at a problem; not so great for summing the cost of 5 items in a shopping cart.
+
+The problem is that Java streams were designed to solve several problems, and they can't do them all well.
+Kotlin provides two abstractions that support transforming and reducing collections, iterables and sequences, with fewer compromises provide we make the right choice.
 
 === Kotlin Iterables
 
@@ -95,8 +106,8 @@ When we do have large collections, we can switch over to sequences.
 === Kotlin Sequences
 
 The Kotlin `Sequence` abstraction offers the same lazy evaluation as Java streams.
-`map` on a `Sequence` returns another `Sequence`: the operations in a filter chain are only performed when some terminal operation requires their evaluation.
-`Iterable.asSequence()` converts a collection to a `Sequence`, after that the API is suspiciously familiar:
+`map` on a `Sequence` returns another `Sequence`: the operations in the chain are only performed when some terminal operation requires their evaluation.
+If we have a `Collection`, `Iterable`, or even an `Iterator`, there are `asSequence()` extension functions to convert, after that the API is suspiciously familiar:
 
 // begin-insert: src/main/java/sequences/sequences.kt#sequences
 [source,kotlin]
@@ -125,7 +136,8 @@ The operations on `Iterable` are eager, whilst those on `Sequence` are lazy - so
 Nevertheless, the fact that they have such similar APIs means that in situations like this, we can often change very little (source) code when we swap between them.
 ****
 
-This sequence version won't pay the price of creating intermediate collections, but it will still box the lengths, albeit one at a time rather than creating a whole list of them.
+The sequence version of `averageNonBlankLength` won't pay the price of creating intermediate collections, but for small numbers of items, the cost of setting up and executing the pipeline may be higher still.
+In this case the `Int` lengths will still be boxed as `Integer`, albeit one at a time rather than creating a whole list of them.
 In many cases the API designers will have provided a clever solution to remove boxing: in this case it is `sumBy`:
 
 // begin-insert: src/main/java/sequences/sequences.kt#sumBy
@@ -140,7 +152,7 @@ fun averageNonBlankLength(strings: List<String>): Double =
 ----
 // end-insert
 
-`sumBy` avoids the boxing by taking a function that returns an `int`.
+`sumBy` (also available as an extension on `Iterable`) avoids the boxing by taking a function that returns an `Int`.
 IntelliJ is getting increasingly good at spotting when pipeline stages can be merged like this, although it failed to spot this one.
 There are also times when it will suggest converting an `Iterable` chain to a `Sequence` chain, although the heuristics that it uses seem to vary over Kotlin plugin releases.
 
@@ -166,12 +178,13 @@ public static double averageNonBlankLength(Stream<String> strings) {
 ----
 // end-insert
 
-This looks very plausible, we've extracted a function taking a `Stream`, and then used `Stream.count()` rather than `List.size()`.
+This looks very plausible, we've extracted a function taking a `Stream` rather than the `List`.
+There is no `size` property on `Stream`, but `count()` gives the same result, so we use that.
 When we run it though, we get `java.lang.IllegalStateException: stream has already been operated upon or closed`.
 
 The problem is that a `Stream` has hidden state.
-Once we have consumed all its items (and `sum()` does just that), we can't go round again to `count()` them, even though the `sum` is actually on an `IntStream`.
-Consuming the `IntStream` needs to consume the `Stream<String>.
+Once we have consumed all its items (and `sum()` does just that), we can't go round again to `count()` them.
+(Even though the `sum` is actually on an `IntStream`, consuming the `IntStream` needs to consume the `Stream<String>.)
 
 In Java this is enough to put you off extracting `Stream` operations into functions.
 Let's try the same thing with a Kotlin `Sequence`:
@@ -194,7 +207,8 @@ In Kotlin, we can call the `Sequence` version from the `List` version and all is
 
 For now.
 
-It's easy to convert from an `Iterator` to a `Sequence` - let's add a function for that too:
+We are storing up trouble though.
+To see why, let's step out another layer and add a function that takes an `Iterator`:
 
 // begin-insert: src/main/java/sequences/sequences.kt#iterator
 [source,kotlin]
@@ -204,16 +218,19 @@ fun averageNonBlankLength(strings: Iterator<String>): Double =
 ----
 // end-insert
 
-If we call this function, we now get `java.lang.IllegalStateException: This sequence can be consumed only once.` (Kotlin developers seem to be more grammatically pedantic than the JVM developers).
+If we call this function, we now get `java.lang.IllegalStateException: This sequence can be consumed only once.` (The Kotlin developers seem to be more grammatically pedantic than the JVM developers.)
 Now the `Sequence` is acting like a Java `Stream`, but previously it wasn't.
-It turns out that some ++Sequence++s can safely be iterated over multiple times - those backed by a collection which is held in memory for example.
+What gives?
+
+It turns out that some sequences can safely be iterated over multiple times - those backed by a collection which is held in memory for example.
 Others cannot.
 In this case if we tried to reuse the `strings: Iterator<String>` it would immediately return false from `hasNext()`; `strings.count()` would be `0`; and `averageNonBlankLength` would always return `Infinity` if there was any input.
-`averageNonBlankLength` is a bit of a portmanteau function, but it should probably never return `Infinity`.
-The other canonical example of a `Sequence` that cannot be consumed more than once is one obtained by reading from an external resource, such a file or network socket - we can't in general just go back and replay input to iterate again.
+This sort of behaviour is, erm, undesirable, so sequences wrapping iterators are deliberately hobbled with `constrainOnce()` to prevent this.
+
+The other canonical example of a `Sequence` that cannot be consumed more than once is one backed by reading from an external resource, such a file or network socket - we can't in general just go back and replay input to iterate again.
 
 Unfortunately the difference between the two types of `Sequence` is not reflected in the type system, so we will only discover any incompatibility between our algorithm and our input at runtime.
-As we will see in <<kotlin-from-scratch>>, this is exacerbated by the happy path of using `List.asSequence()` as our test data - these ++Sequence++s _do_ support multiple iterations and won't warn us of the problem.
+As we will see in <<kotlin-from-scratch>>, this is exacerbated by the common technique of using `List.asSequence()` as our test data - these sequences _do_ support multiple iterations and won't warn us of the problem.
 
 In practice this problem is usually only an irritation, causing some wasted time and reworking.
 It will tend not to happen if you are converting from streams code, as that will not have had the issue in the first place, but rather when applying a `Sequence` from scratch, or converting from an `Iterable`.
@@ -264,9 +281,17 @@ In this case this is aided by the fact that `Sequence` is an interface with just
 Java's `Stream` is also an interface, but with 42 methods, and no `AbstractStream` class to provide default implementations!
 
 Finally, you may have been silently fuming from point at which we introduced `Stream.count()`.
-The point of `Stream` and `Sequence` is that they allow us to work on arbitrarily large datasets, and finding the size of these by counting them individually is not very efficient, even if it can be sometimes be done.
+One of the points of `Stream` and `Sequence` is that they allow us to work on arbitrarily large datasets, and finding the size of these by counting them individually is not very efficient, even if it can be sometimes be done.
 In general, even if we can in practice iterate over a `Sequence` more than once, it is likely to be inefficient in the use-cases that caused us to chose to use `Sequence` in the first place.
-So when we remember, your authors like to use `Sequence.constrainOnce()` on test data to prevent us from cutting corners on the straight and narrow path.
+
+[TIP]
+.Only Iterate Over a Sequence Once
+====
+As a rule of thumb, if they operate on a `Sequence`, our algorithms should complete in a single pass.
+This way they will be able to work with sequences that do not support multiple iteration, and be efficient with large numbers of items.
+
+We can use `Sequence.constrainOnce()` in our tests to make sure that we don't accidentally go round again.
+====
 
 === Choosing between Streams, Iterables and Sequences
 
@@ -286,13 +311,15 @@ fun averageNonBlankLength(strings: List<String>): Double =
 ----
 // end-insert
 
-In addition, we can use extension functions to 'add' operations to ++Stream++s, in the same way as Kotlin defines its `Sequence` operations.
+In addition, we can use extension functions to 'add' operations to streams, in the same way as Kotlin defines its `Sequence` operations.
 
-If your code is working on large collections, and in particular using `parallelStream()`, then the default should be to leave it using ++Stream++s, as these are well optimised by HotSpot.
+If your code is working on large collections, and in particular using `parallelStream()`, then the default should be to leave it using streams, as these are well optimised by the JVM.
 The Kotlin standard library even provides extensions `Stream<T>.asSequence()` and `Sequence<T>.asStream()` to swap horses.
+
+If we decide to convert to a Kotlin abstraction, either `Iterable` or `Sequence`, then we should identify which one of three
 For smaller collections, or when writing from scratch in Kotlin, `Iterable` pipelines are simple, generally quick, and easy to reason with.
-Your authors will often convert ++Stream++s to ++Iterables++ in order to take advantage of the far richer API that Kotlin provides.
-If ++Iterable++s prove too slow (or sometimes too greedy for memory) with large collections, then we can convert to ++Sequence++s.
+Your authors will often convert streams to iterables in order to take advantage of the far richer API that Kotlin provides.
+If iterables prove too slow (or sometimes too greedy for memory) with large collections, then we can convert to sequences.
 If that still isn't enough, we can move (hopefully not back) to ++Stream++s, and maybe even take advantage of parallelism.
 
 === Refactoring from Streams to Sequences
