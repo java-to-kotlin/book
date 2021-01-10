@@ -6,6 +6,8 @@ import java.util.*;
 import java.util.function.*;
 import java.util.stream.*;
 
+import static java.util.stream.Collectors.toList;
+
 class Loop {
     /// begin: loop
     public static double averageNonBlankLength(List<String> strings) {
@@ -73,4 +75,40 @@ class ConsumingTwice {
             / (double) strings.count();
     }
     /// end: consumingTwice
+}
+
+class TranslatingLoop {
+    /// begin: translatingLoop
+    public static List<String> translatedWordsUntilSTOP(List<String> strings) {
+        var result = new ArrayList<String>();
+        for (var word: strings) {
+            String translation = translate(word);
+            if (translation.equalsIgnoreCase("STOP"))
+                break;
+            else
+                result.add(translation);
+        }
+        return result;
+    }
+    /// end: translatingLoop
+
+    public static String translate(String word) {
+        return word;
+    }
+}
+
+class TranslatingStream {
+    /// begin: translatingStream
+    public static List<String> translatedWordsUntilSTOP(List<String> strings) {
+        return strings
+            .stream()
+            .map(word -> translate(word))
+            .takeWhile(translation -> !translation.equalsIgnoreCase("STOP"))
+            .collect(toList());
+    }
+    /// end: translatingStream
+
+    public static String translate(String word) {
+        return word;
+    }
 }

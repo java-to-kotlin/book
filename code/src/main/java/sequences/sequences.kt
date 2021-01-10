@@ -98,5 +98,37 @@ object Sequences5 {
     /// end: CountingSequence
 }
 
+object Sequences6 {
+    /// begin: sumBy
+    fun averageNonBlankLength(strings: List<String>): Double =
+        strings
+            .map { if (it.isBlank()) 0 else it.length }
+            .average()
+    /// end: sumBy
+}
 
+
+object TranslatingList {
+    /// begin: translatingList
+    fun translatedWordsUntilSTOP(strings: List<String>): List<String> =
+        strings
+            .map { translate(it) }
+            .takeWhile { !it.equals("STOP", ignoreCase = true) }
+    /// end: translatingList
+}
+
+object TranslatingSequence {
+    /// begin: translatingSequence
+    fun translatedWordsUntilSTOP(strings: List<String>): List<String> =
+        strings
+            .asSequence()
+            .map { translate(it) }
+            .takeWhile { !it.equals("STOP", ignoreCase = true) }
+            .toList()
+    /// end: translatingSequence
+}
+
+private fun translate(word: String): String {
+    return word
+}
 

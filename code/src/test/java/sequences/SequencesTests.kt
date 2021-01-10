@@ -3,12 +3,11 @@ package sequences
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import java.lang.IllegalArgumentException
 import java.lang.IllegalStateException
 
 class SequencesTests {
 
-    val input = listOf("", "123", "         ")
+    val input = listOf("", "123", "   ", " 1", " ")
 
     @Test
     fun averageNonBlankLength() {
@@ -16,6 +15,7 @@ class SequencesTests {
         assertEquals(1.0, Sequences.averageNonBlankLength(input))
         assertEquals(1.0, Sequences2.averageNonBlankLength(input))
         assertEquals(1.0, Sequences3.averageNonBlankLength(input))
+        assertEquals(1.0, Sequences6.averageNonBlankLength(input))
     }
 
     @Test
@@ -43,15 +43,29 @@ class SequencesTests {
 
     @Test
     fun consumingSequence3() {
-        assertEquals(1.0,
+        assertEquals(
+            1.0,
             Sequences4.averageNonBlankLength(input.iterator().asSequence())
         )
     }
 
     @Test
     fun consumingSequence4() {
-        assertEquals(1.0,
+        assertEquals(
+            1.0,
             Sequences5.averageNonBlankLength(input.iterator().asSequence())
         )
+    }
+
+    @Test
+    fun take() {
+        val processed = mutableListOf<Int>()
+        val input = (1..5)
+        val output = input.asSequence()
+            .onEach {
+                processed.add(it)
+            }.take(3).toList()
+        assertEquals(listOf(1, 2, 3), output)
+        assertEquals(listOf(1, 2, 3), processed)
     }
 }

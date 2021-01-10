@@ -8,6 +8,7 @@ What does Kotlin use instead of Java streams, when should we convert, and how?
 === Java Streams
 
 Java 8 introduced streams in 2014, making good use of the new lambdas.
+Say we want to work out the average length of some strings, where blank strings count as 0 characters.
 Previously we might have written:
 
 // begin-insert: src/main/java/sequences/Streams.java#loop
@@ -24,7 +25,8 @@ public static double averageNonBlankLength(List<String> strings) {
 ----
 // end-insert
 
-Now we can `filter`, `map` and `reduce` by converting the `List` to a `Stream`.
+Feel free to suggest a better name for the function!
+Name aside, with streams we can now `filter`, `map` and `reduce` by converting the `List` to a `Stream`.
 
 // begin-insert: src/main/java/sequences/Streams.java#stream
 [source,java]
@@ -64,10 +66,48 @@ Note that there are different types of fundamental operations going on here.
 `sum' is a _reduction_ of the collection to a single property.
 Not shown in this example are the operations `skip(int n)` and `limit(int n)`.
 These return streams without the first and last `n` elements respectively.
-Finally, Java 9 introduced `dropWhile` and `takeWhile`, which are like `filter` in that they limit the items which are passed on, but unlike `filter`, they latch, so once their predicate return `false` they no longer try any more items.
 
 We soon learned that streams are lazy: `strings.filter(...).mapToInt(...)` does nothing but set up a pipeline for some terminal operation (`sum()` in this case) to suck values out of.
-On the subject of sucking and performance, we also discovered that streams could be surprisingly slow for small collections.
+Laziness allows later pipeline stages to limit the amount of work performed by earlier stages.
+Consider translating a list of words until we see the word `STOP`.
+The loop version might look like this:
+
+// begin-insert: src/main/java/sequences/Streams.java#translatingLoop
+[source,java]
+----
+public static List<String> translatedWordsUntilSTOP(List<String> strings) {
+    var result = new ArrayList<String>();
+    for (var word: strings) {
+        String translation = translate(word);
+        if (translation.equalsIgnoreCase("STOP"))
+            break;
+        else
+            result.add(translation);
+    }
+    return result;
+}
+----
+// end-insert
+
+By breaking out of the loop we only don't translate all the words, only the minimum we need.
+Java 9 introduced `dropWhile` and `takeWhile`, which allow us to translate this to:
+
+// begin-insert: src/main/java/sequences/Streams.java#translatingStream
+[source,java]
+----
+public static List<String> translatedWordsUntilSTOP(List<String> strings) {
+    return strings
+        .stream()
+        .map(word -> translate(word))
+        .takeWhile(translation -> !translation.equalsIgnoreCase("STOP"))
+        .collect(toList());
+}
+----
+// end-insert
+
+This works because the `collect` causes values to be sucked through the pipeline, and `takeWhile` stops sucking when its predicate fails.
+
+On the subject of sucking, we also discovered that streams could be surprisingly slow for small collections.
 They are great for large-scale data crunching where we want to throw all available cores at a problem; not so great for summing the cost of 5 items in a shopping cart.
 
 The problem is that Java streams were designed to solve several problems, and they can't do them all well.
@@ -149,6 +189,10 @@ fun averageNonBlankLength(strings: List<String>): Double =
         .filter { it.isNotBlank() }
         .sumBy(String::length)
         / strings.size.toDouble())
+fun averageNonBlankLength(strings: List<String>): Double =
+    strings
+        .map { if (it.isBlank()) 0 else it.length }
+        .average()
 ----
 // end-insert
 
@@ -295,7 +339,7 @@ We can use `Sequence.constrainOnce()` in our tests to make sure that we don't ac
 
 === Choosing between Streams, Iterables and Sequences
 
-If you already have code using Java streams, it will continue to run just fine on the JVM, even when converted to Kotlin.
+If we already have code using Java streams, it will continue to run just fine on the JVM, even when converted to Kotlin.
 It will even look a little nicer, as Kotlin will move the lambda outside the method, and allow the use of `it`.
 
 // begin-insert: src/main/java/sequences/sequences.kt#streams
@@ -313,11 +357,36 @@ fun averageNonBlankLength(strings: List<String>): Double =
 
 In addition, we can use extension functions to 'add' operations to streams, in the same way as Kotlin defines its `Sequence` operations.
 
-If your code is working on large collections, and in particular using `parallelStream()`, then the default should be to leave it using streams, as these are well optimised by the JVM.
+If our code is working on large collections, and in particular using `parallelStream()`, then the default should be to leave it using streams, as these are well optimised by the JVM.
 The Kotlin standard library even provides extensions `Stream<T>.asSequence()` and `Sequence<T>.asStream()` to swap horses.
 
-If we decide to convert to a Kotlin abstraction, either `Iterable` or `Sequence`, then we should identify which one of three
-For smaller collections, or when writing from scratch in Kotlin, `Iterable` pipelines are simple, generally quick, and easy to reason with.
+If we decide to convert to a Kotlin abstraction, either `Iterable` or `Sequence`, then we can choose which depending on whether the streams code needs lazy evaluation or not.
+
+Lazy evaluation is required if:
+
+* We need to produce results before we have finished reading the input.
+* We need to process more data than we can fit into memory (including intermediate results).
+
+Lazy evaluation may give better performance for:
+
+* Large collections with many pipeline stages, where building intermediate collections may be slow.
+* Pipelines where later stages may limit the amount of work required by previous stages.
+
+We can illustrate the last point with the same translation example we saw with streams.
+If we convert this to use `Iterable`:
+
+// begin-insert: src/main/java/sequences/sequences.kt#translatingList
+// end-insert
+
+then all words in the input `List` will be converted by `map`, and then we will form another `List` of only those until `STOP`.
+Passing through a `Sequence`:
+
+// begin-insert: src/main/java/sequences/sequences.kt#translatingSequence
+// end-insert
+
+will translate only the words until we translate one to `STOP`.
+
+If we don't need lazy evaluation, and for smaller collections, or when writing from scratch in Kotlin, `Iterable` pipelines are simple, generally quick, and easy to reason with.
 Your authors will often convert streams to iterables in order to take advantage of the far richer API that Kotlin provides.
 If iterables prove too slow (or sometimes too greedy for memory) with large collections, then we can convert to sequences.
 If that still isn't enough, we can move (hopefully not back) to ++Stream++s, and maybe even take advantage of parallelism.
@@ -892,5 +961,9 @@ fun EventStore.queryAsSequence(query: String) =
 
 In passing, note that `allEventsInSameInteractions` is an example of a extension function as method that we discussed in <<functions-to-extension-functions>>.
 It has access to both `this` from `MarketingAnalytics` and `this` from `Sequence<Event>`.
+
+
+REMINDER - INLINE allows us to break out of loops
+REMINDER - righting a function that works on both Sequence and Iterable
 
 === Conclusion
