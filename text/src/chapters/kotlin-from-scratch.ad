@@ -297,7 +297,7 @@ We're still resolutely cheating, but we can now see the pattern in the keys and 
 ----
 private fun parseLine(line: String): Map<String, String> {
     val values = listOf("field0", "field1")
-    val keys = values.indices.map(Integer::toString)
+    val keys = values.indices.map(Int::toString)
     return keys.zip(values).toMap()
 }
 ----
@@ -310,7 +310,7 @@ For the `values`, we can split the line around the commas:
 ----
 private fun parseLine(line: String): Map<String, String> {
     val values = line.split(",")
-    val keys = values.indices.map(Integer::toString)
+    val keys = values.indices.map(Int::toString)
     return keys.zip(values).toMap()
 }
 ----
@@ -358,7 +358,7 @@ Maybe that makes sense in other applications, but it messes us up, so we have to
 ----
 private fun parseLine(line: String): Map<String, String> {
     val values = if (line.isEmpty()) emptyList() else line.split(",")
-    val keys = values.indices.map(Integer::toString)
+    val keys = values.indices.map(Int::toString)
     return keys.zip(values).toMap()
 }
 ----
@@ -372,7 +372,7 @@ So we extract the muddy line to a function `splitFields`:
 ----
 private fun parseLine(line: String): Map<String, String> {
     val values = splitFields(line)
-    val keys = values.indices.map(Integer::toString)
+    val keys = values.indices.map(Int::toString)
     return keys.zip(values).toMap()
 }
 
@@ -388,7 +388,7 @@ If we make `splitFields` an extension function and pull the separators out as a 
 ----
 private fun parseLine(line: String): Map<String, String> {
     val values = line.splitFields(",")
-    val keys = values.indices.map(Integer::toString)
+    val keys = values.indices.map(Int::toString)
     return keys.zip(values).toMap()
 }
 
@@ -479,7 +479,7 @@ Actual   :[{0=H0, 1=H1}, {0=field0, 1=field1}]
 ----
 
 To get the tests to pass, we could hard-code the result as before, but this time we're going to modify the code to make room for the functionality.
-When we say _make room_, what we are aiming for is code that does the current thing (using `Integer::toString` field names), and which we augment rather than modify to support the new functionality as an addition rather than a modification (the https://en.wikipedia.org/wiki/Open%E2%80%93closed_principle[Open Closed Principle]).
+When we say _make room_, what we are aiming for is code that does the current thing (using `Int::toString` field names), and which we augment rather than modify to support the new functionality as an addition rather than a modification (the https://en.wikipedia.org/wiki/Open%E2%80%93closed_principle[Open Closed Principle]).
 Currently, the field name information is buried in `parseLine`:
 
 // begin-insert: tags/table-reader.13:src/main/java/travelator/tablereader/table-reading.kt#parseLine
@@ -487,7 +487,7 @@ Currently, the field name information is buried in `parseLine`:
 ----
 private fun parseLine(line: String): Map<String, String> {
     val values = line.splitFields(",")
-    val keys = values.indices.map(Integer::toString)
+    val keys = values.indices.map(Int::toString)
     return keys.zip(values).toMap()
 }
 ----
@@ -495,7 +495,7 @@ private fun parseLine(line: String): Map<String, String> {
 
 We're going to pull it out from here to a place where we can use the header line to supply it.
 
-`Integer::toString` is our current mapping from index to key.
+`Int::toString` is our current mapping from index to key.
 Let's prepare to make this configurable by introducing a variable named `headerProvider`:
 
 // begin-insert: tags/table-reader.14:src/main/java/travelator/tablereader/table-reading.kt#parseLine
@@ -503,7 +503,7 @@ Let's prepare to make this configurable by introducing a variable named `headerP
 ----
 private fun parseLine(line: String): Map<String, String> {
     val values = line.splitFields(",")
-    val headerProvider: (Int) -> String = Integer::toString
+    val headerProvider: (Int) -> String = Int::toString
     val keys = values.indices.map(headerProvider)
     return keys.zip(values).toMap()
 }
@@ -547,7 +547,7 @@ fun readTable(lines: List<String>): List<Map<String, String>> {
 
 <1> We could use the function reference when `parseLine` only had one parameter. Now it needs two arguments, but `map` can only supply one.
 
-"Replace function reference with lamba" before the refactor would have made everything OK, but we'll fail forward by replacing the lamba now and adding `Integer::toString` as the `headerProvider` to get things compiling again:
+"Replace function reference with lamba" before the refactor would have made everything OK, but we'll fail forward by replacing the lamba now and adding `Int::toString` as the `headerProvider` to get things compiling again:
 
 // begin-insert: tags/table-reader.16:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
@@ -557,7 +557,7 @@ fun readTableWithHeader(lines: List<String>): List<Map<String, String>> {
 }
 
 fun readTable(lines: List<String>): List<Map<String, String>> {
-    return lines.map { parseLine(it, Integer::toString) }
+    return lines.map { parseLine(it, Int::toString) }
 }
 ----
 // end-insert
@@ -567,7 +567,7 @@ All our tests still pass, so we're quietly confident that we haven't broken anyt
 Where are we going with this?
 Our new `readTableWithHeader` should be able to parse the header line to create a `headerProvider` to pass to `parseLine`.
 `readTableWithHeader` calls `readTable`, which calls `parseLine`, so we need to pull the `headerProvider` out as a parameter to `readTable`.
-So its "Introduce Parameter" (with "Introduce Default Value") again, this time on `Integer::toString` in `readTable`:
+So its "Introduce Parameter" (with "Introduce Default Value") again, this time on `Int::toString` in `readTable`:
 
 // begin-insert: tags/table-reader.17:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
@@ -578,7 +578,7 @@ fun readTableWithHeader(lines: List<String>): List<Map<String, String>> {
 
 fun readTable(
     lines: List<String>,
-    headerProvider: KFunction1<Int, String> = Integer::toString // <1>
+    headerProvider: KFunction1<Int, String> = Int::toString // <1>
 ): List<Map<String, String>> {
     return lines.map { parseLine(it, headerProvider) }
 }
@@ -600,7 +600,7 @@ fun readTableWithHeader(lines: List<String>): List<Map<String, String>> {
 
 fun readTable(
     lines: List<String>,
-    headerProvider: (Int) -> String = Integer::toString
+    headerProvider: (Int) -> String = Int::toString
 ): List<Map<String, String>> {
     return lines.map { parseLine(it, headerProvider) }
 }
@@ -726,7 +726,7 @@ fun readTableWithHeader(
 
 fun readTable(
     lines: List<String>,
-    headerProvider: (Int) -> String = Integer::toString
+    headerProvider: (Int) -> String = Int::toString
 ): List<Map<String, String>> =
     lines.map { parseLine(it, headerProvider) }
 ----
@@ -864,7 +864,7 @@ To extract the current implementation from `parseLine` we can select `line.split
 ----
 fun readTable(
     lines: List<String>,
-    headerProvider: (Int) -> String = Integer::toString
+    headerProvider: (Int) -> String = Int::toString
 ): List<Map<String, String>> =
     lines.map {
         parseLine(it, headerProvider) { line -> // <1>
@@ -896,7 +896,7 @@ We want to be able to reuse the lambda, which represents our current strategy, s
 ----
 fun readTable(
     lines: List<String>,
-    headerProvider: (Int) -> String = Integer::toString
+    headerProvider: (Int) -> String = Int::toString
 ): List<Map<String, String>> =
     lines.map {
         val splitter: (String) -> List<String> = { line ->
@@ -914,7 +914,7 @@ We'd like to have a function reference for that `splitter` that we can pass arou
 ----
 fun readTable(
     lines: List<String>,
-    headerProvider: (Int) -> String = Integer::toString
+    headerProvider: (Int) -> String = Int::toString
 ): List<Map<String, String>> =
     lines.map {
         val splitter: (String) -> List<String> = fun(line: String): List<String> {
@@ -932,7 +932,7 @@ A little manual editing will convert this to a local function:
 ----
 fun readTable(
     lines: List<String>,
-    headerProvider: (Int) -> String = Integer::toString
+    headerProvider: (Int) -> String = Int::toString
 ): List<Map<String, String>> =
     lines.map {
         fun splitOnComma(line: String): List<String> {
@@ -950,7 +950,7 @@ We can then pull this to the top level:
 ----
 fun readTable(
     lines: List<String>,
-    headerProvider: (Int) -> String = Integer::toString
+    headerProvider: (Int) -> String = Int::toString
 ): List<Map<String, String>> =
     lines.map {
         parseLine(it, headerProvider, ::splitOnComma)
@@ -967,7 +967,7 @@ Now "Introduce Parameter" on the function reference `::splitOnComma`, selecting 
 ----
 fun readTable(
     lines: List<String>,
-    headerProvider: (Int) -> String = Integer::toString,
+    headerProvider: (Int) -> String = Int::toString,
     splitter: (String) -> List<String> = ::splitOnComma
 ): List<Map<String, String>> =
     lines.map {
@@ -1081,7 +1081,7 @@ fun readTableWithHeader(
 
 fun readTable(
     lines: List<String>,
-    headerProvider: (Int) -> String = Integer::toString,
+    headerProvider: (Int) -> String = Int::toString,
     splitter: (String) -> List<String> = ::splitOnComma
 ): List<Map<String, String>> =
     lines.map {
@@ -1164,7 +1164,7 @@ fun readTableWithHeader(
 
 fun readTable(
     lines: List<String>,
-    headerProvider: (Int) -> String = Integer::toString,
+    headerProvider: (Int) -> String = Int::toString,
     splitter: (String) -> List<String> = splitOnComma
 ): List<Map<String, String>> =
     lines.map {
@@ -1234,7 +1234,7 @@ If we're clever we can test through the convenient `List` API, thus getting two 
 ----
 fun readTable(
     lines: List<String>,
-    headerProvider: (Int) -> String = Integer::toString,
+    headerProvider: (Int) -> String = Int::toString,
     splitter: (String) -> List<String> = splitOnComma
 ): List<Map<String, String>> =
     lines.map {
@@ -1250,7 +1250,7 @@ We can try out our plan by converting to and from `Sequence` in the middle of th
 ----
 fun readTable(
     lines: List<String>,
-    headerProvider: (Int) -> String = Integer::toString,
+    headerProvider: (Int) -> String = Int::toString,
     splitter: (String) -> List<String> = splitOnComma
 ): List<Map<String, String>> =
     lines
@@ -1270,7 +1270,7 @@ Now we can extract the inner workings into a function taking and returning a `Se
 ----
 fun readTable(
     lines: List<String>,
-    headerProvider: (Int) -> String = Integer::toString,
+    headerProvider: (Int) -> String = Int::toString,
     splitter: (String) -> List<String> = splitOnComma
 ): List<Map<String, String>> =
     readTable(
@@ -1281,7 +1281,7 @@ fun readTable(
 
 fun readTable(
     lines: Sequence<String>,
-    headerProvider: (Int) -> String = Integer::toString,
+    headerProvider: (Int) -> String = Int::toString,
     splitter: (String) -> List<String> = splitOnComma
 ) = lines.map {
         parseLine(it, headerProvider, splitter)
@@ -1437,7 +1437,7 @@ fun readTableWithHeader(
 
 fun readTable(
     lines: Sequence<String>,
-    headerProvider: (Int) -> String = Integer::toString,
+    headerProvider: (Int) -> String = Int::toString,
     splitter: (String) -> List<String> = splitOnComma
 ): Sequence<Map<String, String>> =
     lines.map {
@@ -1632,7 +1632,7 @@ fun readTableWithHeader(
 
 fun readTable(
     lines: Sequence<String>,
-    headerProvider: (Int) -> String = Integer::toString,
+    headerProvider: (Int) -> String = Int::toString,
     splitter: (String) -> List<String> = splitOnComma
 ): Sequence<Map<String, String>> =
     lines.map {
@@ -1711,7 +1711,7 @@ class TableReaderTests {
 
 private fun checkReadTable(
     lines: List<String>,
-    withHeaderProvider: (Int) -> String = Integer::toString,
+    withHeaderProvider: (Int) -> String = Int::toString,
     shouldReturn: List<Map<String, String>>,
 ) {
     assertEquals(
