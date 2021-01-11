@@ -741,8 +741,8 @@ Let's write a test to demonstrate it:
 [source,kotlin]
 ----
 @Test
-fun `can specify header names`() {
-    val headers = mapOf(0 to "apple", 1 to "banana")
+fun `can specify header names when there is no header row`() {
+    val headers = listOf("apple", "banana")
     assertEquals(
         listOf(
             mapOf(
@@ -752,7 +752,7 @@ fun `can specify header names`() {
         ),
         readTable(
             listOf("field0,field1"),
-            headers::getValue
+            headers::get
         )
     )
 }
@@ -1666,11 +1666,11 @@ class TableReaderTests {
 
     ...
     @Test
-    fun `can specify header names`() {
-        val headers = mapOf(0 to "apple", 1 to "banana")
+    fun `can specify header names when there is no header row`() {
+        val headers = listOf("apple", "banana")
         checkReadTable(
             lines = listOf("field0,field1"),
-            withHeaderProvider = headers::getValue,
+            withHeaderProvider = headers::get,
             shouldReturn = listOf(
                 mapOf(
                     "apple" to "field0",
