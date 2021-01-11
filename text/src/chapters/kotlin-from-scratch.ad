@@ -1094,44 +1094,51 @@ fun splitOnComma(line: String): List<String> = line.splitFields(",")
 ----
 // end-insert
 
-Can we make a more generic `splitOn`?
+It would be nice to be able to create splitters without having to define a function every time, so that, for example, our French clients could call `readTable` with `splitter = splitOn(";")`.
+That `splitOn` function would take the separators and return a value of function type `(String) -> List<String>`.
+We could try to extract this function from our current `splitOnComma`, but the refactoring is tedious, so instead let's just define the function:
 
-We can if we call a function to initialise a value of function type.
-Let's write that:
-
-// begin-insert: tags/table-reader.36:src/main/java/travelator/tablereader/table-reading.kt#splitOn1
-[source,kotlin]
-----
-val splitOnComma: (String) -> List<String> = splitOn(",")
-----
-// end-insert
-
-Alt-Enter on `splitOn` creates the function for us:
-
-// begin-insert: tags/table-reader.36:src/main/java/travelator/tablereader/table-reading.kt#splitOn2
-[source,kotlin]
-----
-fun splitOn(separators: String): (String) -> List<String> {
-    TODO("Not yet implemented")
-}
-----
-// end-insert
-
-Now we can implement it:
-
-// begin-insert: tags/table-reader.37:src/main/java/travelator/tablereader/table-reading.kt#splitOn2
+// begin-insert: tags/table-reader.36:src/main/java/travelator/tablereader/table-reading.kt#splitOn
 [source,kotlin]
 ----
 fun splitOn(
     separators: String
-) = { line: String ->
+): (String) -> List<String> = { line: String ->
     line.splitFields(separators)
 }
 ----
 // end-insert
 
+We can now use in from `splitOnComma`:
+
+// begin-insert: tags/table-reader.36:src/main/java/travelator/tablereader/table-reading.kt#splitOnComma
+[source,kotlin]
+----
+fun splitOnComma(line: String): List<String> {
+    val splitOnComma: (String) -> List<String> = splitOn(",")
+    return splitOnComma(line)
+}
+----
+// end-insert
+
+Then pull the variable to the top level:
+
+// begin-insert: tags/table-reader.37:src/main/java/travelator/tablereader/table-reading.kt#splitOnComma
+[source,kotlin]
+----
+val splitOnComma: (String) -> List<String> = splitOn(",")
+
+fun splitOnComma(line: String): List<String> =
+    splitOnComma.invoke(line) // <1>
+----
+// end-insert
+
+<1> Unless we use `invoke`, the compiler sees this as the function `splitOnComma` and we get a stack overflow.
+
 Now we can replace the function reference `::splitOnComma` with the value `splitOnComma`.
-While we're there we can create a `splitOnTab` too:
+We can either just search and replace, or, if we're feeling particularly fastidious, inline the function version and remove the resulting lamba expansions.
+
+When we're done we can create a `splitOnTab` too:
 
 // begin-insert: tags/table-reader.38:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
@@ -1169,7 +1176,7 @@ fun splitOn(
 ----
 // end-insert
 
-Now we have a `splitOnTab` we can write a new test to show that it all works:
+Now we have a `splitOnTab`, we can write a new test to show that it all works:
 
 // begin-insert: tags/table-reader.38:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
 [source,kotlin]
