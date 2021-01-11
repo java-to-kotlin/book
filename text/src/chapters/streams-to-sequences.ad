@@ -376,15 +376,31 @@ We can illustrate the last point with the same translation example we saw with s
 If we convert this to use `Iterable`:
 
 // begin-insert: src/main/java/sequences/sequences.kt#translatingList
+[source,kotlin]
+----
+fun translatedWordsUntilSTOP(strings: List<String>): List<String> =
+    strings
+        .map { translate(it) }
+        .takeWhile { !it.equals("STOP", ignoreCase = true) }
+----
 // end-insert
 
-then all words in the input `List` will be converted by `map`, and then we will form another `List` of only those until `STOP`.
+then _all_ words in the input `List` will be converted by `map`, and then we will form another `List` of only those until `STOP`.
 Passing through a `Sequence`:
 
 // begin-insert: src/main/java/sequences/sequences.kt#translatingSequence
+[source,kotlin]
+----
+fun translatedWordsUntilSTOP(strings: List<String>): List<String> =
+    strings
+        .asSequence()
+        .map { translate(it) }
+        .takeWhile { !it.equals("STOP", ignoreCase = true) }
+        .toList()
+----
 // end-insert
 
-will translate only the words until we translate one to `STOP`.
+will translate only the words up to the first translated to `STOP`.
 
 If we don't need lazy evaluation, and for smaller collections, or when writing from scratch in Kotlin, `Iterable` pipelines are simple, generally quick, and easy to reason with.
 Your authors will often convert streams to iterables in order to take advantage of the far richer API that Kotlin provides.
@@ -962,8 +978,6 @@ fun EventStore.queryAsSequence(query: String) =
 In passing, note that `allEventsInSameInteractions` is an example of a extension function as method that we discussed in <<functions-to-extension-functions>>.
 It has access to both `this` from `MarketingAnalytics` and `this` from `Sequence<Event>`.
 
-
-REMINDER - INLINE allows us to break out of loops
-REMINDER - righting a function that works on both Sequence and Iterable
-
 === Conclusion
+
+TODO
