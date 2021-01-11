@@ -759,11 +759,17 @@ fun `can specify header names when there is no header row`() {
 ----
 // end-insert
 
-Its worth noting how easy it is to convert from a `Map<Int, String>` to our header provider function `(Int) -> String` - with the method reference `headers::getValue`.
-There is also a pleasing symmetry between this map and the maps in the output.
-Such symmetry doesn't guarantee that our design is on the right tracks, but it is a good sign.
+It's worth noting how easy it is to convert from a `List<String>` to our header provider function `(Int) -> String` - with the method reference `headers::get`.
+This is an interesting way to view collections.
+We can view
 
-Also a good sign is that we are now in a position to try running our acceptance test.
+* A `List<T>` as `(Int) -> T` by `List.get`
+* A `Set<T>` as `(T) -> Boolean` by `Set.contains`
+* A `Map<K, V>` as `(K) -> V?` by `Map.get`.
+
+If we can define a dependency by one of these function types, then clients, and our tests, can use standard collections to provide an implementation.
+
+We are now in a position to try running our acceptance test.
 This was:
 
 // begin-insert: tags/table-reader.23:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt
