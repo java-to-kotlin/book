@@ -99,12 +99,12 @@ object Sequences5 {
 }
 
 object Sequences6 {
-    /// begin: sumBy
+    /// begin: average
     fun averageNonBlankLength(strings: List<String>): Double =
         strings
             .map { if (it.isBlank()) 0 else it.length }
             .average()
-    /// end: sumBy
+    /// end: average
 }
 
 

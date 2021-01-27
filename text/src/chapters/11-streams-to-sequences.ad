@@ -63,7 +63,7 @@ public static double averageNonBlankLength(List<String> strings) {
 Note that there are different types of fundamental operations going on here.
 `map` changes the type of items, but there are the same number of them.
 `filter` keeps or rejects items depending on some property, but keeps their type the same.
-`sum' is a _reduction_ of the collection to a single property.
+`sum` is a _reduction_ of the collection to a single property.
 Not shown in this example are the operations `skip(int n)` and `limit(int n)`.
 These return streams without the first and last `n` elements respectively.
 
@@ -189,10 +189,6 @@ fun averageNonBlankLength(strings: List<String>): Double =
         .filter { it.isNotBlank() }
         .sumBy(String::length)
         / strings.size.toDouble())
-fun averageNonBlankLength(strings: List<String>): Double =
-    strings
-        .map { if (it.isBlank()) 0 else it.length }
-        .average()
 ----
 // end-insert
 
@@ -744,7 +740,7 @@ val eventsForSuccessfulBookings = eventStore
 // end-insert
 
 This would also _probably just work_ if we had a `queryAsSequence` to replace `queryAsStream`.
-Thankfully, we can know how to convert:
+Thankfully, we know how to convert from the `Stream` to a `Sequence`:
 
 // begin-insert: tags/streams-to-sequences.11:src/main/java/travelator/analytics/MarketingAnalytics.kt#part1
 [source,kotlin]
@@ -776,7 +772,7 @@ val bookingEventsByInteractionId = eventsForSuccessfulBookings
 // end-insert
 
 is then resolved as `Sequence.asSequence()`, which is a no-op.
-We can inline the function to prove it:
+We can inline `asSequence` to prove it:
 
 // begin-insert: tags/streams-to-sequences.12:src/main/java/travelator/analytics/MarketingAnalytics.kt#part2
 [source,kotlin]
@@ -788,7 +784,24 @@ val bookingEventsByInteractionId = eventsForSuccessfulBookings
 ----
 // end-insert
 
-Introducing an extension function:
+Returning to `eventsForSuccessfulBookings`:
+
+// begin-insert: tags/streams-to-sequences.11:src/main/java/travelator/analytics/MarketingAnalytics.kt#part1
+[source,kotlin]
+----
+val eventsForSuccessfulBookings = eventStore
+    .queryAsStream("type=CompletedBooking&timerange=$timeRange")
+    .asSequence()
+    .flatMap { event ->
+        val interactionId = event["interactionId"] as String
+        eventStore
+            .queryAsStream("interactionId=$interactionId")
+            .asSequence()
+    }
+----
+// end-insert
+
+What we really wanted was for `EventStore` to support `queryAsSequence` - we can do this without modifying it by introducing an extension function:
 
 // begin-insert: tags/streams-to-sequences.12:src/main/java/travelator/analytics/MarketingAnalytics.kt#queryAsSequence
 [source,kotlin]
@@ -798,7 +811,7 @@ fun EventStore.queryAsSequence(query: String) =
 ----
 // end-insert
 
-allows us to remove the other duplication, yielding:
+This allows us to write:
 
 // begin-insert: tags/streams-to-sequences.12:src/main/java/travelator/analytics/MarketingAnalytics.kt#averageNumberOfEventsPerCompletedBooking
 [source,kotlin]
@@ -981,3 +994,17 @@ It has access to both `this` from `MarketingAnalytics` and `this` from `Sequence
 === Conclusion
 
 TODO
+
+Also something on
+
+// begin-insert: src/main/java/sequences/sequences.kt#average
+[source,kotlin]
+----
+fun averageNonBlankLength(strings: List<String>): Double =
+    strings
+        .map { if (it.isBlank()) 0 else it.length }
+        .average()
+----
+// end-insert
+
+ie, that provided we don't have side-effects, we can replace our code with a transformation of the same expressions.
