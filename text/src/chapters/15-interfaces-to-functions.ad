@@ -1,7 +1,1045 @@
 [[interfaces-to-functions]]
 == Interfaces to Functions
 
-In Java we define interfaces that reflect the work we want something else to do for us.
-This couples the client and implementation.
-Until we have no choice, we should use functions rather than interfaces.
+We use interfaces in Java to specify a contract between code that defines some functionality, and code that needs it.
+Those interfaces couple the two parties together, making our software harder to maintain.
+Can we maintain the relationship without having to maintain the interface?
+
+Imagine, if you can, that you need to send email from some code that you are writing.
+Just that for now - not receive mail, or list sent messages - just fire and forget.
+
+As users of this facility, we would like to call a function, passing it the information in the email.
+So given a representation of an email:
+
+// begin-insert: src/main/java/encapsulation/Email.kt
+[source,kotlin]
+----
+data class Email(
+    val to: String,
+    val subject: String,
+    val body: String
+)
+----
+// end-insert
+
+then we would like to invoke a function like:
+
+// begin-insert: src/main/java/encapsulation/encapsulation.kt#send
+[source,kotlin]
+----
+fun send(email: Email) {
+    TODO()
+}
+----
+// end-insert
+
+Of course when we come to implement this function, we discover that we need all sorts of other information to _actually_ send email.
+Not information about the email itself, but rather configuration about how to send it.
+Things like the sending email server's IP address, login details, other security credentials, timeouts, senders email address - all the things that your elderly relative doesn't know, but you need to set up their new computer.
+Given the multitude of different email systems, in the end API's like https://javamail.java.net/nonav/docs/api/[JavaMail] basically punt and pass a whole dictionary, but for now, let's let 3 parameters stand in for the lot.
+
+// begin-insert: src/main/java/encapsulation/encapsulation.kt#sendEmail
+[source,kotlin]
+----
+fun sendEmail(
+    email: Email,
+    serverAddress: InetAddress,
+    username: String,
+    password: String
+) {
+    TODO()
+}
+----
+// end-insert
+
+As a client things have just gotten a lot less convenient.
+Everywhere we want to send email has to know about this petty configuration - we'll be passing it around from the top to the bottom of the codebase.
+Solving that problem by hiding the details in global variables works fine until we discover that every run of the unit test suite now is sending 5 emails!
+There must be a better way of hiding these petty details.
+
+=== Object-Oriented Encapsulation
+
+Object-oriented languages have a ready-made solution to this problem - objects can encapsulate the data.
+
+// begin-insert: src/main/java/encapsulation/EmailSender.kt#plain
+[source,kotlin]
+----
+class EmailSender(
+    private val serverAddress: InetAddress,
+    private val username: String,
+    private val password: String
+) {
+    fun send(email: Email) {
+        sendEmail(
+            email,
+            serverAddress,
+            username,
+            password
+        )
+    }
+}
+----
+// end-insert
+
+Now when we want to send email we need access to an EmailSender (rather than a static function).
+But once we have one, instead of calling a function, we invoke a method, and we don't need to tell the method all the petty details because it already knows them - they are the fields of the object:
+
+// begin-insert: src/main/java/encapsulation/OO-usage.kt#foo
+[source,kotlin]
+----
+// Where we know the configuration
+
+val sender: EmailSender = EmailSender(
+    inetAddress("smtp.travelator.com"),
+    "username",
+    "password"
+)
+
+// Where we send the message
+
+fun sendThanks(sender: EmailSender) {
+    sender.send(
+        Email(
+            to = "support@internationalrescue.org",
+            subject = "Thanks for your help",
+            body = "..."
+        )
+    )
+}
+----
+// end-insert
+
+Note that while we've shown a single function with a `sender` parameter, this technique also applies to methods.
+In the case of methods we are likely to have a `sender` property in the class rather than a parameter:
+
+// begin-insert: src/main/java/encapsulation/OO-usage.kt#oo_class
+[source,kotlin]
+----
+// Where we know the configuration
+
+val subsystem = SubSystem(
+    EmailSender(
+        inetAddress("smtp.travelator.com"),
+        "username",
+        "password"
+    )
+)
+
+// Where we send the message
+
+class SubSystem(
+    private val emailSender: EmailSender
+) {
+    fun sendThanks() {
+        emailSender.send(
+            Email(
+                to = "support@internationalrescue.org",
+                subject = "Thanks for your help",
+                body = "..."
+            )
+        )
+    }
+}
+----
+// end-insert
+
+As a bonus with either approach, if we extract an interface:
+
+// begin-insert: src/main/java/encapsulation/ISendEmail.kt
+[source,kotlin]
+----
+interface ISendEmail {
+    fun send(email: Email)
+}
+----
+// end-insert
+
+// begin-insert: src/main/java/encapsulation/EmailSender.kt#impl
+[source,kotlin]
+----
+class EmailSender(
+        ...
+) : ISendEmail {
+    override fun send(email: Email) {
+        sendEmail(
+            email,
+            serverAddress,
+            username,
+            password
+        )
+    }
+}
+----
+// end-insert
+
+then we can configure the tests to use a mock or some other stub and not actually send emails.
+We came for the information hiding, but stayed for the implementation hiding.
+Not only can we provide fakes that don't send emails at all, but also different non-fake implementations like` SmtpEmailSender` and `X400EmailSender`, each of which hides both its configuration details and implementation details from its clients.
+When we say hides, it sounds a bit pejorative, but the hiding is useful to both client and implementor.
+The former is unburdened from having to supply the configuration details at the point of use, the latter is able to evolve separately from its users, provided it doesn't change API, expressed in the interface and the constructor.
+
+Before we leave the object-oriented realm, it's worth noting that we don't have to create a named class to implement `ISendEmail`, we can do it anonymously:
+
+// begin-insert: src/main/java/encapsulation/anonymous-class.kt#anon
+[source,kotlin]
+----
+fun createEmailSender(
+    serverAddress: InetAddress,
+    username: String,
+    password: String
+): ISendEmail =
+    object : ISendEmail {
+        override fun send(email: Email) =
+            sendEmail(
+                email,
+                serverAddress,
+                username,
+                password
+            )
+    }
+----
+// end-insert
+
+Why might we want to do this?
+Well in situations where we don't control all the clients of our code (we are publishing a library external to our organisation for example), then this gives us flexibility to change our implementation, safe in the knowledge that clients cannot depend on a specific implementation class by downcasting to it and calling other methods.
+
+Finally, note that in Kotlin 1.4, we can declare our `ISendEmail` interface as a `fun` interface (one with only one abstract method), and implement it with a lambda:
+
+// begin-insert: src/main/java/encapsulation/anonymous-class.kt#anon2
+[source,kotlin]
+----
+fun interface ISendEmail {
+    fun send(email: Email)
+}
+
+fun createEmailSender(
+    serverAddress: InetAddress,
+    username: String,
+    password: String
+) = ISendEmail { email ->
+    sendEmail(
+        email,
+        serverAddress,
+        username,
+        password
+    )
+}
+----
+// end-insert
+
+=== Functional Encapsulation
+
+Having seen how an OO programmer solves the problem of encapsulating pesky details so clients don't have to remember them, how would a functional programmer approach the same problem?
+
+Remember that we're trying to get to a function with this signature:
+
+// begin-insert: src/main/java/encapsulation/encapsulation.kt#send
+[source,kotlin]
+----
+fun send(email: Email) {
+    TODO()
+}
+----
+// end-insert
+
+given an implementation that looks like this:
+
+// begin-insert: src/main/java/encapsulation/encapsulation.kt#sendEmail
+[source,kotlin]
+----
+fun sendEmail(
+    email: Email,
+    serverAddress: InetAddress,
+    username: String,
+    password: String
+) {
+    TODO()
+}
+----
+// end-insert
+
+In functional terms, this is https://en.wikipedia.org/wiki/Partial_application[partial application] - fixing a number of arguments to a function to give a function with fewer arguments.
+While some languages provide built-in support for this sort of thing, in Kotlin the easiest approach is to write a function to partially apply our configuration.
+
+What we want is a function that takes the configuration, and returns a function that knows how to send a message:
+
+// begin-insert: src/main/java/encapsulation/encapsulation.kt#createEmailSender0
+[source,kotlin]
+----
+fun createEmailSender(
+    serverAddress: InetAddress,
+    username: String,
+    password: String
+): (Email) -> Unit { // <1>
+    TODO()
+}
+----
+// end-insert
+
+<1> The return type of our function is itself a function, that takes an `Email` and returns `Unit`.
+
+This is the functional analog of the OO case, where the `EmailSender` constructor is a function that 'returns' an object that knows how to send a message.
+
+To see this relationship, we can write this function in longhand first, by defining an inner function that captures the arguments it requires from the parent:
+
+// begin-insert: src/main/java/encapsulation/encapsulation.kt#createEmailSender1
+[source,kotlin]
+----
+fun createEmailSender(
+    serverAddress: InetAddress,
+    username: String,
+    password: String
+): (Email) -> Unit {
+
+    fun result(email: Email) {
+        sendEmail(
+            email,
+            serverAddress,
+            username,
+            password
+        )
+    }
+    return ::result
+}
+----
+// end-insert
+
+We can then make the result a lambda expression:
+
+// begin-insert: src/main/java/encapsulation/encapsulation.kt#createEmailSender2
+[source,kotlin]
+----
+fun createEmailSender(
+    serverAddress: InetAddress,
+    username: String,
+    password: String
+): (Email) -> Unit {
+
+    val result: (Email) -> Unit =
+        { email ->
+            sendEmail(
+                email,
+                serverAddress,
+                username,
+                password
+            )
+        }
+    return result
+}
+----
+// end-insert
+
+before inlining `result` and converting to a single expression to leave this functional definition:
+
+// begin-insert: src/main/java/encapsulation/encapsulation.kt#createEmailSender3
+[source,kotlin]
+----
+fun createEmailSender(
+    serverAddress: InetAddress,
+    username: String,
+    password: String
+): (Email) -> Unit =
+    { email ->
+        sendEmail(
+            email,
+            serverAddress,
+            username,
+            password
+        )
+    }
+----
+// end-insert
+
+So `createEmailSender` is a function that returns a lambda that calls `sendEmail` combining the lambda's single `Email` argument with the configuration from `createEmailSender`.
+We call this lambda a _closure_, as it closes-over values that it requires from its enclosing context, capturing them for use later.
+
+To use this function, we can create it in one place and invoke it in another, very much as we did with the object solution.
+
+// begin-insert: src/main/java/encapsulation/FP-usage.kt#foo
+[source,kotlin]
+----
+// Where we know the configuration
+
+val sender: (Email) -> Unit = createEmailSender(
+    inetAddress("smtp.travelator.com"),
+    "username",
+    "password"
+)
+
+// Where we send the message
+
+fun sendThanks(sender: (Email) -> Unit) {
+    sender.invoke( // <1>
+        Email(
+            to = "support@internationalrescue.org",
+            subject = "Thanks for your help",
+            body = "..."
+        )
+    )
+}
+----
+// end-insert
+
+<1> We could of course elide the `invoke` here, but we're leaving it for comparison.
+
+In the unlikely event that you're joining us from JavaScript, or Clojure, the functional form will be much more familiar, but if you came to Kotlin from Java, this solution probably feels quite alien.
+
+=== What About Java Then?
+
+Both the object and functional forms have allowed us to encapsulate things (in this case configuration, but it could equally well have been collaborators)
+to transport them from the place where they are known to the place where they are used.
+Any data-structure could have done that, but because the object and the function both have an operation that can be run (`send` and `invoke` respectively), the client can remain oblivious to the details of the collaborators and just pass the information that is specific to each invocation (the `Email`).
+
+One way of unifying the functional and OO solutions is to view a function as a object with a single `invoke` method.
+This is exactly what Java 8 did when it introduced lambdas.
+Instead of creating a syntax for function types, Java uses interfaces with a _Single Abstract Method_ (SAM) with the desired signature.
+Expressed in Java, our functional solution is
+
+// begin-insert: src/main/java/encapsulation/FPUsage.java#foo
+[source,java]
+----
+// Where we know the configuration
+
+Consumer<Email> sender = createEmailSender(
+    inetAddress("example.com"),
+    "username",
+    "password"
+);
+
+// Where we send the message
+
+public static void sendThanks(Consumer<Email> sender) {
+    sender.accept( // <1>
+        new Email(
+            "support@internationalrescue.org",
+            "Thanks for your help",
+            "..."
+        )
+    );
+}
+----
+// end-insert
+
+<1> Accept is the name of the single abstract method on the `Consumer` interface.
+
+`createEmailSender` can be implemented with a lambda:
+
+// begin-insert: src/main/java/encapsulation/FPUsage.java#FPUsageLambda
+[source,java]
+----
+static Consumer<Email> createEmailSender(
+    InetAddress serverAddress,
+    String username,
+    String password
+) {
+    return email -> sendEmail(
+        email,
+        serverAddress,
+        username,
+        password
+    );
+}
+----
+// end-insert
+
+This is equivalent to creating an anonymous implementation of the interface, a technique that will be very familiar to those of us who programmed in Java before Java 8:
+
+// begin-insert: src/main/java/encapsulation/FPUsage.java#FPUsageLongHand
+[source,java]
+----
+static Consumer<Email> createEmailSender(
+    InetAddress serverAddress,
+    String username,
+    String password
+) {
+    return new Consumer<Email>() {
+        @Override
+        public void accept(Email email) {
+            sendEmail(
+                email,
+                serverAddress,
+                username,
+                password
+            );
+        }
+    };
+}
+----
+// end-insert
+
+It's worth noting at this point we can't assign the result of the Kotlin `createEmailSender` function to a variable of type `Consumer<Email>`.
+This is because the Kotlin runtime has its own function types that it uses, and the compiler compiles `(Email) -> Unit` into `Function1<Email, Unit>`.
+There are a whole series of Kotlin ``Function``N interfaces for the different numbers of parameters.
+To get us used to their existence, IntelliJ helpfully introduces this function form rather than the `(P) -> R` syntax as the result of some automated refactorings in Kotlin.
+Instead of these very generic interfaces, Java defines `Consumer`, `Supplier`, `Function`, `BiFunction`, `Predicate`, `DoublePredicate` etc.
+These communicate their role well, but are forced on the language because of issues defining the generic type of `void` and efficiency concerns over boxing primitives.
+
+In order to mix Java and Kotlin at this functional level we are going to have to thunk sometimes:
+
+// begin-insert: src/main/java/encapsulation/thunking-consumer.kt#foo
+[source,kotlin]
+----
+// Kotlin function type
+val sender: (Email) -> Unit = createEmailSender(
+    inetAddress("smtp.travelator.com"),
+    "username",
+    "password"
+)
+val consumer: Consumer<Email> = sender // Doesn't compile <1>
+
+val consumer: Consumer<Email> = Consumer<Email> { email -> // <2>
+    sender(email)
+}
+
+// Java method taking Consumer
+sendThanks(sender) // <3>
+----
+// end-insert
+
+<1> `Type mismatch. Required: Consumer<Email> Found:(Email) -> Unit`.
+<2> We can convert with a lambda.
+<3> Kotlin will convert parameters automatically.
+
+=== Clients and Implementations
+
+There are two sides to an abstraction, the client code that uses it, and the implementing code.
+So far, both client and implementor have either been object-oriented or functional.
+In the OO case, fields carry configuration, and the client invokes a method.
+In the functional scheme, the function closes over the configuration, and the client invokes the function.
+Can we unify these approaches, giving an OO implementation to a function-expecting client or vice versa?
+Or, in Kotlin terms, can we convert `ISendEmail` to `(Email) -> Unit`, and the inverse.
+Why yes we can!
+
+Remember that in Java and Kotlin, function types are just interfaces.
+Because of this `EmailSender` can implement the type `Consumer<Email>` or  `(Email) -> Unit` respectively, by defining a method with the signature of the function type.
+
+Here it is in Java:
+
+// begin-insert: src/main/java/encapsulation/MixedUsage.java#consumer
+[source,java]
+----
+public class EmailSender
+    implements ISendEmail,
+        Consumer<Email> // <1>
+{
+        ...
+    @Override
+    public void accept(Email email) { // <2>
+        send(email);
+    }
+
+    @Override
+    public void send(Email email) {
+        sendEmail(email, serverAddress, username, password);
+    }
+}
+----
+// end-insert
+
+<1> Declare
+<2> Implement
+
+This is the Kotlin equivalent:
+
+// begin-insert: src/main/java/encapsulation/EmailSender.kt#invoke
+[source,kotlin]
+----
+class EmailSender(
+        ...
+) : ISendEmail,
+    (Email) -> Unit // <1>
+{
+    override operator fun invoke(email: Email) =
+        send(email) // <2>
+
+    override fun send(email: Email) {
+        sendEmail(
+            email,
+            serverAddress,
+            username,
+            password
+        )
+    }
+}
+----
+// end-insert
+
+<1> Declare
+<2> Implement
+
+If we do this then we can use our class-based sender in place of our functional one.
+We'll stick with Kotlin now:
+
+// begin-insert: src/main/java/encapsulation/FP-usage.kt#bar
+[source,kotlin]
+----
+// Where we know the configuration
+
+val sender: (Email) -> Unit = EmailSender(
+    inetAddress("smtp.travelator.com"),
+    "username",
+    "password"
+)
+
+// Where we send the message
+
+fun sendThanks(sender: (Email) -> Unit) {
+    sender.invoke( // <1>
+        Email(
+            to = "support@internationalrescue.org",
+            subject = "Thanks for your help",
+            body = "..."
+        )
+    )
+}
+----
+// end-insert
+
+Now our OO solution has become quite a bit more complicated in order to fit in with the FP approach.
+This calls into question the usefulness of our `ISendEmail` interface.
+We can see that it is equivalent to the function type `(Email) -> Unit` - all it does is give the name `send` to what happens when you invoke it.
+Maybe we could just use the type `(Email) -> Unit` everywhere in place of `ISendEmail`?
+
+If you think that might not be expressive enough, then maybe you aren't a functional programmer.
+Luckily there is a middle ground - we can use a type alias to give a name to the functional type, thus communicating our intent.
+
+// begin-insert: src/main/java/encapsulation/EmailSender.kt#typealias
+[source,kotlin]
+----
+typealias ISendEmailToo = (Email) -> Unit
+
+class EmailSender(
+        ...
+) : ISendEmailToo {
+    override fun invoke(email: Email) {
+        sendEmail(
+            email,
+            serverAddress,
+            username,
+            password
+        )
+    }
+}
+----
+// end-insert
+
+Note that as the type alias is just an alias - it doesn't define a new type - you can write `ISendEmailToo` and `(Email) -> Unit` interchangeably, so that we don't have to retrofit `sendThanks` with the type alias in order to make this change.
+
+.Expressive Function Types
+****
+Once we have our head in the functional mindset, `(Email) -> Unit` may be expressive enough to tell us the role of the function, especially combined with a variable name of `sender`.
+What can you do with an email that doesn't return a result?
+Well if it doesn't return a result it must be an action (<<actions>>), but deleting an email might also have a similar signature.
+Objects have that advantage over functions - they get to name their methods (`send(email)` compared to `delete(email)`), at the expense of also having to name the type of the object or interface.
+
+Kotlin has a feature that can help make function types more expressive - we can name the parameters.
+So if it helps, we could write `(toSend: Email) -> Unit`.
+It doesn't make a great difference here, but can be very useful in situations with parameters of the same type, for example `(username: String, password: String) -> AuthenticatedUser`.
+If we use this form, IntelliJ will even helpfully name the parameters when we implement the function with a lambda or a class.
+****
+
+There is another way of bridging the OO-FP gap that doesn't involve making our classes implement function types - create a function reference at the point of invocation.
+Given our old class-based solution:
+
+// begin-insert: src/main/java/encapsulation/EmailSender.kt#plain
+[source,kotlin]
+----
+class EmailSender(
+    private val serverAddress: InetAddress,
+    private val username: String,
+    private val password: String
+) {
+    fun send(email: Email) {
+        sendEmail(
+            email,
+            serverAddress,
+            username,
+            password
+        )
+    }
+}
+----
+// end-insert
+
+we can convert an instance to a function type with a lambda:
+
+// begin-insert: src/main/java/encapsulation/mixed-usage.kt#foo
+[source,kotlin]
+----
+val instance = EmailSender(
+    inetAddress("smtp.travelator.com"),
+    "username",
+    "password"
+)
+val sender: (Email) -> Unit = { instance.send(it) }
+----
+// end-insert
+
+or just pass a method reference:
+
+// begin-insert: src/main/java/encapsulation/mixed-usage.kt#bar
+[source,kotlin]
+----
+val sender: (Email) -> Unit = instance::send
+----
+// end-insert
+
+Whilst we've shown these conversions in Kotlin, they also work in Java (with a slightly different syntax).
+
+Can we do the opposite - pass our functional sender into something that expects an `ISendEmail`?
+This requires more ceremony, as we have to create an anonymous object implementing `ISendEmail` to perform the thunk:
+
+// begin-insert: src/main/java/encapsulation/OO-usage.kt#bar
+[source,kotlin]
+----
+val function: (Email) -> Unit = createEmailSender(
+    inetAddress("smtp.travelator.com"),
+    "username",
+    "password"
+)
+
+val sender: ISendEmail = object : ISendEmail {
+    override fun send(email: Email) {
+        function(email)
+    }
+}
+----
+// end-insert
+
+In Kotlin 1.4, we can again use a `fun interface` to remove some boilerplate:
+
+// begin-insert: src/main/java/encapsulation/OO-usage.kt#baz
+[source,kotlin]
+----
+fun interface ISendEmail {
+    fun send(email: Email)
+}
+
+val sender = ISendEmail { function(it) }
+----
+// end-insert
+
+=== Comparing the Approaches
+
+Let's remind ourselves of the OO approach.
+
+First we define a type
+
+// begin-insert: src/main/java/encapsulation/EmailSender.kt#plain
+[source,kotlin]
+----
+class EmailSender(
+    private val serverAddress: InetAddress,
+    private val username: String,
+    private val password: String
+) {
+    fun send(email: Email) {
+        sendEmail(
+            email,
+            serverAddress,
+            username,
+            password
+        )
+    }
+}
+----
+// end-insert
+
+then we create instances and call methods
+
+// begin-insert: src/main/java/encapsulation/OO-usage.kt#foo
+[source,kotlin]
+----
+// Where we know the configuration
+
+val sender: EmailSender = EmailSender(
+    inetAddress("smtp.travelator.com"),
+    "username",
+    "password"
+)
+
+// Where we send the message
+
+fun sendThanks(sender: EmailSender) {
+    sender.send(
+        Email(
+            to = "support@internationalrescue.org",
+            subject = "Thanks for your help",
+            body = "..."
+        )
+    )
+}
+----
+// end-insert
+
+In functional-land we don't have to define a type, because `(Email) -> Unit` 'exists', so we can just say:
+
+// begin-insert: src/main/java/encapsulation/FP-usage.kt#foo
+[source,kotlin]
+----
+// Where we know the configuration
+
+val sender: (Email) -> Unit = createEmailSender(
+    inetAddress("smtp.travelator.com"),
+    "username",
+    "password"
+)
+
+// Where we send the message
+
+fun sendThanks(sender: (Email) -> Unit) {
+    sender.invoke( // <1>
+        Email(
+            to = "support@internationalrescue.org",
+            subject = "Thanks for your help",
+            body = "..."
+        )
+    )
+}
+----
+// end-insert
+
+<1> with or without the `invoke`.
+
+Clients using the object have to know to call the `send` method to send email, in contrast, clients using the function just have to invoke it, but they only know that the function sends email because it has been assigned the name `sender`.
+If that name got lost in the call hierarchy all bets are off.
+
+The flip-side of the OO clients having to know to call the `send` method is that we could package up a number of email-related operations into an `EmailSystem`, with methods like `send`, `list`, and `delete`, and pass all this functionality to clients in one go.
+They can then choose which they need in which context:
+
+// begin-insert: src/main/java/encapsulation/EmailSystem.kt
+[source,kotlin]
+----
+interface EmailSystem {
+    fun send(email: Email)
+    fun delete(email: Email)
+    fun list(folder: Folder): List<Email>
+    fun move(email: Email, to: Folder)
+}
+----
+// end-insert
+
+To achieve this in the functional context would require either passing individual functions around, or some sort of map of name to function, maybe a class itself:
+
+// begin-insert: src/main/java/encapsulation/fp-email-system.kt#foo
+[source,kotlin]
+----
+class EmailSystem(
+    val send: (Email) -> Unit,
+    val delete: (Email) -> Unit,
+    val list: (folder: Folder) -> List<Email>,
+    val move: (email: Email, to: Folder) ->  Unit
+)
+----
+// end-insert
+
+Clients with such an object could treat it very much like an implementation of the interface:
+
+// begin-insert: src/main/java/encapsulation/fp-email-system.kt#bar
+[source,kotlin]
+----
+fun sendThanks(sender: EmailSystem) {
+    sender.send(
+        Email(
+            to = "support@internationalrescue.org",
+            subject = "Thanks for your help",
+            body = "..."
+        )
+    )
+}
+----
+// end-insert
+
+But this is not the same - instead of invoking a `send` _method_ what is actually happening here is that we are calling `getSender` to access a property of function type, and then calling `invoke` on that function:
+
+// begin-insert: src/main/java/encapsulation/fp-email-system.kt#baz
+[source,kotlin]
+----
+fun sendThanks(sender: EmailSystem) {
+    sender.send.invoke(
+        Email(
+            to = "support@internationalrescue.org",
+            subject = "Thanks for your help",
+            body = "..."
+        )
+    )
+}
+----
+// end-insert
+
+The code may read the same, but it generates very different, and fundamentally incompatible, bytecode.
+
+=== Coupling
+
+An easy to overlook difference between expressing the dependency as an implementation of `ISendEmail` and an implementation of the function type `(Email) -> Unit` is the coupling between the client and the implementation, in particular when they are in different code bases.
+
+`ISendEmail` has to be defined somewhere.
+The client can't define it, because the implementor will depend on the interface, and the client on the implementation, so that would lead to a circular dependency.
+So it has to be defined either with the implementor, or in a separate location (package, JAR file) depended on by both implementor and client.
+The later (an application of the https://en.wikipedia.org/wiki/Dependency_inversion_principle[Dependency Inversion Principle]) is in theory preferable but in practice more work and so often neglected.
+
+With or without Dependency Inversion, the result is the client and implementation being coupled by the interface in ways which can make systems hard to reason with and refactor.
+Any change to methods on `EmailSystem` might affect all code that depends on the interface.
+
+In contrast, our runtime defines all the function types, so they don't introduce a compile-time dependency between the client and an implementation.
+Of course there will be a run-time dependency - the client has to be able to invoke the implementation code, and the constructor code needs to be visible where the dependency is created, but these tend to cause less coupling.
+For example, when a dependency is expressed as a function type, we can rename `EmailSystem.send`, and the only change in our client code will be to use a different method reference - the internals of `sendThanks` are unaffected.
+
+[TIP]
+.Only Depend On Types That You Own (and the Runtime)
+====
+An early rule of thumb for OO systems was that we should only depend on types that we own.
+That way we are insulated from changes that we don't control, and are more likely to write code that can be reused with different implementations of dependencies.
+
+An exception to this rule is taking a dependency on types provided by the runtime - these are very unlikely to change.
+Function types allow us to easily convert from unstable to stable interfaces, allowing parts of our systems to evolve at different rates.
+====
+
+=== OO or Functional?
+
+Both the OO and functional approaches can achieve the same goals, and with similar levels of expressiveness.
+Which should we choose?
+
+Let's consider this from the context of the client code.
+If our client only needs to send email, it should have a dependency on a single `(Email) -> Unit` function (`Consumer<Email>` in Java).
+In Kotlin, this dependency can be satisfied by anything of that type, including:
+
+* a plain function
+* an object implementing the function type
+* method reference selecting a method with the desired signature
+* a lambda with the desired signature.
+
+Even if we happen to have an interface, lets say `EmailSystem`, which defines the desired method along with delete, move and list, we shouldn't needlessly couple our client to this interface when the function type will do.
+Taking a wider interface misses the opportunity to communicate precisely which operations we require, and forces clients to provide an implementation of the whole interface.
+This is particularly irritating in tests, and leads to the introduction of mock objects just to get our test code to compile.
+
+The drives of communication and reduced coupling are so strong that even if our client needs to send and delete email, and in practice these are going to be supplied by a single `EmailSystem`, it should probably depend on two functions rather than the interface.
+Only at the point where the client requires three related operations does it feel like a multi-method interface should be the default.
+Even here, it might be better for the client to accept an object that only supports the desired operations.
+We can do that with a new interface, implemented with an `object`:
+
+// begin-insert: src/main/java/encapsulation/narrowing.kt#interface
+[source,kotlin]
+----
+interface MyDependencies {
+    fun delete(email: Email)
+    fun list(folder: Folder): List<Email>
+    fun move(email: Email, to: Folder)
+}
+
+fun organise(emails: MyDependencies) {
+    emails.list(rootFolder).forEach {
+        if (it.to.isEmpty()) {
+            emails.delete(it)
+        } else {
+            emails.move(it, archiveFolder)
+        }
+    }
+}
+
+fun organise(emailSystem: EmailSystem) {
+    organise(object : MyDependencies {
+        override fun delete(email: Email) {
+            emailSystem.delete(email)
+        }
+        override fun list(folder: Folder): List<Email> {
+            return emailSystem.list(folder)
+        }
+        override fun move(email: Email, to: Folder) {
+            emailSystem.move(email, to)
+        }
+    })
+}
+----
+// end-insert
+
+That's pretty heavy though, maybe this is a place where a class of functions would be better:
+
+// begin-insert: src/main/java/encapsulation/narrowing.kt#object
+[source,kotlin]
+----
+class MyDependencies(
+    val delete: (Email) -> Unit,
+    val list: (folder: Folder) -> List<Email>,
+    val move: (email: Email, to: Folder) -> Unit
+)
+
+fun organise(emails: MyDependencies) {
+    emails.list(rootFolder).forEach {
+        if (it.to.isEmpty()) {
+            emails.delete(it)
+        } else {
+            emails.move(it, archiveFolder)
+        }
+    }
+}
+
+fun organise(emailSystem: EmailSystem) {
+    organise(
+        MyDependencies(
+            delete = emailSystem::delete,
+            list = emailSystem::list,
+            move = emailSystem::move
+        )
+    )
+}
+----
+// end-insert
+
+So, until it becomes hard work, we should default to expressing our client's needs as function types.
+Our implementation then can be just a function, or something implementing the function type, or a method converted to the function type through method references or lambdas, whichever makes most sense in context.
+We will have some more to say on this subject in <<subclasses-to-composition>>.
+
+=== The Legacy of Java
+
+While we said earlier that "our runtime defines all the functions types", that wasn't true of Java until Java 8 introduced `Supplier`, `Consumer`, `Predicate` etc, and the ability to implement them with method references or lambdas.
+
+Because of this, legacy Java expresses dependencies with the same multi-method interfaces that we would use to group them by sub-system (like `EmailSystem` above), even when only one of those methods is required to implement the functionality.
+This leads to the coupling problems described earlier.
+It also leads to a need for mocking (or more pedantically faking) frameworks to create test implementations of broad interfaces where in practice only one method will be called.
+These fakes then sprout the functionality to fail early if you call a method that you didn't mean to call, a problem that would be solved at compile-time if a single function expressed the dependency.
+
+While you can use the function approach in Java then, it is working against the grain.
+
+[TIP]
+.Faking in Kotlin
+====
+There will be times, even in Kotlin, where we want to implement just some of an interface's methods for testing.
+On the JVM we can combine dynamic proxies with anonymous objects, delegation and selective overriding to write the following:
+
+// begin-insert: src/main/java/encapsulation/faking.kt
+[source,kotlin]
+----
+inline fun <reified T> fake(): T =
+    Proxy.newProxyInstance(
+        T::class.java.classLoader,
+        arrayOf(T::class.java)
+    ) { _, _, _ ->
+        TODO("fake")
+    } as T
+
+
+val sentEmails = mutableListOf<Email>()
+val testCollaborator: EmailSystem = object: EmailSystem by fake() {
+    override fun send(email: Email) {
+        sentEmails.add(email)
+    }
+}
+----
+// end-insert
+
+You are welcome.
+====
+
+=== One Downside
+
+We should say that there is a downside to expressing dependencies with function types, and it is a common issue with adding a layer of indirection.
+If we use IntelliJ to find the callers of `EmailSystem.send`, the trail goes cold at the point where `EmailSystem::send` is converted to `(Email) -> Unit`.
+It's like our hero enters a river, and the posse have to scour both banks upstream and downstream to find where she gets out.
+This is a price we pay for indirection with method calls too, but our tooling is wise to these, and can at least find all places where a particular method is implemented.
+Hopefully tool support will improve its functional analysis too, and in the meantime we can help by not passing function types too far from where they are defined to where they are used.
+
+=== Refactoring from Interfaces to Functions
+
+=== Conclusion
 

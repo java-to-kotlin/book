@@ -10,12 +10,13 @@ object Anon {
         password: String
     ): ISendEmail =
         object : ISendEmail {
-            override fun send(email: Email) = sendEmail(
-                email,
-                serverAddress,
-                username,
-                password
-            )
+            override fun send(email: Email) =
+                sendEmail(
+                    email,
+                    serverAddress,
+                    username,
+                    password
+                )
         }
     /// end: anon
 }

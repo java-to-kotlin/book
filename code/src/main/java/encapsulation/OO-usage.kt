@@ -14,12 +14,47 @@ object OO {
 
     // Where we send the message
 
-    fun sendDistress(sender: EmailSender) {
+    fun sendThanks(sender: EmailSender) {
         sender.send(
-            Email("support@internationalrescue.org", "Travelator Customer Incident", "...")
+            Email(
+                to = "support@internationalrescue.org",
+                subject = "Thanks for your help",
+                body = "..."
+            )
         )
     }
     /// end: foo
+}
+
+object OO_Class {
+
+    /// begin: oo_class
+    // Where we know the configuration
+
+    val subsystem = SubSystem(
+        EmailSender(
+            inetAddress("smtp.travelator.com"),
+            "username",
+            "password"
+        )
+    )
+
+    // Where we send the message
+
+    class SubSystem(
+        private val emailSender: EmailSender
+    ) {
+        fun sendThanks() {
+            emailSender.send(
+                Email(
+                    to = "support@internationalrescue.org",
+                    subject = "Thanks for your help",
+                    body = "..."
+                )
+            )
+        }
+    }
+    /// end: oo_class
 }
 
 object OO_2 {
@@ -30,7 +65,7 @@ object OO_2 {
         "password"
     )
 
-    val sender: ISendEmail = object: ISendEmail {
+    val sender: ISendEmail = object : ISendEmail {
         override fun send(email: Email) {
             function(email)
         }

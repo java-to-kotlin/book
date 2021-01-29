@@ -8,14 +8,19 @@ object AA {
     class EmailSystem(
         val send: (Email) -> Unit,
         val delete: (Email) -> Unit,
-        val list: () -> List<Email>
+        val list: (folder: Folder) -> List<Email>,
+        val move: (email: Email, to: Folder) ->  Unit
     )
     /// end: foo
 
     /// begin: bar
-    fun sendDistress(sender: EmailSystem) {
+    fun sendThanks(sender: EmailSystem) {
         sender.send(
-            Email("support@internationalrescue.org", "Travelator Customer Incident", "...")
+            Email(
+                to = "support@internationalrescue.org",
+                subject = "Thanks for your help",
+                body = "..."
+            )
         )
     }
     /// end: bar
@@ -23,9 +28,13 @@ object AA {
 
 object AAA {
     /// begin: baz
-    fun sendDistress(sender: EmailSystem) {
+    fun sendThanks(sender: EmailSystem) {
         sender.send.invoke(
-            Email("support@internationalrescue.org", "Travelator Customer Incident", "...")
+            Email(
+                to = "support@internationalrescue.org",
+                subject = "Thanks for your help",
+                body = "..."
+            )
         )
     }
     /// end: baz

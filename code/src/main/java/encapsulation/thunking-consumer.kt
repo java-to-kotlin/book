@@ -1,6 +1,6 @@
 package encapsulation
 
-import encapsulation.FPUsage.sendDistress
+import encapsulation.FPUsage.sendThanks
 import java.util.function.Consumer
 
 object Thunking {
@@ -28,7 +28,7 @@ object Thunking {
     init {
         /// begin: foo
         // Java method taking Consumer
-        sendDistress(sender) // <3>
+        sendThanks(sender) // <3>
         /// end: foo
     }
 }

@@ -14,9 +14,13 @@ object FP {
 
     // Where we send the message
 
-    fun sendDistress(sender: (Email) -> Unit) {
+    fun sendThanks(sender: (Email) -> Unit) {
         sender.invoke( // <1>
-            Email("support@internationalrescue.org", "Travelator Customer Incident", "...")
+            Email(
+                to = "support@internationalrescue.org",
+                subject = "Thanks for your help",
+                body = "..."
+            )
         )
     }
     /// end: foo
@@ -34,9 +38,13 @@ object FP_OO {
 
     // Where we send the message
 
-    fun sendDistress(sender: (Email) -> Unit) {
+    fun sendThanks(sender: (Email) -> Unit) {
         sender.invoke( // <1>
-            Email("support@internationalrescue.org", "Travelator Customer Incident", "...")
+            Email(
+                to = "support@internationalrescue.org",
+                subject = "Thanks for your help",
+                body = "..."
+            )
         )
     }
     /// end: bar

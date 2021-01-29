@@ -91,9 +91,9 @@ val sender: EmailSender = EmailSender(
 
 // Where we send the message
 
-fun sendDistress(sender: EmailSender) {
+fun sendThanks(sender: EmailSender) {
     sender.send(
-        Email("support@internationalrescue.org", "Travelator Customer Incident", "...")
+        Email("support@internationalrescue.org", "Thanks for your help", "...")
     )
 }
 ----
@@ -301,9 +301,9 @@ val sender: (Email) -> Unit = createEmailSender(
 
 // Where we send the message
 
-fun sendDistress(sender: (Email) -> Unit) {
+fun sendThanks(sender: (Email) -> Unit) {
     sender.invoke( // <1>
-        Email("support@internationalrescue.org", "Travelator Customer Incident", "...")
+        Email("support@internationalrescue.org", "Thanks for your help", "...")
     )
 }
 ----
@@ -338,9 +338,9 @@ Consumer<Email> sender = createEmailSender(
 
 // Where we send the message
 
-public static void sendDistress(Consumer<Email> sender) {
+public static void sendThanks(Consumer<Email> sender) {
     sender.accept( // <1>
-        new Email("support@internationalrescue.org", "Travelator Customer Incident", "...")
+        new Email("support@internationalrescue.org", "Thanks for your help", "...")
     );
 }
 ----
@@ -408,7 +408,7 @@ val consumer: Consumer<Email> = Consumer<Email> { email -> // <2>
 }
 
 // Java method taking Consumer
-sendDistress(sender) // <3>
+sendThanks(sender) // <3>
 ----
 // end-insert
 
@@ -492,9 +492,9 @@ val sender: (Email) -> Unit = EmailSender(
 
 // Where we send the message
 
-fun sendDistress(sender: (Email) -> Unit) {
+fun sendThanks(sender: (Email) -> Unit) {
     sender.invoke( // <1>
-        Email("support@internationalrescue.org", "Travelator Customer Incident", "...")
+        Email("support@internationalrescue.org", "Thanks for your help", "...")
     )
 }
 ----
@@ -523,7 +523,7 @@ class EmailSender(
 ----
 // end-insert
 
-Note that as the typealias is just an alias - it doesn't define a new type - you can write `ISendEmailToo` and `(Email) -> Unit` interchangeably, so that we don't have to retrofit `sendDistress` with typealias in order to make this change.
+Note that as the typealias is just an alias - it doesn't define a new type - you can write `ISendEmailToo` and `(Email) -> Unit` interchangeably, so that we don't have to retrofit `sendThanks` with typealias in order to make this change.
 
 .Expressive Function Types
 ****
@@ -650,9 +650,9 @@ val sender: EmailSender = EmailSender(
 
 // Where we send the message
 
-fun sendDistress(sender: EmailSender) {
+fun sendThanks(sender: EmailSender) {
     sender.send(
-        Email("support@internationalrescue.org", "Travelator Customer Incident", "...")
+        Email("support@internationalrescue.org", "Thanks for your help", "...")
     )
 }
 ----
@@ -673,9 +673,9 @@ val sender: (Email) -> Unit = createEmailSender(
 
 // Where we send the message
 
-fun sendDistress(sender: (Email) -> Unit) {
+fun sendThanks(sender: (Email) -> Unit) {
     sender.invoke( // <1>
-        Email("support@internationalrescue.org", "Travelator Customer Incident", "...")
+        Email("support@internationalrescue.org", "Thanks for your help", "...")
     )
 }
 ----
@@ -722,9 +722,9 @@ Clients with such an object could treat it very much like the class-based object
 // begin-insert: src/main/java/encapsulation/fp-email-system.kt#bar
 [source,kotlin]
 ----
-fun sendDistress(sender: EmailSystem) {
+fun sendThanks(sender: EmailSystem) {
     sender.send(
-        Email("support@internationalrescue.org", "Travelator Customer Incident", "...")
+        Email("support@internationalrescue.org", "Thanks for your help", "...")
     )
 }
 ----
@@ -735,9 +735,9 @@ but this is not the same - instead of invoking a `send` method what is actually 
 // begin-insert: src/main/java/encapsulation/fp-email-system.kt#baz
 [source,kotlin]
 ----
-fun sendDistress(sender: EmailSystem) {
+fun sendThanks(sender: EmailSystem) {
     sender.send.invoke(
-        Email("support@internationalrescue.org", "Travelator Customer Incident", "...")
+        Email("support@internationalrescue.org", "Thanks for your help", "...")
     )
 }
 ----

@@ -39,7 +39,12 @@ object A {
     ): (Email) -> Unit {
 
         fun result(email: Email) {
-            sendEmail(email, serverAddress, username, password)
+            sendEmail(
+                email,
+                serverAddress,
+                username,
+                password
+            )
         }
         return ::result
     }
@@ -54,9 +59,15 @@ object B {
         password: String
     ): (Email) -> Unit {
 
-        val result: (Email) -> Unit = { email ->
-            sendEmail(email, serverAddress, username, password)
-        }
+        val result: (Email) -> Unit =
+            { email ->
+                sendEmail(
+                    email,
+                    serverAddress,
+                    username,
+                    password
+                )
+            }
         return result
     }
     /// end: createEmailSender2
@@ -70,12 +81,17 @@ object C {
         password: String
     ): (Email) -> Unit =
         { email ->
-            sendEmail(email, serverAddress, username, password)
+            sendEmail(
+                email,
+                serverAddress,
+                username,
+                password
+            )
         }
     /// end: createEmailSender3
 }
 
 
-
-fun inetAddress(s: String): InetAddress = InetAddress.getByName(s)
+fun inetAddress(s: String): InetAddress =
+    InetAddress.getByName(s)
 

@@ -19,9 +19,13 @@ public class FPUsage {
 
     // Where we send the message
 
-    public static void sendDistress(Consumer<Email> sender) {
+    public static void sendThanks(Consumer<Email> sender) {
         sender.accept( // <1>
-            new Email("support@internationalrescue.org", "Travelator Customer Incident", "...")
+            new Email(
+                "support@internationalrescue.org",
+                "Thanks for your help",
+                "..."
+            )
         );
     }
     /// end: foo
@@ -37,7 +41,12 @@ class FPUsageLongHand {
         return new Consumer<Email>() {
             @Override
             public void accept(Email email) {
-                sendEmail(email, serverAddress, username, password);
+                sendEmail(
+                    email,
+                    serverAddress,
+                    username,
+                    password
+                );
             }
         };
     }
@@ -51,7 +60,12 @@ class FPUsageLambda {
         String username,
         String password
     ) {
-        return email -> sendEmail(email, serverAddress, username, password);
+        return email -> sendEmail(
+            email,
+            serverAddress,
+            username,
+            password
+        );
     }
     /// end: FPUsageLambda
 }

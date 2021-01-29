@@ -10,7 +10,12 @@ class EmailSender(
     private val password: String
 ) {
     fun send(email: Email) {
-        sendEmail(email, serverAddress, username, password)
+        sendEmail(
+            email,
+            serverAddress,
+            username,
+            password
+        )
     }
 }
 /// end: plain
@@ -25,7 +30,12 @@ object EmailSenderI {
     /// resume: impl
     ) : ISendEmail {
         override fun send(email: Email) {
-            sendEmail(email, serverAddress, username, password)
+            sendEmail(
+                email,
+                serverAddress,
+                username,
+                password
+            )
         }
     }
     /// end: impl
@@ -42,10 +52,16 @@ object EmailSenderInvoke {
     ) : ISendEmail,
         (Email) -> Unit // <1>
     {
-        override operator fun invoke(email: Email) = send(email) // <2>
+        override operator fun invoke(email: Email) =
+            send(email) // <2>
 
         override fun send(email: Email) {
-            sendEmail(email, serverAddress, username, password)
+            sendEmail(
+                email,
+                serverAddress,
+                username,
+                password
+            )
         }
     }
     /// end: invoke
@@ -66,7 +82,12 @@ object EmailSenderTypeAlias {
     /// resume: typealias
     ) : ISendEmailToo {
         override fun invoke(email: Email) {
-            sendEmail(email, serverAddress, username, password)
+            sendEmail(
+                email,
+                serverAddress,
+                username,
+                password
+            )
         }
     }
     /// end: typealias
