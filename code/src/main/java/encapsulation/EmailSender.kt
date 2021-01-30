@@ -66,29 +66,3 @@ object EmailSenderInvoke {
     }
     /// end: invoke
 }
-
-/// begin: typealias
-typealias ISendEmailToo = (Email) -> Unit
-
-/// end: typealias
-
-object EmailSenderTypeAlias {
-    /// begin: typealias
-    class EmailSender(
-        /// mute: typealias
-        private val serverAddress: InetAddress,
-        private val username: String,
-        private val password: String
-    /// resume: typealias
-    ) : ISendEmailToo {
-        override fun invoke(email: Email) {
-            sendEmail(
-                email,
-                serverAddress,
-                username,
-                password
-            )
-        }
-    }
-    /// end: typealias
-}

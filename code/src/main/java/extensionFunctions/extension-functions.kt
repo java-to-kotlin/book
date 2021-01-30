@@ -164,7 +164,7 @@ object CounterFactuals {
 
 }
 
-fun <T> SOME_CODE(): T = TODO()
+fun SOME_CODE(): Nothing = TODO()
 
 fun nullableToString() {
     /// begin: nullableToString

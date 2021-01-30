@@ -1,5 +1,6 @@
 package encapsulation
 
+import extensionFunctions.SOME_CODE
 import java.net.InetAddress
 
 /// begin: send
@@ -15,7 +16,7 @@ fun sendEmail(
     username: String,
     password: String
 ) {
-    TODO()
+    SOME_CODE()
 }
 /// end: sendEmail
 
