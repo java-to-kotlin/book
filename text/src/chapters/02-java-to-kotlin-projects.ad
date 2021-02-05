@@ -29,7 +29,7 @@ They had a mature Java system that was built on Spring.
 The developers found that the use of reflection and annotations made the code difficult to understand and navigate in the IDE.
 Kotlin's lightweight syntax for closures offered a way to define the structure of their application and distinguish between object graphs instantiated for the whole application, for each HTTP request, or each database transaction.
 They gradually refactored the underpinnings of their system from a framework that obscured the architecture to a compositional style in which the architecture was visible in the code.
-This work became the https://http4k.org[HTTP4K] HTTP toolkit.
+This work became the https://http4k.org[http4k] HTTP toolkit.
 
 As these two examples show, the choice of starting point depends on a number of factors: why is the team adopting Kotlin, how large is the codebase, how frequently is it changed, ... You probably have reasons aren't in this list.
 
@@ -42,7 +42,7 @@ Above a certain size, you run the risk of Kotlin code becoming inconsistent as p
 So it may be worth starting with a small sub-team working in one area of the system, who establish conventions and build up a body of example code.
 Once there are some established conventions, you can expand the effort to the rest of the team and other parts of the system.
 
-In the rest of this book we will examine in detail how to progress, how to keep your Java code maintainable while you are introducing Kotlin that it depends upon, how to take advantage of Kotlin's features to further simplify the code after IntelliJ has performed its conversion magic.
+In the rest of this book we will examine in detail how to progress, how to keep your Java code maintainable while you are introducing Kotlin that it depends upon, and how to take advantage of Kotlin's features to further simplify the code after IntelliJ has performed its conversion magic.
 But all that follows the first small step.
 
 === Adding Kotlin Support to a Java Build
@@ -129,7 +129,7 @@ Given those changes, we can rerun our build, and see that ...
 We can also resync the Gradle project in IntelliJ, and after waiting a while for IntelliJ to do some indexing, we can run our tests and programs within the IDE.
 
 Our tests still pass, so we haven't broken anything, but neither have we proved that we can use Kotlin in our project.
-Let's test that by writing a hello world program in the root package of our Java source tree:
+Let's test that by writing a hello world program in the root package of our Java source tree, `src/main/java`:
 
 .HelloWorld.kt
 // begin-insert: tags/baseline.1:src/main/java/HelloWorld.kt
@@ -140,6 +140,19 @@ fun main() {
 }
 ----
 // end-insert
+
+[TIP]
+.Where to Put Kotlin Source
+====
+The Kotlin build plugin adds additional source roots, `src/main/kotlin` and `src/test/kotlin`, and compiles Kotlin source files found in any of their subdirectories.
+
+It will also compile Kotlin source found in Java source trees, in particular `src/main/java` and `src/test/java`.
+Whilst you can separate your source files by language, putting Java files in the 'java' directories and Kotlin into `kotlin`, in practice your authors don't bother.
+It's nice to be able to look into a directory and see all the source for the the corresponding package rather than casting around the filesystem.
+In order to make this work though, we keep Kotlin source in directories mirroring the package structure rather than taking advantage of Kotlin's ability to have files in a single directory but multiple packages.
+
+In a similar vein, while Kotlin does allow multiple public classes to be defining in a single class, when we are mixing Java and Kotlin in a project we tend to stick to one class per file for consistency.
+====
 
 We can run that within the IDE by clicking on the little green arrow in the left hand margin next to "fun main()".
 
@@ -158,6 +171,19 @@ It lives!
 Let's delete HelloWorld.kt -- it's done its job -- commit and push.
 
 We now have the _option_ to use Kotlin in our project - the first part of this chapter gives some pointers to _where_ to start using it.
+
+.Other Build Systems
+****
+We've chosen to show the changes necessary to add Kotlin support to a Gradle build here, but we can use Maven or Ant by following the instructions provided in the Tools section at https://KotlinLang.org[https://kotlinlang.org/docs/reference/].
+This also gives instructions for using the command-line compiler, kotlinc.
+
+If you use Gradle, there is the option to use Kotlin, rather than the traditional Groovy, as the build definition language.
+This has the advantage of providing better tool support through strong typing, at the expense of having to translate historical StackOverflow answers into a new language.
+
+As we are Java and Kotlin developers rather than Java and Groovy developers, your authors start new projects with the Kotlin DSL, but we don't feel the need to convert existing Groovy builds, at least not immediately.
+As with the Java and Kotlin in production code, we can mix and match Kotlin and Groovy in our build, so this is a conversion that we can take our time over.
+We certainly don't recommend that you switch your build from Groovy to Kotlin as your first act of conversion, and don't look to us to write a Gradle Groovy to Kotlin book!
+****
 
 === Conclusion
 
