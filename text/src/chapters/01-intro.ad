@@ -330,7 +330,7 @@ You can write new control structures as inline functions and the `break`, `conti
 
 Kotlin breaks its own rules to make migration easier.::
 The Kotlin language has features to allow idiomatic Java and Kotlin code to coexist in the same codebase.
-Some of those features remove guarantees provided by type checker, and should _only_ be used to interop with legacy Java.
+Some of those features remove guarantees provided by the type checker, and should _only_ be used to interop with legacy Java.
 For example, `lateinit` opens a hole in the type system so that Java dependency injection frameworks that initialise objects by reflection can inject values through the encapsulation boundaries that are normally enforced by the compiler.
 If you declare a property as `lateinit var`, it's up to you to ensure the code initialises the property before reading it -- the compiler will not catch your mistakes.
 
@@ -365,7 +365,7 @@ Refactoring _between_ languages is usually harder than refactoring _within_ a si
 Porting logic from one language to another must be done manually, which takes longer and introduces more risk.
 Once multiple languages are in use, the language boundary impedes refactoring because when you refactor code in one language, the IDE does not update dependent code written in other languages to be compatible.
 
-What makes the combination of Java and Kotlin unique is how seamless is the boundary between the two languages.
+What makes the combination of Java and Kotlin unique is the seamless boundary between the two languages.
 Thanks to the design of the Kotlin language, the way it is mapped to the JVM platform, and JetBrains' investment in developer tooling, refactoring Java to Kotlin and refactoring a combined Java/Kotlin codebase is almost as easy as refactoring in a single codebase.
 
 Our experience has been that we can refactor Java to Kotlin without impacting productivity, and that as more of the codebase is converted to Kotlin, productivity accelerates.
@@ -399,13 +399,11 @@ For example: [Freeman and Pryce], [Beck].
 However, we do show how to apply Kotlin features to simplify JUnit tests.
 
 As we walk through multi-step code transformations, we do not always state when we run the tests.
-Assume we run our tests after every change, no matter how small.
+Assume we run our tests after every change that we show (and that compiles), no matter how small.
 
 If your system does not already have good test coverage it can be difficult (and expensive) to retrofit tests to the code because the logic you want to test is entangled with other aspects of the system.
-You're in a chicken and egg situation: you have refactor so that you can improve test coverage so that you can refactor.
-We do not cover how to retrofit tests to existing code.
-Again, other authors have addressed these topics in more detail than we could.
-For example: [Feathers].
+You're in a chicken and egg situation - you have to refactor to be able to add tests, so that you can safely refactor.
+Again, other authors have addressed these topics in more detail than we could, for example: [Feathers].
 
 ==== We Commit For Git Bisect
 
@@ -413,7 +411,7 @@ Just as we don't explicitly state when we run our tests, nor do we explicitly st
 Assume we commit our changes whenever they have added value to the code, no matter how small.
 
 We know our test suite isn't perfect.
-If we do, by accident, break something that is not caught by our tests, we want to find the commit that introduced the fault and fix it as quick as we can.
+If we accidentally break something that is not caught by our tests, we want to find the commit that introduced the fault and fix it as quick as we can.
 
 The `git bisect` command automates that search.
 We write a new test that demonstrates the error and `git bisect` does a binary search of the history to find the first commit that makes that test fail.
@@ -450,7 +448,7 @@ endif::todos[]
 === How This Book is Organised
 
 This book is about how to transition from Java to Kotlin, mainly focused on code, but touching on projects and organisations.
-The chapters each address an aspect of this transition, looking at some aspect of typical Java projects that can be improved on the journey.
+Each chapter each addresses an aspect of this transition, looking at some aspect of typical Java projects that can be improved on the journey.
 They are named in the pattern _Java Way_ to _Kotlin Way_, where we recommend that you prefer the latter over the former.
 Maybe Kotlin makes easier an approach that was difficult in Java, or Kotlin discourages an approach that is common in Java, to guide design in a direction that is less error prone, more concise, and more tool-friendly.
 
@@ -483,9 +481,13 @@ We have found that the grain of Kotlin allows the mixing of functional and objec
 
 Our code follows (our interpretation of) the standard coding conventions of Java and Kotlin where possible.
 
-We have though had to split more lines than we might usually to make the code fit horizontally in the pages of the book.
-Where our production Kotlin would usually have up to 4 or 5 parameters to a function definition, or arguments to a function call, on one line; to fit in the book we will often move to one item per line after only 3.
-That said, we find that Kotlin feels natural taking more vertical space than Java, and scrolling sideways is almost as inconvenient in an IDE as a book - so maybe our production style will move to be more like that you see here.
+The practical line length for printed code samples is much shorter than the 120 characters we usually use in an IDE these days, so we have had to split lines more often than usual to make the code fit in the page width.
+Our production code might have 4 or 5 parameters or arguments on a line - in this book we will often only have one.
+Through formatting the examples for the page, we have come to like the more vertical style.
+We find that Kotlin naturally seems to want to take more vertical space than Java, but even Java readability seems improved by shorter lines, more breaks and more visual alignment.
+Certainly scrolling sideways is almost as inconvenient in an IDE as a book, and our pairing sessions are improved by less scrolling and more side-by-side windows.
+One line per parameter also greatly improves diffs between code versions.
+We hope that at the very least you don't find it too painful to read, and if you don't, then try it for your own code.
 
 We will sometimes hide code that isn't relevant to the discussion.
 A line comment that starts with an ellipsis of three dots indicates that we have omitted some code for clarity or brevity.
@@ -505,12 +507,12 @@ fun Money(amount: String, currency: Currency) =
 There are lots of places in this book where we show how to move code, or some aspect of code, from one place to another.
 For example in <<beans-to-values>>, we talk about moving the mutability in an interaction from a mutable class to a mutable property.
 We'd like to have a shorthand for the direction of these changes, but there are many ways to think about the orientation of code: base or super classes, layer diagrams, onion architecture, hexagaonal architecture etc.
-In some cases our execution paths are top-down, some bottom up, some outside in, some outside to inside to outside to inside to outside.
+In some cases our execution paths are top-down, others are bottom-up, or outside-in, or outside-to-inside-to-outside.
 
 Unless stated otherwise, we will refer to direction in terms of dependencies, with the entry points (`main` and event handlers) at the top of the system.
 This top-level code should be at the highest level of abstraction, and will be built with types and functions provided by lower-level code, which will eventually depend on the core Kotlin and Java runtimes, until at the bottom we reach code provided by the operating system and chipset.
 
-Unless we are specifically writing a library to be depended on by other systems, we are usually writing the top-level code in a system, and some of the layers beneath it.
+Unless we are specifically writing a library that other systems depend on, we are usually writing the top-level code in a system, and some of the layers beneath it.
 We are only able to refactor within the layers that we are able to change.
 If we say that we are moving some aspect of code (functionality or mutability or IO or error handling) up, it means towards the top of the call-stack and hence the entry point - in the direction of the code with the most dependencies.
 
