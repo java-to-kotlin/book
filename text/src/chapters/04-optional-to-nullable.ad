@@ -14,14 +14,13 @@ Over the years, your authors and their Java colleagues settled into a convention
 So we might name a field `addressLine3OrNull`, or a method `previousAddressOrNull`.
 Within a codebase this worked well enough (even if it is a little verbose, and requires eternal vigilance to avoid the scourge of `NullPointerExceptions`).
 
-Some codebases instead opted to use `@Nullable` and `@NotNullable` annotations, often supported by tools that would check for correctness.
+Some codebases opted to use `@Nullable` and `@NotNullable` annotations instead, often supported by tools that would check for correctness.
 Java 8, released in 2014, enhanced support for annotations to the extent that tools like the https://checkerframework.org[Checker Framework] could statically check much more than just null safety.
 More crucially, though, it also introduced a standard `Optional` type.
 
 By this time many JVM developers had dabbled in Scala.
 They came to appreciate the advantages of using a _Optional_ type (named `Option` in Scala's standard library) when absence was possible, and plain references when it was not.
-Oracle muddied the waters by telling developers not to use their `Optional` for field values because it wasn't serializable (as if anyone had ever actually used Java serialisation in the preceding decade).
-As with many features introduced in Java 8, though, `Optional` was good enough and was adopted into the mainstream usage of Java.
+Oracle muddied the waters by telling developers not to use their `Optional` for field or parameter values, but as with many features introduced in Java 8, it was good enough and was adopted into the mainstream usage of Java.
 
 Depending on its age, your Java code may use some or all of these strategies for dealing with absence.
 It is certainly possible to have a codebase in which `NullPointerExceptions` are practically never seen, but the reality is that this is hard work.
@@ -168,9 +167,9 @@ object Legs {
 ----
 // end-insert
 
-The method parameters are as we would expect, with Kotlin `List<Leg>` transparently accepting a `java.util.List`.
-It's worth mentioning here that, when a Kotlin function declares a non-nullable parameter, the compiler inserts a null check before the function body.
-That way, if Java callers sneak in a `null`, we'll know straight away (the `legs` parameter is similarly checked).
+The method parameters are as we would expect, with Kotlin `List<Leg>` transparently accepting a `java.util.List` (we'll examine Java and Kotlin collections more in <<java-to-kotlin-collections>>.
+It's worth mentioning here that, when a Kotlin function declares a non-nullable parameter (`legs` and `duration` here), the compiler inserts a null check before the function body.
+That way, if Java callers sneak in a `null`, we'll know straight away.
 Because of these defensive checks, Kotlin detects unexpected nulls as close as possible to their source - in contrast to Java, where a reference can be set to `null` a long way in time and space from where it finally explodes.
 
 Returning to the example, the Kotlin `for` loop is very similar to Java's, except for the use of the `in` keyword rather than `:`, and similarly applies to any type that extends `Iterable`.
@@ -234,27 +233,42 @@ class LongestLegOverTests {
 ----
 // end-insert
 
-Actually (when we wrote this) the converted code didn't compile, but what's the odd import between friends? Alt-Enter does the needful.
+Actually (when we wrote this) the converted code didn't compile, but what's the odd import between friends?
+Alt-Enter does the needful.
 
 Now, to migrate gradually, we're going to need two versions of `findLongestLegOver`: the existing `Optional`-returning one, and a new one that returns `Leg?`.
 We can do that by extracting the guts of the current implementation.
-We can't give it the same name, so we use `longestLegOver`.
+This is currently:
+
+// begin-insert: tags/nullability.3:src/main/java/travelator/Legs.kt#foo
+[source,kotlin]
+----
+@JvmStatic
+fun findLongestLegOver(legs: List<Leg>, duration: Duration): Optional<Leg> {
+    var result: Leg? = null
+    for (leg in legs) {
+        if (isLongerThan(leg, duration))
+            if (result == null || isLongerThan(leg, result.plannedDuration))
+                result = leg
+    }
+    return Optional.ofNullable(result)
+}
+----
+// end-insert
+
+We "Extract Function" on all but the return statement of this `findLongestLegOver`.
+We can't give it the same name, so we use `longestLegOver` - we make it public because this is our new interface:
 
 // begin-insert: tags/nullability.4:src/main/java/travelator/Legs.kt#foo
 [source,kotlin]
 ----
 @JvmStatic
-fun findLongestLegOver(
-    legs: List<Leg>,
-    duration: Duration
-): Optional<Leg> {
-    return Optional.ofNullable(longestLegOver(legs, duration))
+fun findLongestLegOver(legs: List<Leg>, duration: Duration): Optional<Leg> {
+    var result: Leg? = longestLegOver(legs, duration)
+    return Optional.ofNullable(result)
 }
 
-fun longestLegOver(
-    legs: List<Leg>,
-    duration: Duration
-): Leg? {
+fun longestLegOver(legs: List<Leg>, duration: Duration): Leg? {
     var result: Leg? = null
     for (leg in legs) {
         if (isLongerThan(leg, duration))
@@ -266,12 +280,30 @@ fun longestLegOver(
 ----
 // end-insert
 
-Now we can convert our Kotlin clients to call the nullable-returning `longestLegOver`, while leaving our Java clients (and as-yet-unconverted Kotlin) to consume the `Optional`.
+The refactoring has left a vestigial `result` variable in `findLongestLegOver`.
+Ee can select it and "Inline" to give:
+
+// begin-insert: tags/nullability.4.5:src/main/java/travelator/Legs.kt#foo
+[source,kotlin]
+----
+@JvmStatic
+fun findLongestLegOver(
+    legs: List<Leg>,
+    duration: Duration
+): Optional<Leg> {
+    return Optional.ofNullable(longestLegOver(legs, duration))
+}
+----
+// end-insert
+
+Now we have two versions of our interface, one defined in terms of the other.
+We can convert our Kotlin clients to call the nullable-returning `longestLegOver`, while leaving our Java clients (and as-yet-unconverted Kotlin) to consume the `Optional`.
+In practice this means changing the tests.
 
 We'll do the absent ones first.
-Change `assertEquals(Optional.empty<Any>())`
+They currently call Change `assertEquals(Optional.empty<Any>(), findLongestLegOver...)`:
 
-// begin-insert: tags/nullability.4:src/test/java/travelator/LongestLegOverTests.kt#absent
+// begin-insert: tags/nullability.4.5:src/test/java/travelator/LongestLegOverTests.kt#absent
 [source,kotlin]
 ----
 @Test
@@ -292,7 +324,7 @@ fun is_absent_when_no_legs_long_enough() {
 ----
 // end-insert
 
-to `assertNull`
+So we change them to `assertNull(longestLegOver(...)`:
 
 // begin-insert: tags/nullability.5:src/test/java/travelator/LongestLegOverTests.kt#absent
 [source,kotlin]
@@ -309,9 +341,9 @@ fun `is absent when no legs long enough`() {
 ----
 // end-insert
 
-Now for the calls returning non-absent.
+Now for the calls that don't return empty:
 
-// begin-insert: tags/nullability.4:src/test/java/travelator/LongestLegOverTests.kt#present
+// begin-insert: tags/nullability.4.5:src/test/java/travelator/LongestLegOverTests.kt#present
 [source,kotlin]
 ----
 @Test
@@ -332,8 +364,10 @@ fun is_longest_leg_when_more_than_one_match() {
 ----
 // end-insert
 
-The Kotlin equivalent of `Option.orElseThrow()`
-(aka `get()`) is the `!!` operator.
+The Kotlin equivalent of `Option.orElseThrow()` (aka `get()` pre-Java 10) is the `!!` (bang-bang or dammit) operator.
+Both return the value, or throw an exception if there isn't one.
+Kotlin logically throws a `NullPointerException`, Java equally logically throws a `NoSuchElementExecption`, they just think of absence in different ways!
+So we can replace `findLongestLegOver(...).orElseThrow()` with `longestLegOver(...)!!`:
 
 // begin-insert: tags/nullability.6:src/test/java/travelator/LongestLegOverTests.kt#present
 [source,kotlin]
@@ -356,8 +390,10 @@ fun `is longest leg when more than one match`() {
 ----
 // end-insert
 
-We've converted the first of the non-null-returning tests this way, but it suffers from failing the test with a thrown `NullPointerException` rather than a nice diagnostic.
-In the second case we've solved that problem with `?.` This means that if the leg is `null` the error will be
+We've converted the first of the non-null-returning tests (`is longest leg when one match`) with the dammit operator.
+If it was to fail (which it doesn't, but we like to plan for these things) it would fail with a thrown `NullPointerException` rather than a nice diagnostic.
+In the second case we've solved that problem with `?.`, which continues evaluation only if its receiver is not `null`.
+This means that if the leg _is_ `null` the error will be:
 
 ----
 Expected :one day
@@ -367,12 +403,92 @@ Actual   :null
 which is much nicer.
 
 We can work this refactoring through our clients, converting them to Kotlin and then to using `longestLegOver`.
-Once we have converted all of them, we delete the `Optional`-returning `findLongestLegOver`, and move its replacement, `longestLegOver`, out of the `Legs` object scope into the top level.
-Unfortunately this refactoring is not automated (we describe the steps in detail in <<static-methods-to-top-level-functions>>).
+Once we have converted all of them, we can delete the `Optional`-returning `findLongestLegOver`.
 
-We now have just a top-level Kotlin function, plus a supporting function that we converted to an extension function because, well, it just reads better that way.
+.Expand and Contract Refactoring
+****
+We will use this technique (also known as https://martinfowler.com/bliki/ParallelChange.html[Parallel Change]) for managing changes to interfaces (with a lower-case i) throughout this book.
+It's a simple concept - add the desired interface, migrate uses of the undesirable interface to the new one, and when there are no uses of the old one, delete it.
+
+In this book we will often combine the refactoring with a conversion to Kotlin.
+Usually, as in this chapter, we will convert the definition and implementation(s) of the interface to Kotlin, then add the new interface to it.
+As we convert clients to use the new interface we take the opportunity to convert them to Kotlin as well.
+
+While we migrate between interfaces and convert between languages as part of this process, we try not to do them both at once.
+Like climbers keeping 3 points of contact with the rock, don't let go with both hands at once!
+Make one move, make sure the tests pass, then go on to the next.
+If the change feels risky, now might be a good time to put in a piece of gear (run the pre-commit test suite, check-in, even deploy a canary release), so that we don't fall too far if things go wrong.
+
+Oh, and finish.
+We refactor to make our code better, which almost always means simpler, and simpler rarely correlates with larger.
+We can allow code to get worse (with two ways of doing the same thing) before it gets better (everyone using the new interface), but don't get stuck with having to maintain both versions.
+That said, small shims to support legacy can can be allowed to live - we love Kotlin, but we want to spend our time adding value rather than converting Java code that otherwise requires no attention.
+****
+
+=== Refactoring to Idiomatic Kotlin
+
+Now all the code in this example is Kotlin, and we've seen how to migrate from Optional to Nullable.
+We could stop there, but consistent with our policy of going the extra refactoring mile, we'll press on to see what else this code has to teach us.
+
+Here is the current version of Legs:
 
 // begin-insert: tags/nullability.7:src/main/java/travelator/Legs.kt
+[source,kotlin]
+----
+object Legs {
+    fun longestLegOver(
+        legs: List<Leg>,
+        duration: Duration
+    ): Leg? {
+        var result: Leg? = null
+        for (leg in legs) {
+            if (isLongerThan(leg, duration))
+                if (result == null || isLongerThan(leg, result.plannedDuration))
+                    result = leg
+        }
+        return result
+    }
+
+    private fun isLongerThan(leg: Leg, duration: Duration): Boolean {
+        return leg.plannedDuration.compareTo(duration) > 0
+    }
+}
+----
+// end-insert
+
+The functions are contained in an `object` because our Java methods were static, and so the conversion needed somewhere to put them.
+As we'll see in <<static-methods-to-top-level-functions>>, Kotlin doesn't need this extra level of namespace, so we can "Move to top level" on `longestLegOver`.
+At the time of writing, this doesn't work very well, as IntelliJ fails to bring `isLongerThan` with it.
+The breakage is easy to fix though, leaving us with a top-level function and fixed-up references in existing code.
+
+// begin-insert: tags/nullability.7.5:src/main/java/travelator/Legs.kt
+[source,kotlin]
+----
+fun longestLegOver(
+    legs: List<Leg>,
+    duration: Duration
+): Leg? {
+    var result: Leg? = null
+    for (leg in legs) {
+        if (isLongerThan(leg, duration))
+            if (result == null || isLongerThan(leg, result.plannedDuration))
+                result = leg
+    }
+    return result
+}
+
+private fun isLongerThan(leg: Leg, duration: Duration) =
+    leg.plannedDuration.compareTo(duration) > 0
+----
+// end-insert
+
+If you're observant you may have noticed that `isLongerThan` has lost its braces and return statement.
+We'll talk though the pros and cons of single expression functions in <<multi-to-single-expression-functions>>.
+
+While we're there, there's something odd about the phrase `isLongerThan(leg, ...)` - it just doesn't read right in English.
+You'll no doubt get bored of our infatuation with extension functions (certainly by the end of <<functions-to-extension-functions>>), but while we still have your goodwill lets Alt-Enter on the `leg` parameter and "Convert parameter to receiver":
+
+// begin-insert: tags/nullability.7.6:src/main/java/travelator/Legs.kt
 [source,kotlin]
 ----
 fun longestLegOver(
@@ -393,22 +509,23 @@ private fun Leg.isLongerThan(duration: Duration) =
 ----
 // end-insert
 
-=== Refactoring to Idiomatic Kotlin
+So far, our changes have all been structural, changing where code is defined and how we call it.
+Structural refactors are inherently quite (as in mostly, rather than completely) safe.
+They can change the behaviour of code that relies on polymorphism (either through methods or functions) or reflection, but otherwise if the code continues to compile it probably behaves.
 
-Now we're all-Kotlin, but the normal feeling of relaxation we get from finishing a refactor is spoiled by that implementation.
-It still _looks_ like Java converted to Kotlin, largely on account of it being Java converted to Kotlin.
-Can we find a nice way to refactor it?
+Now we are going to turn our attention to the algorithm in `longestLegOver`.
+Refactoring algorithms is more dangerous, especially ones like this that rely on mutation, because tool support for transforming them is not good.
+We have good tests though, and the function hardly communicates well, so let's see what we can do.
 
 The only suggestion IntelliJ gives is to replace `compareTo` with `>`, so let's do that first.
-Once we have, `isLongerThan` isn't really pulling its weight, so we inline it.
-At this point you authors have run out of refactoring talent (you may be more inspired) and so we decide to rewrite the function from scratch.
+At this point you authors have run out of refactoring talent (you may be more inspired), and so we decide to rewrite the function from scratch.
 
 In order to do so, we ask ourselves, "What is the code trying to do?"
 The answer is, helpfully, in the name of the function: `longestLegOver`.
 In order to implement this calculation, we can find the longest leg, and if it is longer than duration, return it, otherwise null.
-Typing `legs.` at the beginning of the function, we look at the suggestions and find `maxBy`.
-Our longest leg is going to be `legs.maxBy(Leg::plannedDuration)`.
-This API helpfully returns `Leg?` to remind us that it can't give a result if `legs` is empty.
+Typing `legs.` at the beginning of the function, we look at the suggestions and find `maxByOrNull`.
+Our longest leg is going to be `legs.maxByOrNull(Leg::plannedDuration)`.
+This API helpfully returns `Leg?` (and includes the phrase `orNull`!) to remind us that it can't give a result if `legs` is empty.
 Converting our algorithm "find the longest leg, and if it is longer than duration, return it, otherwise null" to code directly, we get:
 
 // begin-insert: tags/nullability.8:src/main/java/travelator/Legs.kt
@@ -418,7 +535,7 @@ fun longestLegOver(
     legs: List<Leg>,
     duration: Duration
 ): Leg? {
-    val longestLeg: Leg? = legs.maxBy(Leg::plannedDuration)
+    val longestLeg: Leg? = legs.maxByOrNull(Leg::plannedDuration)
     if (longestLeg != null && longestLeg.plannedDuration > duration)
         return longestLeg
     else
@@ -437,7 +554,7 @@ fun longestLegOver(
     legs: List<Leg>,
     duration: Duration
 ): Leg? {
-    val longestLeg: Leg? = legs.maxBy(Leg::plannedDuration)
+    val longestLeg: Leg? = legs.maxByOrNull(Leg::plannedDuration)
     return if (longestLeg != null && longestLeg.plannedDuration > duration)
         longestLeg
     else
@@ -448,7 +565,9 @@ fun longestLegOver(
 
 Now, Kotlin's nullability support allows several ways to refactor this, depending on your tastes.
 
-We can return early:
+We can use the elvis operator `?:`, which evalutes its right hand side if the left hand side is `null`.
+If not, its result is the left hand side.
+This lets us return early if we have no longest leg:
 
 // begin-insert: tags/nullability.10:src/main/java/travelator/Legs.kt
 [source,kotlin]
@@ -457,7 +576,7 @@ fun longestLegOver(
     legs: List<Leg>,
     duration: Duration
 ): Leg? {
-    val longestLeg = legs.maxBy(Leg::plannedDuration) ?:
+    val longestLeg = legs.maxByOrNull(Leg::plannedDuration) ?:
         return null
     return if (longestLeg.plannedDuration > duration)
         longestLeg
@@ -467,7 +586,8 @@ fun longestLegOver(
 ----
 // end-insert
 
-We could go with a single `?.let` expression:
+We could go with a single `?.let` expression.
+The `?.` evaluates to `null` if fed a `null`, otherwise it pipes the longest leg into the `let` block for us.
 
 // begin-insert: tags/nullability.11:src/main/java/travelator/Legs.kt
 [source,kotlin]
@@ -476,7 +596,7 @@ fun longestLegOver(
     legs: List<Leg>,
     duration: Duration
 ): Leg? =
-    legs.maxBy(Leg::plannedDuration)?.let { longestLeg ->
+    legs.maxByOrNull(Leg::plannedDuration)?.let { longestLeg ->
         if (longestLeg.plannedDuration > duration)
             longestLeg
         else
@@ -485,7 +605,8 @@ fun longestLegOver(
 ----
 // end-insert
 
-That is succinct, and it is a pleasing single expression, but it maybe hard to comprehend in a single glance.
+So inside the `let`, `longestLeg` cannot be `null`.
+That is succinct, and it is a pleasing single expression, but it may be hard to comprehend in a single glance.
 Spelling out the options with a `when` is clearer:
 
 // begin-insert: tags/nullability.13:src/main/java/travelator/Legs.kt
@@ -495,7 +616,7 @@ fun longestLegOver(
     legs: List<Leg>,
     duration: Duration
 ): Leg? {
-    val longestLeg = legs.maxBy(Leg::plannedDuration)
+    val longestLeg = legs.maxByOrNull(Leg::plannedDuration)
     return when {
         longestLeg == null -> null
         longestLeg.plannedDuration > duration -> longestLeg
@@ -506,7 +627,8 @@ fun longestLegOver(
 // end-insert
 
 In order to simplify further, we need a trick that Duncan (who is writing this) has so far failed to internalise.
-`takeIf` returns its receiver if a predicate is `true`, otherwise null, which is exactly the logic of our `let` block.
+`takeIf` returns its receiver if a predicate is `true`, otherwise it returns `null`.
+This is exactly the logic of our `let` block.
 So we can write:
 
 // begin-insert: tags/nullability.12:src/main/java/travelator/Legs.kt
@@ -516,7 +638,7 @@ fun longestLegOver(
     legs: List<Leg>,
     duration: Duration
 ): Leg? =
-    legs.maxBy(Leg::plannedDuration)?.takeIf { longestLeg ->
+    legs.maxByOrNull(Leg::plannedDuration)?.takeIf { longestLeg ->
         longestLeg.plannedDuration > duration
     }
 ----
@@ -525,13 +647,14 @@ fun longestLegOver(
 Depending on our team's experience with Kotlin, that may be too subtle.
 Nat thinks it's fine, but we're going to err on the side of explicitness, so the `when` version gets to stay, at least until the next time someone refactors here.
 
-Finally, let's make `legs` the receiver in an extension function, allowing us finally to get rid of our accidental double entendre:
+Finally, let's convert the `legs` parameter to the receiver in an extension function.
+This allows us to rename the function and finally to get rid of our accidental double entendre:
 
 // begin-insert: tags/nullability.14:src/main/java/travelator/Legs.kt
 [source,kotlin]
 ----
 fun List<Leg>.longestOver(duration: Duration): Leg? {
-    val longestLeg = maxBy(Leg::plannedDuration)
+    val longestLeg = maxByOrNull(Leg::plannedDuration)
     return when {
         longestLeg == null -> null
         longestLeg.plannedDuration > duration -> longestLeg
@@ -594,8 +717,7 @@ public class Legs {
 ----
 // end-insert
 
-Actually, that isn't bad, but compared with the Kotlin version you can see how `Optional`
-adds noise to pretty much every line of the method.
+Actually, that isn't bad, but compared with the Kotlin version you can see how `Optional` adds noise to pretty much every line of the method.
 
 === Conclusion
 
