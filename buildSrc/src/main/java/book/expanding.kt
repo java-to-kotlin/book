@@ -66,7 +66,9 @@ private fun lookupWithRoot(
         val (codeFile, tag) = key.parse(roots)
         if (!codeFile.exists) {
             val message =
-                "${src.canonicalPath}: inserted file $codeFile not found (${codeFile.lines.recover { it.message }})"
+                "${src.canonicalPath}:\n" +
+                    "inserted file $codeFile not found\n" +
+                    "(${codeFile.lines.recover { it.message }})"
             if (abortOnFailure) {
                 error(message)
             } else {
