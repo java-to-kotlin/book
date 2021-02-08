@@ -394,7 +394,10 @@ Reasoning that the authors of `List.sort` actually knew a thing or two about Jav
 [source,java]
 ----
 @SuppressWarnings("unchecked")
-public static <E> List<E> sorted(Collection<E> collection, Comparator<? super E> by) {
+public static <E> List<E> sorted(
+    Collection<E> collection,
+    Comparator<? super E> by
+) {
     var result = (E[]) collection.toArray();
     Arrays.sort(result, by);
     return Arrays.asList(result);
@@ -498,7 +501,9 @@ public static List<List<Journey>> routesToShowFor(String itineraryId) {
     return routes;
 }
 
-private static List<List<Journey>> removeUnbearableRoutes(List<List<Journey>> routes) {
+private static List<List<Journey>> removeUnbearableRoutes
+    (List<List<Journey>> routes
+) {
     routes.removeIf(route -> sufferScoreFor(route) > 10);
     return routes;
 }
@@ -517,7 +522,9 @@ public static List<List<Journey>> routesToShowFor(String itineraryId) {
     return routes;
 }
 
-private static List<List<Journey>> bearable(List<List<Journey>> routes) {
+private static List<List<Journey>> bearable
+    (List<List<Journey>> routes
+) {
     return routes.stream()
         .filter(route -> sufferScoreFor(route) <= 10)
         .collect(toUnmodifiableList());
@@ -539,7 +546,9 @@ public static List<List<Journey>> routesToShowFor(String itineraryId) {
     return bearable(routesFor(itineraryId));
 }
 
-private static List<List<Journey>> bearable(List<List<Journey>> routes) {
+private static List<List<Journey>> bearable
+    (List<List<Journey>> routes
+) {
     return routes.stream()
         .filter(route -> sufferScoreFor(route) <= 10)
         .collect(toUnmodifiableList());
@@ -571,7 +580,7 @@ object Suffering {
         limit: Int
     ): List<Journey> {
         val actualLimit = Math.min(journeys.size, limit)
-        return Collections.sorted(
+        return sorted(
             journeys,
             comparing { obj: Journey -> obj.duration }.reversed()
         ).subList(0, actualLimit)
@@ -625,7 +634,7 @@ fun longestJourneysIn(
     limit: Int
 ): List<Journey> {
     val actualLimit = Math.min(journeys.size, limit)
-    return Collections.sorted(
+    return sorted(
         journeys,
         comparing { obj: Journey -> obj.duration }.reversed()
     ).subList(0, actualLimit)
@@ -746,7 +755,7 @@ Java at one time favoured programming with mutability.
 That has fallen out of favour, but more by convention than enforcement.
 Kotlin has taken a very pragmatic approach to mutability in its collections, giving smooth operation and a simple programming model, but only where your Java conventions align with its approach.
 
-To make your Java and Kotlin interoperate smoothly:
+To help your Java and Kotlin interoperate smoothly:
 
 * Beware that Java can mutate a collection that it has passed to Kotlin
 * Beware that Java can (at least try to) mutate a collection that is has received from Kotlin.
