@@ -21,6 +21,18 @@ class Loop {
     /// end: loop
 }
 
+class Loop2 {
+    /// begin: loop2
+    public static double averageNonBlankLength(List<String> strings) {
+        var sum = 0;
+        for (var s : strings) {
+            sum += s.isBlank() ? 0 : s.length();
+        }
+        return sum / (double) strings.size();
+    }
+    /// end: loop2
+}
+
 class StreamEx {
     /// begin: stream
     public static double averageNonBlankLength(List<String> strings) {
@@ -32,6 +44,18 @@ class StreamEx {
             / (double) strings.size();
     }
     /// end: stream
+}
+
+class StreamEx2 {
+    /// begin: stream2
+    public static double averageNonBlankLength(List<String> strings) {
+        return strings
+            .stream()
+            .mapToInt(s -> s.isBlank() ? 0 : s.length())
+            .average()
+            .orElse(Double.NaN);
+    }
+    /// end: stream2
 }
 
 class ParallelStream {

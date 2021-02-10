@@ -100,11 +100,39 @@ object Sequences5 {
 
 object Sequences6 {
     /// begin: average
-    fun averageNonBlankLength(strings: List<String>): Double =
+    fun averageNonBlankLength(strings: Sequence<String>): Double =
         strings
             .map { if (it.isBlank()) 0 else it.length }
             .average()
     /// end: average
+}
+
+object Sequences7 {
+    /// begin: averageBy
+    inline fun <T> Sequence<T>.averageBy(selector: (T) -> Int): Double {
+        var sum: Double = 0.0
+        var count: Int = 0
+        for (element in this) {
+            sum += selector(element)
+            checkCountOverflow(++count)
+        }
+        return if (count == 0) Double.NaN else sum / count
+    }
+    /// end: averageBy
+
+    /// begin: useAverageBy
+    fun averageNonBlankLength(strings: Sequence<String>): Double =
+        strings.averageBy {
+            if (it.isBlank()) 0 else it.length
+        }
+    /// end: useAverageBy
+
+    fun checkCountOverflow(count: Int): Int {
+        when {
+            count < 0 -> throw ArithmeticException("Count overflow has happened.")
+            else -> return count
+        }
+    }
 }
 
 

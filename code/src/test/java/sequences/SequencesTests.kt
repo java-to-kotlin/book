@@ -11,11 +11,16 @@ class SequencesTests {
 
     @Test
     fun averageNonBlankLength() {
+        assertEquals(1.0, Loop.averageNonBlankLength(input))
+        assertEquals(1.0, Loop2.averageNonBlankLength(input))
+        assertEquals(1.0, StreamEx.averageNonBlankLength(input))
+        assertEquals(1.0, StreamEx2.averageNonBlankLength(input))
         assertEquals(1.0, Lists.averageNonBlankLength(input))
         assertEquals(1.0, Sequences.averageNonBlankLength(input))
         assertEquals(1.0, Sequences2.averageNonBlankLength(input))
         assertEquals(1.0, Sequences3.averageNonBlankLength(input))
-        assertEquals(1.0, Sequences6.averageNonBlankLength(input))
+        assertEquals(1.0, Sequences6.averageNonBlankLength(input.asSequence().constrainOnce()))
+        assertEquals(1.0, Sequences7.averageNonBlankLength(input.asSequence().constrainOnce()))
     }
 
     @Test
