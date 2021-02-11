@@ -48,7 +48,7 @@ Another reason not to use a wrapper type to represent optionality is subtle but 
 In the Kotlin type system, `T` is a subtype of `T?`.
 If you have a `T` that cannot be null, you can always use it where a nullable `T` is required.
 In contrast, `T` is not a subtype of `Optional<T>`.
-If you have a `String` and want to assign it to an optional variable, you have first to wrap it in an `Optional`.
+If you have a `String` and want to assign it to an optional variable, you first have to wrap it in an `Optional`.
 Worse, if you have a function that returns an `Optional<String>` and later discover a way to always return a result, changing the return type to `String` will break all your clients.
 Had your return type been `T?`, then you could have strengthened it to `T` whilst maintaining compatibility.
 The same applies to properties of data structures: you can easily migrate from optional to non-optional with nullability - but not, ironically, with `Optional`.
@@ -191,7 +191,7 @@ The converted `findLongestLegOver` code is not very idiomatic Kotlin.
 (Arguably, since the introduction of streams, it isn't very idiomatic Java either.)
 Instead of a for loop we should look for something more intention-revealing, but let's park that urge for now because our primary mission is to migrate from `Optional` to nullable.
 We'll illustrate that by converting our tests one by one, so that we have a mix, as we would in a codebase that we were migrating.
-In order for us to make use of nullability in our clients they have to be Kotlin, so let's convert the tests.
+In order for us to make use of nullability in our clients they have to be Kotlin, so let's convert the tests:
 
 // begin-insert: tags/nullability.3:src/test/java/travelator/LongestLegOverTests.kt#foo
 [source,kotlin]
