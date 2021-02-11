@@ -122,7 +122,7 @@ A `CostSummary` is a mutable POJO (as described in <<beans-to-values>>) that hol
 It stores the total in a field rather than calculating it in the getter, so that the application can efficiently sort items by their `CostSummary`.
 This means that a `CostSummary` has to update the total whenever a CurrencyConversion is added.
 
-The CostSummaryCalculator constructs CostSummary objects, using a source of exchange rates to convert costs in local currencies to the traveller's preferred currency.
+The `CostSummaryCalculator` constructs CostSummary objects, using a source of exchange rates to convert costs in local currencies to the traveller's preferred currency.
 To avoid rounding errors, it first calculates the total cost in each currency, and then converts those totals to the traveller's preferred currency when asked for a summary.
 
 // begin-insert: tags/accumulator.0:src/main/java/travelator/itinerary/CostSummaryCalculator.java
@@ -249,7 +249,7 @@ class CostSummaryCalculator(
 // end-insert
 
 We'll work from the inside, by making CostSummary an immutable value type,
-and gradually push immutability outwards through the CostSummaryCalculator.
+and gradually push immutability outwards through the `CostSummaryCalculator`.
 
 If CostSummary was immutable, client code would have to pass the list of lines to its constructor instead of calling its `addLine` method.
 We can baby-step our way there by adding a secondary constructor to the CostSummary class that takes a list of lines and calls `addLine` for each one:
@@ -477,8 +477,8 @@ Introduce intermediate forms and transformations until you have a pipeline of si
 Our application does more with exchange rates and the traveller's preferred currency than summarise costs.
 For example, while the user is browsing hotel rooms, we show the cost of each room in both local and preferred currencies.
 That is, the hotel room browser performs a currency conversion on an individual cost.
-The CostSummaryCalculator also has to perform currency conversions on individual costs in order to calculate a summary.
-If we extract that functionality as a public method, which we can call `toUserCurrency`, we can initialise the hotel room browser with a CostSummaryCalculator instead of passing it both the exchange rates and preferred currency.
+The `CostSummaryCalculator` also has to perform currency conversions on individual costs in order to calculate a summary.
+If we extract that functionality as a public method, which we can call `toUserCurrency`, we can initialise the hotel room browser with a `CostSummaryCalculator` instead of passing it both the exchange rates and preferred currency.
 We can also remove the currency conversion calculation -- that we now see is duplicated code -- from the hotel room browser.
 
 At that point, the class is no longer a calculator of cost summaries -- it holds the context for any pricing we do for an individual traveller.
@@ -521,7 +521,7 @@ At least it's not misleading.
 Renames are cheap, even in a mixed Java/Kotlin codebase, so a small incremental improvement is better than no improvement.
 ****
 
-This leaves the code that used to use the CostSummaryCalculator looking like this:
+This leaves the code that used to use the `CostSummaryCalculator` looking like this:
 
 // begin-insert: tags/accumulator.11:src/test/java/travelator/itinerary/Itinerary_CostTest.kt#calculation
 [source,kotlin]
@@ -537,11 +537,10 @@ fun costSummary(i: Itinerary) =
 // end-insert
 
 Now we have this concept in our codebase, we can identify other parts of our application that can use it.
-We can move logic from those parts onto the PricingContext, making it a one-stop shop for operations that need to convert monetary amounts into the traveller's preferred currency.
-However, the drawback is that the PricingContext ends up full of methods for lots of different use cases.
+We can move logic from those parts onto the `PricingContext`, making it a one-stop shop for operations that need to convert monetary amounts into the traveller's preferred currency.
+However, the drawback is that the `PricingContext` ends up full of methods for lots of different use cases.
 We want a way to separate that core abstraction we discovered from how we use it in specific use cases in our application.
-Extension functions are a way to achieve that.
-We explore how we use extension functions and other Kotlin features to organise our code in <<organising-code-by-domain>>.
+Extension functions are a way to achieve that - we examine their use in <<functions-to-extension-functions>>.
 
 === Conclusion
 
