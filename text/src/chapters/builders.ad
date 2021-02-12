@@ -1,0 +1,65 @@
+== Builders to Constants
+
+What are builders used for?
+
+GoF says:
+
+> Separate the construction of a complex object from its representation so that the same construction process can create different representations.
+>
+> ...
+>
+> Use the Builder pattern when
+>
+> * the algorithm for creating a complex object should be independent of the parts that make up the object and how they’re assembled.
+>
+> * the construction process must allow different representations for the object that’s constructed.
+
+But most Java builders construct just one kind of object and do not have an abstract interface.
+
+So what do Java programmers use builders for?
+
+To overco   me two limitations of how Java constructs objects.
+
+Firstly, Java methods do not have named parameters.
+This means that you can't see which properties are being set by by a constructor call.
+Especially error prone when constructor arguments have the same type.
+This is quite common in codebases that suffer from _Primitive Obsession_.
+
+// TODO constructor example
+
+A lot of Java code uses Bean conventions to configure the object after construction by setting property values.
+
+// TODO bean example
+
+We can now clearly see the properties that are set by this code.
+Howewer, the object is constructed in an invalid state and the type system cannot guarantee that our code configures into a valid state after construction.
+If we forget to set all the necessary properties, our code will still compile but methods of the object will fail.
+The same thing will happen if we construct the object correctly, but someone adds properties to the class after we wrote our code.
+The code will still compile but methods of the object will fail.
+
+Another annoyance is that we need to write imperative code to create an object.
+We have to declare local variables to hold partially constructed objects and write assignments to connect our objects together.
+The resulting code does not reflect the structure of object graph it creates.
+
+The larger the object graph, the more we want our code to portray the structure of the graph, but the more helpful it is to name the properties of our objects.
+That's what Java programmers use builders to solve -- expressions that portray object graphs (unlike beans) _and_ name the object properties (unlike constructors).
+
+Here's what that object graph would look like if we construct it with builders:
+
+// TODO builders
+
+<1> We create a builder
+<2> We collect the values we will use to initialise the object we are building
+<3> We use other builders to create sub-objects
+<4> We call `build()` to construct the object.
+
+The code combines good aspects of constructor calls and Java Bean conventions.
+But what does it take to write the builder itself?
+
+// TODO builder implementation
+
+That's quite a lot of boilerplate code!
+Yet Java programmers clearly find builders to be worth the effort.
+Many open source libraries and even the standard library now provide builders as part of their API.
+
+Does Kotlin offer alternatives
