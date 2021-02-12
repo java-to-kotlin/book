@@ -221,7 +221,7 @@ While the conversion didn't go completely smoothly at the Kotlin level, on the p
 The client code remains unchanged, because the `@JvmStatic` annotations allow Java code to see the methods as static methods on a `Shortlists` class, as they were before the conversion.
 
 We may want to convert the methods to be top-level functions, but we can't just move them, because Java only understands methods, not functions.
-But that is true of the whole JVM actually, so even top-level functions have to be hosted somewhere.
+That is true of the whole JVM actually, so even top-level functions have to be hosted somewhere.
 If these functions were compiled to methods on a class called `Shortlists` Java would be happy - and that is the job of the `@file:JvmName` annotation we mentioned earlier.
 We can manually add the annotation at the top of the file, and remove the `object` scope and `@JvmStatic` annotations to get:
 
@@ -264,7 +264,7 @@ They may be compiled to static methods of a JVM class called `Shortlists`, but t
 
 We can go through all the compilation errors and manually fix the imports to refer to the function at package scope.
 For example, we'll have to change `import travelator.Shortlists.sorted` to `import travelator.sorted`.
-This is easy enough if the change affects a few files, but if the change has had a wide impact, fixing all the imports is a tedious job, albeit one that might be over with a global search and replace.
+This is easy enough if the change affects a few files, but if the change has had a wide impact, fixing all the imports is a tedious job, albeit one that might be able to do with a global search and replace.
 
 Luckily, since we started writing this book, IntelliJ has gained a "Move to top level" refactoring.
 Let's revert the last Kotlin change, back to the object declaration, and try again.
@@ -407,7 +407,8 @@ val hotelsByPrice = hotels.sortedWith(byPriceLowToHigh())
 // end-insert
 
 This leaves the `sorted` function for Java to call.
-Looking at it, it really has nothing to do with shortlists anymore, so maybe we should move it to a more generic namespace?
+Looking at it, it really has nothing to do with shortlists anymore.
+Should we move it to a more generic namespace?
 Maybe later; for now we'll just follow through on the rest of the file to give:
 
 // begin-insert: tags/static-to-object-to-functions.63:src/main/java/travelator/Shortlists.kt#functions
