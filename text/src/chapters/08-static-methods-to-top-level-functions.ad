@@ -29,10 +29,10 @@ We wrote singletons, and argued about how to initialise them in a lazy but safe 
 We used static fields to implement per-class caches of instances.
 Then the new millennium fad for testing code all-but killed static state.
 That's because it's very difficult to isolate one test from another when they are coupled by state, and very hard to uncouple them when that state is static and so shared between all tests in a JVM.
-(Note that _state_ here refers to mutable data. Immutable data -- constants -- are less of an problem.)
+(Note that _state_ here refers to mutable data. Immutable data -- constants -- are less of a problem.)
 
-So we learned to keep otherwise-static state in object fields and used dependency injection to arrange for there to be one shared instance of the object in our application.
-When we say "dependency injection" here your authors mean "passing an object to a constructor", rather than the use of a framework.
+So we learned to keep otherwise-static state in object fields and used dependency injection to arrange for there to be only one shared instance of the object in our application.
+When we say "dependency injection" here, your authors mean "passing an object to a constructor", rather than the use of a framework.
 
 For the rest of this chapter we restrict our examination to static methods rather than fields, but many of the same discussions and techniques also apply to the latter.
 ****
@@ -51,7 +51,7 @@ var max = Collections.max(list);
 
 Amazingly the industry didn't really notice how much of a pain that `Collections.` prefix was for a while.
 This was because we wrote our programs by adding more and more methods to types that we owned, and so rarely needed static functions.
-Static functions are useful when want to add functionality _without_ adding a (non-static) method.
+Static functions are useful when want to add functionality _without_ adding a method to the type that they act on.
 This might be because our classes are already sagging under the weight of all the methods that we have already added to them.
 It might be because we don't own the class and so can't add the method to it.
 Or it might be because the functionality only applies to some instantiations of a generic type, and so cannot be declared as a member of the generic.
@@ -68,7 +68,7 @@ var m = max(list);
 ----
 // end-insert
 
-Because the JVM only supports static methods rather than true top-level functions this is really only  a convenience provided by the compiler.
+Because the JVM only actually supports static methods rather than true top-level functions, this is really only a convenience provided by the compiler.
 For the same reason, while Kotlin does have top-level functions, they too are implemented as static methods of classes when running on the JVM.
 
 === Kotlin Top-Level Functions, Objects and Companion Objects
@@ -77,8 +77,8 @@ Kotlin allows functions (and properties and constants) to be declared outside of
 In this case, because the JVM has nowhere else for them to go, the compiler generates a class with static members for the top-level declarations.
 By default, it derives the name of the class from the name of the file defining the functions.
 For example, functions defined in `top-level.kt` end up as static methods on a class called `Top_levelKt`.
-If we know the name of the class we can reference it from Java, and either static import or directly invoke `Top_levelKt.foo()`.
-If we don't like the name `Top_levelKt`, we can explicitly name the generated class by adding a `file:JvmName` annotation to the top of the file, as we'll see later.
+If we know the name of the class we can reference it from Java, and either static import or `Top_LevelKt.foo` or directly invoke `Top_levelKt.foo()`.
+In the unlikely event that we don't like the name `Top_levelKt`, we can explicitly name the generated class by adding a `@file:JvmName` annotation to the top of the file, as we'll see later.
 
 As well as these top-level functions, Kotlin also allows us to define properties and functions scoped to a class like Java.
 Instead of just marking these as `static`, Kotlin borrows from Scala and collects them together into `object` declarations.
@@ -88,25 +88,29 @@ They won't actually be static methods unless specifically marked with an `@JvmSt
 This is because Kotlin allows objects to extend other types, and that's incompatible with static declarations.
 
 Where we need to group static and non-static members in the same class, we declare the static parts in a `companion object` inside the (otherwise non-static) class declaration.
-This groups them in the file, allows the collection of static methods to implement an interface, and code in a `companion object` is able to access private state in instances of its containing class.
-It also makes everything just a bit too cumbersome if we just want to define one or two static methods.
+This groups them in the file, and code in a companion object is able to access private state in instances of its containing class.
+Companion objects can also extend another class and implement interfaces - something that Java statics cannot do.
+Compared to Java statics though, they are cumbersome if we just want to define one or two static methods.
 
-All things being equal, in Kotlin we favour top-level functions over methods on an `object`.
-When referenced from Kotlin, top-level declarations can be moved from file to file within a package without affecting client code (but see the caveat in <<moving-top-level-functions>>.
-We use an `object` instead of top-level functions where we need the ability to implement an interface.
-We have no choice but to use a `companion object` when we need to mix static and non-static behaviour within a class.
-This happens largely for factory methods, allowing us to write for example `MyType.of(...)`, and allow the methods of the companion object to access private features of the class.
+In Kotlin then, we can write non-instance-scoped functions as either top-level functions, or methods on a singleton object, and this object may be a companion object or not scoped to a type.
+
+All things being equal, in Kotlin we favour top-level functions.
+They are the simplest to declare and reference, and can be moved from file to file within a package without affecting Kotlin client code (but see the caveat in <<moving-top-level-functions>>.
+We declare functions as methods on a singleton object instead of top-level functions where we need the ability to implement an interface, or otherwise group functions more tightly.
+We use a companion object when we need to mix static and non-static behaviour within a class, or to write factory methods with names like MyType.of(...)`.
+
+As with many aspects of programming, we start with the simplest thing that could work, which is usually a top-level function, and refactor to a more complicated solution only when it brings benefits, such as a more expressive API for our clients, or better maintainablity for us.
 
 === Refactoring From Static Methods to Top-Level Functions
 
-While we prefer to use top-level declarations where possible when writing Kotlin code from scratch, the Java to Kotlin conversion built into IntelliJ doesn't.
+While we prefer to use top-level declarations, the Java to Kotlin conversion built into IntelliJ doesn't.
 It converts our Java statics into object methods.
 Let's see how to refactor from Java, through object declarations, to top-level functions.
 
-Here's an example from Travelator for manipulating shortlists.
-Our users may build a shortlist of hotel rooms when searching for accomodation, or a shortlist of routes when planning their trip.
+At Travelator, we allow our customers to build shortlists: maybe a shortlist of routes when planning their trip, or a shortlist of hotel rooms on those routes.
 The user can rank items in a shortlist by different criteria and discarded items to narrow down the results to a final choice.
-A shortlist is stored as an immutable list, and the functions for manipulating a shortlist are implemented as static methods of the `Shortlists` class.
+Following the guidance in <<dont-mutate-shared-collections>>, a shortlist is stored as an immutable list.
+The functions for manipulating a shortlist (returning a modified copy rather than mutating the list) are implemented as static methods of the `Shortlists` class.
 
 // begin-insert: tags/static-to-object-to-functions.0:src/main/java/travelator/Shortlists.java#functions
 [source,java]
@@ -141,7 +145,35 @@ public class Shortlists {
 ----
 // end-insert
 
-Converting this to Kotlin we get:
+.Convenience Functions
+****
+Looking at the implementations of `sorted` and `removeItemAt` reminds us that Nat discovered Kotlin after watching Duncan try to use the Java streams API to analyse some publishing data.
+He was so horrified at the difficulty of performing basic operations, compared to Python, that he went looking for a JVM library or language that would ease the pain.
+It certainly seems that, whilst the Java APIs are improving recently; for many years the designers seem to have had a policy of never knowingly adding a convenience function.
+
+In contrast, the Kotlin standard library seems to go out of its way to provide functionality just where and when we need it, often in the form of extension functions (<<functions-to-extension-functions>> on existing types.
+****
+
+The functions in `Shortlists` are static methods, and have to be referenced as such.
+Spelled out longhand, this looks like:
+
+// begin-insert: tags/static-to-object-to-functions.5:src/test/java/travelator/ShortlistsTest.java#example_usage
+[source,java]
+----
+var reordered = Shortlists.sorted(items, Shortlists.byValue());
+----
+// end-insert
+
+We usually `static import` the methods though, and they are named to read better that way:
+
+// begin-insert: tags/static-to-object-to-functions.5:src/test/java/travelator/ShortlistsTest.java#example_usage_imported
+[source,java]
+----
+var reordered = sorted(items, byPriceLowToHigh());
+----
+// end-insert
+
+Converting the Java to Kotlin with IntelliJ we get:
 
 // begin-insert: tags/static-to-object-to-functions.5:src/main/java/travelator/Shortlists.kt#functions
 [source,kotlin]
@@ -176,35 +208,21 @@ object Shortlists {
 ----
 // end-insert
 
-In <<java-to-kotlin-classes>>, we saw that converting a Java class with static and non-static methods produced a Kotlin class with a companion object.
-Here we have no class, just a top-level object.
+Actually, that isn't quite true.
+As is usual with the converter (at the time of writing), it added some spurious nullable ++?++s, undid static imports (giving `Collectors.toUnmodifiableList()` for example) and managed to create an imports list that didn't compile.
+This is the version of the file with those things fixed!
+
+In <<java-to-kotlin-classes>>, we saw that converting a Java class with static _and_ non-static methods produced a Kotlin class with a companion object.
+Here the conversion has produced only a top-level object.
 That's because in this case the Java had no non-static methods, so they don't have to share a namespace with any instance methods.
-Had the conversion instead produced a class with a companion object, that would have been a sign that this is a less suitable candidate for conversion to top-level functions.
+Classes with static and non-static methods are less suitable for conversion to top-level functions.
 
-We can't just move the functions out of the scope of the object, because they are called from Java, and Java doesn't understand top-level Kotlin functions.
-At the moment, due to the `@JvmStatic` annotations, the Java code is seeing them as static methods on a `Shortlists` class.
-For example:
+While the conversion didn't go completely smoothly at the Kotlin level, on the plus side, no Java code was harmed in the conversion.
+The client code remains unchanged, because the `@JvmStatic` annotations allow Java code to see the methods as static methods on a `Shortlists` class, as they were before the conversion.
 
-// begin-insert: tags/static-to-object-to-functions.5:src/test/java/travelator/ShortlistsTest.java#example_usage
-[source,java]
-----
-var reordered = Shortlists.sorted(items, Shortlists.byValue());
-----
-// end-insert
-
-The methods of the `Shortlists` class are usually imported statically by the code that uses them, and are named to read better that way:
-
-// begin-insert: tags/static-to-object-to-functions.5:src/test/java/travelator/ShortlistsTest.java#example_usage_imported
-[source,java]
-----
-var reordered = sorted(items, byPriceLowToHigh());
-----
-// end-insert
-
-We can't _just_ move the methods out of the scope of the object, but we _can_ move them if we tell the Kotlin compiler that we would like it to host the top-level functions in a class called `Shortlists`.
-That's the job of the `file:JvmName` annotation we mentioned earlier.
-However, There's no nice automated refactoring that can transform an object to a file of top-level functions that will appear the same to Java code.
-
+We may want to convert the methods to be top-level functions, but we can't just move them, because Java only understands methods, not functions.
+But that is true of the whole JVM actually, so even top-level functions have to be hosted somewhere.
+If these functions were compiled to methods on a class called `Shortlists` Java would be happy - and that is the job of the `@file:JvmName` annotation we mentioned earlier.
 We can manually add the annotation at the top of the file, and remove the `object` scope and `@JvmStatic` annotations to get:
 
 // begin-insert: tags/static-to-object-to-functions.11:src/main/java/travelator/Shortlists.kt#all_functions
@@ -239,166 +257,188 @@ fun <T> byValue() where T : HasPrice, T : HasRating =
 // end-insert
 
 
-This keeps our Java happy, but irritatingly breaks any Kotlin code that was calling the methods.
+This keeps our Java happy, but irritatingly breaks some Kotlin code that was calling the methods.
 This was importing the methods from an object, for example `import travelator.Shortlists.sorted`, but Kotlin can't import top-level functions that way.
 As far as Kotlin is concerned, the functions are defined at the package scope.
 They may be compiled to static methods of a JVM class called `Shortlists`, but that class is an implementation detail of how the compiler maps Kotlin language concepts to the JVM platform.
 
-We'll have to go through all the compilation errors and manually fix the imports to refer to the function at package scope.
+We can go through all the compilation errors and manually fix the imports to refer to the function at package scope.
 For example, we'll have to change `import travelator.Shortlists.sorted` to `import travelator.sorted`.
-This is easy enough if the change affects a few files, but when the change has had a wide impact, fixing all the imports is a tedious job.
-We can make the job easier by making more methodical use of our IDE's refactoring tools.
+This is easy enough if the change affects a few files, but if the change has had a wide impact, fixing all the imports is a tedious job, albeit one that might be over with a global search and replace.
 
-Let's revert our Kotlin code back to the object declaration and try again.
+Luckily, since we started writing this book, IntelliJ has gained a "Move to top level" refactoring.
+Let's revert the last Kotlin change, back to the object declaration, and try again.
 
-=== Extract and Inline to Minimise Text Edits
+=== Move To Top Level
 
-This time we'll do as much as we can with IntelliJ's automatic refactoring to keep the amount of text editing we need to do to an absolute minimum, so that if dependent code must be changed to reflect our changes, the IDE takes care of it for us.
-The strategy we will use is to _extract_ and _inline_:
-we will _extract_ top-level functions from the object's methods,
-_inline_ the object methods into the Kotlin code to make it call the top level functions directly,
-and finally use the @file:JvmName annotation to make the Java code call the top-level functions as well.
+Oddly the new refactoring isn't available on the refactoring menu, but Alt-Enter on an object method name gives the option.
+We'll do `sorted` first.
+IntelliJ moves the method out of the object scope:
 
-We start by extracting the bodies of the object methods to top-level functions in the same source file with IntelliJ's "Extract/Introduce > Function to Scope" refactoring.
-At the time of writing, we have to -- temporarily -- give the functions a different name to the methods they were extracted from to avoid name clash.
-We'll name them after the method but prefixed with an underscore, and rename them to remove the underscore as soon as we can.
-While we're about it, we'll also make them public so that code outside this class can call them.
-
-Extracting all the methods to public, top-level functions leaves the code looking like this:
-
-// begin-insert: tags/static-to-object-to-functions.7:src/main/java/travelator/Shortlists.kt#functions
+// begin-insert: tags/static-to-object-to-functions.56:src/main/java/travelator/Shortlists.kt#sorted
 [source,kotlin]
 ----
-object Shortlists {
-    @JvmStatic
-    fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>): List<T> {
-        return _sorted(shortlist, ordering)
-    }
+@JvmStatic
+fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>): List<T> {
+    return shortlist.stream().sorted(ordering)
+        .collect(toUnmodifiableList())
+}
+----
+// end-insert
 
-    ... etc.
+Unfortunately it fails to remove the `@JvmStatic` annotation, so we have to delete that ourselves to get the code to compile.
+Once we do, we find that it has at least fixed up the callers, which was the problem we had when we just moved the method ourselves.
+Where we explicitly referenced the method as `ShortLists.sorted` we now have:
+
+// begin-insert: tags/static-to-object-to-functions.57:src/test/java/travelator/ShortlistsTest.java#example_usage
+[source,java]
+----
+var reordered = ShortlistsKt.sorted(items, Shortlists.byValue());
+----
+// end-insert
+
+For some reason where we had a static import things have got worse:
+
+// begin-insert: tags/static-to-object-to-functions.57:src/test/java/travelator/ShortlistsTest.java#example_usage_imported
+[source,java]
+----
+var reordered = travelator.ShortlistsKt.sorted(items, byPriceLowToHigh());
+----
+// end-insert
+
+We can fix that with Alt-Enter and "Add on demand static import...".
+We have to do that once in each affected file, so we should have checked in before the refactor - so that we could easily see which files it changed.
+
+// begin-insert: tags/static-to-object-to-functions.58:src/test/java/travelator/ShortlistsTest.java#example_usage_imported
+[source,java]
+----
+var reordered = sorted(items, byPriceLowToHigh());
+----
+// end-insert
+
+Compared to our previous manual approach of adding an `@file:JvmName("Shortlists")` annotation, our Java clients are now exposed to that icky `ShortlistsKt` name.
+As the methods names were designed to be used with static imports though, it is almost always hidden in the imports block where no-one ever looks, so we're prepared to put up with this.
+In return for this sacrifice, the conversion has also fixed up the Kotlin callers of `sorted`.
+It is now referenced in Kotlin as `travelator.sorted` rather than `travalator.Shortlists.sorted`, which was the point.
+
+We can now move the rest of the methods on `Shortlists` in the same way.
+It's a little tedious, but at least when it moves the last method, IntelliJ deletes the empty object, leaving us:
+
+// begin-insert: tags/static-to-object-to-functions.59:src/main/java/travelator/Shortlists.kt#functions
+[source,kotlin]
+----
+fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>): List<T> {
+    return shortlist.stream().sorted(ordering)
+        .collect(toUnmodifiableList())
 }
 
-fun <T> _sorted(shortlist: List<T>, ordering: Comparator<in T>) =
-    shortlist.stream().sorted(ordering).collect(toUnmodifiableList())
-
-... etc.
-----
-// end-insert
-
-Now we want our Kotlin code call the top-level functions instead of the object methods.
-We apply the "Inline Function" refactoring to the object methods, choosing the option "Inline all references and keep the function".
-
-When we inline a method that is called from Java, IntelliJ pops up a dialog telling us that it "Cannot inline reference from Kotlin to Java" and asking if we want to continue.
-Yes we do.
-We _want_ to leave the Java code unchanged, and will later make it call the top-level functions with the `@file:JvmName` annotation.
-
-After inlining the object's methods, all our Kotlin code is calling the top-level functions and only the Java code is using the `Shortlists` object.
-
-However, because we prefixed the names of those functions with an underscore, inlining the methods changed the Kotlin code from looking like:
-
-// begin-insert: tags/static-to-object-to-functions.7:src/test/java/travelator/hotels/ShortlistScenarioTest.kt#usage
-[source,kotlin]
-----
-val hotelsByPrice = sorted(hotels, byPriceLowToHigh())
-----
-// end-insert
-
-to:
-
-// begin-insert: tags/static-to-object-to-functions.8:src/test/java/travelator/hotels/ShortlistScenarioTest.kt#usage
-[source,kotlin]
-----
-val hotelsByPrice = _sorted(hotels, _byPriceLowToHigh())
-----
-// end-insert
-
-Don't worry, this ugliness will be short lived.
-We now rename the top-level functions to remove those underscores so that the functions have the same name as the methods of the `Shortlists` object.
-That will allow us to safely switch from object to functions by manually editing the `Shortlists.kt` file to add the `file:JvmName` annotation.
-
-As we do the renames, IntelliJ changes the bodies of the object methods to refer to the functions by fully qualified name, to ensure there is no name clash.
-
-// begin-insert: tags/static-to-object-to-functions.9:src/main/java/travelator/Shortlists.kt#functions
-[source,kotlin]
-----
-package travelator
-
-... imports
-
-object Shortlists {
-    @JvmStatic
-    fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>): List<T> {
-        return travelator.sorted(shortlist, ordering)
-    }
-
-    ... etc.
+fun <T> removeItemAt(shortlist: List<T>, index: Int): List<T> {
+    return Stream.concat(
+        shortlist.stream().limit(index.toLong()),
+        shortlist.stream().skip((index + 1).toLong())
+    ).collect(toUnmodifiableList())
 }
 
-fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>) =
-    shortlist.stream().sorted(ordering).collect(toUnmodifiableList())
-
-... etc.
-----
-// end-insert
-
-Finally we can use the `@file:JvmName` annotation to make the Java code call the top level functions without breaking our Kotlin code.
-This now takes only two small edits in the `Shortlists.kt` file, and no other code changes.
-We add the annotation at the top of the file, and insert an underscore at the start of the object's name -- _not_ with a Rename refactoring, but by editing the text.
-The JVM class name `Shortlists` refers to the file of top level functions instead of the object declaration.
-
-// begin-insert: tags/static-to-object-to-functions.10:src/main/java/travelator/Shortlists.kt#switch
-[source,kotlin]
-----
-@file:JvmName("Shortlists")
-package travelator
-
-...
-
-object _Shortlists {
-    ...
+fun byRating(): Comparator<HasRating> {
+    return comparingDouble(HasRating::rating).reversed()
 }
 
-...
-----
-// end-insert
-
-Nothing refers to the `_Shortlists` object any more.
-IntelliJ highlights it as unused and we can safely remove it with the "Safe Delete" refactoring, or hitting Alt-Enter on the name of the object.
-(Even when I'm sure there are no references, I like to use the "Safe Delete" refactoring for peace of mind).
-
-That leaves us with only the top-level functions we saw earlier.
-We can tidy them up a bit more by using the Kotlin standard library instead of the Java Stream and Comparator methods, which removes some lingering warnings about our use of platform types, and leaves us with:
-
-// begin-insert: tags/static-to-object-to-functions.12:src/main/java/travelator/Shortlists.kt#functions
-[source,kotlin]
-----
-fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>) =
-    shortlist.sortedWith(ordering)
-
-fun <T> removeItemAt(shortlist: List<T>, index: Int) =
-    shortlist.take(index) + shortlist.drop(index + 1)
-
-fun byRating() =
-    compareByDescending(HasRating::rating)
-
-fun byPriceLowToHigh() =
-    compareBy(HasPrice::price)
+fun byPriceLowToHigh(): Comparator<HasPrice> {
+    return comparing(HasPrice::price)
+}
 
 ... and other comparators
 ----
 // end-insert
 
-That's a good place to pause and take stock.
-We now have top-level functions that we can call from Java and Kotlin.
-The `file:JvmName` annotation is harmless, but if we want to remove it we can update our Java classes to refer to `ShortlistsKt` instead of `Shortlists`.
-That's also the easiest technique if you're writing new Java code that needs to reference top-level Kotlin functions that you either can't, or can't be bothered, to add the annotation to.
+=== Kotlinify
+
+Of course, we didn't move our methods to top-level functions just for the sake of it.
+Not _just_ for the sake of it anyway.
+Now our functions are in the idiomatic Kotlin place, let's finish the idiomatic Kotlin job.
+
+<<streams-to-sequences>> gives guidance on converting Java streams to Kotlin - in the case of `sorted` we can just use the Kotlin `sortedWith` extension function:
+
+// begin-insert: tags/static-to-object-to-functions.60:src/main/java/travelator/Shortlists.kt#sorted
+[source,kotlin]
+----
+fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>): List<T> {
+    return shortlist.sortedWith(ordering)
+}
+----
+// end-insert
+
+This makes a very logical extension function (<<functions-to-extension-functions>>):
+
+// begin-insert: tags/static-to-object-to-functions.61:src/main/java/travelator/Shortlists.kt#sorted
+[source,kotlin]
+----
+fun <T> List<T>.sorted(ordering: Comparator<in T>): List<T> {
+    return sortedWith(ordering)
+}
+----
+// end-insert
+
+Java still calls this as a static method:
+
+// begin-insert: tags/static-to-object-to-functions.61:src/test/java/travelator/ShortlistsTest.java#example_usage_imported
+[source,java]
+----
+var reordered = sorted(items, byPriceLowToHigh());
+----
+// end-insert
+
+Where we call it from Kotlin though:
+
+// begin-insert: tags/static-to-object-to-functions.61:src/test/java/travelator/hotels/ShortlistScenarioTest.kt#usage
+[source,kotlin]
+----
+val hotelsByPrice = hotels.sorted(byPriceLowToHigh())
+----
+// end-insert
+
+These Kotlin usages really aren't gaining us anything over the raw Kotlin API, so we can just inline them:
+
+// begin-insert: tags/static-to-object-to-functions.62:src/test/java/travelator/hotels/ShortlistScenarioTest.kt#usage
+[source,kotlin]
+----
+val hotelsByPrice = hotels.sortedWith(byPriceLowToHigh())
+----
+// end-insert
+
+This leaves the `sorted` function for Java to call.
+Looking at it, it really has nothing to do with shortlists anymore, so maybe we should move it to a more generic namespace?
+Maybe later; for now we'll just follow through on the rest of the file to give:
+
+// begin-insert: tags/static-to-object-to-functions.63:src/main/java/travelator/Shortlists.kt#functions
+[source,kotlin]
+----
+fun <T> Iterable<T>.sorted(ordering: Comparator<in T>): List<T> = 
+    sortedWith(ordering)
+
+fun <T> Iterable<T>.withoutItemAt(index: Int): List<T> =
+    take(index) + drop(index + 1)
+
+fun byRating(): Comparator<HasRating> =
+    comparingDouble(HasRating::rating).reversed()
+
+fun byPriceLowToHigh(): Comparator<HasPrice> =
+    comparing(HasPrice::price)
+
+... and other comparators
+----
+// end-insert
+
+You may have noticed that have renamed `removeItemAt` to `withoutItemAt`.
+_With_ (OK, in this case _without_) is a useful device to let the reader know that we are not mutating an object but returning a copy.
 
 [[moving-top-level-functions]]
 .Moving Top-Level Functions
 [WARNING]
 ====
-We can move a Kotlin top-level function between files within a package without changing the Kotlin source that calls it.
-However, in the compiled output that function will now be defined as a static method of a different JVM class.
+`withoutItemAt` looks to be a useful Kotlin function, and we wonder why we can't find a version in the standard library.
+Now that it is a top-level function, we can move it out of `Shortlists.kt` to a different file in the same package without changing the Kotlin source that calls it.
+However, in the compiled output, that function will now be defined as a static method of a different JVM class.
 
 If we publish Kotlin library code in a JAR file, all is fine provided dependent code is recompiled against the new version.
 The Kotlin compiler generates classfiles with metadata sections that let it map Kotlin names to JVM classes and methods.
@@ -407,7 +447,7 @@ The JVM doesn't use the metadata that the Kotlin compiler generated.
 If a top-level function has moved from one class to another between versions of a binary dependency, dependent code can get `NoSuchMethodError` thrown at runtime.
 
 We can use the `@JvmMultifileClass` and `@JvmName` annotations to control how our top-level declarations appear in JVM classfiles, so that moving declarations between source files won't break binary compatibility.
-However, non of our Kotlin test or example code will have changed, so we can't rely on them to warn is about this kind of breakage.
+However, none of our Kotlin test or example code will have changed, so we can't rely on them to warn us about this kind of breakage.
 We just have to take extra care if we move top-level functions published in a library.
 ====
 
@@ -415,31 +455,7 @@ We just have to take extra care if we move top-level functions published in a li
 
 Static functions are the bread and butter of our programs.
 In Java these have to be static methods on a class, but in Kotlin we can and should default to defining them as top-level functions.
-Converting a Java class of static methods to Kotlin will, however, create an `object` declaration.
-We have to refactor that object into top-level functions.
 
-As we described in <<minimise-text-edits>>, refactoring by editing text is tedious and error prone.
-We prefer to use the IDE's refactoring tools whenever we can.
-However, IntelliJ cannot automaticaly refactor an object to top-level functions.
-We therefore have to make a judgement call.
-If there are a few call sites, we can make the change by editing the source text, rely on the compiler to tell us where the code no longer compiles, and fix the errors by hand.
-If there are a few methods and lots of call sites, it's easier to combine automatic refactorings -- extract, inline and rename -- to transform the code to a state that let us swap out the object for the top-level functions with the absolute minimum of manual text editing.
+Automatically converting a Java class of static methods to Kotlin will create an `object` declaration, accessible from both Java and Kotlin.
+We can then move the methods on the object to the top-level individually, remaining accessible to both languages, before applying other refactorings to take advantage of more Kotliny goodness.
 
-In practice, your authors would probably start by editing the text and if there are too many compilation errors, revert and use the more methodical approach of refactoring in small steps.
-This is par for the course -- design is an exploratory and iterative process, especially in an unfamiliar language.
-It often takes a couple of attempts to find the right sequence of refactorings to get from where we are to where we want to be.
-We will see this again in <<multi-to-single-expression-functions>>.
-
-A counterintuitive aspect of the refactoring steps we took in this chapter was that we had to make the code worse before we could make it better.
-Extracting top-level functions from the `Shortlist` object's method made the code in `Shortlists.kt` more complicated.
-Inlining the object's methods into out Kotlin code made their awkward temporary names visible across our codebase.
-Subsequent steps tidied everything up to an implementation that was simpler than where we started.
-This is quite common when refactoring: we have to break down existing structures in order to introduce better ones.
-This is fine as long as we don't stop half way through.
-
-The _extract/inline_ refactoring strategy is useful whenever you need a refactoring to affect Kotlin code but not Java, or vice versa.
-We use the strategy in <<immediate-to-gradual>> so that a class can provide a concise Kotlin API and also offers a conventional Java API while we are still using it in Java code.
-
-Some of the top-level functions we ended up with are good candidates to refactor to _extension functions_.
-Extension functions can make our Kotlin code more concise, and are easier to discover with autocomplete.
-We discuss extension functions in more detail in <<functions-to-extension-functions>>.
