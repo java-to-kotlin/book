@@ -122,18 +122,20 @@ fun Element?.toCustomer(): Customer? = this?.let { element ->
 /// begin: jsonWriter
 class JsonWriter(
     private val objectMapper: ObjectMapper,
-    private val outputStream: OutputStream
 ) {
-    fun writeCustomer(customer: Customer) {
-        objectMapper.writer().writeValue(outputStream, customer.toJson())
-    }
-
-    fun asJsonString(customer: Customer) =
-        objectMapper.writeValueAsString(customer.toJson())
-
-    private fun Customer.toJson(): JsonNode = objectMapper.valueToTree(this)
+    fun Customer.toJson(): JsonNode = objectMapper.valueToTree(this)
 }
 /// end: jsonWriter
+
+object Explanation {
+    class JsonWriter(
+        private val objectMapper: ObjectMapper,
+    ) {
+        /// begin: this
+        fun Customer.toJson(): JsonNode = this@JsonWriter.objectMapper.valueToTree(this@toJson)
+        /// end: this
+    }
+}
 
 object CounterFactuals {
     /// begin: postalName
@@ -170,11 +172,11 @@ fun nullableToString() {
     /// begin: nullableToString
     val customer: Customer = SOME_CODE()
     val customerString: String = customer.toString()
-        // Calls Customer.toString()
+    // Calls Customer.toString()
 
     val nullableCustomer: Customer? = SOME_CODE()
     val nullableCustomerString: String = nullableCustomer.toString()
-        // Calls Any?.toString()
+    // Calls Any?.toString()
     /// end: nullableToString
 }
 
