@@ -26,7 +26,25 @@ Java programmers are using builders to separate construction from representation
 Firstly, Java methods do not have named parameters.
 This means that that a constructor call does not make obvious to the reader which properties are being set on the object.
 
-// TODO constructor example
+// begin-insert: tags/builders.0:src/main/java/travelator/booking/FerryBookingHandler_WithConstructor.java#create_request
+[source,java]
+----
+public FerryBookingRequest formToBookingRequest(Form form, Trip trip) {
+    return new FerryBookingRequest(
+        form.get("service_id"),
+        form.get("berths", asInt, trip::getTravellerCount),
+        form.get("cabin_class"),
+        iterate(1, i -> form.contains("vehicle_" + i), i -> i + 1)
+            .mapToObj(i -> {
+                var v = "vehicle_" + i;
+                return new VehicleDetails(
+                    form.get(v + "_type", asEnum(VehicleType.class)),
+                    form.get(v + "_registration"));
+            })
+            .collect(toList()));
+}
+----
+// end-insert
 
 Apart from making the code difficult to read,  errors can slip in when two or more constructor arguments have the same type.
 This is quite common in codebases that suffer from _Primitive Obsession_.
@@ -34,14 +52,39 @@ This is quite common in codebases that suffer from _Primitive Obsession_.
 A lot of Java code avoids these problems by following Bean conventions.
 The code calls a constructor with no arguments to create a new object, and then sets the object's properties after it has been constructed.
 
-// TODO bean example
+// begin-insert: tags/builders.0:src/main/java/travelator/booking/FerryBookingHandler_WithBean.java#create_request
+[source,java]
+----
+public FerryBookingRequest formToBookingRequest(Form form, Trip trip) {
+    var request = new FerryBookingRequest();
+    request.setProviderServiceId(form.get("service_id"));
+    request.setNumberOfBerths(
+        form.get("berths", asInt, trip::getTravellerCount));
+    request.setCabinClass(form.get("cabin_class"));
+
+    for(var i = 1; form.contains("vehicle_" + i); i++) {
+        var vehicle = new VehicleDetails();
+        vehicle.setType(
+            form.get("vehicle_" + i + "_type",
+                asEnum(VehicleType.class)));
+        vehicle.setRegistration(
+            form.get("vehicle_" + i + "_registration"));
+
+        request.getVehicles().add(vehicle);
+    }
+
+    return request;
+}
+----
+// end-insert
 
 We can now clearly see the properties that are set by this code.
 However, the object is initially constructed in an invalid state -- the no-argument constructor initialises object references stored by the object to null.
 Dereferencing those fields will fail with a `NullPointerException`.
 The type system cannot guarantee that our code configures into a valid state before we use it.
 If we forget to set all the necessary properties, our code will still compile but methods of the object will fail at runtime.
-The same thing will happen if we construct the object correctly, but someone adds properties to the class after we wrote our code.
+(In the code above, the call to `request.getVehicles().add(vehicle)` will fail, because the no-arg constructor leaves the vehicles property set to a null reference, instead of initialising it to an empty list).
+The same thing will happen if our code constructs the object correctly, but we later add properties to the class and don't change our code to match.
 The code will still compile but methods of the object will fail.
 
 Another annoyance is that we need to write imperative code to create an object.
@@ -56,25 +99,97 @@ You can write expressions with builders that mirror the shape of the object grap
 
 Here's what that object graph would look like if we construct it with builders:
 
-// TODO builders
+// begin-insert: tags/builders.0:src/main/java/travelator/booking/FerryBookingHandler_WithBuilder.java#create_request
+[source,java]
+----
+public FerryBookingRequest formToBookingRequest(Form form, Trip trip) {
+    FerryBookingRequestBuilder builder = new FerryBookingRequestBuilder() // <1>
+        .withProviderServiceId(form.get("service_id")) // <2>
+        .withNumberOfBerths(
+            form.get("berths", asInt, trip::getTravellerCount))
+        .withCabinClass(form.get("cabin_class"));
 
-<1> We create a builder
-<2> We collect the values we will use to initialise the object we are building, using methods that name the properties that will be set.
-<3> We can use other builders to create sub-objects
-<4> We call `build()` to construct the object.
+    for (var i = 1; form.contains("vehicle_" + i); i++) {
+        builder.withVehicle(new VehicleDetailsBuilder() // <3>
+            .withType(
+                form.get("vehicle_" + i + "_type",
+                    asEnum(VehicleType.class)))
+            .withRegistration(
+                form.get("vehicle_" + i + "_registration"))
+            .build()); // <4>
+    }
+    return builder.build(); // <4>
+}
+----
+// end-insert
+
+<1> We create a builder for a FerryBookingRequest
+<2> We collect the values we will use to create the FerryBookingRequest. In this case, we are collecting values from a form posted to our web application.  The methods of the builder make it clear which properties each statement is setting, so we are unlikely to even _think_ of initialising a property from the wrong form field (as long as the form fields are sensibly named).
+<3> We can use other builders to create sub-objects.
+<4> We call `build()` to construct the FerryBookingRequest.
 
 The code combines benefits of constructor calls and of Java Bean conventions.
 But what does it take to write the builder itself?
 
-// TODO builder implementation
+// begin-insert: tags/builders.0:src/main/java/travelator/booking/FerryBookingRequestBuilder.java
+[source,java]
+----
+class FerryBookingRequestBuilder implements travelator.Builder<FerryBookingRequest> {
+    private String providerServiceId;
+    private int numberOfBerths = 0;
+    private String cabinClass;
+    private final List<VehicleDetails> vehicles = new ArrayList<>();
+
+    @Override
+    public FerryBookingRequest build() {
+        return new FerryBookingRequest(
+            providerServiceId,
+            numberOfBerths,
+            cabinClass,
+            new ArrayList<>(vehicles));
+    }
+
+    public FerryBookingRequestBuilder withProviderServiceId(String providerServiceId) {
+        this.providerServiceId = providerServiceId;
+        return this;
+    }
+
+    public FerryBookingRequestBuilder withNumberOfBerths(int numberOfAdults) {
+        this.numberOfBerths = numberOfAdults;
+        return this;
+    }
+
+    public FerryBookingRequestBuilder withCabinClass(String cabinClass) {
+        this.cabinClass = cabinClass;
+        return this;
+    }
+
+    public FerryBookingRequestBuilder withVehicles(List<VehicleDetails> vehicles) {
+        this.vehicles.addAll(vehicles);
+        return this;
+    }
+
+    public FerryBookingRequestBuilder withVehicle(VehicleDetails vehicle) {
+        this.vehicles.add(vehicle);
+        return this;
+    }
+}
+----
+// end-insert
 
 That's quite a lot of boilerplate code!
 
 Yet Java programmers clearly find builders to be worth the effort.
-Many open source libraries and even the standard library now provide builders as part of their API.
+Lots of open source libraries and even the standard library now provide builders for their classes.
 
 What alternatives does Kotlin offer?
 
 
 === Kotlin's alternatives to builders
+
+Named parameters:  Constructor calls can be readable!
+
+Apply function: Imperative code in a block, caller can treat it as an expression.
+
+Data classes: copy instead of mutate, constants instead of builders.
 
