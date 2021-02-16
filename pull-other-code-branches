@@ -6,8 +6,8 @@ cd ../refactoring-to-kotlin-code
 current_branch=$(git rev-parse --abbrev-ref HEAD)
 echo Currently on "$current_branch"
 
-remote_branches=$(git ls-remote --heads origin | grep -v 'refs/heads/attic/' | cut -f 2 | cut -d / -f 3 | sort)
-local_branches=$(git show-ref --heads | grep -v 'refs/heads/attic/' | cut -d ' ' -f 2 | cut -d / -f 3 | sort)
+remote_branches=$(git ls-remote --heads origin | cut -f 2 | cut -d / -f 3- | sort)
+local_branches=$(git show-ref --heads | cut -d ' ' -f 2 | cut -d / -f 3- | sort)
 local_only_branches=$(comm -23 <(echo "$local_branches") <(echo "$remote_branches"))
 
 git fetch
