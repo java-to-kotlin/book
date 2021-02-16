@@ -5,25 +5,23 @@ basedir="$(realpath $(dirname "$0"))"
 current="$basedir/build/current-tagged"
 last="$basedir/build/last-tagged"
 
-if [ "${1:-}" = "--dry-run" ]
-then
-    echo "dry run" 1>&2
-    mode=dryrun
-    gitcmd="echo git"
-else
-    mode=for_real
-    gitcmd="git"
-fi
-
 cd ../refactoring-to-kotlin-code
 
-git branch --list | cut -c 3- | xargs -n 1 -I _ git log --format=%H -n 1 _ -- | shasum > "$current"
+function active_branches() {
+  git show-ref --heads | grep -v 'refs/heads/attic/' | grep -v 'refs/heads/dummy-master'
+}
+
+active_branches | cut -d ' ' -f 1 | shasum > "$current"
 
 if ! diff -q -N "$current" "$last" > /dev/null
 then
     tagfmt='*.[0-9]*'
-    git tag -l "$tagfmt" | xargs $gitcmd tag -d > /dev/null
-    git log --branches --not --branches="[m]aster" --topo-order --format="%H %S %s" | awk '
+
+    # delete tags
+    git tag -l "$tagfmt" | xargs git tag -d > /dev/null
+    
+    # Recreate tags
+    git log --topo-order --format="%H %S %s" $(active_branches | cut -d ' ' -f 2) | awk '
         $3 ~ /([a-z0-9_\-]+)([.][0-9]+)+/ && $3 != tagname {
             commit = $1
             branch = $2
@@ -39,6 +37,6 @@ then
 
             print tagname, commit
         }
-    ' | xargs -n 2 $gitcmd tag -f
+    ' | xargs -n 2 git tag -f
     mv "$current" "$last"
 fi
