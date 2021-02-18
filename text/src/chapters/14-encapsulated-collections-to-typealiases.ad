@@ -1,22 +1,139 @@
 [[encapsulated-collections-to-typealiases]]
 == Encapsulated Collections to Type Aliases
 
-As we saw in <<java-to-kotlin-collections>>, the grain of Java and Kotlin are very different when it comes to collections.
-Java's collection interfaces, in keeping with its object-oriented roots, are fundamentally mutable.
-As a result, the fear of aliasing errors leads us to encapsulate those mutable collections within classes.
-If we want value semantics, we encapsulate collections to prevent the collection being mutated.
-If the class is mutable, we encapsulate collections to ensure that the class can maintain its state invariants, or always fires notifications when it changes state.
+In Java, we encapsulate collections of objects in classes to control mutation and add operations.
+Controlling mutation is less of a concern in Kotlin, and we can use extension functions to add operations.
+How would our designs be better without the encapsulation, and how do we get there?
 
-When we encapsulate a collection in a class, that class starts to "attract" behaviour.
-We add operations to the class to process the data in the collection.
-However, by doing this we _reduce_ the operations available for us to work with the data to only those defined by the encapsulating class.
-Whenever we want to process that data in a new way, we have to add new operations to the class.
-It's easy for encapsulation to end up _increasing_ the coupling between different parts of our application.
+In <<java-to-kotlin-collections>> we looked at the differences in the grain of Java and Kotlin when it comes to collections.
+Java's collection interfaces, in keeping with its object-oriented roots, are fundamentally mutable, whereas Kotlin treats collections as value types.
+As we saw, if we mutate shared collections we can run into all sorts of trouble.
+We _could_ avoid that trouble by not mutating shared collections <<dont-mutate-shared-collections>>, but that's hard to do when those `add` and `set` methods are just an auto-complete away, and our runtime still doesn't give us a way to sort a collection that doesn't change it.
+Instead of convention and discipline, most Java code sensibly opts for the safer approach of simply not sharing raw collections.
+Instead, collections are hidden inside another object.
 
-In contrast, immutable collections do not require encapsulation.
-We don't need to ensure that state changes always go through the class's interface because there are no state changes.
-If we make our domain model _be_ the appropriate data structure, rather than encapsulate and hide it behind a class boundary, we _extend_ the operations available for us to work with the data.
-We have all the operations defined for the collection and the operations we have defined for our application.
+=== Encapsulated Collections
+
+Here, for example, is a `Route` in Travelator:
+
+// begin-insert: tags/collections.1:src/main/java/travelator/itinerary/Route.java#route
+[source,java]
+----
+public class Route {
+    private final List<Journey> journeys; // <1>
+
+    public Route(List<Journey> journeys) {
+        this.journeys = journeys; // <2>
+    }
+
+    public int size() { // <3>
+        return journeys.size();
+    }
+
+    public Journey get(int index) { // <3>
+        return journeys.get(index);
+    }
+
+    public Location getDepartsFrom() { // <4>
+        return get(0).getDepartsFrom();
+    }
+
+    public Location getArrivesAt() { // <4>
+        return get(size() - 1).getArrivesAt();
+    }
+
+    public Duration getDuration() { // <4>
+        return Duration.between(
+            get(0).getDepartureTime(),
+            get(size() - 1).getArrivalTime());
+    }
+
+    ...
+}
+----
+// end-insert
+
+<1> A `Route` encapsulates a `List` of `Journey`.
+<2> The raw data is passed in the constructor.
+<3> Access to the data, for example for displaying in the UI, is provided by `size` and `get` methods.
+<4> The `Route` class implements application logic that uses the contents of the encapsulated list.
+
+.Defensive Copies
+****
+To fully encapsulate the list, the `Route` constructor could take a defensive copy of the `journeys` parameter.
+However, we "know" that our system only creates `Route` objects in the JSON deserialiser or in tests, neither of which holds onto the list of journeys after creating the `Route` that uses it.
+There is, therefore, no risk of https://martinfowler.com/bliki/AliasingBug.html[aliasing errors], and we can save the cost of a copy whenever we create a `Route`.
+
+If someone comes along and creates a `Route` with a collection that they later modify, we may come to regret this optimisation.
+This is the problem with making use of conventions that are not underwritten by the type system.
+****
+
+Once we have a `Route` class, it is a convenient namespace to host operations on routes, like `getDepartsFrom` and `getDuration`.
+Interestingly, all those methods shown use other public methods - they don't need special access to the hidden list.
+There is no polymorphic behaviour either, so these operations _could_ be defined as static methods (top-level functions in Kotlin) taking a `Route` parameter.
+In Java we tend not to do this, as functions are so much less discoverable than methods.
+As we saw in <<functions-to-extension-functions>>, extension functions in Kotlin would let us call these like methods.
+That's why we look at the `Route` more as a namespace than a class - it doesn't add any value to `List` of `Journey`, just prevents people from changing it.
+
+In fact though, it is _worse_ than an immutable `List` of `Journey`.
+If we had a `List<Journey>`, our front end code could use its `Iterator` when rendering:
+
+// begin-insert: tags/collections.1:src/main/java/travelator/UI.java#iterable
+[source,java]
+----
+public void render(Iterable<Journey> route) {
+    for (var journey : route) {
+        render(journey);
+    }
+}
+----
+// end-insert
+
+With a `Route`, we're back to programming in the 1980s:
+
+// begin-insert: tags/collections.1:src/main/java/travelator/UI.java#route
+[source,java]
+----
+public void render(Route route) {
+    for (int i = 0; i < route.size(); i++) {
+        var journey = route.get(i);
+        render(journey);
+    }
+}
+----
+// end-insert
+
+We could solve this particular problem by having `Route` implement `Iterable<Journey>` (albeit with issues around `Iterator.remove()` -- Java really, really wants to be able to mutate collections).
+In general though, when we encapsulate a collection, we _reduce_ the operations available for us to work with the contents to only those defined by the encapsulating class.
+When we want to process that data in a new way, we will tend to add new operations to the class.
+The more operations we add to the class, the more the class ends up _increasing_ the coupling between different parts of our application - so that adding an operation to support a UI function will end up recompiling our data-access layer.
+
+=== Composing Domain Collections
+
+If we don't encapsulate the collection - if we make our domain model _be_ the appropriate data structure, rather than hiding it behind a class boundary - we _extend_ the operations available for us to work with the data.
+Then we have our application-specific operations _and_ all the operations defined for the collection.
+Client code can define the operations it needs in terms of the rich collections API without having to add them to the class.
+
+Rather than a `Route` class accreting all the route functionality and coupling all the parts of our application together, we can view that functionality as parts to be composed.
+The UI can define functions that render `List<Journey>`, which in turn import functions that transform `Iterable<Journey>`.
+The persistence layer can render database responses as `List<Journey>` and have no particular concept of routyness at all.
+
+
+We can program like this in Java, but the combination of the better-discoverability of methods compared to utility functions, and mutable collections, makes it tedious and error-prone.
+Kotlin's extension functions address the first, and immutable collections the second, tipping the balance towards
+
+If we don't need to control access to a collection to prevent embarrassing mutation, and we don't need to write a class to host operations on collections of a type, then is our `Route` class doing anything for us?
+Well, it is giving a name to `List<Journey>`.
+And it is also giving a type to this `List<Journey>` that might distinguish it from other `List<Journey>` -- those in reports about all the journeys our travellers have paid for this week for example.
+Where differentiating between different types of lists of journeys is not critical, Kotlin allows us to use type aliases to associate the name `Route` with `List<Journey>`, rather than having to use an actual type to do this.
+
+In Kotlin, encapsulating collections should be the exception rather than the rule.
+
+===
+
+=== Refactoring Encapsulated Collections
+
+The `Route` that we saw earlier
 
 === A Class That Encapsulates a Collection
 
@@ -433,3 +550,5 @@ We continue this train of thought in <<organising-code-by-domain>>.
 
 This chapter looked at how we prevent unwanted mutation, and how Kotlin makes this unnecessary.
 In <<accumulating-objects-to-transformations>>, we look at a class designed to be mutable and explore how we can refactor code that relies on its mutability to instead work by transforming immutable data.
+
+Something about revisiting the issues of generic vs specific types and naming in <<interfaces-to-functions>>.
