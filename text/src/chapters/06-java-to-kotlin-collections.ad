@@ -35,7 +35,7 @@ Not only are there operations to add and remove items, but also operations like 
 There is no standard library function to return a sorted copy of a `List` for example.
 
 As we will keep on saying, mutation is the source of many of our problems with keeping software simple, as it allows state in one place to get out of sync with respect to state in another.
-For example, in Travelator we can represent a route as a `List` of ++Journey++s.
+For example, in Travelator we can represent a route as a `List` of `Journey`.
 There is also the concept of a suffer-score - the lower the suffer-score, the more pleasant a route is likely to be.
 We can derive a suffer-score for a route:
 
@@ -91,7 +91,7 @@ public static List<Journey> longestJourneysIn(
 <1> `journeys` parameter mutated by `sort`.
 
 Ah, a developer called methods on a parameter (`journeys`) to solve a problem, and that turned out to break code somewhere else in the system!
-You only have to spend several hundred hours of your life debugging the problems caused by issues like this, to come to the conclusion that maybe immutable collections (actually immutable data full stop) might be a better default.
+You only have to spend several hundred hours of your life debugging the problems caused by https://martinfowler.com/bliki/AliasingBug.html[aliasing errors] like this, to come to the conclusion that maybe immutable collections (actually immutable data full stop) might be a better default.
 For the JDK developers this point evidently came after the introduction of Java 2, and so we have forever been stuck with mutable collections interfaces.
 
 To be fair, while Java's collections are mutable in theory, they have, over the years, become less and less so in practice.
