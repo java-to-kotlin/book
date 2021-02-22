@@ -1,6 +1,6 @@
 package encapsulation
 
-import java.net.InetAddress
+import encapsulation.EmailAddress.Companion.parse
 
 object OO {
     /// begin: foo
@@ -17,7 +17,8 @@ object OO {
     fun sendThanks(sender: EmailSender) {
         sender.send(
             Email(
-                to = "support@internationalrescue.org",
+                to = parse("support@internationalrescue.org"),
+                from = parse("support@travelator.com"),
                 subject = "Thanks for your help",
                 body = "..."
             )
@@ -47,7 +48,8 @@ object OO_Class {
         fun sendThanks() {
             emailSender.send(
                 Email(
-                    to = "support@internationalrescue.org",
+                    to = parse("support@internationalrescue.org"),
+                    from = parse("support@travelator.com"),
                     subject = "Thanks for your help",
                     body = "..."
                 )

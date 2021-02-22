@@ -24,9 +24,9 @@ object IndividualMethods {
         private val listing: (Folder) -> List<Email>,
         private val deleting: (Email) -> Unit
     ) {
-        fun deleteUnAddressed(folder: Folder) {
+        fun deleteInternal(folder: Folder) {
             listing(rootFolder).forEach {
-                if (it.to.isEmpty()) {
+                if (it.to.isInternal()) {
                     deleting.invoke(it)
                 }
             }
@@ -48,7 +48,7 @@ object DirectDependency {
     ) {
         fun organise() {
             emails.list(rootFolder).forEach {
-                if (it.to.isEmpty()) {
+                if (it.to.isInternal()) {
                     emails.delete(it)
                 } else {
                     emails.move(it, archiveFolder)
@@ -75,7 +75,7 @@ object NarrowingInterface {
 
         fun organise() {
             emails.list(rootFolder).forEach {
-                if (it.to.isEmpty()) {
+                if (it.to.isInternal()) {
                     emails.delete(it)
                 } else {
                     emails.move(it, archiveFolder)
@@ -114,7 +114,7 @@ object NarrowingObject {
 
         fun organise() {
             emails.list(rootFolder).forEach {
-                if (it.to.isEmpty()) {
+                if (it.to.isInternal()) {
                     emails.delete(it)
                 } else {
                     emails.move(it, archiveFolder)
@@ -133,3 +133,6 @@ object NarrowingObject {
     /// end: object
 
 }
+
+private fun EmailAddress.isInternal(): Boolean = SOME_CODE()
+

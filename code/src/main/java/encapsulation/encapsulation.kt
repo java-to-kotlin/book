@@ -5,7 +5,7 @@ import java.net.InetAddress
 
 /// begin: send
 fun send(email: Email) {
-    TODO()
+    SOME_CODE()
 }
 /// end: send
 
@@ -27,7 +27,7 @@ fun createEmailSender(
     username: String,
     password: String
 ): (Email) -> Unit { // <1>
-    TODO()
+    SOME_CODE()
 }
 /// end: createEmailSender0
 

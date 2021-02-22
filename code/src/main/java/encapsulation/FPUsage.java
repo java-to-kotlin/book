@@ -3,6 +3,7 @@ package encapsulation;
 import java.net.InetAddress;
 import java.util.function.Consumer;
 
+import static encapsulation.EmailAddress.parse;
 import static encapsulation.EncapsulationKt.inetAddress;
 import static encapsulation.EncapsulationKt.sendEmail;
 import static encapsulation.FPUsageLambda.createEmailSender;
@@ -22,8 +23,8 @@ public class FPUsage {
     public static void sendThanks(Consumer<Email> sender) {
         sender.accept( // <1>
             new Email(
-                "support@internationalrescue.org",
-                "Thanks for your help",
+                parse("support@internationalrescue.org"),
+                parse("support@travelator.com"), "Thanks for your help",
                 "..."
             )
         );

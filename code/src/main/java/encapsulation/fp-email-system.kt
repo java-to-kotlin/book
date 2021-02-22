@@ -1,7 +1,7 @@
 package encapsulation
 
 import encapsulation.AA.EmailSystem
-import java.net.InetAddress
+import encapsulation.EmailAddress.Companion.parse
 
 object AA {
     /// begin: foo
@@ -17,7 +17,8 @@ object AA {
     fun sendThanks(sender: EmailSystem) {
         sender.send(
             Email(
-                to = "support@internationalrescue.org",
+                to = parse("support@internationalrescue.org"),
+                from = parse("support@travelator.com"),
                 subject = "Thanks for your help",
                 body = "..."
             )
@@ -31,7 +32,8 @@ object AAA {
     fun sendThanks(sender: EmailSystem) {
         sender.send.invoke(
             Email(
-                to = "support@internationalrescue.org",
+                to = parse("support@internationalrescue.org"),
+                from = parse("support@travelator.com"),
                 subject = "Thanks for your help",
                 body = "..."
             )

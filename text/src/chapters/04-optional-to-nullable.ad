@@ -693,6 +693,7 @@ public class Legs {
 Usually we would say "It depends," but in this case we think that the new version is better on pretty much every front.
 It is shorter and simpler; it's easier to see how it works; and in most cases it results in fewer calls to `getPlannedDuration()`, which is a relatively expensive operation.
 What if we had taken the same approach in Java?
+A direct translation is:
 
 // begin-insert: tags/nullability.1:src/main/java/travelator/Legs.java
 [source,java]
@@ -718,6 +719,19 @@ public class Legs {
 // end-insert
 
 Actually, that isn't bad, but compared with the Kotlin version you can see how `Optional` adds noise to pretty much every line of the method.
+Because of this, a version using `Optional.filter` is probably preferable, even though it suffers from the same comprehension problems as the Kotlin `takeIf` (which is to say, Duncan can't tell that it works without running the tests).
+
+// begin-insert: tags/nullability.1.5:src/main/java/travelator/Legs.java#foo
+[source,java]
+----
+public static Optional<Leg> findLongestLegOver(List<Leg> legs, Duration duration) {
+    return legs.stream()
+        .max(Comparator.comparing(Leg::getPlannedDuration))
+        .filter(leg -> isLongerThan(leg, duration));
+}
+----
+// end-insert
+
 
 === Conclusion
 

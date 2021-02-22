@@ -1,5 +1,6 @@
 package encapsulation
 
+import encapsulation.EmailAddress.Companion.parse
 import encapsulation.EmailSenderInvoke.EmailSender
 
 object FP {
@@ -17,7 +18,8 @@ object FP {
     fun sendThanks(sender: (Email) -> Unit) {
         sender.invoke( // <1>
             Email(
-                to = "support@internationalrescue.org",
+                to = parse("support@internationalrescue.org"),
+                from = parse("support@travelator.com"),
                 subject = "Thanks for your help",
                 body = "..."
             )
@@ -41,7 +43,8 @@ object FP_OO {
     fun sendThanks(sender: (Email) -> Unit) {
         sender.invoke( // <1>
             Email(
-                to = "support@internationalrescue.org",
+                to = parse("support@internationalrescue.org"),
+                from = parse("support@travelator.com"),
                 subject = "Thanks for your help",
                 body = "..."
             )
