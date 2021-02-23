@@ -11,7 +11,6 @@ import static encapsulation.FPUsageLambda.createEmailSender;
 public class FPUsage {
     /// begin: foo
     // Where we know the configuration
-
     Consumer<Email> sender = createEmailSender(
         inetAddress("example.com"),
         "username",
@@ -19,12 +18,12 @@ public class FPUsage {
     );
 
     // Where we send the message
-
-    public static void sendThanks(Consumer<Email> sender) {
+    public void sendThanks() {
         sender.accept( // <1>
             new Email(
                 parse("support@internationalrescue.org"),
-                parse("support@travelator.com"), "Thanks for your help",
+                parse("support@travelator.com"),
+                "Thanks for your help",
                 "..."
             )
         );
@@ -70,6 +69,5 @@ class FPUsageLambda {
     }
     /// end: FPUsageLambda
 }
-
 
 

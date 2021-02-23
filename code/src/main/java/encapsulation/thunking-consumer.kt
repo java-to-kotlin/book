@@ -1,34 +1,33 @@
 package encapsulation
 
-import encapsulation.FPUsage.sendThanks
 import java.util.function.Consumer
 
 object Thunking {
-    /// begin: foo
+    /// begin: foo1
     // Kotlin function type
     val sender: (Email) -> Unit = createEmailSender(
         inetAddress("smtp.travelator.com"),
         "username",
         "password"
     )
-    /// end: foo
+    /// end: foo1
 
     /*
-    /// begin: foo
+    /// begin: foo2
     val consumer: Consumer<Email> = sender // Doesn't compile <1>
-
-    /// end: foo
+    /// end: foo2
      */
-    /// begin: foo
-    val consumer: Consumer<Email> = Consumer<Email> { email -> // <2>
+
+    /// begin: foo3
+    val consumer: Consumer<Email> = Consumer<Email> { email ->
         sender(email)
     }
+    /// end: foo3
 
-    /// end: foo
     init {
-        /// begin: foo
-        // Java method taking Consumer
-        sendThanks(sender) // <3>
-        /// end: foo
+        /// begin: foo4
+        Rescuing(sender)
+        /// end: foo4
     }
 }
+

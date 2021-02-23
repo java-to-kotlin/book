@@ -5,7 +5,6 @@ import encapsulation.EmailAddress.Companion.parse
 object OO {
     /// begin: foo
     // Where we know the configuration
-
     val sender: EmailSender = EmailSender(
         inetAddress("smtp.travelator.com"),
         "username",
@@ -13,8 +12,8 @@ object OO {
     )
 
     // Where we send the message
-
-    fun sendThanks(sender: EmailSender) {
+    /// begin: excerpt
+    fun sendThanks() {
         sender.send(
             Email(
                 to = parse("support@internationalrescue.org"),
@@ -24,6 +23,7 @@ object OO {
             )
         )
     }
+    /// end: excerpt
     /// end: foo
 }
 
@@ -31,8 +31,7 @@ object OO_Class {
 
     /// begin: oo_class
     // Where we know the configuration
-
-    val subsystem = SubSystem(
+    val subsystem = Rescuing(
         EmailSender(
             inetAddress("smtp.travelator.com"),
             "username",
@@ -41,8 +40,7 @@ object OO_Class {
     )
 
     // Where we send the message
-
-    class SubSystem(
+    class Rescuing(
         private val emailSender: EmailSender
     ) {
         fun sendThanks() {
