@@ -1227,7 +1227,7 @@ public class Recommendations {
 ----
 // end-insert
 
-`FeaturedDestinations` has a few methods, grouping functionality that accesses a remote service:
+The `FeaturedDestinations` interface has a few methods, grouping functionality that accesses a remote service:
 
 // begin-insert: tags/interfaces-to-functions.0:src/main/java/travelator/destinations/FeaturedDestinations.java
 [source,java]
@@ -1243,7 +1243,7 @@ public interface FeaturedDestinations {
 ----
 // end-insert
 
-It looks like we've already converted the `DistanceCalculator` to Kotlin - it too has more than one method:
+It looks like we've already converted the `DistanceCalculator` interface to Kotlin - it too has more than one method, and hides another service:
 
 // begin-insert: tags/interfaces-to-functions.0:src/main/java/travelator/domain/DistanceCalculator.kt
 [source,kotlin]
@@ -1303,21 +1303,20 @@ public List<FeaturedDestinationSuggestion> recommendationsFor(
 <1> Method on `FeaturedDestinations`
 <2> Method on `DistanceCalculator`
 
-`RecommendationsTests` use mocks to provide implementations of its dependencies.
-Your authors still like http://jmock.org/[JMock] - its explicit scoping of mocking to an instance of a context (`Mockery`) seems pedantic compared to other libraries, but is easy to reason-with, and  compatible with running tests in parallel.
-And look, it turns out that whoever wrote these tests also used JMock!
+`RecommendationsTests` uses mocks to provide implementations of its dependencies.
+As we'll see, this isn't necessary, but is the standard way of providing test doubles for interfaces.
+The details of which mocking framework (actually cough, https://site.mockito.org[Mockito], cough) are hidden behind some test methods as we'll see in a minute.
+The key is that the dependencies are mocked, and the mocks passed to the instance of `Recommendations` that we will be testing:
 
-// begin-insert: tags/interfaces-to-functions.0:src/test/java/travelator/recommendations/RecommendationsTests.java#setup
+// begin-insert: tags/interfaces-to-functions-2.1:src/test/java/travelator/recommendations/RecommendationsTests.java#setup
 [source,java]
 ----
 public class RecommendationsTests {
-    @RegisterExtension
-    Mockery mockery = new JUnit5ClassMockery();
 
     private final DistanceCalculator distanceCalculator =
-        mockery.mock(DistanceCalculator.class);
+        mock(DistanceCalculator.class);
     private final FeaturedDestinations featuredDestinations =
-        mockery.mock(FeaturedDestinations.class);
+        mock(FeaturedDestinations.class);
     private final Recommendations recommendations = new Recommendations(
         featuredDestinations,
         distanceCalculator
@@ -1327,49 +1326,29 @@ public class RecommendationsTests {
 ----
 // end-insert
 
-JMock sets up expectations in a `mockery.checking` block.
-This results in tests like:
+The expected interactions with the mocks are hidden two methods, `givenFeaturedDestinationsFor` and `givenADistanceBetween`:
 
-// begin-insert: tags/interfaces-to-functions.0:src/test/java/travelator/recommendations/RecommendationsTests.java#test1
+// begin-insert: tags/interfaces-to-functions-2.1:src/test/java/travelator/recommendations/RecommendationsTests.java#test1
 [source,java]
 ----
 @Test
 public void returns_recommendations_for_multi_location() {
-    mockery.checking(new Expectations() {{
-        oneOf(featuredDestinations).findCloseTo(paris);
-        will(returnValue(List.of(
+    givenFeaturedDestinationsFor(paris,
+        List.of(
             eiffelTower,
             louvre
-        )));
+        ));
+    givenADistanceBetween(paris, eiffelTower, 5000);
+    givenADistanceBetween(paris, louvre, 1000);
 
-        oneOf(distanceCalculator).distanceInMetersBetween(
-            paris,
-            eiffelTower.getLocation()
-        );
-        will(returnValue(5000));
-        oneOf(distanceCalculator).distanceInMetersBetween(
-            paris,
-            louvre.getLocation()
-        );
-        will(returnValue(1000));
-
-        oneOf(featuredDestinations).findCloseTo(alton);
-        will(returnValue(List.of(
+    givenFeaturedDestinationsFor(alton,
+        List.of(
             flowerFarm,
             watercressLine
-        )));
+        ));
+    givenADistanceBetween(alton, flowerFarm, 5300);
+    givenADistanceBetween(alton, watercressLine, 320);
 
-        oneOf(distanceCalculator).distanceInMetersBetween(
-            alton,
-            flowerFarm.getLocation()
-        );
-        will(returnValue(5300));
-        oneOf(distanceCalculator).distanceInMetersBetween(
-            alton,
-            watercressLine.getLocation()
-        );
-        will(returnValue(320));
-    }});
     assertEquals(
         List.of(
             new FeaturedDestinationSuggestion(alton, watercressLine, 320),
@@ -1382,61 +1361,6 @@ public void returns_recommendations_for_multi_location() {
 }
 ----
 // end-insert
-
-Hmmm, maybe the next test will be clearer:
-
-// begin-insert: tags/interfaces-to-functions.0:src/test/java/travelator/recommendations/RecommendationsTests.java#test2
-[source,java]
-----
-@Test
-public void deduplicates_using_smallest_distance() {
-    mockery.checking(new Expectations() {{
-        oneOf(featuredDestinations).findCloseTo(alton);
-        will(returnValue(List.of(
-            flowerFarm,
-            watercressLine
-        )));
-
-        oneOf(distanceCalculator).distanceInMetersBetween(
-            alton,
-            flowerFarm.getLocation()
-        );
-        will(returnValue(5300));
-        oneOf(distanceCalculator).distanceInMetersBetween(
-            alton,
-            watercressLine.getLocation()
-        );
-        will(returnValue(320));
-
-        oneOf(featuredDestinations).findCloseTo(froyle);
-        will(returnValue(List.of(
-            flowerFarm,
-            watercressLine
-        )));
-
-        oneOf(distanceCalculator).distanceInMetersBetween(
-            froyle,
-            flowerFarm.getLocation()
-        );
-        will(returnValue(0));
-        oneOf(distanceCalculator).distanceInMetersBetween(
-            froyle,
-            watercressLine.getLocation()
-        );
-        will(returnValue(6300));
-    }});
-    assertEquals(
-        List.of(
-            new FeaturedDestinationSuggestion(froyle, flowerFarm, 0),
-            new FeaturedDestinationSuggestion(alton, watercressLine, 320)
-        ),
-        recommendations.recommendationsFor(Set.of(alton, froyle))
-    );
-}
-----
-// end-insert
-
-That's a no then!
 
 .Mock-Induced Test Damage
 ****
@@ -1446,330 +1370,48 @@ We _do_ often see tests ruined by mocks though, so much so that mocks have becom
 This despite the fact that these circles spawned the technique, and wrote the book (<<FP_GOOSGBT_2009,_Growing Object-Oriented Software Guided By Tests_>>).
 
 The problem seems to be that, as well as implementing interfaces, mock frameworks allow us to specify the expected invocations of their methods, and what should be returned in those cases.
-But expected calls and their results don't make for a human-readable description of expectations, as we saw in `RecommendationsTests`.
+But expected calls and their results don't make for a human-readable description, as we'll see if we look at the inlined version of the last expecations:
 
-As we hope to show, this isn't an insurmountable problem - we just need to add a semantic layer on top of the raw mock specifications.
+// begin-insert: tags/interfaces-to-functions-2.2:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt
+[source,java]
+----
+when(featuredDestinations.findCloseTo(paris))
+    .thenReturn(List.of(
+        eiffelTower,
+        louvre
+    ));
+when(distanceCalculator.distanceInMetersBetween(
+    paris, eiffelTower.getLocation())
+).thenReturn(5000);
+when(distanceCalculator.distanceInMetersBetween(
+    paris, louvre.getLocation())
+).thenReturn(1000);
+
+when(featuredDestinations.findCloseTo(alton))
+    .thenReturn(List.of(
+        flowerFarm,
+        watercressLine
+    ));
+when(distanceCalculator.distanceInMetersBetween(
+    alton, flowerFarm.getLocation())
+).thenReturn(5300);
+when(distanceCalculator.distanceInMetersBetween(
+    alton, watercressLine.getLocation())
+).thenReturn(320);
+----
+// end-insert
+
+Defining methods like `givenADistanceBetween` allows us to express the relationship between the mock expectations and our test - they can hide the _how_ to expose the _why_.
 In practice though, very few developers take this step, leading to cryptic tests which are blamed on the use of mocking.
 ****
 
-==== Refactoring Expectations
-
-Refactoring code to gain an understanding of what it does, and then using that knowledge to drive further refactoring, is a powerful technique.
-Let's apply it here, starting with perhaps the most fundamental refactoring, removing duplication by introducing a function.
-
-Our starting point is the setting of expectations on the mocks in the first test:
-
-// begin-insert: tags/interfaces-to-functions.0:src/test/java/travelator/recommendations/RecommendationsTests.java#expectations
-[source,java]
-----
-mockery.checking(new Expectations() {{
-    oneOf(featuredDestinations).findCloseTo(paris);
-    will(returnValue(List.of(
-        eiffelTower,
-        louvre
-    )));
-
-    oneOf(distanceCalculator).distanceInMetersBetween(
-        paris,
-        eiffelTower.getLocation()
-    );
-    will(returnValue(5000));
-    oneOf(distanceCalculator).distanceInMetersBetween(
-        paris,
-        louvre.getLocation()
-    );
-    will(returnValue(1000));
-
-    oneOf(featuredDestinations).findCloseTo(alton);
-    will(returnValue(List.of(
-        flowerFarm,
-        watercressLine
-    )));
-
-    oneOf(distanceCalculator).distanceInMetersBetween(
-        alton,
-        flowerFarm.getLocation()
-    );
-    will(returnValue(5300));
-    oneOf(distanceCalculator).distanceInMetersBetween(
-        alton,
-        watercressLine.getLocation()
-    );
-    will(returnValue(320));
-}});
-----
-// end-insert
-
-We keep on seeing a repeated:
-
-[source,java]
-----
-oneOf(distanceCalculator).distanceInMetersBetween(
-    somewhere,
-    destination.getLocation()
-);
-will(returnValue(someInt));
-----
-
-Something repeated four times (actually 10 times in all the tests) must have a meaning, so let's create a function to represent whatever that is.
-We select the first of the repeats:
-
-// begin-insert: tags/interfaces-to-functions.0:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt
-[source,java]
-----
-oneOf(distanceCalculator).distanceInMetersBetween(
-    paris,
-    eiffelTower.getLocation()
-);
-will(returnValue(5000));
-----
-// end-insert
-
-Now we "Extract Method", using the name `somethingSomethingDistance` until we can figure out what it is.
-IntelliJ is smart enough to work out that, if the `somethingSomethingDistance` had three parameters, it could use it in three other places.
-So we accept it's kind offer to add them, and end up with:
-
-// begin-insert: tags/interfaces-to-functions.1:src/test/java/travelator/recommendations/RecommendationsTests.java#expectations
-[source,java]
-----
-mockery.checking(new Expectations() {{
-    oneOf(featuredDestinations).findCloseTo(paris);
-    will(returnValue(List.of(
-        eiffelTower,
-        louvre
-    )));
-
-    somethingSomethingDistance(paris, eiffelTower, 5000);
-    somethingSomethingDistance(paris, louvre, 1000);
-
-    oneOf(featuredDestinations).findCloseTo(alton);
-    will(returnValue(List.of(
-        flowerFarm,
-        watercressLine
-    )));
-
-    somethingSomethingDistance(alton, flowerFarm, 5300);
-    somethingSomethingDistance(alton, watercressLine, 320);
-}
-
-    private void somethingSomethingDistance(
-        Location paris,
-        FeaturedDestination eiffelTower,
-        int i
-    ) {
-        oneOf(distanceCalculator).distanceInMetersBetween(
-            paris,
-            eiffelTower.getLocation()
-        );
-        will(returnValue(i));
-    }
-});
-----
-// end-insert
-
-This is complicated by the new method being hosted by the anonymous `Expectations` subclass passed to `mockery.checking`, and spoiled a bit by IntelliJ's choice of parameter names `paris`, `eiffelTower` and `i`.
-The latter is easy to fix at least, we know what the parameters are from their use:
-
-// begin-insert: tags/interfaces-to-functions.2:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt
-[source,java]
-----
-private void somethingSomethingDistance(
-    Location location,
-    FeaturedDestination destination,
-    int distanceInMeters
-) {
-    oneOf(distanceCalculator).distanceInMetersBetween(
-        location,
-        destination.getLocation()
-    );
-    will(returnValue(distanceInMeters));
-}
-----
-// end-insert
-
-OK, so `somethingSomethingDistance` means that when we call the `distanceInMetersBetween` with two locations, it returns `distanceInMeters`.
-What does this mean?
-
-Ah, it's setting up a _given_.
-When we invoke this method we are saying "Given the distance from `location` to `destination` is `distanceInMeters`".
-Let's rename it to `givenADistanceFrom`.
-
-While we're there: we don't actually care that there is only `oneOf` in these cases, so we'll change that to `allowing`; and we'll group all the givens together at the top of the expectations where people expect them:
-
-// begin-insert: tags/interfaces-to-functions.3:src/test/java/travelator/recommendations/RecommendationsTests.java#expectations
-[source,java]
-----
-mockery.checking(new Expectations() {{
-    givenADistanceFrom(paris, eiffelTower, 5000);
-    givenADistanceFrom(paris, louvre, 1000);
-    givenADistanceFrom(alton, flowerFarm, 5300);
-    givenADistanceFrom(alton, watercressLine, 320);
-
-    oneOf(featuredDestinations).findCloseTo(paris);
-    will(returnValue(List.of(
-        eiffelTower,
-        louvre
-    )));
-
-    oneOf(featuredDestinations).findCloseTo(alton);
-    will(returnValue(List.of(
-        flowerFarm,
-        watercressLine
-    )));
-}
-    private void givenADistanceFrom(
-        Location location,
-        FeaturedDestination destination,
-        int distanceInMeters
-    ) {
-        allowing(distanceCalculator).distanceInMetersBetween(
-            location,
-            destination.getLocation()
-        );
-        will(returnValue(distanceInMeters));
-    }
-});
-----
-// end-insert
-
-Ooh, this is beginning to read like a test.
-
-Now we can see that those `featuredDestinations` calls are `givenFeaturedDestinationsFor`, and repeat the previous refactor:
-
-// begin-insert: tags/interfaces-to-functions.4:src/test/java/travelator/recommendations/RecommendationsTests.java#expectations
-[source,java]
-----
-mockery.checking(new Expectations() {{
-    givenFeaturedDestinationsFor(paris,
-        eiffelTower, louvre
-    );
-    givenFeaturedDestinationsFor(alton,
-        flowerFarm, watercressLine
-    );
-    givenADistanceFrom(paris, eiffelTower, 5000);
-    givenADistanceFrom(paris, louvre, 1000);
-    givenADistanceFrom(alton, flowerFarm, 5300);
-    givenADistanceFrom(alton, watercressLine, 320);
-
-}
-
-    private void givenFeaturedDestinationsFor(
-        Location location,
-        FeaturedDestination... destinations
-    ) {
-        allowing(featuredDestinations).findCloseTo(location);
-        will(returnValue(Arrays.asList(destinations)));
-    }
-            ...
-});
-----
-// end-insert
-
-Those givens are still irritatingly scoped to this particular `Expectations`, so we can't use them in the other tests.
-What we can do, is give each given its own `Expectations` block, checked by the `mockery` test field.
-For example:
-
-// begin-insert: tags/interfaces-to-functions.5:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt
-[source,java]
-----
-private void givenFeaturedDestinationsFor(
-    Location location,
-    FeaturedDestination... destinations
-) {
-    mockery.checking(new Expectations() {{
-        allowing(featuredDestinations).findCloseTo(location);
-        will(returnValue(Arrays.asList(destinations)));
-    }});
-}
-----
-// end-insert
-
-This last refactor is a good example of an algebraic transform of code.
-We can transform a list of expectations inside a single block, to a list of blocks, each with a single expectation.
-
-We can't always do this, especially when the code depends on when it is run (see <<actions>>).
-In this case, setting expectations is an action, because it sets state in the mockery, but this refactor doesn't change their order, and in any case, `allowing` expectations are (mostly) insensitve to the order that they are set.
-
-Depending on the `mockery` field rather than the containing `Expectations` lets us move the givens to top level of the test class, and the invocations out of the mass `checking` block.
-Our test is now:
-
-// begin-insert: tags/interfaces-to-functions.6:src/test/java/travelator/recommendations/RecommendationsTests.java#test1
-[source,java]
-----
-@Test
-public void returns_recommendations_for_multi_location() {
-    givenFeaturedDestinationsFor(paris,
-        eiffelTower, louvre
-    );
-    givenFeaturedDestinationsFor(alton,
-        flowerFarm, watercressLine
-    );
-    givenADistanceFrom(paris, eiffelTower, 5000);
-    givenADistanceFrom(paris, louvre, 1000);
-    givenADistanceFrom(alton, flowerFarm, 5300);
-    givenADistanceFrom(alton, watercressLine, 320);
-
-    assertEquals(
-        List.of(
-            new FeaturedDestinationSuggestion(alton, watercressLine, 320),
-            new FeaturedDestinationSuggestion(paris, louvre, 1000),
-            new FeaturedDestinationSuggestion(paris, eiffelTower, 5000),
-            new FeaturedDestinationSuggestion(alton, flowerFarm, 5300)
-        ),
-        recommendations.recommendationsFor(Set.of(paris, alton))
-    );
-}
-----
-// end-insert
-
-Again, we can safely reorder the givens provided that there is no interaction between them.
-
-Now that the givens are available to all tests, we can use them in place of the raw mock calls everywhere.
-If you're a regex wizard, you could probably conjure a couple of replaces.
-We could pretend that we found a nice refactoring to do it automatically, but the truth is that it was easier in this case to do a little hand editing backed by frequent test-running.
-This gives, for example:
-
-// begin-insert: tags/interfaces-to-functions.6:src/test/java/travelator/recommendations/RecommendationsTests.java#test2
-[source,java]
-----
-@Test
-public void deduplicates_using_smallest_distance() {
-    givenFeaturedDestinationsFor(alton,
-        flowerFarm, watercressLine
-    );
-    givenFeaturedDestinationsFor(froyle,
-        flowerFarm, watercressLine
-    );
-    givenADistanceFrom(alton, flowerFarm, 5300);
-    givenADistanceFrom(alton, watercressLine, 320);
-    givenADistanceFrom(froyle, flowerFarm, 0);
-    givenADistanceFrom(froyle, watercressLine, 6300);
-
-    assertEquals(
-        List.of(
-            new FeaturedDestinationSuggestion(froyle, flowerFarm, 0),
-            new FeaturedDestinationSuggestion(alton, watercressLine, 320)
-        ),
-        recommendations.recommendationsFor(Set.of(alton, froyle))
-    );
-}
-----
-// end-insert
-
-This is arguably how the previous authors should have left these tests.
-We'd even bet that we could show these to our product owner, and she would be able to tell us whether recommendations is doing the right thing.
-Mocks don't have to result in uncommunicative tests, but we do have to work to get there.
-
-Now, where were we?
-Oh yes, we were going to refactor from interfaces to functions.
-
 ==== Introduce Functions
 
-Before we do, this is a Kotlin book, so let's convert at least something to Kotlin.
-We choose `Recommendations`, because we're a bit bored of the tests for now, and it will be usdul to remind ourselves what it looks like.
-The following is the result of following the refactorings presented in <<streams-to-sequences>> and , <<functions-to-extension-functions>>:
+Before we start refactoring, this is a Kotlin book, so let's convert at least something to Kotlin.
+We choose `Recommendations`, because our plan is to introduce functions to replace the interfaces, and Kotlin has nice consistent syntax for function types.
+The following is the result of following the refactorings presented in <<streams-to-sequences>> and <<functions-to-extension-functions>>:
 
-// begin-insert: tags/interfaces-to-functions.7:src/main/java/travelator/recommendations/Recommendations.kt
+// begin-insert: tags/interfaces-to-functions-2.4:src/main/java/travelator/recommendations/Recommendations.kt
 [source,kotlin]
 ----
 class Recommendations(
@@ -1812,10 +1454,10 @@ private fun List<FeaturedDestinationSuggestion>.closestToJourneyLocation() =
 ----
 // end-insert
 
-We want to explore the possibilities of depending on a function type, not the whole interface, so let's add a property for `featuredDestinations.findCloseTo`.
+We want to explore the possibilities of depending on a function type, not the whole interface, so let's add a property for `featuredDestinations::findCloseTo`.
 We'll call it `destinationFinder`:
 
-// begin-insert: tags/interfaces-to-functions.8:src/main/java/travelator/recommendations/Recommendations.kt#excerpt
+// begin-insert: tags/interfaces-to-functions-2.8:src/main/java/travelator/recommendations/Recommendations.kt#excerpt
 [source,kotlin]
 ----
 class Recommendations(
@@ -1852,7 +1494,7 @@ class Recommendations(
 This passes the tests, so we may be on to something.
 It feels like there should be a refactoring to move `destinationFinder` into the constructor, but we haven't found anything better than cutting the definition and pasting where we want it:
 
-// begin-insert: tags/interfaces-to-functions.9:src/main/java/travelator/recommendations/Recommendations.kt#excerpt
+// begin-insert: tags/interfaces-to-functions-2.9:src/main/java/travelator/recommendations/Recommendations.kt#excerpt
 [source,kotlin]
 ----
 class Recommendations(
@@ -1865,10 +1507,10 @@ class Recommendations(
 ----
 // end-insert
 
-Unfortunately Java doesn't understand the defaulted parameter, so we have to fix up the call sites.
+Unfortunately Java doesn't understand the defaulted parameter, so we have to fix up the call sites to add the function parameter.
 It doesn't really matter, as this is what we want really anyway:
 
-// begin-insert: tags/interfaces-to-functions.9:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt
+// begin-insert: tags/interfaces-to-functions-2.9:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt
 [source,java]
 ----
 private final Recommendations recommendations = new Recommendations(
@@ -1881,7 +1523,7 @@ private final Recommendations recommendations = new Recommendations(
 
 Now nothing in `Recommendations` uses the `featuredDestinations` property, so we can remove it:
 
-// begin-insert: tags/interfaces-to-functions.10:src/main/java/travelator/recommendations/Recommendations.kt#excerpt
+// begin-insert: tags/interfaces-to-functions-2.10:src/main/java/travelator/recommendations/Recommendations.kt#excerpt
 [source,kotlin]
 ----
 class Recommendations(
@@ -1893,7 +1535,7 @@ class Recommendations(
 
 The places in our code that create `Recommendations` now look like this:
 
-// begin-insert: tags/interfaces-to-functions.10:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt
+// begin-insert: tags/interfaces-to-functions-2.10:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt
 [source,java]
 ----
 private final Recommendations recommendations = new Recommendations(
@@ -1904,11 +1546,11 @@ private final Recommendations recommendations = new Recommendations(
 // end-insert
 
 It's something of a surprise that the tests have continued to pass through this refactoring.
-Not that we can't reason that they should - the effect of calling the function bound to `featuredDestinations::findCloseTo` is still to invoke the method on the mocked interface - but our reasoning is so often proved wrong by tests that we don't count our chickens.
+We can reason that they _should_ pass - the effect of calling the function bound to `featuredDestinations::findCloseTo` is still to invoke the method on the mocked interface - but our reasoning is so often proved wrong by tests that we don't count our chickens.
 
 We do like a single basket though, so let's do the same thing with the `distanceCalculator`, this time in a fell-swoop, whatever that is:
 
-// begin-insert: tags/interfaces-to-functions.11:src/main/java/travelator/recommendations/Recommendations.kt#excerpt
+// begin-insert: tags/interfaces-to-functions-2.11:src/main/java/travelator/recommendations/Recommendations.kt#excerpt
 [source,kotlin]
 ----
 class Recommendations(
@@ -1938,7 +1580,7 @@ class Recommendations(
 
 The constructor invocations are now:
 
-// begin-insert: tags/interfaces-to-functions.11:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt
+// begin-insert: tags/interfaces-to-functions-2.11:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt
 [source,java]
 ----
 private final Recommendations recommendations = new Recommendations(
@@ -1948,8 +1590,7 @@ private final Recommendations recommendations = new Recommendations(
 ----
 // end-insert
 
-Note that a little thought around what to call functional parameters can go a long way to making them seem natural in use, although sometimes a little cryptic where they are defined.
-The same is true for function names I guess.
+Note that a little thought around what to call functional variables can go a long way to making them seem natural in use, although they can sometimes be a little cryptic where they are defined.
 
 Again the tests still pass, giving us confidence that our production code will see the transformation the same way.
 It's particularly nice that we have shown that we can simultaneously cross a method/function boundary and a Java/Kotlin boundary - maybe this interop will work out OK after all!
@@ -1957,119 +1598,54 @@ It's particularly nice that we have shown that we can simultaneously cross a met
 ==== Weaning Off Mocks
 
 We're done with the production code now, but before we finish this chapter, let's return to the tests.
-The tests used mocking because they had to implement a broad interface, even though most methods were not used.
-We are still mocking, but now we are passing narrow interfaces (the function types) to the code under test, do we still need the mocks?
+The tests used mocking because they had to implement two multi-method interfaces, even though most methods were not used.
+We are still mocking, but now we are passing narrow interfaces (the function types) to the code under test - do we still need the mocks?
 
-First of all, as a function type is actually an interface in Java and Kotlin, can we just mock that single-method interface rather than the whole of `FeaturedDestinations` and `DistanceCalculator`?
-
-Before we can do that (zeroth of all?), we'll convert the tests to Kotlin, to avoid some of the issues that we'll otherwise have finding Java function types to express the operations.
+Before we can go on, we'll convert the tests to Kotlin, to avoid some of the issues that we'll otherwise have finding Java function types to express the operations.
 
 The conversion is quite smooth.
-We have to tell Kotlin to create a `@JVMField` for the JUnit extension before the tests will run,
-and at the time of writing we had to reinstate the simple method references in the constructor call `(featuredDestinations::findCloseTo, distanceCalculator::distanceInMetersBetween)` because the converter created lambdas in their place.
-This then is the setup:
+For some reason the converter created lambdas rather than using method references in the `Recommendations` constructor call that we have to replace by hand, leaving the setup as:
 
-// begin-insert: tags/interfaces-to-functions.12:src/test/java/travelator/recommendations/RecommendationsTests.kt#setup
+// begin-insert: tags/interfaces-to-functions-2.12:src/test/java/travelator/recommendations/RecommendationsTests.kt#setup
 [source,kotlin]
 ----
 class RecommendationsTests {
-    @JvmField
-    @RegisterExtension
-    var mockery: Mockery = JUnit5ClassMockery()
-    private val distanceCalculator = mockery.mock(DistanceCalculator::class.java)
-    private val featuredDestinations = mockery.mock(FeaturedDestinations::class.java)
+    private val distanceCalculator = mock(DistanceCalculator::class.java)
+    private val featuredDestinations = mock(FeaturedDestinations::class.java)
 
-    private val recommendations =
-        Recommendations(
-            featuredDestinations::findCloseTo,
-            distanceCalculator::distanceInMetersBetween
-        )
+    private val recommendations = Recommendations(
+        featuredDestinations::findCloseTo,
+        distanceCalculator::distanceInMetersBetween
+    )
     ...
-}
 ----
 // end-insert
 
-Where we create expectations on the mockery the syntax hardly plays to Kotlin's strengths, but the converted code works:
+We could use Kotlin reified types to avoid those `::class.java` arguments, but we're moving away from mocks, not towards them, so we resist.
 
-// begin-insert: tags/interfaces-to-functions.12:src/test/java/travelator/recommendations/RecommendationsTests.kt#givenFeaturedDestinationsFor
+`when` is a keyword in Kotlin, but the converter is smart enough to quote it where required:
+
+// begin-insert: tags/interfaces-to-functions-2.12:src/test/java/travelator/recommendations/RecommendationsTests.kt#when
 [source,kotlin]
 ----
 private fun givenFeaturedDestinationsFor(
     location: Location,
-    vararg destinations: FeaturedDestination
+    result: List<FeaturedDestination>
 ) {
-    mockery.checking(object : Expectations() {
-        init {
-            allowing(featuredDestinations).findCloseTo(location)
-            will(returnValue(destinations.toList()))
-        }
-    })
+    Mockito.`when`(featuredDestinations.findCloseTo(location))
+        .thenReturn(result)
 }
 ----
 // end-insert
 
-OK, what was first of all?
-Oh yes, can we just mock the function types and not the fat interfaces?
-
-It turns out that we can, but using raw JMock the getting the types right is hard.
-https://github.com/dmcg/k-sera[k-sera] is a Kotlin wrapper around JMock that helps, so we'll add that to the build temporarily just to prove the point.
-When we have, we can mock the function rather than the fat interfaces:
-
-// begin-insert: tags/interfaces-to-functions.13:src/test/java/travelator/recommendations/RecommendationsTests.kt#setup
-[source,kotlin]
-----
-class RecommendationsTests {
-    @JvmField
-    @RegisterExtension
-    var mockery: Mockery = JUnit5ClassMockery()
-    private val distanceInMetersBetween =
-        mockery.mock<(Location, Location) -> Int>()
-    private val featuredDestinations =
-        mockery.mock<(Location) -> List<FeaturedDestination>>()
-
-    private val recommendations =
-        Recommendations(
-            featuredDestinations,
-            distanceInMetersBetween
-        )
-
-    ...
-}
-----
-// end-insert
-
-The method that we need to `expect` is now `invoke`:
-
-// begin-insert: tags/interfaces-to-functions.13:src/test/java/travelator/recommendations/RecommendationsTests.kt#givenFeaturedDestinationsFor
-[source,kotlin]
-----
-private fun givenFeaturedDestinationsFor(
-    location: Location,
-    vararg destinations: FeaturedDestination
-) {
-    mockery.expecting {
-        allowing(featuredDestinations).invoke( // <1>
-            location
-        ).which will
-            returnValue(destinations.toList())
-    }
-}
-----
-// end-insert
-
-<1> `invoke` rather than `findCloseTo`.
-
-This proves the point that we can mock function types, and set up expectations that they will be called.
-We are now mocking only the 2 methods that we are actually invoking, which is better, but not as good as no mocking at all.
-
-To remove the mocking altogether, we view a function type as a mapping between its input parameters as a tuple and its result.
+To remove the mocking, we view a function type as a mapping between its input parameters as a tuple and its result.
 So `destinationFinder` is a mapping between a single `Location` and a `List<FeaturedDestination>.
 `distanceInMetersBetween` is a mapping between `Pair<Location, Location>` and `Int`.
-We can express the desired result of this mapping as a `Map`.
+We can express the desired result of this mapping as a `Map` type (so... many... maps).
 
 Taking the `destinationFinder` case first, we'll create a property to hold the `Map` - `destinationLookup`:
 
-// begin-insert: tags/interfaces-to-functions.14:src/test/java/travelator/recommendations/RecommendationsTests.kt#featuredDestinations
+// begin-insert: tags/interfaces-to-functions-2.14:src/test/java/travelator/recommendations/RecommendationsTests.kt#featuredDestinations
 [source,kotlin]
 ----
 private val featuredDestinations =
@@ -2080,12 +1656,12 @@ private val featuredDestinations =
 
 `givenFeaturedDestinationsFor` can populate the `destinationLookup` Map`:
 
-// begin-insert: tags/interfaces-to-functions.14:src/test/java/travelator/recommendations/RecommendationsTests.kt#givenFeaturedDestinationsFor
+// begin-insert: tags/interfaces-to-functions-2.14:src/test/java/travelator/recommendations/RecommendationsTests.kt#givenFeaturedDestinationsFor
 [source,kotlin]
 ----
 private fun givenFeaturedDestinationsFor(
     location: Location,
-    vararg destinations: FeaturedDestination
+    destinations: List<FeaturedDestination>
 ) {
     featuredDestinations[location] = destinations.toList()
 }
@@ -2094,13 +1670,13 @@ private fun givenFeaturedDestinationsFor(
 
 If we make `Recommendations` read out of `destinationLookup` we have passing tests:
 
-// begin-insert: tags/interfaces-to-functions.14:src/test/java/travelator/recommendations/RecommendationsTests.kt#recommendations
+// begin-insert: tags/interfaces-to-functions-2.14:src/test/java/travelator/recommendations/RecommendationsTests.kt#recommendations
 [source,kotlin]
 ----
 private val recommendations =
     Recommendations(
         featuredDestinations::getValue,
-        distanceInMetersBetween
+        distanceCalculator::distanceInMetersBetween
     )
 ----
 // end-insert
@@ -2109,7 +1685,7 @@ private val recommendations =
 
 Then it won't surprise you when we do the same for `distanceInMetersBetween`, removing all trace of the formal mocking:
 
-// begin-insert: tags/interfaces-to-functions.15:src/test/java/travelator/recommendations/RecommendationsTests.kt#setup
+// begin-insert: tags/interfaces-to-functions-2.15:src/test/java/travelator/recommendations/RecommendationsTests.kt#setup
 [source,kotlin]
 ----
 class RecommendationsTests {
@@ -2131,7 +1707,7 @@ class RecommendationsTests {
 ----
 // end-insert
 
-// begin-insert: tags/interfaces-to-functions.15:src/test/java/travelator/recommendations/RecommendationsTests.kt#givenADistanceFrom
+// begin-insert: tags/interfaces-to-functions-2.15:src/test/java/travelator/recommendations/RecommendationsTests.kt#givenADistanceFrom
 [source,kotlin]
 ----
 private fun givenADistanceFrom(
@@ -2148,10 +1724,10 @@ private fun givenADistanceFrom(
 Phew.
 
 Having to use a lamda rather than a method reference in the `Recommendations` constructor invocation is a bit irritating.
-We can tidy that up with an extension function.
+We can tidy that up with a local `getValue` extension function.
 Did we mention how much we like extension functions?
 
-// begin-insert: tags/interfaces-to-functions.16:src/test/java/travelator/recommendations/RecommendationsTests.kt#getOrThrow
+// begin-insert: tags/interfaces-to-functions-2.16:src/test/java/travelator/recommendations/RecommendationsTests.kt#getValue
 [source,kotlin]
 ----
 class RecommendationsTests {
@@ -2172,14 +1748,14 @@ class RecommendationsTests {
     ...
 }
 
-fun <K1, K2, V> Map<Pair<K1, K2>, V>.getValue(k1: K1, k2: K2) =
+private fun <K1, K2, V> Map<Pair<K1, K2>, V>.getValue(k1: K1, k2: K2) =
     getValue(k1 to k2)
 ----
 // end-insert
 
 Oh, and we can improve the readability of the test methods with some judicious parameter naming and helper methods:
 
-// begin-insert: tags/interfaces-to-functions.17:src/test/java/travelator/recommendations/RecommendationsTests.kt#sugar
+// begin-insert: tags/interfaces-to-functions-2.17:src/test/java/travelator/recommendations/RecommendationsTests.kt#sugar
 [source,kotlin]
 ----
 @Test
@@ -2203,6 +1779,16 @@ fun deduplicates_using_smallest_distance() {
 ----
 // end-insert
 
+Sometimes a tiny method like `of` can go a long way to letting our brains just read code rather than spending effort interpreting it:
+
+// begin-insert: tags/interfaces-to-functions-2.17:src/test/java/travelator/recommendations/RecommendationsTests.kt#of
+[source,kotlin]
+----
+private fun of(vararg destination: FeaturedDestination)
+    = destination.toList()
+----
+// end-insert
+
 ==== Have We Really Weaned Off Mocks Though?
 
 Ah, now that is a good question!
@@ -2217,41 +1803,54 @@ As with our discussion around <<TOOD where is it>>, we know in reality that _whe
 Arguably the distance between locations won't change over time, but which destinations we find around a location will, as we add or remove them from whatever database they are held in.
 Almost certainly though, the distinction is moot in this case, and we can treat `recommendationsFor` as a calculation.
 
-At the beginning of this chapter, we viewed methods as functions with some of their arguments partially applied by capturing them as fields.
-In tests we can reverse this process, making a function that takes all the inputs and testing that instead.
+At the beginning of this chapter, we saw that we can view methods as functions with some of their arguments partially applied by capturing them as fields.
+In tests we can reverse this process - we can write a function that creates the object once for each invocation.
 What does that look like?
 
-// begin-insert: tags/interfaces-to-functions.18:src/test/java/travelator/recommendations/RecommendationsTests.kt#recommendationsFor
+// begin-insert: tags/interfaces-to-functions-2.18:src/test/java/travelator/recommendations/RecommendationsTests.kt#subjectFor
 [source,kotlin]
 ----
-fun recommendationsFor(
+private fun subjectFor(
     featuredDestinations: Map<Location, List<FeaturedDestination>>,
-    distanceInMetersBetween: Map<Pair<Location, Location>, Int>,
-    journey: Set<Location>
-): List<FeaturedDestinationSuggestion> {
+    distances: Map<Pair<Location, Location>, Int>
+): Recommendations {
     val destinationsLookup = featuredDestinations.withDefault { emptyList() }
-    val distanceLookup = distanceInMetersBetween.withDefault { -1 }
-    val recommendations =
-        Recommendations(
-            destinationsLookup::getValue,
-            distanceLookup::getValue
-        )
-    return recommendations.recommendationsFor(journey)
+    val distanceLookup = distances.withDefault { -1 }
+    return Recommendations(destinationsLookup::getValue, distanceLookup::getValue)
 }
 ----
 // end-insert
 
 Here we create a new instance of `Recommendations` every call, so that it can capture immutable maps representing the rest of the data.
-Note that this is a top-level function, there is no state in our tests at all.
-Each test simply passes the data it needs to `recommendationsFor` - no need for setup or mutating the test fixture.
-We can use a common lookup of distances, because they feel fixed, resulting in:
+Note that this is a top-level function, there is now state in our tests at all.
+We can double down on this by writing a top-level `check` function too:
 
-// begin-insert: tags/interfaces-to-functions.18:src/test/java/travelator/recommendations/RecommendationsTests.kt#excerpt
+// begin-insert: tags/interfaces-to-functions-2.18:src/test/java/travelator/recommendations/RecommendationsTests.kt#check
+[source,kotlin]
+----
+private fun check(
+    featuredDestinations: Map<Location, List<FeaturedDestination>>,
+    distances: Map<Pair<Location, Location>, Int>,
+    recommendationsFor: Set<Location>,
+    shouldReturn: List<FeaturedDestinationSuggestion>
+) {
+    val subject = subjectFor(featuredDestinations, distances)
+    assertEquals(
+        shouldReturn,
+        subject.recommendationsFor(recommendationsFor)
+    )
+}
+----
+// end-insert
+
+Now each test can just pass the data about the initial conditions and the expected result to `check`, with no need for setup or mutation in the test at all:
+
+// begin-insert: tags/interfaces-to-functions-2.18:src/test/java/travelator/recommendations/RecommendationsTests.kt#excerpt
 [source,kotlin]
 ----
 class RecommendationsTests {
     companion object {
-        val distanceInMetersBetween = mapOf(
+        val distances = mapOf(
             (paris to eiffelTower.location) to 5000,
             (paris to louvre.location) to 1000,
             (alton to flowerFarm.location) to 5300,
@@ -2260,52 +1859,80 @@ class RecommendationsTests {
             (froyle to watercressLine.location) to 6300
         )
     }
+
+    ...
+
+    @Test
+    fun returns_no_recommendations_when_no_featured() {
+        check(
+            featuredDestinations = emptyMap(),
+            distances = distances,
+            recommendationsFor = setOf(paris),
+            shouldReturn = emptyList()
+        )
+    }
+
     ...
 
     @Test
     fun returns_recommendations_for_multi_location() {
-        val featuredDestinations = mapOf(
-            paris to listOf(eiffelTower, louvre),
-            alton to listOf(flowerFarm, watercressLine),
-        )
-        val result = recommendationsFor(
-            featuredDestinations,
-            distanceInMetersBetween,
-            setOf(paris, alton)
-        )
-        assertEquals(
-            listOf(
+        check(
+            featuredDestinations = mapOf(
+                paris to listOf(eiffelTower, louvre),
+                alton to listOf(flowerFarm, watercressLine),
+            ),
+            distances = distances,
+            recommendationsFor = setOf(paris, alton),
+            shouldReturn = listOf(
                 FeaturedDestinationSuggestion(alton, watercressLine, 320),
                 FeaturedDestinationSuggestion(paris, louvre, 1000),
                 FeaturedDestinationSuggestion(paris, eiffelTower, 5000),
                 FeaturedDestinationSuggestion(alton, flowerFarm, 5300)
-            ),
-            result
+            )
         )
     }
-
-    @Test
-    fun deduplicates_using_smallest_distance() {
-        val featuredDestinations = mapOf(
-            alton to listOf(flowerFarm, watercressLine),
-            froyle to listOf(flowerFarm, watercressLine)
-        )
-        val result = recommendationsFor(
-            featuredDestinations,
-            distanceInMetersBetween,
-            setOf(alton, froyle)
-        )
-        assertEquals(
-            listOf(
-                FeaturedDestinationSuggestion(froyle, flowerFarm, 0),
-                FeaturedDestinationSuggestion(alton, watercressLine, 320)
-            ),
-            result
-        )
-    }
+    ...
 }
 ----
 // end-insert
+
+It's instructive to compare this with an original test:
+
+// begin-insert: tags/interfaces-to-functions-2.1:src/test/java/travelator/recommendations/RecommendationsTests.java#test1
+[source,java]
+----
+@Test
+public void returns_recommendations_for_multi_location() {
+    givenFeaturedDestinationsFor(paris,
+        List.of(
+            eiffelTower,
+            louvre
+        ));
+    givenADistanceBetween(paris, eiffelTower, 5000);
+    givenADistanceBetween(paris, louvre, 1000);
+
+    givenFeaturedDestinationsFor(alton,
+        List.of(
+            flowerFarm,
+            watercressLine
+        ));
+    givenADistanceBetween(alton, flowerFarm, 5300);
+    givenADistanceBetween(alton, watercressLine, 320);
+
+    assertEquals(
+        List.of(
+            new FeaturedDestinationSuggestion(alton, watercressLine, 320),
+            new FeaturedDestinationSuggestion(paris, louvre, 1000),
+            new FeaturedDestinationSuggestion(paris, eiffelTower, 5000),
+            new FeaturedDestinationSuggestion(alton, flowerFarm, 5300)
+        ),
+        recommendations.recommendationsFor(Set.of(paris, alton))
+    );
+}
+----
+// end-insert
+
+Admittedly this is broken up a bit by the `givenADistanceBetween` calls, but you can see how this refactoring has migrated our tests from woolly functions that may or may not have a common structure, to a clear testing of inputs against outputs.
 
 === Conclusion
 
