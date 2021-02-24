@@ -393,14 +393,12 @@ fun `is longest leg when more than one match`() {
 We've converted the first of the non-null-returning tests (`is longest leg when one match`) with the dammit operator.
 If it was to fail (which it doesn't, but we like to plan for these things) it would fail with a thrown `NullPointerException` rather than a nice diagnostic.
 In the second case we've solved that problem with `?.`, which continues evaluation only if its receiver is not `null`.
-This means that if the leg _is_ `null` the error will be:
+This means that if the leg _is_ `null` the error will read as follows, which is much nicer:
 
 ----
 Expected :one day
 Actual   :null
 ----
-
-which is much nicer.
 
 We can work this refactoring through our clients, converting them to Kotlin and then to using `longestLegOver`.
 Once we have converted all of them, we can delete the `Optional`-returning `findLongestLegOver`.
