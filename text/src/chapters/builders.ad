@@ -17,14 +17,14 @@ The authors of <<GHJV_DPEOROOS_1994,_Design Patterns: Elements of Reusable Objec
 >
 > * the construction process must allow different representations for the object that’s constructed.
 
-However, that's not how builers are used in Java.
+However, that's not how Java programmers typically write builers.
 Most Java builders construct just one kind of object and do not have an abstract interface.
-So what do Java programmers use builders for?
-
-Java programmers are using builders to separate construction from representation, but to cope with two limitations in how Java constructs objects.
+Java programmers do not use builders to separate construction from representation, but to cope with limitations of how Java constructs objects.
 
 Firstly, Java methods do not have named parameters.
-This means that that a constructor call does not make obvious to the reader which properties are being set on the object.
+This means the code of a constructor call does not make explicit how it is initialising the properties of the object with the values passed to the constructor.
+
+For example, here is a method that builds a FerryBookingRequest from a posted web form:
 
 // begin-insert: tags/builders.0:src/main/java/travelator/booking/FerryBookingHandler_WithConstructor.java#create_request
 [source,java]
@@ -47,9 +47,42 @@ public FerryBookingRequest formToBookingRequest(Form form, Trip trip) {
 // end-insert
 
 Apart from making the code difficult to read,  errors can slip in when two or more constructor arguments have the same type.
-This is quite common in codebases that suffer from _Primitive Obsession_.
+The constructor parameters `serviceId`  and `cabinClass` are both of type String.
+Are we passing the form field values to the correct constructor parameters?
+It's impossible to say without refering to the definition of the FerryBookingRequest constructor:
 
-A lot of Java code avoids these problems by following Bean conventions.
+// begin-insert: tags/builders.0:src/main/java/travelator/booking/FerryBookingRequest.java#constructor
+[source,java]
+----
+public class FerryBookingRequest {
+    private String providerServiceId;
+    private ZonedDateTime dateTime;
+    private int numberOfBerths;
+    private String cabinClass;
+    private List<VehicleDetails> vehicles;
+
+    public FerryBookingRequest() {
+    }
+
+    public FerryBookingRequest(String providerServiceId,
+                               int numberOfBerths,
+                               String cabinClass,
+                               List<VehicleDetails> vehicles
+    ) {
+        this.providerServiceId = providerServiceId;
+        this.numberOfBerths = numberOfBerths;
+        this.cabinClass = cabinClass;
+        this.vehicles = vehicles;
+    }
+
+    ...
+}
+----
+// end-insert
+
+Phew! We got them right.
+
+A lot of Java codebases avoid these problems by following Bean conventions.
 The code calls a constructor with no arguments to create a new object, and then sets the object's properties after it has been constructed.
 
 // begin-insert: tags/builders.0:src/main/java/travelator/booking/FerryBookingHandler_WithBean.java#create_request
@@ -78,20 +111,23 @@ public FerryBookingRequest formToBookingRequest(Form form, Trip trip) {
 ----
 // end-insert
 
-We can now clearly see the properties that are set by this code.
-However, the object is initially constructed in an invalid state -- the no-argument constructor initialises object references stored by the object to null.
-Dereferencing those fields will fail with a `NullPointerException`.
-The type system cannot guarantee that our code configures into a valid state before we use it.
-If we forget to set all the necessary properties, our code will still compile but methods of the object will fail at runtime.
-(In the code above, the call to `request.getVehicles().add(vehicle)` will fail, because the no-arg constructor leaves the vehicles property set to a null reference, instead of initialising it to an empty list).
-The same thing will happen if our code constructs the object correctly, but we later add properties to the class and don't change our code to match.
-The code will still compile but methods of the object will fail.
+We can now clearly see which properties the code initialises.
+However, this style constructs an object in an invalid state -- the no-argument constructor initialises object references stored by the object to null.
 
-Another annoyance is that we need to write imperative code to create an object.
+The type system cannot guarantee that our code puts the object into a valid state before we use it.
+If we forget to set all the necessary properties, our code will still compile but methods of the object will fail at runtime with a NullPointerException.
+For example, how easily did you notice that the call to `request.getVehicles().add(vehicle)` above will fail, because the no-arg constructor leaves the vehicles property set to a null reference, instead of initialising it to an empty list?
+
+Even if we construct the object correctly, Bean-style initialisation
+If someone -- maybe even ourselves -- later adds a property to the class and doesn't change our code to match,
+the code will continue to compile but now leave the object partially initialised.
+Calls to the object will fail, often far -- in space and time -- from the construction code that is the source of the bug.
+You've got to have very thorough test coverage of integrated code to have a good chance of catching these problems.
+
+Another annoyance of Bean-style initialisation is that we need to write imperative code to construct an object.
+We cannot use this style of code to create immutable objects.
 We have to declare local variables to hold partially constructed objects and write statements to connect our objects together.
-This code is linear, and so does not portray the structure of objects it is creating.
-
-And finally, we cannot use this style of code to create immutable objects.
+Because the construction code is linear, it does not portray the structure of objects it is creating.
 
 The larger the object graph, the more we want our code to portray the structure of the graph, but the more helpful it is to name the properties of our objects.
 That's what builders solve for Java programmers.
@@ -124,12 +160,13 @@ public FerryBookingRequest formToBookingRequest(Form form, Trip trip) {
 // end-insert
 
 <1> We create a builder for a FerryBookingRequest
-<2> We collect the values we will use to create the FerryBookingRequest. In this case, we are collecting values from a form posted to our web application.  The methods of the builder make it clear which properties each statement is setting, so we are unlikely to even _think_ of initialising a property from the wrong form field (as long as the form fields are sensibly named).
+<2> We collect the values we will use to create the FerryBookingRequest. The methods of the builder make it clear which properties are being set, so we are unlikely to initialise a property from the wrong form field (as long as the form fields are sensibly named).  The methods start with the prefix "with", to distinguish them from bean setters, and return the builder so that the building of the object can be done in a single expression of chained method calls.
 <3> We can use other builders to create sub-objects.
-<4> We call `build()` to construct the FerryBookingRequest.
+<4> We call `build()` to construct the FerryBookingRequest. Can fail in this method if any properties are missing, so that invalid objects are reported in the buggy code that creates the object, rather than distant code that uses it.  Not as good as a type-safe constructor call, but better than Bean conventions.
 
-The code combines benefits of constructor calls and of Java Bean conventions.
-But what does it take to write the builder itself?
+So, code using builders combines benefits of constructor calls and of Java Bean conventions.
+
+What does it take to write the builder itself?
 
 // begin-insert: tags/builders.0:src/main/java/travelator/booking/FerryBookingRequestBuilder.java
 [source,java]
@@ -182,14 +219,68 @@ That's quite a lot of boilerplate code!
 Yet Java programmers clearly find builders to be worth the effort.
 Lots of open source libraries and even the standard library now provide builders for their classes.
 
-What alternatives does Kotlin offer?
+=== Test Data Builders
 
+In test code, Java programmers use builders for a different reason.
+Here the goal of the builder is to create objects pre-initialised with safe defaults for testing, and allow tests to specify the values only of those properties relevant to the test scenario.
+
+In our Travelator test modules we write static factory methods that create test data builders:
+
+// begin-insert: tags/builders.0:src/test/java/travelator/booking/BookingExamples.java
+[source,java]
+----
+public class BookingExamples {
+    public static FerryBookingRequestBuilder aFerryBooking() {
+        return new FerryBookingRequestBuilder()
+            .withProviderServiceId("example-service")
+            .withNumberOfBerths(2)
+            .withCabinClass("standard");
+    }
+
+    public static VehicleDetailsBuilder aVehicle() {
+        return new VehicleDetailsBuilder()
+            .withType(CAR)
+            .withRegistration("CPL593H");
+    }
+}
+----
+// end-insert
+
+Our tests import these factory methods statically, so the code reads as a clear explanation of the test scenario.
+For example, a test that needs a ferry booking request with a campervan need only specify that the booking has a vehicle with type `CAMPERVAN`.
+The rest of the booking properties can be safely left as the default, so it is clear to the reader which properties affect the outcome of this test scenario and which are irrelevant.
+
+// begin-insert: tags/builders.0:src/test/java/travelator/booking/FerryBookingTest.java
+[source,java]
+----
+public class FerryBookingTest {
+    public void booking_with_one_campervan() {
+        var request = aFerryBooking()
+            .withVehicle(aVehicle()
+                .withType(CAMPERVAN)
+                .build())
+            .build();
+
+        // ... use the request in the test
+    }
+}
+----
+// end-insert
 
 === Kotlin's alternatives to builders
 
-Named parameters:  Constructor calls can be readable!
+What alternatives does Kotlin offer?
+
+Named parameters: code that constructs object graphs can be readable.
 
 Apply function: Imperative code in a block, caller can treat it as an expression.
 
 Data classes: copy instead of mutate, constants instead of builders.
+
+
+=== Refactor from Builders to immutable data
+
+
+
+=== Conclusion
 
