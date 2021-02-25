@@ -1,11 +1,20 @@
 [[open-to-sealed-classes]]
 == Open to Sealed Classes
 
-// TODO: Duncan to add a question
+Our systems are composed of types and operations, nouns and verbs.
+In Java, nouns are expressed as classes, verbs as methods on those classes.
+Kotlin gives us another way to combine these parts, how should that change the way we write software?
 
 A constant challenge of software design is managing _variability_: how can we add new behaviour without having to change many parts of the code at once?
 We can think of variability as affecting two dimensions: over the lifetime of our software we change the set of data types in our system, and the set of operations we need to apply to those data types.
 Different language features, and different languages, provide more or less support for variation along each dimension.
+
+// Open/closed adding rather than changing code.
+// Change risks breaking existing functionality
+// Not to be confused with refactoring - changing code to get it to the place where a feature can be implemented as an addition.
+
+// TODO: An example for the following paragraphs
+// On re-reading, maybe Itinerary is the example and we can pull bits of the more concrete discussion up, or push bits of this down?
 
 Java's principal feature to support variability is object-oriented polymorphism.
 We define operations as polymorphic methods on classes or interfaces that can be implemented or overridden by subclasses.
@@ -13,24 +22,29 @@ It is easy to add new types that have their own implementation of existing opera
 However, every time we want to add a new operation, we have to add it to the supertype and add an implementation to all existing subtypes.
 Also, because we must define operations on the types, interfaces or superclasses tend to "attract" behaviour to support distantly related parts of the application.
 Paradoxically, where we need variability of operations rather than data types, object-oriented polymorphism can _increase_ coupling!
+// Reference the collections to type aliases example where we discuss coupling?
 
 Java doesn't have a mechanism to support variability when the set of operations changes more frequently than the set of data types.
-Design patterns that help us work around this limitation , such as Double Dispatch or Visitor, require boilerplate code and don't play well with Java's checked exceptions.
+Design patterns that help us work around this limitation, such as Double Dispatch or Visitor, require boilerplate code and don't play well with Java's checked exceptions.
+// Verbing wierds English. Design patterns are nouning - making operations into nouns (types) because that is all that Java has?
 As a last resort, Java programmers turn to runtime type checks, using the `instanceof` and downcast operators, to run different code for different classes of object.
 This is risky.
 The compiler can type check our use of polymorphic methods, but cannot tell if our runtime type checks cover all necessary cases, or if they cover _unnecessary_ cases.
 When we change code, it is easy to introduce bugs or leave dead code in the codebase that is hard to recognise and remove.
+// Example
 
 Kotlin classes, like Java classes, can have polymorphic methods and implement interfaces.
-However, Kotlin has another mechanism for organising classes and behaviour: _sealed classes_.
-A sealed class is an abstract class with a fixed set of subclasses, defined in the same source file.
-The compiler prevents you from extending the sealed class elsewhere.
-Thanks to this restriction, runtime type checks on sealed class hierarchies do not have the same drawbacks as runtime type checks in Java.
+In addition, Kotlin has another mechanism for organising classes and behaviour: _sealed classes_.
+A sealed class is an abstract class with a fixed set of direct subclasses.
+The sealed class and direct subclasses must be defined in the same source file (experimentally package in Kotlin 1.4) - the compiler prevents you from extending the sealed class elsewhere.
+Thanks to this restriction, runtime type checks on sealed class hierarchies do not have the same problem as runtime type checks in Java.
 The static type checker can guarantee that `when` expressions that perform runtime type checks for a subtype of a sealed class cover all possible cases and only possible cases.
-It is much easier to write another function that is conditional on the concrete subclass of a sealed class than it is to add another subclass to every existing when expressions.
+It is much easier to write another function that is conditional on the concrete subclass of a sealed class than it is to add another subclass to every existing when expression.
+// This isn't very clear
 
-Managing variability in a Kotlin codebase means recognising when to apply these two mechanisms: object-oriented polymorphism when the set of data types varies more frequently than the set of operations on those data types, and runtime type checks of sealed class hierarchies when the set of operations varies more frequently than the set of data types they apply to.
+Managing variability in a Kotlin codebase means recognising when to apply which mechanism: object-oriented polymorphism when the set of data types varies more frequently than the set of operations on those data types; runtime type checks of sealed class hierarchies when the set of operations varies more frequently than the set of data types they apply to.
 Unlike Haskell, Scala, Rust or Swift, Kotlin has no mechanism that lets us vary both types _and_ operations without modifying existing code.
+// Are we going to say typeclasses here?
 We have to choose which approach to use for a class based on the dimension, types or operations, we expect to vary most frequently as the program evolves.
 
 
@@ -69,6 +83,10 @@ interface ItineraryItem {
 ----
 // end-insert
 
+// TODO: Sequence<Money> is a bit pathological?
+// Why funs not vals?
+
+// TODO: Since Itinerary gained an id in <<encapsulated-collections-to-typealiases>> this isn't true
 .Aside
 ****
 This design has the pleasing effect that a `Route`, which we get back from our routing service, already _is_ an `Itinerary`.
@@ -92,13 +110,18 @@ fun Itinerary.timespan(): ClosedRange<ZonedDateTime>? =
 ----
 // end-insert
 
+// TODO: This example is just too scary, at least for me. I've spent 3 minutes staring at it rather than reading on.
+
 This lets us easily add new types of `ItineraryItem` to our application.
 However, in practice we do this very rarely.
 `Itinerary` and `ItineraryItem` are such fundamental types in our system, that we are far more likely to add operations to `ItineraryItem` to support new features of the application than to add new types of `ItineraryItem`.
-The more things we want to to do with itineraries, the more methods we end up adding to the `ItineraryItem` interface.
+The more things we want to do with itineraries, the more methods we end up adding to the `ItineraryItem` interface.
 We begin to realise that a polymorphic interface is the wrong mechanism to support the variability we need for our application.
 Interfaces work well when we have a stable set of operations and a varying set of concrete types that those operations apply to.
 We have a stable set of ItineraryItem types, but a frequently changing set of operations.
+
+// TODO: I like this example, but we have just taken an Itinerary type that looked like one thing in <<accumulating-objects-to-transformations>>, made it look like another thing as a straw-man, and now we're going to refactor that.
+// Should we change Itinerary in the other chapters to have ItineraryItem?
 
 In Java, we might be tempted to implement those operations as static methods of a helper class that use runtime type checks, with the `instanceof` operator and type casts, to switch on the concrete type of the `ItineraryItem`.
 For example:
@@ -121,6 +144,8 @@ if (item instanceof Journey) {
 ----
 // end-insert
 
+// Can we show the name of this operation?
+
 There are two problems with this approach.
 If returning a value from the method, we have to write an else clause to return a dummy value or throw an exception, even if we have branches for every subclass of `ItineraryItem` and the else clause cannot possibly be executed.
 The type checker cannot tell if our conditional statement is _exhaustive_ -- has tested for all possible subclasses.
@@ -136,13 +161,15 @@ A sealed class has a fixed set of subclasses, that must all be defined in the sa
 This allows the compiler to ensure that runtime type checks are exhaustive.
 Compilation fails if you do not have a branch for every subclass.
 If runtime type checks are exhaustive, we do not have to write an `else` clause.
+// Yes, we're saying the same thing again. I think the material to this point could be merged?
 
 Let's convert `ItineraryItem` from an interface with polymorphic methods into a sealed class hierarchy and free-standing functions.
 
 
 === Converting the Interface to a Sealed Class
 
-A sealed class and all its subclasses must be defined in the same file.  So we must first use the IDE's Move Class refactoring to move the implementations of `ItineraryItem` into the same file as the interface.
+A sealed class and all its direct subclasses must be defined in the same file.
+So we must first use the IDE's Move Class refactoring to move the implementations of `ItineraryItem` into the same file as the interface.
 
 Now we can turn the interface and its implementations into a sealed class hieararchy.
 IntelliJ does not have an automated refactoring for this, so we have to do it by manually editing the code.
@@ -345,6 +372,11 @@ data class Accommodation(
 ----
 // end-insert
 
+// TODO: Now we're here, I don't know that timespan is a good example.
+// It feels like a fundamental operation of ItineraryItem that should be a method.
+// Can we find an example where the operation is less fundamental, more arbitrary, more context specific?
+// I'm thinking something like rendering an ItineraryItem to HTML or a particular JSON format.
+
 The `ItineraryItem.timespan` does not need to be defined in the same file as the ItineraryItem class hierarchy.
 We can move it to a file or package that is more convenient:
 a good place is next to `Itinerary.timespan`
@@ -393,3 +425,4 @@ If our bet turns out to have been wrong, we have to refactor from one form to th
 
 In this chapter, we refactored from object-oriented polymorphism to sealed classes.
 In <<sealed-to-open-classes>> we go the other way.
+// TODO: Oh no we don't!
