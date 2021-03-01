@@ -1,12 +1,13 @@
 [[exceptions-to-errors]]
 == Exceptions to Errors
 
+Java uses exceptions to represent and handle errors.
+Kotlin can do this, but doesn't build checked exceptions into the language in the same way.
+Why did Kotlin reject Java's approach, and what should we use instead?
+
 You don't have to have programmed computers for long to discover that things go wrong...
 
 ...in _so many_ different ways.
-In this part we'll look at the ways that software can fail.
-We'll see how to write code that can cope with failure, and when it can't cope, is able to communicate the ways in which it can go wrong.
-In the worked example we'll refactor exception-based error handling in Java into a more functional Kotlin style.
 
 Early in their careers your authors tended to gloss over errors.
 We often still do, at least early in a project.
@@ -18,8 +19,8 @@ In the absence of a more deliberate strategy, most systems default to raising ex
 Command-line utilities will just exit in this case, hopefully having provided enough information for the user to correct the problem and try again.
 A server app, or a GUI with an event-loop, will usually abort only the current interaction and get on with the next.
 
-Often this is just a poor experience for our users, but sometimes the error will have corrupted the persistent state of the system, so that correcting the initial problem and retrying does not work.
-This is the source of the often good advice to "turn it off and on again" - our systems mainly start in a safe state - so that after a restart a retry should succeed.
+Often this is just a poor experience for our users, but sometimes the error will corrupt the persistent state of the system, so that correcting the initial problem and retrying does not work.
+This is the source of the often good advice to "turn it off and on again" - our systems mainly start in a safe state, so that after a restart a retry should succeed.
 If not; well you've probably been in a situation where the only solution has been to reinstall the operating system - the ultimate way of removing corrupted persistent state.
 
 .Rebooting the Internet
@@ -29,7 +30,7 @@ IFTTT was receiving notifications when the Nest entered home mode, but not away 
 The great AWS outage of 28th February 2017 mysteriously fixed the problem - it turns out that all it required was a reboot of the Internet.
 ****
 
-If errors are not well managed and the system becomes successful, diagnosing and fixing corruption due to errors can expand to fill all the team's time.
+If errors are not well managed, but despite this the system becomes successful, diagnosing and fixing corruption due to errors can expand to fill all the team's time.
 This is not a great place for a software project to be - ask us how we know!
 
 So we don't want errors because they annoy our users and may result in corruption that takes a lot of effort to fix, if we can fix it at all.
@@ -47,14 +48,14 @@ Reasons for this failure include
 Apparently they instruct their computers to dereference null pointers or read past the ends of collections!
 * The environment that we are running in fails for some reason, for example it might run out of memory, or not be able to load a class.
 
-There are failures that don’t fit into these categories, but they cover the most common cases.
+There are failures that don’t fit into these categories, but most do.
 
 That doesn't seem to be too long a list, and yet as an industry we don't have a great reputation for reliability.
 Error handling just seems to be hard, why is that?
 
 Well for a start we often don't know whether an operation can fail and, if so, how it can fail.
-If we do know whether and how, knowledge of what to do about it may be in code a long way from where we detect the error.
-The code that detects an error, and the code that recovers from it, are hard to isolate from the happy path and so hard to test.
+If we do know, then knowledge about how to handle an error may be in code a long way from where the problem is detected.
+Then the code that detects an error, and the code that recovers from it, are hard to isolate from the happy path and so hard to test.
 Combine these with the tendency for errors to leave our system in unrecoverable states, and we end up with a situation where most developers would rather hope for the best rather than take on the hard work and still get it wrong.
 
 Hard work _and_ error-prone?
@@ -111,8 +112,9 @@ This is possible when a function either returns no value (it is entirely side-ef
 ==== Invoking a Special Function
 
 Even when exceptions are available, invoking a special function when an error occurs is sometimes a good strategy.
-Usually the function is passed as a parameter to the invoked function - if a problem is detected the error function is invoked with the issue as a parameter.
+Usually the error function is passed as a parameter to the invoked function - if a problem is detected the error function is invoked with a value representing the error as a parameter.
 Sometimes the error function can signal by its return value if the failed operation should be retried or aborted.
+Another technique is for the error function to provide the value that should be returned by the invoked function.
 
 This technique is an example of the strategy pattern applied to error handling.
 Even when exceptions are available, it is a useful tool in niche situations.
@@ -132,14 +134,14 @@ All the above techniques suffer from the drawback that the calling code is able,
 
 Exceptions solve this problem - the operation automatically aborts on error - and the caller explicitly handles the exception.
 If the caller does not handle it, the exception propagates further up the call stack until someone does.
-If no handler is found the application exits.
+If no handler is found the thread terminates.
 
 === Java and Checked Exceptions
 
 Exceptions were relatively new when Java was released, and the language designers decided to innovate in this area.
-They included the exceptions that a function could throw as part of its signature.
+They made the exceptions that a function could throw part of its signature.
 This way callers could know that, for example, a method might fail because the network resource that it was reading was no longer available.
-If a method declared that it could fail in this way, then every caller would either have to deal with the failure (by catching it) or declare that it, too, was liable to fail with the same exception.
+If a method declared that it could fail in this way, then every caller of that method would either have to deal with the failure (by specifying in a `catch` block how it should be handled) or declare that it, too, was liable to fail with the same exception.
 This ensures that the programmer takes account of the possibility of these errors.
 Such exceptions are called _checked exceptions_, because the compiler checks that they are handled (or redeclared to be thrown by the calling method).
 
@@ -147,20 +149,21 @@ Unavoidable problems like these are only some of the possible reasons for failur
 The language designers identified two other types: errors and runtime exceptions.
 
 Errors::
-Subclasses of java.lang.Error are reserved for failures so severe that the JVM can no longer guarantee the correct functioning of the runtime - maybe a class cannot be loaded or the system runs out of memory.
-These conditions could happen at any point in the execution of a program, and so could cause any function to fail.
-If any function could fail in this way there is little value in including such errors in the function signature, so `Errors` are exempted from this requirement.
+Subclasses of `java.lang.Error` are reserved for failures so severe that the JVM can no longer guarantee the correct functioning of the runtime - maybe a class cannot be loaded, or the system runs out of memory.
+These conditions can happen at any point in the execution of a program, and so could cause any function to fail.
+As any method could fail in this way there is no value in including them in every method signature, so `Errors` do not have to be declared.
 
 RuntimeExceptions::
-Subclasses of RuntimeException represent other errors.
+Subclasses of `RuntimeException` represent other errors.
 The intention was that these would be reserved for problems caused by programmer mistakes, such as accessing a null reference, or trying to read outside the bounds of a collection.
-In both these cases the programmer could have been more careful, but again this is potentially an issue for practically every piece of code, and so `RuntimeExceptions` are also exempted from having to be declared and handled.
+In both these cases the programmer could have been more careful.
+Again though, every piece of code is subject to programmer error, and so `RuntimeExceptions` are also exempted from having to be declared.
 
-Java's novel exception scheme forces developers to deal with operations that can fail due to IO or other things that are out of their control (the checked exceptions), allowing defensive programming where it is economical.
-If an `Error` is thrown the best default approach is exit the process as quickly as possible, before any more damage can be done to persistent state.
+This scheme forces developers to deal with operations that can fail due to IO or other things that are out of their control (the checked exceptions), allowing defensive programming where it is economical.
+At the other extreme, if an `Error` is thrown the best default approach is exit the process as quickly as possible, before any more damage can be done to persistent state.
 
-`RuntimeExceptions` are a middle ground.
-If they do represent a programmer error (as it appears was the original intention) then we should probably assume that we have just proved that we don't really know what is going on in our program and abort.
+++RuntimeException++s are a middle ground.
+If they represent a programmer error then we should probably assume that we have just proved that we don't really know what is going on in our program and abort the current operation or whole application.
 Otherwise we might try to recover, especially if our system has been designed to limit the damage that can be done to persistent state.
 
 Your authors both really liked checked exceptions, but it seems we were in the minority, as they fell out of favour in Java over the years.
@@ -174,8 +177,8 @@ Take extracting data from a string for example - the `URL` constructor `URL(Stri
 This is an interesting case, and goes to the heart of why error handling is so hard.
 
 Looking through our strategies,
-`parseInt` can't return a special integer value, because all the ints are spoken for.
-It could return null as a boxed `Integer`, but having to box and unbox for this, a really fundamental low-level operation that will be used in performance critical code, is undesirable, especially on the JVMs of the mid-1990s.
+`parseInt` can't return a special integer value, because all the ints are valid results.
+It could return `null` as a boxed `Integer`, but having to box and unbox for this, a really fundamental low-level operation that will be used in performance critical code, is undesirable, especially on the JVMs of the mid-1990s.
 
 Invoking an error function would similarly involve inefficient ceremony, so we are left with throwing an exception.
 Should that exception be checked or unchecked?
@@ -185,13 +188,11 @@ The language designers decided that
 should be an `IllegalArgumentException`, which is a `RuntimeException` and so unchecked.
 
 Those are both reasonable decisions in isolation.
-In combination though they lead to `parseInt` not forcing its callers to consider that it might fail by declaring a checked exception.
+In combination though they lead to `parseInt` not forcing its callers to consider that it might fail, as they would if it declared a checked exception.
 
-I suspect that the JVM programmers were very used to parsing ints from `char*` in C, where there were no exceptions, and `atoi` returned `0` if it didn't work.
+We suspect that the JVM programmers were very used to parsing integers from strings in C (where there were no exceptions), using the `atoi` function, which returns `0` if it cannot succeed.
 They would have considered not planning for this failure to be a programmer error, rather than a failure of the function itself.
-
-We will have more to say on the characterisation of errors later.
-// TODO: add a cross-reference instead of "later"
+Your authors though would appreciate being reminded of the possibility of failure, and would have specified a checked exception.
 ****
 
 Confusion over what type of exception to use multiplied, and it wasn't long before the default was that the only checked exceptions that most Java libraries declared were `IOExceptions`.
@@ -201,16 +202,17 @@ Once a good proportion of the code that you call just uses unchecked exceptions 
 You can't rely on checked exceptions to warn you about how a function might fail.
 Instead you are reduced to some tactical defensive programming and the age-old technique of putting it into production, seeing what errors you log, and adding code to handle those you don't like the look of.
 
-.What should Hibernate have thrown?
+.What should Hibernate Throw?
 ****
-Where a programmer explicitly invoked a Hibernate method to load an object, that method should declare `IOException`.
+In the checked exceptions scheme, where a programmer explicitly invokes a Hibernate method to load an object, that method should declare `IOException`.
 If there are other ways that function could fail - maybe failure to parse a query - the method might also declare a checked exception to cover these.
 So most Hibernate methods should declare both `IOException`
 and a checked `HibernateException`, with the latter having different subclasses for different failure modes.
 
 Hibernate is an interesting case though because of lazy loading.
-If you load an object that contains a collection, Hibernate could be configured to load the contents of that collection only when it was accessed.
-So calling `itinerary.getStops().size()` might go to the database.
+If you load an object that has a collection property, Hibernate can be configured to load the contents of that collection only when its contents are  accessed.
+So the contents of `Itinerary::journeys` might not be loaded until we call `itinerary.journeys.size()`, at which point the database query will be run.
+That query is subject to failure with an `IOException`.
 But `Collection.size()` doesn't declare that it throws `IOException`, so what is Hibernate to do?
 
 It must throw an unchecked exception, but should that be an `Error` or a `RuntimeException`?
@@ -219,37 +221,35 @@ But in this case this is a `RuntimeException` that is not the result of programm
 
 So perhaps Hibernate should have declared a checked `HibernateException`
 and an unchecked `HibernateRuntimeException`?
-
-ifdef::todos[]
-Maybe an end-of-chapter piece with our discussion on this.
-endif::[]
+As you can see, checked exceptions do introduce complication.
 ****
 
-The final nail in the coffin of checked exceptions was the introduction of lambdas in Java 8. All the Function interfaces designed to work with streams did not declare an exception type, and so cannot propagate checked exceptions.
-To be fair, your authors would probably have given up there too.
+The final nail in the coffin of checked exceptions was the introduction of lambdas in Java 8.
+The decision was taken to not declare an exception type in the signature of the functional interfaces introduced to support lambdas (`Producer`, `Consumer` etc), and so these cannot propagate checked exceptions.
+This wasn't an insurmountable problem, but to be fair, your authors would probably have given up there too.
+The net result is though, that the old standard Java API declares checked exceptions (in particular `IOException`) that the new standard API (in particular streams) forces developers to deny.
 
 === Kotlin and Exceptions
 
-Kotlin has exceptions, because it runs on the JVM, and exceptions are built into that ecosystem.
-It does not have checked exceptions, because Java had already lost that fight, and because they are hard to reconcile with the higher-order functions that are now common.
-It can largely ignore checked exceptions because they are not a feature of the JVM, but rather of the Java compiler.
+Kotlin has exceptions, because it runs on the JVM, and exceptions are built into the platform.
+It does not treat checked exceptions specially though, because Java had already lost that fight, and as with Java, they are hard to reconcile with higher-order functions.
+It is able to largely ignore checked exceptions because they are not a feature of the JVM, but rather of the Java compiler.
 The compiler does record in the bytecode what checked exceptions a method declares (in order to be able to check them), but the JVM itself does not care.
 
 The result is that Kotlin programs are by default no better or worse than most Java programs when it comes to error handling.
 
-An exception (lower case `e`) to this is that, as we observed above, Kotlin can use null to indicate an error, safe in the knowledge that callers will have to write code to handle it.
-An example of this is the provision of
-`<T> Iterable<T>.firstOrNull(): T?` in the runtime.
-Confusingly though the runtime also defines `first()`, which throws `NoSuchElementException` if the collection is empty.
+An exception (lower case e) to this is that, as we observed above, Kotlin can use `null` to indicate an error, safe in the knowledge that callers will have to take the possibility of `null` into consideration.
+An example of this is the `<T> Iterable<T>.firstOrNull(): T?` in the runtime.
+(Telling though the runtime also defines `first()`, which throws `NoSuchElementException` if the collection is empty.)
 
 === Beyond Exceptions - Functional Error Handling
 
-Statically-typed functional programming languages often reject exceptions in favour of another error handling technique based on sum-types - represented in Kotlin by sealed classes.
+Statically-typed functional programming languages often reject exceptions in favour of another error handling technique based on either types - represented in Kotlin by sealed classes (see <<open-to-sealed-classes>>.
 Why not just use exceptions?
 
 A distinguishing feature of functional programming is _Referential Transparency_.
-When this applies we can replace an expression with the result of its evaluation.
-So if we write
+When an expression is referentially transparent, we can safely replace it with the result of its evaluation.
+So if we write:
 
 [source,kotlin]
 ----
@@ -257,16 +257,20 @@ val secondsIn24hours = 60 * 60 * 24
 ----
 
 then we can replace `60 * 60` with `3600` or `60 * 24` with `1440` without affecting the results.
-In fact the compiler may decide to replace the whole expression with `86400` for us, and unless we examine the bytecode or use a debugger we will be none the wiser.
+In fact the compiler may decide to replace the whole expression with `86400` for us, and (unless we examine the bytecode or use a debugger) we will be none the wiser.
 
-In contrast
+In contrast:
 
 [source,kotlin]
 ----
-val dayLengthInHours = secondsIn(today()) / 60.0 / 60 / 24
+secondsIn(today())
 ----
 
 is not referentially transparent, because `today()` will yield a different result than it did yesterday, and any day may have had a leap second applied.
+As a result, the value of `secondsIn(today())` may differ depending on when we call it, and we can't just substitute the same value for the expression every time we use it.
+
+This is the same concept as we saw in <<actions-to-calculations>>.
+<<calculations>> are referentially transparent, <<actions>> are not.
 
 Why should we care?
 Because referential transparency makes it a lot easier to reason about the behaviour of a program, which in turn leads to fewer errors and more opportunities to refactor and optimise.
@@ -274,20 +278,20 @@ If we want these things (and at the very least we don't want more errors and few
 
 What does this have to with error handling?
 Let's return to our `Integer.parseInt(String)` example and see.
-For a given input, this will always return the same value, so it could be referentially transparent.
-But, what for the cases where the `String` doesn't represent an integer?
-We can't replace the result of the function invocation with an exception, because the type of the expression is `int`.
+For a given valid input, `parseInt` will always return the same value, so it could be referentially transparent.
+But, in the cases where the `String` doesn't represent an integer, `parseInt` throws an exception rather than returning a result.
+We can't replace the result of the function invocation with an exception, because the type of the expression is `Int`.
 Exceptions break referential transparency.
 
 If instead of using exceptions we returned to the old trick of using a special value to represent errors, then we would have referential transparency, because that error value can replace the expression.
-In Kotlin,
-`null` would be great here, but what if we needed to say which was the first character that wasn't a digit?
+In Kotlin, `null` would be great here, so we could define `parseInt` to return `Int?`.
+But what if we needed to know which was the first character that wasn't a digit?
 We can convey that information in an exception, but not in a return type of `Int?`.
 
-Can we find a way for our function to return either the `Int`, or the way that it failed?
+Can we find a way for our function to return _either_ the `Int`, or the way that it failed?
 
 The answer, as they say, is in the question.
-We define a type `Either`, which can hold one of two types, but only one at a time.
+We define a type `Either`, which can hold one of two types, but only one at a time:
 
 [source,kotlin]
 ----
@@ -301,7 +305,7 @@ data class Right<out R>(val r: R) : Either<Nothing, R>()
 When `Either` is used for error handling, the convention is that `Right` is used for a result,
 `Left` for an error.
 
-If we stick to this convention we could define
+If we stick to this convention we could define:
 
 [source,kotlin]
 ----
@@ -313,8 +317,7 @@ fun parseInt(s: String): Either<String, Int> = try {
 ----
 
 How would we use this?
-As it is a sealed class,
-`when` expressions and smart casting work really nicely to let us write things like
+As we saw in <<open-to-sealed-classes>>, `when` expressions and smart casting work really nicely to let us write things like
 
 [source,kotlin]
 ----
@@ -325,8 +328,9 @@ when (result) {
 }
 ----
 
-By returning an `Either` we force our clients to deal with the fact that we may have failed - in effect we have reproduced some of checked exceptions in a functional form.
-To embrace this style you make all functions that might ordinarily throw an exception return `Either`, and when they in turn invoke something that could fail, pass on any failure or unwrap the success and act on it.
+By returning an `Either` we force our clients to deal with the fact that we may have failed  - in effect we have gained some of the advantages of checked exceptions in a functional form.
+To embrace this style, we make all functions that we might previously have declared to throw a checked exception, return an `Either`.
+The callers then either unwrap the success and act on it, or pass on any failure:
 
 [source,kotlin]
 ----
@@ -339,7 +343,7 @@ fun doubleString(s: String): Either<String, Int> {
 }
 ----
 
-Whilst using `when` to unwrap an `Either` is logical it is also verbose, and this particular pattern occurs so much that we define
+Whilst using `when` to unwrap an `Either` is logical it is also verbose, and this particular pattern occurs so much that we define:
 
 [source,kotlin]
 ----
@@ -350,7 +354,7 @@ inline fun <L, R1, R2> Either<L, R1>.map(f: (R1) -> R2): Either<L, R2> =
     }
 ----
 
-which allows us to write the previous function as
+This allows us to write the previous function as:
 
 [source,kotlin]
 ----
@@ -359,7 +363,10 @@ fun doubleString(s: String): Either<String, Int> = parseInt(s).map { 2 * it }
 
 Why is that function called `map` and not `invokeUnlessLeft`?
 Well if you squint you may be able to see that it is kind of the same thing as `List.map`.
-Practice that squinting, because we are now going to define
+It applies a function to the contents of a container, returning the result in another container.
+In the case of `Either`, `map` applies the function only if it is a `Right` (non-error), otherwise it passes ++Left++s on unchanged.
+
+Practice that squinting, because we are now going to define:
 
 [source,kotlin]
 ----
@@ -372,8 +379,8 @@ inline fun <L, R1, R2> Either<L, R1>.flatMap(f: (R1) -> Either<L, R2>): Either<L
 
 This unpacks our value and uses it to invoke a function that in turn might fail (as it returns `Either`).
 What can we do with that?
-Well lets say we want to read from a `Reader`
-and print double the result.
+Well lets say we want to read from a `Reader` and print double the result.
+We can define a wrapper for `readLine` that returns an `Either` rather than failing with an exception:
 
 [source,kotlin]
 ----
@@ -387,17 +394,21 @@ fun BufferedReader.eitherReadLine(): Either<String, String> =
     } catch (x: IOException) {
         Left(x.message ?: "No message")
     }
+----
 
+This lets us combine `eitherReadLine` and `doubleString` with `flatMap`:
 
+[source,kotlin]
+----
 fun doubleNextLine(reader: BufferedReader): Either<String, Int> =
     reader.eitherReadLine().flatMap { doubleString(it) }
 ----
 
-This code will return a `Left` with the failure if `eitherReadLine` fails, otherwise it will return the result of `doubleString`, which may itself be either a `Left` for failure, or a `Right` with the final `int` result.
+This code will return a `Left` with the failure if `eitherReadLine` fails, otherwise it will return the result of `doubleString`, which may itself be either a `Left` for failure, or a `Right` with the final `Int` result.
 In this way a chain of `map` and/or `flatMap` calls acts like a series of expressions which might throw an exception - the first failure aborts the rest of the computation.
 
 If you come from an object-oriented background this style does take some getting used to.
-No amount of reading helps - you just have to knuckle down and start writing code this way until it becomes less strange.
+In our experience no amount of reading helps - you just have to knuckle down and start writing code this way until it becomes less strange.
 Luckily we'll go through some of this pain together in the worked examples later.
 
 === Error Handling in Kotlin
@@ -421,22 +432,21 @@ If we have carefully designed our system it should be able to survive these issu
 
 Which `Either` type should you choose?
 The built-in Kotlin `Result` type is, at the time of writing, a frustrating placeholder which just teases and gets in the way.
-It is designed just for coroutines implementation, is restricted to an `Exception` as its `Left` type, and IntelliJ moans if you use it as a return value or property type.
-This would be reasonable if it wasn't published in the `Kotlin` package.
-As it is, if you try to use a more useful type called `Result` you get strange error messages until you remember that, until you specifically import, the compiler is assuming you mean the one that you aren't supposed to use.
+It is designed for coroutines, is restricted to an `Exception` (actually `Throwable`) as its error value, and IntelliJ moans if you use it as a return value or property type.
+This would be reasonable if it wasn't published in the `kotlin` package.
+As it is, if you try to use a more useful type called `Result` you get strange error messages until you remember that, until you specifically import the useful one, the compiler is assuming you mean the one that you aren't supposed to use.
 
-There are plenty of other `Result` types available, but for this book we will use Result4k, not coincidentally written by Nat.
+There are plenty of other `Result` types available, but for this book we will use https://github.com/fork-handles/forkhandles/tree/trunk/result4k[Result4k], not coincidentally written by Nat.
 Compared to the generic `Either` type we introduced earlier, Result4k defines `Result<SuccessType, FailureType>`, with subtypes `Success` and `Failure`
 rather than the generic `Left` and `Right`.
 As it is specialised for representing errors, Result4k can offer operations, such as `onFailure` and `recover`, that would not make sense on `Either`.
-We'll see some more of its other operations in the next chapter.
+We'll see some of these operations as we refactor.
 
 === Refactoring Exceptions to Errors
 
-Now that we know the error handling options available to us,
-let's refactor some Java code to give us some practice.
+Now that we know the error handling options available to us, let's refactor some Java code to Kotlin, converting the error handling as we go.
 
-There is an HTTP endpoint in Travelator that allows the client app to register a `Customer`.
+There is an HTTP endpoint in Travelator that allows the client app to register a `Customer`:
 
 // begin-insert: tags/errors.0:src/main/java/travelator/handlers/CustomerRegistrationHandler.java
 [source,java]
@@ -457,7 +467,9 @@ public class CustomerRegistrationHandler {
                 RegistrationData.class
             );
             Customer customer = registration.register(data);
-            return new Response(HTTP_CREATED, objectMapper.writeValueAsString(customer));
+            return new Response(HTTP_CREATED,
+                objectMapper.writeValueAsString(customer)
+            );
         } catch (JsonProcessingException x) {
             return new Response(HTTP_BAD_REQUEST);
         } catch (ExcludedException x) {
@@ -473,24 +485,21 @@ public class CustomerRegistrationHandler {
 // end-insert
 
 
-`CustomerRegistrationHandler`'s job is to extract data from the request body,
-pass it to `registration` for processing,
-and return a response with either a JSON representation of a `Customer`
-or a suitable error status.
+`CustomerRegistrationHandler`'s job is to extract data from the request body, pass it to `registration` for processing, and return a response with either a JSON representation of a `Customer` or a suitable error status.
 
 .HTTP
 ****
-We'd rather not tie our example code to a particular Java HTTP framework,
-so we have abstracted incoming calls behind a simple function that takes a `Request` and returns a `Response`.
+We'd rather not tie our example code to a particular Java HTTP framework, so we have abstracted incoming calls behind a simple function that takes a `Request` and returns a `Response`.
 
-ifdef::todos[]
-Something about sending the correct status' being import in order to maintain correct HTTP systems
-endif::[]
+HTTP status codes are another example of a result type.
+The HTTP protocol returns 4xx errors when a request is unsuccessful because the request was deficient in some way, 5xx errors when a request couldn't be processed for server-related reasons.
+2xx status codes are success cases.
+1xx and 3xx codes are used to signal an ongoing interaction.
+
+We have to take care to map error types in our application to and from status codes correctly when designing systems that communicate over HTTP.
 ****
 
-`CustomerRegistration` implements the business rules,
-which is that potential customers should be vetted
-against an `ExclusionList` of undesireables.
+`CustomerRegistration` implements the business rules, which is that potential customers should be vetted against an `ExclusionList` of undesireables.
 
 // begin-insert: tags/errors.0:src/main/java/travelator/CustomerRegistration.java
 [source,java]
@@ -520,9 +529,8 @@ public class CustomerRegistration implements IRegisterCustomers {
 ----
 // end-insert
 
-Note that as well as failing because of exclusion,
-`register` can fail because `customers.add` can fail with a `DuplicateException`.
-Here is the `Customers` interface.
+Hiding in that `throws` clause of `register` is the information that, as well as failing because of exclusion, `register` can also fail because `customers.add` can fail with a `DuplicateException`.
+Here is the `Customers` interface:
 
 // begin-insert: tags/errors.0:src/main/java/travelator/Customers.java
 [source,java]
@@ -551,105 +559,73 @@ data class Customer(
 // end-insert
 
 This is typical of the Java code that your authors would write.
-It expresses the things that might reasonably go wrong as the checked
-`ExcludedException` and `DuplicateException`,
-and these are all caught at in the top-level `handle` where they are reported to the caller,
-in this case as HTTP status codes.
-Your style might be to use unchecked exceptions,
-in which case this code would be similar
-but without the exceptions
-as part of the method signatures.
+It expresses the things that might reasonably go wrong as the checked `ExcludedException` and `DuplicateException`, and these are all caught at in the top-level `handle` where they are reported to the caller, in this case as HTTP status codes.
+Your style might be to use unchecked exceptions, in which case this code would be similar but without the exceptions as part of the method signatures.
 
-In addition to the checked exceptions,
-every method can raise or pass on runtime exceptions.
-In this case we might expect that failures to persist a `Customer`,
-perhaps because of database communications issues,
-would be raised as a runtime exception.
+One thing we don't see is any checked exception related to failures to persist a `Customer` in `Customers::add`.
+This method will be talking across the network to a database, but our query code is evidently swallowing `IOException` at some point and raising a `RuntimeException` in its place.
+These will propagate out of `CustomerRegistration::register`, be caught at the top level of `CustomerRegistrationHandler`, and passed back to clients as `HTTP_INTERNAL_ERROR` (500).
+It's a shame that we aren't logging any information about those stray ++RuntimeException++s, as they might reveal systematic connection issues, or be hiding a frequent `NullPointerException` in some lower-level code.
+Someone should probably address that, but in the meantime at least we have a shorter example to show in this book!
 
 ==== Our Conversion Strategy
 
-If we were to just convert this code to Kotlin,
-we would lose the advantages of checked exceptions to tell us
-what could go wrong and show where we are handling those problems.
-So as we convert we will replace exception-based
-error handling with a functional alternative using Result4k.
+If we were to just convert this code to Kotlin, we would lose the advantages of checked exceptions to tell us what could go wrong and show where we are handling those problems.
+So as we convert we will replace exception-based error handling with a functional alternative using Result4k.
 
-In this example we'll start at the lowest level
-and work our way up,
-keeping higher levels working,
-until the predictable error cases,
-those that would have been expressed as checked exceptions,
-no longer use exceptions.
-At the same time we have to be mindful that pretty much any instruction in the JVM can fail,
-so we need to defend against these cases.
+In this example we'll start at the lowest level and work our way up, keeping higher levels working, until the predictable error cases (those that would have been expressed as checked exceptions) no longer use exceptions.
+At the same time we have to be mindful that pretty much any instruction in the JVM can fail, so we need to defend against these runtime issues.
 
 ==== Starting at the Bottom
 
-If we convert `Customers` to Kotlin we get
-
-// begin-insert: tags/errors.2:src/main/java/travelator/Customers.kt
-[source,kotlin]
-----
-interface Customers {
-    @Throws(DuplicateException::class) // <1>
-    fun add(name: String?, email: String?): Customer?
-    fun find(id: String?): Optional<Customer?>?
-}
-----
-// end-insert
-
-<1> Although Kotlin doesn't have checked exceptions, the `@Throws` annotation allows interoperation with Java code.
-Without it, a Java implementation of `Customers` cannot override the method
-(assuming that it does actually throw `DuplicateException`).
-Worse, Java client code can't catch the exception
-or declare that it is passed on,
-as it is a compile error for Java code to handle a checked exception
-that the compiler cannot see is possible.
-
-Before we go further, conversion to Kotlin has failed to infer the nullability of the parameters and results in Customers,
-lets fix that.
+If we convert `Customers` to Kotlin wwe get:
 
 // begin-insert: tags/errors.3:src/main/java/travelator/Customers.kt
 [source,kotlin]
 ----
 interface Customers {
-    @Throws(DuplicateException::class)
-    fun add(name: String, email: String): Customer /// |
-    fun find(id: String): Optional<Customer>       /// |
+
+    @Throws(DuplicateException::class) // <1>
+    fun add(name: String, email: String): Customer
+
+    fun find(id: String): Optional<Customer>
 }
 ----
 // end-insert
 
-What we're going to do for now is to add to our interface a version of `Customers.add` that instead of throwing an exception,
-returns `Result<Customer, DuplicateException>`.
+<1> Although Kotlin doesn't have checked exceptions, the `@Throws` annotation allows interoperation with Java code.
+Without it, a Java implementation of `Customers` cannot override the method (assuming that it does actually throw `DuplicateException`).
+Worse, Java client code can't catch the exception or declare that it is passed on, as it is a compile error for Java code to handle a checked exception that the compiler cannot see is possible.
 
-If we were starting from scratch we would probably not use an exception
-the type of our error,
-but here it lets us interoperate with Java easily.
-We are going to keep the old throwy version around for now so that we don't break existing callers,
-convert those callers to use the `Result` version,
-then remove the old version when we can.
+What we're going to do for now is to add to our interface a version of `Customers.add` that instead of throwing an exception, returns `Result<Customer, DuplicateException>`.
 
-First we add Result4k to our build.
+If we were starting from scratch we would probably not use an as exception the type of our error, but here it lets us interoperate with Java easily.
+We are going to keep the old throwy version around for now so that we don't break existing callers, convert those callers to use the `Result` version, then remove the old version when we can.
+That's right, it's our old friend <<expand-contract>>.
+
+First we add Result4k to our build:
 
 // begin-insert: tags/errors.4:build.gradle#result4k
 [source,groovy]
 ----
 dependencies {
      ... 
-    implementation "com.natpryce:result4k:2.0.0"
+    implementation(platform("dev.forkhandles:forkhandles-bom:1.8.4.0"))
+    implementation("dev.forkhandles:result4k")
      ... 
 }
 ----
 // end-insert
 
-and then we can add a default method to thunk from the exception case to the result.
+Now we write the method that works like `Cutomers::add` but returns a `Result`.
 We can't call it `add` too, as both have the same parameters, so we call it `addToo` for now.
+If the new method delegates to `add`, we can make it a default method so that it is available to all implementations:
 
 // begin-insert: tags/errors.5:src/main/java/travelator/Customers.kt
 [source,kotlin]
 ----
 interface Customers {
+
     @Throws(DuplicateException::class)
     fun add(name: String, email: String): Customer
 
@@ -669,24 +645,17 @@ interface Customers {
 
 .Naming
 ****
-It's a bit irritating that we can't name the new method `add` as well,
-but the JVM won't allow methods that differ only on return type to have the same name.
+It's a bit irritating that we can't name the new method `add` as well, but the JVM won't allow methods that differ only on return type to have the same name.
 
-If we can't think of a good-enough name in these sorts of situations,
-we err on the side of using a bad one.
-In all likelihood we'll come up with a better name later,
-and the bad name will reduce the risk that we settle for not-good-enough.
+If we can't think of a good-enough name in these sorts of situations, we err on the side of using a bad one.
+In all likelihood we'll come up with a better name later, and the bad name will reduce the risk that we settle for not-good-enough.
 
-In this case it really shouldn't matter,
-because we know that by the end of this refactor we will have deleted the original method,
-and can steal its name once it is gone.
+In this case it really shouldn't matter, because we know that by the end of this refactor we will have deleted the original method, and can steal its name once it is gone.
 ****
 
-Now we have both exception and result versions of the method,
-we can migrate the callers of the exception version.
-While we can use Result4k from Java,
-it's a lot more convenient from Kotlin.
-So let's take `CustomerRegistration` (the caller of `add`)
+Now we have both exception and result versions of the method, we can migrate the callers of the exception version.
+While we can use Result4k from Java, it's a lot more convenient from Kotlin.
+So let's take `CustomerRegistration` (the caller of `add`):
 
 // begin-insert: tags/errors.5:src/main/java/travelator/CustomerRegistration.java
 [source,java]
@@ -716,7 +685,7 @@ public class CustomerRegistration implements IRegisterCustomers {
 ----
 // end-insert
 
-and convert it to Kotlin
+Converting it to Kotlin gives:
 
 // begin-insert: tags/errors.6:src/main/java/travelator/CustomerRegistration.kt
 [source,kotlin]
@@ -740,9 +709,8 @@ class CustomerRegistration(
 // end-insert
 
 That `customers.add` expression is the one that can throw `DuplicateException`.
-We're going to replace it with a call to `addToo`
-but keeping the behaviour the same.
-So we pull out `result` as a local
+We're going to replace it with a call to `addToo` but keeping the behaviour the same.
+So we pull out `result` as a local:
 
 // begin-insert: tags/errors.7:src/main/java/travelator/CustomerRegistration.kt#foo
 [source,kotlin]
@@ -759,9 +727,8 @@ override fun register(data: RegistrationData): Customer {
 ----
 // end-insert
 
-Now if we call `addToo` instead it will no longer throw,
-but the exception will be returned in the Result.
-This won't compile yet
+Now if we call `addToo` instead it will no longer throw, but the exception will be returned in the Result.
+This won't compile yet:
 
 // begin-insert: tags/errors.8:src/main/java/travelator/CustomerRegistration.kt#foo
 [source,kotlin]
@@ -771,7 +738,8 @@ override fun register(data: RegistrationData): Customer {
     return if (exclusionList.exclude(data)) {
         throw ExcludedException()
     } else {
-        val result: Result<Customer, DuplicateException> = customers.addToo(data.name, data.email)
+        val result: Result<Customer, DuplicateException> =
+            customers.addToo(data.name, data.email)
         result // <1>
     }
 }
@@ -780,11 +748,31 @@ override fun register(data: RegistrationData): Customer {
 
 <1> `Type mismatch. Required: Customer Found: Result<Customer, DuplicateException>`
 
-Now in the case of failure,
-we want to throw the `DuplicateException` in the `Result`
-(in order to keep the current behaviour of `register`).
-We can use `result.recover`,
-which will give us the content of the `Failure` to throw
+Now we have a `Result`, we need to unpack it.
+When it is `Success`, we want to return the wrapped value, when `Failure`, throw the wrapped `DuplicateException` (in order to keep the current behaviour of `register`):
+
+// begin-insert: tags/errors.8.5:src/main/java/travelator/CustomerRegistration.kt#foo
+[source,kotlin]
+----
+@Throws(ExcludedException::class, DuplicateException::class)
+override fun register(data: RegistrationData): Customer {
+    return if (exclusionList.exclude(data)) {
+        throw ExcludedException()
+    } else {
+        val result: Result<Customer, DuplicateException> =
+            customers.addToo(data.name, data.email)
+        when (result) {
+            is Success<Customer> ->
+                result.value
+            is Failure<DuplicateException> ->
+                throw result.reason
+        }
+    }
+}
+----
+// end-insert
+
+As it happens, Result4k has a function to shortcut this case - `Result::recover`:
 
 // begin-insert: tags/errors.9:src/main/java/travelator/CustomerRegistration.kt#foo
 [source,kotlin]
@@ -794,14 +782,15 @@ override fun register(data: RegistrationData): Customer {
     return if (exclusionList.exclude(data)) {
         throw ExcludedException()
     } else {
-        val result: Result<Customer, DuplicateException> = customers.addToo(data.name, data.email)
+        val result: Result<Customer, DuplicateException> =
+            customers.addToo(data.name, data.email)
         result.recover { throw it }
     }
 }
 ----
 // end-insert
 
-and now we can inline to get back to a shorter form
+Now we can inline to get back to a shorter form:
 
 // begin-insert: tags/errors.10:src/main/java/travelator/CustomerRegistration.kt#foo
 [source,kotlin]
@@ -819,39 +808,34 @@ override fun register(data: RegistrationData): Customer {
 ----
 // end-insert
 
-Finally, that nesting looks a bit too confusing for comfort,
-so lets simplify it with a guard clause,
-even though it prevents our using the single-expression form.
+Finally, that nesting looks a bit too confusing for comfort, so let's simplify it by replacing the `if` with a `when`, lifting the `return` out of the `when`, and converting to a single-expression - Alt-Enter all the things!
 
 // begin-insert: tags/errors.11:src/main/java/travelator/CustomerRegistration.kt#foo
 [source,kotlin]
 ----
 @Throws(ExcludedException::class, DuplicateException::class)
-override fun register(data: RegistrationData): Customer {
-    if (exclusionList.exclude(data))
-        throw ExcludedException()
-    return customers.addToo(data.name, data.email)
-        .recover { throw it }
-}
+override fun register(data: RegistrationData): Customer =
+    when {
+        exclusionList.exclude(data) -> throw ExcludedException()
+        else -> customers.addToo(data.name, data.email).recover {
+            throw it
+        }
+    }
 ----
 // end-insert
 
-That is a good place for a rest,
-having replaced one use of exceptions with a result type.
+Now we've replaced one of the uses of exceptions with a result type, let's have a little rest.
 
-==== Broadening
+==== Contract
 
 OK, ready to go again? Good.
 
 We now have to choose whether to proceed depth or breadth first.
-Depth-first would address the caller of `CustomerRegistration.register`,
-breadth-first would first fix up the other callers of `Customers.add`,
-so that we can remove it.
-As it happens our example code has no other callers of `add`,
-so let's go that way.
+Depth-first would address the caller of `CustomerRegistration::register`, breadth-first would first fix up the other callers of `Customers::add`, so that we can remove it.
+As it happens our example code has no other callers of `add`, so breadth-first isn't an option, and we can get on with the contract phase at this level.
 
-While there is no other caller of `Customers.add`,
-there are of course implementations.
+At present, we have implementations of `Customers::add`, and all our code calls them via the default implementation of `Customers::addToo` in the interface.
+We want to delete `add`, so let's go and implement `addToo` directly.
 Let's look at the (not thread-safe) test version.
 
 // begin-insert: tags/errors.11:src/test/java/travelator/InMemoryCustomers.java
@@ -865,7 +849,9 @@ public class InMemoryCustomers implements Customers {
     @Override
     public Customer add(String name, String email) throws DuplicateException {
         if (list.stream().anyMatch( item -> item.getEmail().equals(email)))
-            throw new DuplicateException("customer with email " + email + " already exists");
+            throw new DuplicateException(
+                "customer with email " + email + " already exists"
+            );
         int newId = id++;
         Customer result = new Customer(Integer.toString(newId), name, email);
         list.add(result);
@@ -874,7 +860,9 @@ public class InMemoryCustomers implements Customers {
 
     @Override
     public Optional<Customer> find(String id) {
-        return list.stream().filter(customer -> customer.getId().equals(id)).findFirst();
+        return list.stream()
+            .filter(customer -> customer.getId().equals(id))
+            .findFirst();
     }
 
     // for test
@@ -889,8 +877,7 @@ public class InMemoryCustomers implements Customers {
 ----
 // end-insert
 
-The easiest way to implement `addToo` here is probably just to duplicate `add`
-and fix it up
+The easiest way to implement `addToo` here is probably just to duplicate `add` and fix it up:
 
 // begin-insert: tags/errors.12:src/test/java/travelator/InMemoryCustomers.java#foo
 [source,java]
@@ -902,7 +889,9 @@ public Result<Customer, DuplicateException> addToo(
 ) {
     if (list.stream().anyMatch( item -> item.getEmail().equals(email)))
         return new Failure<>(
-            new DuplicateException("customer with email " + email + " already exists")
+            new DuplicateException(
+                "customer with email " + email + " already exists"
+            )
         );
     int newId = id++;
     Customer result = new Customer(Integer.toString(newId), name, email);
@@ -912,14 +901,9 @@ public Result<Customer, DuplicateException> addToo(
 ----
 // end-insert
 
-We can also use this strategy to add `addToo` to our production implementations of Customers.
-
-If we still had any remaining callers of `add`
-we could implement `add` by delegating to our new `addToo`,
-but we don't.
-So we can just remove it from here and the interface,
-and then rename `addToo` to `add`,
-leaving us with
+We can also use this strategy to add `addToo` to our production implementations of `Customers` - we won't bore you with the details.
+Once we have done this, if we still had any remaining callers of `add`, we could implement the method as a default implementation in the interface delegating to `addToo` - reversing the previous delegation.
+We don't have any remaining callers though, so we can just remove it from the implementations and the interface, and then rename `addToo` to `add`, leaving us with:
 
 // begin-insert: tags/errors.13:src/main/java/travelator/Customers.kt
 [source,kotlin]
@@ -933,7 +917,7 @@ interface Customers {
 ----
 // end-insert
 
-and
+The clients of `Customers` are now back to calling `add`, albeit the version returning a `Result` rather than declaring checked exceptions:
 
 // begin-insert: tags/errors.13:src/main/java/travelator/CustomerRegistration.kt
 [source,kotlin]
@@ -944,22 +928,20 @@ class CustomerRegistration(
 ) : IRegisterCustomers {
 
     @Throws(ExcludedException::class, DuplicateException::class)
-    override fun register(data: RegistrationData): Customer {
-        if (exclusionList.exclude(data))
-            throw ExcludedException()
-        return customers.add(data.name, data.email)
-            .recover { throw it }
-    }
+    override fun register(data: RegistrationData): Customer =
+        when {
+            exclusionList.exclude(data) -> throw ExcludedException()
+            else -> customers.add(data.name, data.email).recover {
+                throw it
+            }
+        }
 }
 ----
 // end-insert
 
-We left `InMemoryCustomers` as Java really just to demonstrate that we could return Result4k types from our old code,
-but we can't resist the conversion,
-as the code now has a number of warnings
-of the type `Not annotated [X] overrides @NotNull [X]`.
+We left `InMemoryCustomers` as Java really just to demonstrate that we could return Result4k types from our old code, but we can't resist the conversion, as the code now has a number of warnings of the type `Not annotated [X] overrides @NotNull [X]`.
 
-After conversion we have
+After conversion, including moving from streams to Kotlin collection operations, we have:
 
 // begin-insert: tags/errors.14:src/test/java/travelator/InMemoryCustomers.kt
 [source,kotlin]
@@ -969,10 +951,13 @@ class InMemoryCustomers : Customers {
     private val list: MutableList<Customer> = ArrayList()
     private var id = 0
 
-    override fun add(name: String, email: String): Result<Customer, DuplicateException> =
+    override fun add(name: String, email: String)
+        : Result<Customer, DuplicateException> =
         when {
             list.any { it.email == email } -> Failure(
-                DuplicateException("customer with email $email already exists")
+                DuplicateException(
+                    "customer with email $email already exists"
+                )
             )
             else -> {
                 val result = Customer(id++.toString(), name, email)
@@ -995,8 +980,7 @@ class InMemoryCustomers : Customers {
 // end-insert
 
 Lets recap where we are now.
-`Customers` is now Kotlin,
-and `add` returns a `Result` instead of throwing `DuplicateException`.
+`Customers` is now Kotlin, and `add` returns a `Result` instead of throwing `DuplicateException`:
 
 // begin-insert: tags/errors.14:src/main/java/travelator/Customers.kt
 [source,kotlin]
@@ -1010,7 +994,8 @@ interface Customers {
 ----
 // end-insert
 
-`IRegisterCustomers` is still Java, and still throws 2 types of exception.
+`IRegisterCustomers` is still Java, and still throws 2 types of exception:
+
 // begin-insert: tags/errors.14:src/main/java/travelator/IRegisterCustomers.java
 [source,java]
 ----
@@ -1021,8 +1006,7 @@ public interface IRegisterCustomers {
 ----
 // end-insert
 
-`CustomerRegistration` is now Kotlin, and is the place where we now thunk between
-`Result.Error` and `DuplicateException`.
+`CustomerRegistration` is now Kotlin, and is the place where we now thunk between `Result.Error` and `DuplicateException`, using `recover`:
 
 // begin-insert: tags/errors.14:src/main/java/travelator/CustomerRegistration.kt
 [source,kotlin]
@@ -1033,66 +1017,38 @@ class CustomerRegistration(
 ) : IRegisterCustomers {
 
     @Throws(ExcludedException::class, DuplicateException::class)
-    override fun register(data: RegistrationData): Customer {
-        if (exclusionList.exclude(data))
-            throw ExcludedException()
-        return customers.add(data.name, data.email)
-            .recover { throw it }
-    }
+    override fun register(data: RegistrationData): Customer =
+        when {
+            exclusionList.exclude(data) -> throw ExcludedException()
+            else -> customers.add(data.name, data.email).recover {
+                throw it
+            }
+        }
 }
 ----
 // end-insert
 
 ==== Stepping Out
 
-Now we have converted a whole layer of our interaction to use a result type,
-we move to the next.
+Now we have converted a whole layer of our interaction to use a result type, we move out to the next.
 
-If we are to follow the same pattern with `IRegisterCustomers` as we did with `Customers` -
-provide a default implementation of an adapter between exception-throwing and error-returning -
-we are going to have to address the issue of how to express
-the result of a function that can fail because of one of two causes.
-In code -
-`Result<Customer, Either<ExcludedException, DuplicateException>>`.
+If we are to follow the same pattern with `IRegisterCustomers::register` as we did with `Customers` - providing a default implementation of an adapter between exception-throwing and error-returning - we are going to have to address the issue of how to express the result of a function that can fail for two reasons.
+That's because `register` is currently declaring that it throws both `ExcludedException` and `DuplicateException` checked exceptions.
+In code, we want something like `Result<Customer, Either<ExcludedException, DuplicateException>>`.
 
+We _could_ use a generic `Either` type, but that only gets us so far as a strategy.
+For a start, `Either<ExcludedException, DuplicateException>` is not the same thing as `Either<DuplicateException, ExcludedException>`, which is at best really confusing, and will get even worse if we ever have to expand to `OneOf<ExcludedException, DuplicateException, SomeOtherProblem>`.
 
-We could reach for a generic `Either` type,
-but that only gets us so far as a strategy.
-For a start,
-`Either<ExcludedException, DuplicateException>`
-is not the same thing as `Either<DuplicateException, ExcludedException>`,
-which is at best really confusing,
-and will get even worse if we ever have to expand to `OneOf<ExcludedException, DuplicateException, SomeOtherProblem>`.
-Instead,
-our best bet here is not to try to express the error in terms of existing types,
-but to map to a new type.
+Another option is to move up to the common superclass of the two exceptions and declare the return type as `Result<Customer, Exception>`.
+This fails the communication test - we can't look at the signature and gain any clues about what types of errors we are expecting.
 
-As _exception_ and _error_ are all overloaded terms,
-we've chosen `RegistrationProblem`,
-with subtypes of `Excluded`,
-(which carries no additional information and so can be an object),
-and `Duplicate`
-(which carries any data from the original `DuplicateException`).
-We use these when we add a default implementation of `registerToo` to the interface.
+Instead, our best strategy here is not to try to express the error in terms of existing types, but to map to a new type.
 
-// begin-insert: tags/errors.15:src/main/java/travelator/IRegisterCustomers.kt
+As _exception_ and _error_ are all overloaded terms, we've chosen `RegistrationProblem`, with subtypes of `Excluded`,(which carries no additional information and so can be an `object`), and `Duplicate`(which carries any message from the original `DuplicateException`):
+
+// begin-insert: tags/errors.15:src/main/java/travelator/IRegisterCustomers.kt#RegistrationProblem
 [source,kotlin]
 ----
-interface IRegisterCustomers {
-
-    @Throws(ExcludedException::class, DuplicateException::class)
-    fun register(data: RegistrationData): Customer
-
-    fun registerToo(data: RegistrationData): Result<Customer, RegistrationProblem> =
-        try {
-            Success(register(data))
-        } catch (x: ExcludedException) {
-            Failure(Excluded)
-        } catch (x: DuplicateException) {
-            Failure(Duplicate(x.message))
-        }
-}
-
 sealed class RegistrationProblem
 
 object Excluded : RegistrationProblem()
@@ -1103,9 +1059,33 @@ data class Duplicate(
 ----
 // end-insert
 
+By making `RegistrationProblem` a sealed class, we know at compile time what subclasses can exist and hence what errors have to be handled -- very much like the checked exception signature of a method.
+
+We use `RegistrationProblem` when we add a default implementation of `registerToo` to the interface:
+
+// begin-insert: tags/errors.15:src/main/java/travelator/IRegisterCustomers.kt#IRegisterCustomers
+[source,kotlin]
+----
+interface IRegisterCustomers {
+
+    @Throws(ExcludedException::class, DuplicateException::class)
+    fun register(data: RegistrationData): Customer
+
+    fun registerToo(data: RegistrationData):
+        Result<Customer, RegistrationProblem> =
+        try {
+            Success(register(data))
+        } catch (x: ExcludedException) {
+            Failure(Excluded)
+        } catch (x: DuplicateException) {
+            Failure(Duplicate(x.message))
+        }
+}
+----
+// end-insert
+
 Now we can migrate callers of `register` to `registerToo`.
-Starting with `CustomerRegistrationHandler`,
-which we convert to Kotlin first.
+Starting with `CustomerRegistrationHandler`, which we convert to Kotlin first:
 
 // begin-insert: tags/errors.16:src/main/java/travelator/handlers/CustomerRegistrationHandler.kt
 [source,kotlin]
@@ -1140,8 +1120,7 @@ class CustomerRegistrationHandler(
 ----
 // end-insert
 
-Now call `registerToo` instead of `register` in the handler,
-and interpret the return type with `when`
+Now, as we did before, we swap to calling the new method (`registerToo`) instead of the old one (`register`), and interpret the return type with `when` expression:
 
 // begin-insert: tags/errors.17:src/main/java/travelator/handlers/CustomerRegistrationHandler.kt
 [source,kotlin]
@@ -1185,9 +1164,7 @@ private fun RegistrationProblem.toResponse() = when (this) {
 ----
 // end-insert
 
-before removing the unnecessary exception cases
-and simplifying the error case
-with `map` and `recover`.
+Finally we can remove the unnecessary exception cases and simplify the error case with `map` and `recover`:
 
 // begin-insert: tags/errors.18:src/main/java/travelator/handlers/CustomerRegistrationHandler.kt#foo
 [source,kotlin]
@@ -1216,46 +1193,42 @@ fun handle(request: Request): Response =
 
 Note that this code is not exception-free.
 Firstly the `ObjectMapper` can still throw `JSONProcessingException`.
-That is the reality of Java (and frankly most Kotlin) APIs,
-but the code is safe and communicates well,
-as the throwing and catching are in the same method.
-Secondly we still have to consider other `RuntimeExceptions` that could be thrown from anywhere
-(`NullPointerException` etc).
-These could have crossed function boundaries and leaked up to here,
-where the buck stops at the top-level catch-all.
-The reality is that we can still have unexpected exceptions,
-but the expected failure cases are now expressed by `Results`
-and communicated in our code.
+That is the reality of Java (and frankly most Kotlin) APIs, but the code is safe and communicates well, as the throwing and catching are in the same method.
+Secondly we still have to consider other `RuntimeExceptions` that could be thrown from anywhere(`NullPointerException` etc).
+These could have crossed function boundaries and leaked up to here, where the buck stops at the top-level catch-all.
+The reality is that we can still have _unexpected_ exceptions, but the _expected_ failure cases are now expressed by `Results` and communicated in our code.
 
-Now we can confess that the `RegistrationHandlerTests` got broken a few steps ago.
-Ordinarily we would have fixed them straight away,
-but that would have interrupted our explanation.
+=== More Fixup
 
-The problem is that the tests are mock tests which expect calls to `IRegister.register`,
-but we are now calling `registerToo`. For example
+We can now confess that the `RegistrationHandlerTests` got broken a few steps ago.
+Ordinarily we would have fixed them straight away, but that would have interrupted our explanation.
+
+The problem is that the tests are mock tests which expect calls to `IRegister.register`, but we are now calling `registerToo`.
+For example:
 
 // begin-insert: tags/errors.19:src/test/java/travelator/handlers/CustomerRegistrationHandlerTests.java#foo
 [source,java]
 ----
 public class CustomerRegistrationHandlerTests {
 
-    @RegisterExtension
-    final Mockery mockery = new JUnit5ClassMockery();
+    final IRegisterCustomers registration =
+        mock(IRegisterCustomers.class);
+    final CustomerRegistrationHandler handler =
+        new CustomerRegistrationHandler(registration);
 
-    final IRegisterCustomers registration = mockery.mock(IRegisterCustomers.class);
-    final CustomerRegistrationHandler handler = new CustomerRegistrationHandler(registration);
-
-    final String fredBody = toJson("{ 'name' : 'fred', 'email' : 'fred@bedrock.com' }");
-    final RegistrationData fredData = new RegistrationData("fred", "fred@bedrock.com");
+    final String fredBody = toJson(
+        "{ 'name' : 'fred', 'email' : 'fred@bedrock.com' }"
+    );
+    final RegistrationData fredData =
+        new RegistrationData("fred", "fred@bedrock.com");
 
     @Test
     public void returns_Created_with_body_on_success()
         throws DuplicateException, ExcludedException {
-
-        mockery.checking(new Expectations() {{
-            oneOf(registration).register(fredData);
-            will(returnValue(new Customer("0", fredData.name, fredData.email)));
-        }});
+        when(registration.register(fredData))
+            .thenReturn(
+                new Customer("0", fredData.name, fredData.email)
+            );
 
         String expectedBody = toJson(
             "{'id':'0','name':'fred','email':'fred@bedrock.com'}"
@@ -1270,10 +1243,10 @@ public class CustomerRegistrationHandlerTests {
     public void returns_Conflict_for_duplicate()
         throws DuplicateException, ExcludedException {
 
-        mockery.checking(new Expectations() {{
-            oneOf(registration).register(fredData);
-            will(throwException(new DuplicateException("deliberate")));
-        }});
+        when(registration.register(fredData))
+            .thenThrow(
+                new DuplicateException("deliberate")
+            );
 
         assertEquals(
             new Response(HTTP_CONFLICT),
@@ -1281,6 +1254,7 @@ public class CustomerRegistrationHandlerTests {
         );
     }
     ...
+
     private String toJson(String jsonIsh) {
         return jsonIsh.replace('\'', '"');
     }
@@ -1288,25 +1262,18 @@ public class CustomerRegistrationHandlerTests {
 ----
 // end-insert
 
-We can fix the wrong expectation,
-and the return type,
-in one edit.
-Note that returning a error type has simplified our mock tests -
-we can dispense with a special `throwException` action in favour of returning
-`Success` or `Failure`.
+We need to change the call from `register`, returning `Customer` or throwing, to `registerToo`, returning `Result<Customer, RegistrationProblem>`:
 
 // begin-insert: tags/errors.20:src/test/java/travelator/handlers/CustomerRegistrationHandlerTests.java#foo
 [source,java]
 ----
 @Test
 public void returns_Created_with_body_on_success() {
-    mockery.checking(new Expectations() {{
-        oneOf(registration).registerToo(fredData);
-        will(returnValue(
-            new Success<>(
-                new Customer("0", fredData.name, fredData.email)))
-        );
-    }});
+
+    when(registration.registerToo(fredData))
+        .thenReturn(new Success<>(
+            new Customer("0", fredData.name, fredData.email)
+        ));
 
     String expectedBody = toJson(
         "{'id':'0','name':'fred','email':'fred@bedrock.com'}"
@@ -1319,26 +1286,25 @@ public void returns_Created_with_body_on_success() {
 
 @Test
 public void returns_Conflict_for_duplicate() {
-    mockery.checking(new Expectations() {{
-        oneOf(registration).registerToo(fredData);
-        will(returnValue(
-            new Failure<>(new Duplicate("deliberate")))
-        );
-    }});
+
+    when(registration.registerToo(fredData))
+        .thenReturn(new Failure<>(
+            new Duplicate("deliberate")
+        ));
 
     assertEquals(
         new Response(HTTP_CONFLICT),
         handler.handle(new Request(fredBody))
     );
 }
+    ...
 ----
 // end-insert
 
-At this point we can return to `CustomerRegistration`
-and implement `registerToo` directly.
-In lieu of any cleverer idea we do this by duplicating the `register` method
-and fettling the error handling,
-using `Result.mapFailure` to convert `DuplicateException` to `Duplicate`.
+In some ways the tests are simplified, because instead of having to choose `thenReturn` or `thenThrow`, we now always `thenReturn`, sometimes with `Success`, others with `Failure`.
+
+Now our tests are passing again, we can return to production code, and implement `CustomerRegistration::registerToo` directly.
+In lieu of any cleverer idea, we do this by duplicating the `register` method and fettling the error handling, using `Result::mapFailure` to convert `DuplicateException` to `Duplicate`.
 
 // begin-insert: tags/errors.21:src/main/java/travelator/CustomerRegistration.kt
 [source,kotlin]
@@ -1349,14 +1315,17 @@ class CustomerRegistration(
 ) : IRegisterCustomers {
 
     @Throws(ExcludedException::class, DuplicateException::class)
-    override fun register(data: RegistrationData): Customer {
-        if (exclusionList.exclude(data))
-            throw ExcludedException()
-        return customers.add(data.name, data.email)
-            .recover { throw it }
-    }
+    override fun register(data: RegistrationData): Customer =
+        when {
+            exclusionList.exclude(data) -> throw ExcludedException()
+            else -> customers.add(data.name, data.email).recover {
+                throw it
+            }
+        }
 
-    override fun registerToo(data: RegistrationData): Result<Customer, RegistrationProblem> {
+    override fun registerToo(
+        data: RegistrationData
+    ): Result<Customer, RegistrationProblem> {
         if (exclusionList.exclude(data))
             return Failure(Excluded)
         return customers.add(data.name, data.email)
@@ -1368,15 +1337,13 @@ class CustomerRegistration(
 ----
 // end-insert
 
-<1> Note that we explicitly type the lambda parameter in `mapFailure`.
+<1> Note that we explicitly specify the type of the lambda parameter in `mapFailure`.
 This way if we change the return type of `add` to have a different failure type
 the compiler will force us to change how we handle it.
 
 There are two problems with this.
-Firstly, `registerToo` has no test code,
-and secondly, we have the duplicate logic caused by our just copying the code.
-We can fix both by implementing `register` in terms of `registerToo` -
-the opposite of what we did in IRegister.
+Firstly, `registerToo` has no test code, and secondly, we have the duplicate logic caused by our just duplicating `register` to create `registerToo`.
+We can fix both by implementing `register` in terms of `registerToo` - the opposite of what we did in IRegister.
 
 // begin-insert: tags/errors.22:src/main/java/travelator/CustomerRegistration.kt
 [source,kotlin]
@@ -1388,18 +1355,20 @@ class CustomerRegistration(
 
     @Throws(ExcludedException::class, DuplicateException::class)
     override fun register(data: RegistrationData): Customer =
-        registerToo(data).recover { error ->
+        registerToo(data).recover { error ->  // <1>
             when (error) {
                 is Excluded -> throw ExcludedException()
                 is Duplicate -> throw DuplicateException(error.message)
         }
     }
 
-    override fun registerToo(data: RegistrationData): Result<Customer, RegistrationProblem> {
+    override fun registerToo(
+        data: RegistrationData
+    ): Result<Customer, RegistrationProblem> {
         if (exclusionList.exclude(data))
             return Failure(Excluded)
         return customers.add(data.name, data.email)
-            .mapFailure { exception: DuplicateException -> // <1>
+            .mapFailure { exception: DuplicateException ->
                 Duplicate(exception.message)
             }
     }
@@ -1407,7 +1376,9 @@ class CustomerRegistration(
 ----
 // end-insert
 
-Now our RegistrationTests, which work in terms of `register`, will be testing `registerToo` for us.
+<1>  Delegate to `registerToo` and process `Error` type.
+
+Now our `CustomerRegistrationTests`, which work in terms of `register`, will be testing `registerToo` for us.
 
 // begin-insert: tags/errors.22:src/test/java/travelator/CustomerRegistrationTests.java
 [source,java]
@@ -1463,17 +1434,9 @@ public class CustomerRegistrationTests {
 ----
 // end-insert
 
-This would be a good way to keep both `register`
-and `registerToo`
-while we migrate away from Java and exceptions
-to Kotlin and an error type.
-In this case though the tests are actually the last callers of `register`,
-so let's convert them to call `registerToo`.
-We could take the time to show how to use Result4k in Java,
-but your author for one is pretty tired of this refactoring now,
-so we'll convert the tests to Kotlin and
-then to call `register` with the immortal words,
-"Here's one I made earlier".
+This would be a good way to keep both `register` and `registerToo` while we migrate away from Java and exceptions to Kotlin and an error type.
+In this case though the tests are actually the last callers of `register`, so let's convert them to call `registerToo`.
+We could take the time to show how to use Result4k in Java, but we're all pretty tired of this example now, so we'll convert the tests to Kotlin and then to call `register` with the immortal words, "Here's one I made earlier":
 
 // begin-insert: tags/errors.23:src/test/java/travelator/CustomerRegistrationTests.kt
 [source,kotlin]
@@ -1529,15 +1492,14 @@ class CustomerRegistrationTests {
 ----
 // end-insert
 
-Now we have no callers of `register`,
-we can finally remove it and rename `registerToo` to `register`,
-ending up with exception-free Kotlin.
+Now we have no callers of `register`, we can finally remove it and rename `registerToo` to `register`, ending up with exception-free Kotlin.
 
 // begin-insert: tags/errors.24:src/main/java/travelator/IRegisterCustomers.kt
 [source,kotlin]
 ----
 interface IRegisterCustomers {
-    fun register(data: RegistrationData): Result<Customer, RegistrationProblem>
+    fun register(data: RegistrationData):
+        Result<Customer, RegistrationProblem>
 }
 
 sealed class RegistrationProblem
@@ -1562,23 +1524,129 @@ interface Customers {
 ----
 // end-insert
 
-Hmm, not quite exception-free because of that `DuplicateException`,
-which is not thrown from anywhere anymore,
-just created and
-put into a `Failure`.
-It's an easy fix to rename the class to `DuplicateCustomer`
-and stop extending `Exception`,
-or to reuse the existing `Duplicate` subclass of `RegistrationProblem`.
+Hmm, not quite exception-free because of that `DuplicateException`, which is not thrown from anywhere anymore, just created and put into a `Failure`.
+It's an easy fix to rename the class to `DuplicateCustomerProblem` and stop extending `Exception`, or to reuse the existing `Duplicate` subclass of `RegistrationProblem`.
 Which is better?
-Well it is a little strange for `Customers.add`,
-which is in our domain layer,
-to use an error type from the business rules layer,
-so we should probably keep them separate.
-You can trust us to fix it without bothering you,
-and we will have more to say about errors crossing contexts
-in future chapters.
+
+=== Layers
+
+If we think in terms of layers, `Customers` is in a lower layer than `Registration`, which depends on it.
+So `Customers` should not depend on the higher level `RegistrationProblem`.
+We could try to invert the dependency, so that the `Duplicate` subclass of `RegistrationProblem` was a subtype (or even just the same type) of `DuplicateCustomerProblem` declared in the repository layer.
+That would work here, but if `Customers::add` ever needs to declare another way that it might fail, so that then we will run into another problem.
+
+Let's chase that through, adding the equivalent of a checked exception to express database communication failures that perhaps we always should have had.
+Now that `Customers::add` needs to declare more than one way that it can fail, we introduce a sealed `CustomersProblem` as the error type, with our previous `DuplicateCustomerProblem` as one subtype, `DatabaseCustomerProblem` as the other:
+
+// begin-insert: tags/errors.26:src/main/java/travelator/Customers.kt
+[source,kotlin]
+----
+interface Customers {
+
+    fun add(name:String, email:String): Result<Customer, CustomersProblem>
+
+    fun find(id: String): Optional<Customer>
+}
+
+sealed class CustomersProblem
+
+data class DuplicateCustomerProblem(val message: String): CustomersProblem()
+
+data class DatabaseCustomerProblem(val exception: Exception): CustomersProblem()
+----
+// end-insert
+
+The production caller of `Customers::add` was handling just `DuplicateCustomerProblem` in `mapFailure`:
+
+// begin-insert: tags/errors.25:src/main/java/travelator/CustomerRegistration.kt
+[source,kotlin]
+----
+class CustomerRegistration(
+    private val customers: Customers,
+    private val exclusionList: ExclusionList
+) : IRegisterCustomers {
+
+    override fun register(
+        data: RegistrationData
+    ): Result<Customer, RegistrationProblem> {
+        if (exclusionList.exclude(data))
+            return Failure(Excluded)
+        return customers.add(data.name, data.email)
+            .mapFailure { duplicate: DuplicateCustomerProblem ->
+                Duplicate(duplicate.message)
+            }
+    }
+}
+----
+// end-insert
+
+This no longer compiles, as the type of the failure is now `CustomersProblem`.
+You can see that we are getting the advantages of checked exceptions - code is communicating the ways in which is can fail, and forcing us to deal with the likely cases.
+
+We can fix this by converting `DatabaseCustomerProblem` to a new `DatabaseProblem` subtype of `RegistrationProblem`:
+
+// begin-insert: tags/errors.26:src/main/java/travelator/CustomerRegistration.kt#register
+[source,kotlin]
+----
+override fun register(
+    data: RegistrationData
+): Result<Customer, RegistrationProblem> {
+    if (exclusionList.exclude(data))
+        return Failure(Excluded)
+    return customers.add(data.name, data.email)
+        .mapFailure { problem: CustomersProblem ->
+            when (problem) {
+                is DuplicateCustomerProblem ->
+                    Duplicate(problem.message)
+                is DatabaseCustomerProblem ->
+                    DatabaseProblem(problem.exception)
+            }
+        }
+}
+----
+// end-insert
+
+// begin-insert: tags/errors.26:src/main/java/travelator/IRegisterCustomers.kt#RegistrationProblem
+[source,kotlin]
+----
+sealed class RegistrationProblem
+
+object Excluded : RegistrationProblem()
+
+data class Duplicate(
+    val message: String
+) : RegistrationProblem()
+
+data class DatabaseProblem(
+    val exception: Exception
+) : RegistrationProblem()
+----
+// end-insert
+
+The compiler now forces us to consider the `DatabaseProblem` in the handler -- we have to add a case to the translation in `CustomerRegistrationHandler`:
+
+// begin-insert: tags/errors.26:src/main/java/travelator/handlers/CustomerRegistrationHandler.kt#toResponse
+[source,kotlin]
+----
+private fun RegistrationProblem.toResponse() = when (this) {
+    is Duplicate -> Response(HTTP_CONFLICT)
+    is Excluded -> Response(HTTP_FORBIDDEN)
+    is DatabaseProblem -> Response(HTTP_INTERNAL_ERROR)
+}
+----
+// end-insert
+
+To be frank, managing separate error types for each layer of code, and potentially for each operation, can be tedious -- if you try it you'll gain a new appreciation for the Java compiler and the way in which checked exceptions can be combined.
 
 === Conclusion
+
+Your Java project may already have declared exception bankrupcy, with no systematic use of checked exceptions.
+In this case Kotlin's treating everything as an unchecked exception will fine.
+
+If you do lean on checked exceptions and want to translate to Kotlin, or want to raise your error-handling game as part of the conversion, then using a result type is the best strategy.
+Where an operation can fail in multiple ways we can use sealed classes to enumerate the failure modes, at the expense of not being able to propagate the same type through multiple layers.
+
+
 
 
 
