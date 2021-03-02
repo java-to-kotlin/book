@@ -30,7 +30,7 @@ fun calling(customer: Customer) {
 
     /*
     /// begin: error
-    nameForMarketing(customer) // <1> doesn't compile
+    nameForMarketing(customer) // doesn't compile <1>
     /// end: error
      */
     /// begin: references

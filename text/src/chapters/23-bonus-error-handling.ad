@@ -39,7 +39,7 @@ private fun List<CustomerData>.summarised(): String =
 
 private fun Sequence<String>.withoutHeader() = drop(1)
 
-fun String.toCustomerData(): CustomerData =
+internal fun String.toCustomerData(): CustomerData =
     split("\t").let { parts ->
         CustomerData(
             id = parts[0],
@@ -87,7 +87,7 @@ So far so good, now `String.toCustomerData()`:
 // begin-insert: tags/bonus-errors.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
 [source,kotlin]
 ----
-fun String.toCustomerData(): CustomerData =
+internal fun String.toCustomerData(): CustomerData =
     split("\t").let { parts ->
         CustomerData(
             id = parts[0],
@@ -126,7 +126,7 @@ Here's that change:
 // begin-insert: tags/bonus-errors.1:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
 [source,kotlin]
 ----
-fun String.toCustomerData(): CustomerData? =
+internal fun String.toCustomerData(): CustomerData? =
     split("\t").let { parts ->
         if (parts.size < 4)
             null
@@ -189,7 +189,7 @@ From here, we can use null to represent the other ways that we know `toCustomerD
 // begin-insert: tags/bonus-errors.3:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
 [source,kotlin]
 ----
-fun String.toCustomerData(): CustomerData? =
+internal fun String.toCustomerData(): CustomerData? =
     split("\t").let { parts ->
         if (parts.size < 4)
             return null
@@ -327,7 +327,7 @@ Let's edit `String.toCustomerData()` and then fix up the callers again.
 // begin-insert: tags/bonus-errors.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
 [source,kotlin]
 ----
-fun String.toCustomerData(): Result<CustomerData, ParseFailure> =
+internal fun String.toCustomerData(): Result<CustomerData, ParseFailure> =
     split("\t").let { parts ->
         if (parts.size < 4)
             return Failure(NotEnoughFieldsFailure(this))
@@ -491,7 +491,7 @@ Similarly, the early returns in `toCustomerData` look a bit ugly:
 // begin-insert: tags/bonus-errors.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
 [source,kotlin]
 ----
-fun String.toCustomerData(): Result<CustomerData, ParseFailure> =
+internal fun String.toCustomerData(): Result<CustomerData, ParseFailure> =
     split("\t").let { parts ->
         if (parts.size < 4)
             return Failure(NotEnoughFieldsFailure(this))
@@ -518,7 +518,7 @@ Readers of a nervous disposition may wish to look away:
 // begin-insert: tags/bonus-errors.7:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
 [source,kotlin]
 ----
-fun String.toCustomerData(): Result<CustomerData, ParseFailure> =
+internal fun String.toCustomerData(): Result<CustomerData, ParseFailure> =
     split("\t").let { parts ->
         parts
             .takeUnless { it.size < 4 }

@@ -14,7 +14,7 @@ Java calls member-values _fields_, and member-functions _methods_.
 By default, fields values are per-instance of the class: different instances have different values.
 Methods are also per-instance, in that they have access to the state of the instance that they are invoked on.
 If we mark fields as `static` though, they are shared between all instances of the class.
-Static methods only have access to this shared state (and public static fields in other classes), but in return for this restriction we can invoke them without needing an instance of the class.
+Static methods only have access to this shared state (and visible static fields in other classes), but in return for this restriction we can invoke them without needing an instance of the class.
 
 To simplify the language, the Java designers made the decision to have all code and data tied to classes.
 We have class-scoped static state, so we need class-scoped static methods.
@@ -87,7 +87,7 @@ All the members of an `object` will be compiled to members of a class with the n
 They won't actually be static methods unless specifically marked with an `@JvmStatic` though.
 This is because Kotlin allows objects to extend other types, and that's incompatible with static declarations.
 
-Where we need to group static and non-static members in the same class, we declare the static parts in a `companion object` inside the (otherwise non-static) class declaration.
+When we need to group static and non-static members in the same class, we can declare the static parts in a `companion object` inside the (otherwise non-static) class declaration.
 This groups them in the file, and code in a companion object can access private state in instances of its containing class.
 Companion objects can also extend another class and implement interfaces - something that Java statics cannot do.
 Compared to Java statics though, they are cumbersome if we just want to define one or two static methods.
@@ -96,7 +96,7 @@ In Kotlin then, we can write non-instance-scoped functions as either top-level f
 
 All things being equal, in Kotlin we favour top-level functions.
 They are the simplest to declare and reference, and can be moved from file to file within a package without affecting Kotlin client code (but see the caveat in <<moving-top-level-functions>>.
-We declare functions as methods on a singleton object instead of top-level functions where we need the ability to implement an interface, or otherwise group functions more tightly.
+We declare functions as methods on a singleton object instead of top-level functions when we need the ability to implement an interface, or otherwise group functions more tightly.
 We use a companion object when we need to mix static and non-static behaviour within a class, or to write factory methods with names like MyType.of(...)`.
 
 As with many aspects of programming, we start with the simplest thing that could work, which is usually a top-level function, and refactor to a more complicated solution only when it brings benefits, such as a more expressive API for our clients, or better maintainablity for us.

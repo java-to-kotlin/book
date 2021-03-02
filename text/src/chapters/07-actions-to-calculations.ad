@@ -98,7 +98,7 @@ For example:
 println("hello")
 ----
 
-`println` always returns the same `Unit` result given the same `hello` input, but it not a calculation.
+`println` always returns the same `Unit` result given the same `hello` input, but it is not a calculation.
 It is an action.
 
 [[actions]]
@@ -188,11 +188,9 @@ The evolution of programming languages has been a process of restricting the ult
 
 === Why Prefer Calculations?
 
-Ultimately our software needs to have an effect on the world, so we really need actions.
-But at the same time calculations are so much easier to work with.
-There is no overlap though, code can't be an action and a calculation.
-If we take some code that defines a calculation and have it invoke an action, then it becomes an action,
-because it will now depend on when or whether it is called.
+We like calculations because they are so much easier to work with, but ultimately our software needs to have an effect on the world, which is an action.
+There is no overlap though, code can't be an action and a calculation, both timeless and time-dependent.
+If we take some code that is a calculation and have it invoke an action, then it becomes an action, because it will now depend on when or whether it is called.
 We can think of calculations as the purer code, where code inherits the most tainted level of all of its dependencies.
 We see the same thing with susceptibility to errors <<exceptions-to-errors>> and partial functions <<partial-to-total-functions>>.
 As with these other taints, if we value purity (which in all these cases brings ease of reasoning and refactoring), we must strive to pull the boundary between impure and pure code to the outer layers of our system - those closest to the entry points.
@@ -794,7 +792,7 @@ After all this work, we haven't actually promoted our action to a calculation af
 
 Should we be downhearted?
 No.
-Despite our previous assertion that functions are either calculations or they are actions, the truth is that in practice action-ness is graduated, they can be more or less susceptible to time.
+Despite our previous assertion that functions are either calculations _or_ actions, the truth is that in practice action-ness is graduated, they can be more or less susceptible to time.
 In this case, unless other code _in this interaction_ is also going to fetch the trips for a customer and find an inconsistency, we can treat `Trips` as effectively immutable, and so `tripsFor`, and by extension `currentTripsFor`, are effectively calculations.
 In this respect our `InMemoryTrips` is less safe than our database implementation, because if accessed on multiple threads it can mutate the collection returned by `tripsFor`, leading to potential `ConcurrentModificationExceptions` in the `filter` implementation.
 Categorising our code into calculations and actions has helped us see these issues, and given us a framework for deciding if they are important in context.
