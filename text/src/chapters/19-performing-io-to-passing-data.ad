@@ -1,11 +1,16 @@
 [[performing-io-to-passing-data]]
 == Performing IO to Passing Data
 
-In <<functions-to-extension-functions>>, we started with some Java code that produced a report for marketing.
-In this chapter we'll continue to refactor the resulting Kotlin, bringing concepts from <<exceptions-to-errors>>, <<actions-to-calculations>> and <<code-to-data>> to bear on the problem.
+Input and output are problematic in code.
+Our program is subject to errors talking to the outside world when files disappear or network sockets fail.
+IO is also an action (<<actions>>) and so limits our ability to reason with and refactor our code.
+How can we limit the scope of the problems that IO causes?
+
+Now that earlier chapters have built some foundations, we're going to up the pace here, going straight into refactoring and learning lessons as we go.
 
 === Starting Point
 
+In <<functions-to-extension-functions>>, we looked at some Java code that produced a report for marketing.
 When we left the code, we had introduced extension functions to the `HighValueCustomersReport`, giving us:
 
 // begin-insert: tags/bonus.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt#all
@@ -37,73 +42,9 @@ private fun List<CustomerData>.summarised(): String =
 ----
 // end-insert
 
-Here are the tests:
+Here are the tests, after conversion to Kotlin:
 
-// begin-insert: tags/bonus.0:src/test/java/travelator/marketing/HighValueCustomersReportTests.java#all
-[source,java]
-----
-class HighValueCustomersReportTests {
-
-    @Test
-    public void test() throws IOException {
-        List<String> input = List.of(
-            "ID\tFirstName\tLastName\tScore\tSpend",
-            "1\tFred\tFlintstone\t11\t1000.00",
-            "4\tBetty\tRubble\t10\t2000.00",
-            "2\tBarney\tRubble\t0\t20.00",
-            "3\tWilma\tFlintstone\t9\t0.00"
-        );
-        List<String> expected = List.of(
-            "ID\tName\tSpend",
-            "4\tRUBBLE, Betty\t2000.00",
-            "1\tFLINTSTONE, Fred\t1000.00",
-            "\tTOTAL\t3000.00"
-        );
-        check(input, expected);
-    }
-
-    ...
-    private void check(
-        List<String> inputLines,
-        List<String> expectedLines
-    ) throws IOException {
-        var output = new StringWriter();
-        HighValueCustomersReportKt.generate(
-            new StringReader(String.join("\n", inputLines)),
-            output
-        );
-        assertEquals(String.join("\n", expectedLines), output.toString());
-    }
-}
-----
-// end-insert
-
-=== Listening to the Tests
-
-We didn't really look at the tests in <<functions-to-extension-functions>>, but if we do now, what stands out in the light of our chapters about values, calculations and actions?
-
-Look at that `check` function.
-It isn't strictly a calculation, but we can see that it is _trying_ to allow us to express the assertions as a comparison of `List<String>` to `List<String>`.
-It's having to work hard, because `generate` relies on the side effects of reading and writing from and to its parameters.
-In other words, we have a function that works by mutating both of its parameters - it is an action (see <<actions>>.
-
-If we stop for a moment and listen, we may hear the tests talking to us.
-They are saying, "Look, that report generation is fundamentally a calculation. It converts a `List<String>` to a `List<String>`. We know it does, because that's what we are checking."
-
-So the tests are telling us that the fundamental signature of `generate` is `generate(lines: List<String>): List<String>`.
-In addition, we can see that the tests declare that they throw `IOException`, even though they actually use `StringReader` and `StringWriter` which should never fail.
-Our IO is not at the edge of our system, but buried inside `generate`, which, frankly, really doesn't want to be concerned with it.
-Making `generate` into a calculation rather than an action would solve this problem too.
-
-Shall we refactor towards this goal?
-You're right, that was a rhetorical question.
-
-The refactoring that follows will be easier if the tests are in Kotlin.
-IntelliJ is getting every-better at refactoring mixed code, but when we wrote this it wasn't quite good enough.
-
-Here are the tests after conversion to Kotlin, and the application of some of the techniques in this book:
-
-// begin-insert: tags/bonus.1:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#all
+// begin-insert: tags/bonus.0.5:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#all
 [source,kotlin]
 ----
 class HighValueCustomersReportTests {
@@ -128,22 +69,59 @@ class HighValueCustomersReportTests {
     }
 
     ...
-
     private fun check(
         inputLines: List<String>,
         expectedLines: List<String>
     ) {
-        val output = StringWriter().apply {
-            generate(
-                StringReader(inputLines.joinToString("\n")),
-                this
-            )
-        }
+        val output = StringWriter()
+        generate(
+            StringReader(inputLines.joinToString("\n")),
+            output
+        )
         assertEquals(expectedLines.joinToString("\n"), output.toString())
     }
 }
 ----
 // end-insert
+
+=== Listening to the Tests
+
+We didn't really look at the tests in <<functions-to-extension-functions>>, but if we do now, what stands out in the light of our chapter (<<actions-to-calculations>>) discussing calculations and actions?
+In particular, look at that `check` function.
+
+`check` is evidently not a calculation (<<calculations>>), as it works entirely by throwing an exception not returning a value.
+But look at it this way:
+
+// begin-insert: tags/bonus.0.6:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
+[source,kotlin]
+----
+private fun check(
+    inputLines: List<String>,
+    expectedLines: List<String>
+) {
+    val output = StringWriter()
+    val reader = StringReader(inputLines.joinToString("\n"))
+    generate(reader, output)
+    val outputLines = output.toString().lines()
+
+    assertEquals(expectedLines, outputLines)
+}
+----
+// end-insert
+
+This is to all intents and purposes the same code, but now can see that we have a calculation, taking `inputLines` and yielding `outputLines`, before we go on to the assertion.
+Even though `generate` is an action, relying on the side effects of reading and writing to and from its parameters, we can convert it to a calculation by limiting the scope of its side effects to local variables.
+
+If we stop for a moment and listen, we may hear the tests talking to us.
+They are saying, "Look, that report generation is fundamentally a calculation - it converts a `List<String>` to a `List<String>`.
+We know it does, because that's what we are checking."
+
+So the tests are telling us that the fundamental signature of `generate` is `generate(lines: List<String>): List<String>`.
+If this was the signature, then it would not have to declare that it throws `IOException` either, because all the IO would happen outside the function.
+IO has to happen somewhere, but, in common with other actions, the further to the top of our system we we can move it, the more we can deal in nice easy calculations.
+
+Shall we refactor towards this goal?
+You're right, that was a rhetorical question.
 
 As the first stage in our refactor, let's try to wean `generate` off of its `reader` parameter.
 The code is currently:
@@ -166,8 +144,7 @@ fun generate(reader: Reader, writer: Writer) {
 ----
 // end-insert
 
-We can convert `generate` to read from a `List` by invoking "Introduce parameter" on the `reader.readLines()` expression.
-We name the parameter `lines`.
+We can convert `generate` to read from a `List` by invoking "Introduce parameter" on the `reader.readLines()` expression, naming the parameter `lines`.
 As the expression is the only use of the existing `reader` parameter, IntelliJ removes `reader` for us:
 
 // begin-insert: tags/bonus.4:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
@@ -187,8 +164,6 @@ fun generate(writer: Writer, lines: List<String>) {
 ----
 // end-insert
 
-The parameters to `generate` are now in the wrong order (output then input), but we'll let that go for now, as we want to remove `writer` as well.
-
 The refactoring has also moved the `readLines()` out into the callers - here is the result in test:
 
 // begin-insert: tags/bonus.4:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
@@ -198,20 +173,18 @@ private fun check(
     inputLines: List<String>,
     expectedLines: List<String>
 ) {
-    val output = StringWriter().apply {
-        val writer = StringReader(inputLines.joinToString("\n"))
-        generate(
-            this,
-            writer.readLines()
-        )
-    }
-    assertEquals(expectedLines.joinToString("\n"), output.toString())
+    val output = StringWriter()
+    val reader = StringReader(inputLines.joinToString("\n"))
+    generate(output, reader.readLines())
+    val outputLines = output.toString().lines()
+
+    assertEquals(expectedLines, outputLines)
 }
 ----
 // end-insert
 
 This now shouts what the test was whispering all along.
-We were having to create a `StringReader` (IntelliJ has very confusingly named it `writer` as part of the refactor) from a list of lines just in order to parse the lines back out in `generate`.
+We were having to create a `StringReader` from a list of lines just in order to parse the lines back out in `generate`.
 Now the steps are in the same place in the test we can elide them to remove the `Reader`:
 
 // begin-insert: tags/bonus.5:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
@@ -221,16 +194,17 @@ private fun check(
     inputLines: List<String>,
     expectedLines: List<String>
 ) {
-    val output = StringWriter().apply {
-        generate(this, inputLines)
-    }
-    assertEquals(expectedLines.joinToString("\n"), output.toString())
+    val output = StringWriter()
+    generate(output, inputLines)
+    val outputLines = output.toString().lines()
+
+    assertEquals(expectedLines, outputLines)
 }
 ----
 // end-insert
 
 We are now reading from a `List`.
-Let's go back and look at how to return a `List` rather than modifying the `Writer`.
+Let's go back and look at how to return a `List` too rather than modifying the `Writer`.
 Here is the code:
 
 // begin-insert: tags/bonus.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#writer
@@ -327,16 +301,16 @@ private fun check(
     inputLines: List<String>,
     expectedLines: List<String>
 ) {
-    val output = StringWriter().apply {
-        this.append(generate(inputLines).joinToString("\n"))
-    }
-    assertEquals(expectedLines.joinToString("\n"), output.toString())
+    val output = StringWriter()
+    output.append(generate(inputLines).joinToString("\n"))
+    val outputLines = output.toString().lines()
+
+    assertEquals(expectedLines, outputLines)
 }
 ----
 // end-insert
 
-This is an application of the techniques in <<code-to-data>> - instead of writing code to perform an action, return the data required to perform it and move the (in this case IO) towards the outer edges of the system.
-As this is the test, we don't really want any IO at all, and can simplify everything to:
+Once again we now have now-redundant IO in our tests, and can simplify everything to:
 
 // begin-insert: tags/bonus.10:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
 [source,kotlin]
@@ -351,7 +325,7 @@ private fun check(
 // end-insert
 
 This was, after all, what we were aiming for.
-Another way of looking at this is that our original `Writer` was an accumultating object, we have replaced it with a transformation as we saw in <<accumulating-objects-to-transformations>>.
+Another way of looking at this is that our original `Writer` was an accumulating object, we have replaced it with a transformation as we saw in <<accumulating-objects-to-transformations>>.
 
 Let's take stock of our new `generate`:
 
@@ -437,8 +411,9 @@ public class HighValueCustomersMain {
 // end-insert
 
 You can see that by reading and writing this way we don't have to worry about reading filenames from the command-line.
-We have had two issues with errors, when the input file has been malformed, but marketing sit next door and just call us over to help if these occur.
-They give us cake in these cases, so we're hardly incentivized to do a better job of error handling for now.
+We have had two issues with errors in living memory.
+Both these times the input file turned out to have been malformed, but marketing sit next door and just call us over to help if these occur.
+They give us cake in these cases, so we're hardly incentivized to do a better job of error handling for now (but see <<bonus-error-handling>>).
 If we can fix the `OutOfMemoryError` quickly we think we saw some crumpets...
 
 At some point we converted `main` to Kotlin:
@@ -478,7 +453,7 @@ fun main() {
 Ah, there's our problem.
 We're reading the whole of the input into memory (`readLines()`), processing it, and then creating the entire output in memory (`joinToString()`) before writing it back out.
 
-We sometimes run into these problems like these with functional decomposition.
+We sometimes run into problems like these with functional decomposition.
 Less often than we might anticipate, but in this case it's ironic that the original `Reader` and `Writer` code did not have this issue, so we have brought it on ourselves in the name of good style.
 We could quickly revert our changes and go and see if there are any crumpets left, or we could find a more functional solution.
 
@@ -503,10 +478,10 @@ fun generate(lines: List<String>): List<String> {
 Concentrating on the output for now, we can see that we are building a list of the lines of the output
  - each of those strings won't be sharing any memory with the data that we parsed from the input.
 This is then combined into one large string in `main`, that again doesn't share any memory with the lines that created it.
-In these situations we want to defer the creation of the intermediates, and `Seqeuences` are designed for just that.
+In these situations we want to defer the creation of the intermediates, and, as we saw in <<streams-to-sequences>> `Sequences` are designed for just that.
 As we'll see, they aren't a panacea, but here they will do nicely.
 
-We can convert `generate` to return a sequence by simply methodically or quickly - for once we'll choose quickly and just replace `listOf` with `sequenceOf`:
+We can convert `generate` to return a sequence methodically or quickly - for once we'll choose quickly and just replace `listOf` with `sequenceOf` in our `return` expression:
 
 // begin-insert: tags/bonus.13:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
@@ -524,10 +499,9 @@ fun generate(lines: List<String>): Sequence<String> {
 ----
 // end-insert
 
-Now we will only be creating the output lines one at a time when the stream is iterated.
-So each line can be disposed of quickly rather than hanging around until we have written the whole file.
+Now we will only be creating the output lines one at a time when the stream is iterated -- each line can be disposed of quickly rather than hanging around until we have written the whole file.
 
-The tests have to change to realise the `Sequence`:
+The tests have to change to convert the `Sequence` to a `List`:
 
 // begin-insert: tags/bonus.13:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
 [source,kotlin]
@@ -563,8 +537,8 @@ fun main() {
 ----
 // end-insert
 
-`main` needs to be recompiled now that `generate` returns a `Sequence` rather than a `List`, but its source doesn't need to be changed.
-This is because there are extension functions `joinToString(...)` defined on both `Iterable` and `Sequence`, and the `Sequence` version is a terminal operation.
+`main` needs to be _recompiled_ now that `generate` returns a `Sequence` rather than a `List`, but its source doesn't need to be changed.
+This is because there are extension functions `joinToString(...)` defined on both `Iterable` and `Sequence`, both returning `String`.
 
 It might not _need_ to change, but unless `main` _does_ change, we are still creating one large string of all the output.
 To avoid that we need to get imperative again:
@@ -589,7 +563,7 @@ fun main() {
 The pedantic reader (don't worry, you're amongst friends) will have spotted that this behaviour is subtly different to the `joinToString("\n")` version.
 We're quietly confident that a trailing newline won't break anything, so we press on.
 
-We can always pretend we aren't looping by hiding the iteration:
+We can always pretend we aren't looping by hiding the iteration inside a `Writer::appendLines` extension function that we assumed the Kotlin standard library would define, but doesn't seem to:
 
 // begin-insert: tags/bonus.15:src/main/java/travelator/marketing/HighValueCustomersMain.kt
 [source,kotlin]
@@ -604,7 +578,6 @@ fun main() {
     }
 }
 
-
 fun Writer.appendLines(lines: Sequence<CharSequence>): Writer {
     return this.also {
         lines.forEach(this::appendLine)
@@ -613,7 +586,7 @@ fun Writer.appendLines(lines: Sequence<CharSequence>): Writer {
 ----
 // end-insert
 
-Note that while `Writer.appendLines` is defined as single expression, we agreed in <<multi-to-single-expression-functions>> to use long form where functions are actions, and `appendLines` is defiantly that.
+Note that while the result of `Writer::appendLines` is a single expression, we agreed in <<multi-to-single-expression-functions>> to use long-form where functions are actions, and `appendLines` is defiantly that.
 
 Now each `CustomerData::outputLine` inside `generate` will only be called when its line is required to be written to the `Writer`.
 This saves memory, but has the interesting effect that the code inside `generate` can throw an `IOException` if the writing fails.
@@ -621,12 +594,13 @@ For now, we're going to put that aside, but it will play on our minds until we f
 The truth is that ++Sequence++s let us pretend that we are programming with values and calculations rather than actions, but they are a leaky abstraction.
 
 On the other hand, they have dug us out of a hole here, and writing to a `Sequence` has fewer leaks than reading from one.
-So we'll ship this, having bought ourselves lots of memory headroom with few changes and earned our crumptets. Do they have any butter?
+So we'll push this, having bought ourselves lots of memory headroom with few changes and earned our crumpets.
+Do marketing have any butter?
 
 === Efficient Reading
 
 We would be remiss if we didn't finish the job and pretend that we also need to save memory on reading too.
-Let's try a `Sequence` again.
+Let's try a `Sequence` again:
 
 // begin-insert: tags/bonus.15:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
@@ -684,10 +658,10 @@ Let's cut to the chase and say that the issue is that we end up iterating throug
 Once before we return from `generate` in that `sumByDouble`, and again when we fetch the whole report.
 We will be doing twice as much work as we need to.
 Worse, when we finally get around to passing a `Sequence` reading from a file, we won't be able to iterate over that twice, giving an `IllegalStateException`.
-In the same way that there are differences in the runtime behaviour of ++Lists++s that are not expressed in the type system, instances of ++Sequence++s differ, and they also carry hidden state.
-Iterating over a `Sequence` looks like iterating over from a `List`, but _may_ change the `Sequence` itself by consuming its contents.
+As we saw in <<streams-to-sequences>>, in the same way that there are differences in the runtime behaviour of ++Lists++s that are not expressed in the type system, instances of ++Sequence++s differ, and they also carry hidden state.
+Iterating over a `Sequence` looks like iterating over from a `List`, but will change the `Sequence` itself by consuming its contents.
 
-We can check that we aren't abusing this `Sequence` by adding a `.constrainOnce()` call:
+We can show that we are abusing this `Sequence` by adding a `.constrainOnce()` call:
 
 // begin-insert: tags/bonus.17:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
@@ -702,7 +676,7 @@ We can check that we aren't abusing this `Sequence` by adding a `.constrainOnce(
 ----
 // end-insert
 
-This will cause our tests to fail with the `IllegalStateException`.
+This will cause our tests to fail with an `IllegalStateException`.
 The simplest fix is to resolve the `Sequence` with a `.toList()` call.
 
 // begin-insert: tags/bonus.18:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
@@ -721,7 +695,7 @@ The simplest fix is to resolve the `Sequence` with a `.toList()` call.
 
 This will lead to our terminating the whole sequence (and hence ultimately reading the whole file) in that statement, but at least it will only try once, and the memory for each line can be discarded as soon as it is parsed.
 
-Now we can replay the "Introduce parameter" refactoring with the `lines.asSequence()` expression to convert `generate` to take `Sequence<String>`:
+Now we can replay the "Introduce parameter" refactoring with the `lines.asSequence().constrainOnce()` expression to convert `generate` to take `Sequence<String>`:
 
 // begin-insert: tags/bonus.19:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
@@ -745,8 +719,7 @@ private fun List<CustomerData>.summarised(): String =
 ----
 // end-insert
 
-As before we can now remove the fake-IO from the tests.
-It's worth putting the `constrainOnce()` into `check` to ensure that we don't accidentally try to consume the input twice again.
+Converting a `List` to a `Sequence` will have been pulled up into the tests:
 
 // begin-insert: tags/bonus.19:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
 [source,kotlin]
@@ -755,34 +728,17 @@ private fun check(
     inputLines: List<String>,
     expectedLines: List<String>
 ) {
-    val lines = inputLines.asSequence().constrainOnce()
     assertEquals(
         expectedLines,
-        generate(lines).toList()
+        generate(
+            inputLines.asSequence().constrainOnce()
+        ).toList()
     )
 }
 ----
 // end-insert
 
-We now get to the point, which was to allow `main` to pass a `Sequence` representing the input lines rather than reading them all at once.
-Rather than `readLines()`:
-
-// begin-insert: tags/bonus.18:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
-[source,kotlin]
-----
-fun main() {
-    System.`in`.reader().use { reader ->
-        System.out.writer().use { writer ->
-            writer.appendLines(
-                generate(reader.readLines())
-            )
-        }
-    }
-}
-----
-// end-insert
-
-we use `buffered().lineSequece()`:
+It will also have been pulled up into `main`:
 
 // begin-insert: tags/bonus.19:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
 [source,kotlin]
@@ -791,7 +747,28 @@ fun main() {
     System.`in`.reader().use { reader ->
         System.out.writer().use { writer ->
             writer.appendLines(
-                generate(reader.buffered().lineSequence())
+                generate(
+                    reader.readLines().asSequence().constrainOnce()
+                )
+            )
+        }
+    }
+}
+----
+// end-insert
+
+Instead of reading all the lines as once and converting to a `Sequence`, we can get a `Sequence` from the `Reader` with `buffered().lineSequence()`:
+
+// begin-insert: tags/bonus.19.5:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
+[source,kotlin]
+----
+fun main() {
+    System.`in`.reader().use { reader ->
+        System.out.writer().use { writer ->
+            writer.appendLines(
+                generate(
+                    reader.buffered().lineSequence()
+                )
             )
         }
     }
@@ -819,7 +796,7 @@ fun main() {
 ----
 // end-insert
 
-Which finally answers the question we posed back in <<functions-to-extension-functions>> - yes we do end up with report generation as an extension function.
+Which finally answers the question we posed back in <<functions-to-extension-functions>> - yes we do end up with report generation as an extension function:
 
 // begin-insert: tags/bonus.20:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
@@ -838,7 +815,17 @@ fun Sequence<String>.toHighValueCustomerReport(): Sequence<String> {
 ----
 // end-insert
 
-Before we go, we should note once more that while the original version of `generate` had to worry about `IOExceptions`, the new version doesn't.
+=== Conclusion
+
+That completes our moving of the input and output from the inside of `generate` to the outside of our program.
+Actually, we technically refactored IO out, converting `generate` to a calculation on `List<String>`, only until that became too inefficient.
+Calculations take and return values, and forming a value of the entire contents of large files may be too much for even today's computers.
+
+At this point we resorted to converting our ++List++s to ++Sequence++s.
+Sequences have state and are not values, but with a little care we can treat them like lazy values -- lazy in that we don't need all their contents up front, but can read or supply them on demand.
+They aren't as simple as values, but their compatible Kotlin API allows something of the best of both worlds.
+
+Before we go, we should note that while the original version of `generate` had to worry about `IOExceptions`, the new version doesn't.
 Or at least, the new version doesn't worry about IO errors because they are hidden from it by the `Sequence` abstractions wrapping the `Reader` and `Writer`.
 That doesn't mean that they can't happen, just that `generate` isn't warned that they can.
 We'll take a break to see if marketing have any more batter-based rewards before addressing that topic in <<bonus-error-handling>>.
