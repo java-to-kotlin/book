@@ -5,9 +5,10 @@ Our systems are composed of types and operations, nouns and verbs.
 In Java, nouns are expressed as classes, verbs as methods on those classes.
 Kotlin gives us another way to combine these parts, how should that change the way we write software?
 
-A constant challenge of software design is managing _variability_: how can we add new behaviour without having to change many parts of the code at once?
-We can think of variability as affecting two dimensions: over the lifetime of our software we change the set of data types in our system, and the set of operations we need to apply to those data types.
-Different language features, and different languages, provide more or less support for variation along each dimension.
+A constant challenge of software design is managing _variability_: how can we add new behaviour, or remove obsolete behaviour, without having to change many parts of the code at once?
+Variability acts in two dimensions: the data types in our system, and theoperations that apply to those data types.
+Different language features make it more or less easy to vary a module along one dimension or another without affecting the modules that depend on it.
+Some language features make it easy to add new data types, but require more work to add new operations, and vice versa.
 
 // Open/closed adding rather than changing code.
 // Change risks breaking existing functionality
@@ -17,7 +18,7 @@ Different language features, and different languages, provide more or less suppo
 // On re-reading, maybe Itinerary is the example and we can pull bits of the more concrete discussion up, or push bits of this down?
 
 Java's principal feature to support variability is object-oriented polymorphism.
-We define operations as polymorphic methods on classes or interfaces that can be implemented or overridden by subclasses.
+We define operations as polymorphic methods on classes or interfaces and implement or override them in subclasses.
 It is easy to add new types that have their own implementation of existing operations.
 However, every time we want to add a new operation, we have to add it to the supertype and add an implementation to all existing subtypes.
 Also, because we must define operations on the types, interfaces or superclasses tend to "attract" behaviour to support distantly related parts of the application.
@@ -27,25 +28,26 @@ Paradoxically, where we need variability of operations rather than data types, o
 Java doesn't have a mechanism to support variability when the set of operations changes more frequently than the set of data types.
 Design patterns that help us work around this limitation, such as Double Dispatch or Visitor, require boilerplate code and don't play well with Java's checked exceptions.
 // Verbing wierds English. Design patterns are nouning - making operations into nouns (types) because that is all that Java has?
-As a last resort, Java programmers turn to runtime type checks, using the `instanceof` and downcast operators, to run different code for different classes of object.
+As a last resort, Java programmers turn to runtime type checks, using the `instanceof` and downcast operators to run different code for different classes of object.
 This is risky.
 The compiler can type check our use of polymorphic methods, but cannot tell if our runtime type checks cover all necessary cases, or if they cover _unnecessary_ cases.
 When we change code, it is easy to introduce bugs or leave dead code in the codebase that is hard to recognise and remove.
 // Example
 
 Kotlin classes, like Java classes, can have polymorphic methods and implement interfaces.
-In addition, Kotlin has another mechanism for organising classes and behaviour: _sealed classes_.
+Kotlin has another mechanism for organising classes and behaviour: _sealed classes_.
 A sealed class is an abstract class with a fixed set of direct subclasses.
-The sealed class and direct subclasses must be defined in the same source file (experimentally package in Kotlin 1.4) - the compiler prevents you from extending the sealed class elsewhere.
+You must define the sealed class and its subclasses in the same source file (experimentally package in Kotlin 1.4) - the compiler prevents you from extending the sealed class elsewhere.
 Thanks to this restriction, runtime type checks on sealed class hierarchies do not have the same problem as runtime type checks in Java.
 The static type checker can guarantee that `when` expressions that perform runtime type checks for a subtype of a sealed class cover all possible cases and only possible cases.
 It is much easier to write another function that is conditional on the concrete subclass of a sealed class than it is to add another subclass to every existing when expression.
 // This isn't very clear
 
-Managing variability in a Kotlin codebase means recognising when to apply which mechanism: object-oriented polymorphism when the set of data types varies more frequently than the set of operations on those data types; runtime type checks of sealed class hierarchies when the set of operations varies more frequently than the set of data types they apply to.
-Unlike Haskell, Scala, Rust or Swift, Kotlin has no mechanism that lets us vary both types _and_ operations without modifying existing code.
-// Are we going to say typeclasses here?
-We have to choose which approach to use for a class based on the dimension, types or operations, we expect to vary most frequently as the program evolves.
+In some languages -- for example, Haskell, Scala, Rust, Swift, or even the venerable Common Lisp -- we can vary types _and_ operations without modifying existing code.
+We cannot do that in Kotlin.
+When we're designing in Kotlin, we have to choose between object-oriented polymorphism or sealed classes based on the dimension -- types or operations -- we expect to vary most frequently as the program evolves:
+object-oriented polymorphism when the set of data types varies more frequently than the set of operations on those data types;
+runtime type checks of sealed class hierarchies when the set of operations varies more frequently than the set of data types they apply to.
 
 
 === Itinerary -- A Core Type in Our Application
@@ -58,42 +60,31 @@ In <<accumulating-objects-to-transformations>> we modelled the itinerary as a da
 As we extended the application and added more types of item to the itinerary, we found it increasingly cumbersome to hold each type of itinerary item in a separate collection.
 Too much of our code involved combining those collections or applying the same filters and transforms to separate collections.
 We decided to maintain a single collection of itinerary items rather than keep each type of itinerary item in a separate collection.
-In this model, an `Itinerary` _is_ a list of `ItineraryItem`, just as we defined a `Route` to be a list of `Journey` in <<encapsulated-collections-to-typealiases>>.
 
-// begin-insert: tags/open-to-sealed.0:src/main/java/travelator/itinerary/Itinerary.kt
+// begin-insert: tags/open-to-sealed-2.0:src/main/java/travelator/itinerary/Itinerary.kt
 [source,kotlin]
 ----
-typealias Itinerary = List<ItineraryItem>
+data class Itinerary(
+    val id: Id<Itinerary>,
+    val items: List<ItineraryItem>
+) : Iterable<ItineraryItem> by items
 ----
 // end-insert
 
 `ItineraryItem` is an interface, implemented by the concrete item types: `Journey`, `Accommodation`, `Restaurant` and `Attraction`.
 
-// begin-insert: tags/open-to-sealed.0:src/main/java/travelator/itinerary/ItineraryItem.kt#item
+// begin-insert: tags/open-to-sealed-2.0:src/main/java/travelator/itinerary/ItineraryItem.kt#item
 [source,kotlin]
 ----
 interface ItineraryItem {
-    fun description(): String
-    fun costs(): Sequence<Money>
-    fun geoShape(): GeoShape
-    fun timespan(): ClosedRange<ZonedDateTime>?
-    fun sufferScore(): Int = 0
+    val description: String
+    val costs: List<Money>
+    val geoShape: GeoShape
+    val sufferScore: Int
     ... and other methods
 }
 ----
 // end-insert
-
-// TODO: Sequence<Money> is a bit pathological?
-// Why funs not vals?
-
-// TODO: Since Itinerary gained an id in <<encapsulated-collections-to-typealiases>> this isn't true
-.Aside
-****
-This design has the pleasing effect that a `Route`, which we get back from our routing service, already _is_ an `Itinerary`.
-Because a `Journey` is a subtype of `ItineraryItem`, and `List` is declared as `List<out T>` because it is unmodifiable, a `List<Journey>` is a subtype of `List<ItineraryItem>`.
-We can receive a `Route` from our routing service and start using it as an `Itinerary` -- for example, to add accommodation -- without having to copy elements from one type to the other.
-This is entirely safe: a Route is immutable, so adding accommodation to a Route we are using as an Itinerary creates a _new_ Itinerary and leaves the original Route unchanged.
-****
 
 Giving all itinerary items a polymorphic interface means the itinerary operations do not depend on the concrete type of the items in the itinerary.
 For example:
