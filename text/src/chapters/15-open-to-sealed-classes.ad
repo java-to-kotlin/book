@@ -112,7 +112,6 @@ if (item instanceof Journey) {
 ----
 // end-insert
 
-
 This approach is risky.
 While the compiler can type check our calls to polymorphic methods, our hand-coded runtime type checks and casts are explicitly circumventing compile-time type checks.
 The type checker cannot tell if our casts are correct or if our conditional statement is _exhaustive_ -- has tested for all possible subclasses.
@@ -122,27 +121,32 @@ In this example, we _have_ missed a subclass: our application will throw an exce
 As a result, even if we get the code right when we write it, as we change our code it is easy to introduce bugs or leave dead code in the codebase that is hard to recognise and remove.
 
 Those options are available in Kotlin too, and carry the same overheads and risks.
-However, Kotlin has another mechanism for organising classes and behaviour that make runtime type checks safe and convenient: _sealed classes_.
+However, Kotlin has another mechanism for organising classes and behaviour that makes runtime type checks safe and convenient: _sealed classes_.
 A sealed class is an abstract class with a fixed set of direct subclasses.
 You must define the sealed class and its subclasses in the same source file, the compiler prevents you from extending the sealed class elsewhere footnote:[As an experimental feature, Kotlin 1.4 relaxes this restriction and allows sealed classes to be in different files in the same module and package.].
 Thanks to this restriction, runtime type checks on sealed class hierarchies do not have the same problem as runtime type checks in Java.
 The static type checker can guarantee that `when` expressions that perform runtime type checks for a subtype of a sealed class cover all possible cases and only the possible cases.
 
-Compared to polymorphic methods, sealed classes and when expressions make it easy to add new operations that apply to a fixed type hierarchy, but you will have to change all those operations when you add a new type to that hiearchy.
-However, the compiler will guarantee that all those operations are correct.
+// TODO insert example of safe kotlin when expression here
 
-In some languages -- for example, Haskell, Scala, Rust, Swift, or even the venerable Common Lisp -- we can vary types _and_ operations without modifying existing code.
-We cannot do that in Kotlin.
+Compared to polymorphic methods, sealed classes and when expressions make it easy to add new operations that apply to a fixed type hierarchy, but you will have to change all those operations if you add a new type to that hierarchy.
+However, the compiler will help you by checking that all those operations cover all possible types in the hierarchy.
+
+// TODO should this move to the conclusion?
+Some languages have mechanisms that let us vary types _and_ operations without modifying existing code.
+Haskell has type classes, Scala has implicit parameters, Rust has traits, Swift has protocols, and Clojure and Common Lisp have polymorphic functions that dispatch on the classes of multiple arguments.
+Kotlin doesn't have any equivalent.
 When we're designing in Kotlin, we have to choose between object-oriented polymorphism or sealed classes based on the dimension -- types or operations -- we expect to vary most frequently as the program evolves:
 object-oriented polymorphism when the set of data types varies more frequently than the set of operations on those data types;
 runtime type checks of sealed class hierarchies when the set of operations varies more frequently than the set of data types they apply to.
 
-
 === Converting the Interface to a Sealed Class
 
-// TODO motivate it here...
+// TODO expand motivation here...
+Want to export an Itinerary into the traveller's calendar app.
+Don't want to add yet another methods to the `ItineraryItem` interface and couple the core classes of our application's domain to the needs of yet another of its peripheral modules.
 
-Let's convert `ItineraryItem` from an interface with polymorphic methods into a sealed class hierarchy and free-standing functions.
+Let's convert `ItineraryItem` from an interface with polymorphic methods into a sealed class hierarchy and free-standing functions, and move those free-standing functions into the modules that need them.
 
 In the version of Kotlin we're using, a sealed class and all its direct subclasses must be defined in the same file.
 So we must first use the IDE's Move Class refactoring to move the implementations of `ItineraryItem` into the same file as the interface.
@@ -193,11 +197,17 @@ data class Accommodation(
 
 <4> The declaration of the interface in the concrete item classes must be replaced with a call to the superclass constructor, which in our case has no arguments.
 
-Now we can move operations from being polymorphic methods defined on the sealed class and into extension functions that use `when` expressions to switch on the type of item.
+Kotlin 1.5 will support sealed _interfaces_, which will make this refactoring easier -- those manual editing steps will not be necessary.
 
-Let's do this with the `timespan` method.
+That's enough for us write a function to create calendar events from itinerary items without changing the `ItineraryItem` classes.
+We'll do that now to get some immediate value, and continue refactoring to make the other operations on `ItineraryItem` work the same way.
 
-When we Alt-Enter on the definition of `timespan` in `ItineraryItem`, the context menu includes the action "Convert member to extension".
+// TODO new method here...
+
+Now let's go back to refactoring the `ItineraryItem` methods from being polymorphic methods defined on the sealed class to extension functions that use `when` expressions to switch on the type of item.
+We'll start with the `mapOverlay` property getter:
+
+When we Alt-Enter on the definition of `mapOverlay` in `ItineraryItem`, the context menu includes the action "Convert member to extension".
 Can it really be that easy?
 Unfortunately, no.
 At the time of writing, the IDE action only gets us part of the way there and leaves us with code that does not compile.
