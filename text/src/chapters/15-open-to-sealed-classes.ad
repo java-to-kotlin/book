@@ -2,20 +2,106 @@
 == Open to Sealed Classes
 
 Our systems are composed of types and operations, nouns and verbs.
-In Java, nouns are expressed as classes, verbs as methods on those classes.
-Kotlin gives us another way to combine these parts, how should that change the way we write software?
+In Java, nouns are expressed as classes and interfaces, verbs as methods.
+Kotlin gives us other ways to combine these parts: free-standing functions, and sealed class hierarchies.
+How do we choose between them?
 
-A constant challenge of software design is managing _variability_: how can we add new behaviour, or remove obsolete behaviour, without having to change many parts of the code at once?
-Variability acts in two dimensions: the data types in our system, and theoperations that apply to those data types.
-Different language features make it more or less easy to vary a module along one dimension or another without affecting the modules that depend on it.
-Some language features make it easy to add new data types, but require more work to add new operations, and vice versa.
+== Variability of Software
 
-// Open/closed adding rather than changing code.
-// Change risks breaking existing functionality
-// Not to be confused with refactoring - changing code to get it to the place where a feature can be implemented as an addition.
+A constant challenge in designing software is _variability_.
+The more people use our software, the more they think of things they want it to do.
+To extend our software to support new use cases we need to add new functions that apply to the software's existing data types, or add new data types that we can pass to its existing functions.
+If our design is aligned well with the way the software has to evolve, then we can add a new features by adding new code and making very few, localised changes to our existing code.
+If not, then we will have to change many functions when we add a new data type, or change many data types when we need to add a function.
 
-// TODO: An example for the following paragraphs
-// On re-reading, maybe Itinerary is the example and we can pull bits of the more concrete discussion up, or push bits of this down?
+There are some fundamental entities in our system where we feel this tension between the variability of data types and of functions most keenly.
+
+For example, the traveller's itinerary is a core concept in our "Travelator" application.
+Many features of the application present views of, alter the contents of, or calculate information about itineraries.
+It's no surprise that many of the feature requests from our users affect the `Itinerary` type.
+Our travellers want to include more kinds of things in their itineraries -- not just journeys and accommodation, as we saw in <<refactoring-to-extension-functions>>, but restaurant bookings and tourist attractions they want to visit along the route.
+They also want to do more things with their itineraries -- estimate how much they will cost, as we saw in <<accumulating-objects-to-transformations>>, compare them by cost, time or comfort, view them on a map, import them into their calendar, share them with their friends, ... their imagination is endless.
+
+When we last looked at the `Itinerary` class, in <<accumulating-objects-to-transformations>>, we modelled the itinerary as a data class with a property holding the route and another holding the accommodation required along the route.
+Since then, we have added more features to the application and added more types of item to the itinerary.
+We found it increasingly cumbersome to hold each type of itinerary item in a separate collection.
+Too much of our code involved combining those collections or applying the same filters and transforms to separate collections.
+Therefore, we decided that the `Itinerary` would maintain a single collection of `ItineraryItems` rather than keep each type of item in a separate collection.
+
+// begin-insert: tags/open-to-sealed-2.0:src/main/java/travelator/itinerary/Itinerary.kt#itinerary
+[source,kotlin]
+----
+data class Itinerary(
+    val id: Id<Itinerary>,
+    val items: List<ItineraryItem>
+) : Iterable<ItineraryItem> by items
+----
+// end-insert
+
+`ItineraryItem` is an interface, implemented by the concrete item types: `Journey`, `Accommodation`, `RestaurantBooking` and `Attraction`.
+
+// begin-insert: tags/open-to-sealed-2.0:src/main/java/travelator/itinerary/ItineraryItem.kt#item
+[source,kotlin]
+----
+interface ItineraryItem {
+    val id: Id<ItineraryItem>
+    val description: String
+    val costs: List<Money>
+    val mapOverlay: MapOverlay
+    val sufferScore: Int
+    ... and other methods
+}
+----
+// end-insert
+
+For example:
+
+// begin-insert: tags/open-to-sealed-2.0:src/main/java/travelator/itinerary/Accommodation.kt#item
+[source,kotlin]
+----
+data class Accommodation(
+    override val id: Id<Accommodation>,
+    val location: Location,
+    val checkInFrom: ZonedDateTime,
+    val checkOutBefore: ZonedDateTime,
+    val pricePerNight: Money
+) : ItineraryItem {
+    val nights = Period.between(checkInFrom.toLocalDate(), checkOutBefore.toLocalDate()).days
+    val totalPrice: Money = pricePerNight * nights
+
+    override val description
+        get() = "$nights nights at ${location.userReadableName}"
+    override val costs
+        get() = listOf(totalPrice)
+    override val mapOverlay
+        get() = PointOverlay(
+            id = id,
+            position = location.position,
+            text = location.userReadableName,
+            icon = StandardIcons.HOTEL
+        )
+    override val sufferScore
+        get() = 0
+
+    ... and other methods
+}
+----
+// end-insert
+
+Operations on `Itinerary` do not depend on the concrete type of its items.
+For example, to display the itinerary on a map, we create a map overlay that will be rendered on top of map tiles in the front-end.  The overlay for the itinerary groups the overlays for all the items it contains.  Some of those will be represented by points, some by paths, and some by areas, and a journey will itself be represented by a group start and end points and a path between them.  But the `Itinerary` class doesn't need to know.
+
+// begin-insert: tags/open-to-sealed-2.0:src/main/java/travelator/itinerary/Itinerary.kt#mapOverlay
+[source,kotlin]
+----
+fun Itinerary.mapOverlay() = OverlayGroup(
+    id = id,
+    elements = items.map { it.mapOverlay })
+----
+// end-insert
+
+
+Its Java ancestry is clearly evident.
 
 Java's principal feature to support variability is object-oriented polymorphism.
 We define operations as polymorphic methods on classes or interfaces and implement or override them in subclasses.
@@ -23,6 +109,17 @@ It is easy to add new types that have their own implementation of existing opera
 However, every time we want to add a new operation, we have to add it to the supertype and add an implementation to all existing subtypes.
 Also, because we must define operations on the types, interfaces or superclasses tend to "attract" behaviour to support distantly related parts of the application.
 Paradoxically, where we need variability of operations rather than data types, object-oriented polymorphism can _increase_ coupling!
+
+We can certainly see this in the `ItineraryItem` interface.
+The interface has properties to support rendering, cost estimation, ranking by comfort, drawing maps, and more hidden beyond those elipsis.
+
+
+
+
+// Open/closed adding rather than changing code.
+// Change risks breaking existing functionality
+// Not to be confused with refactoring - changing code to get it to the place where a feature can be implemented as an addition.
+
 // Reference the collections to type aliases example where we discuss coupling?
 
 Java doesn't have a mechanism to support variability when the set of operations changes more frequently than the set of data types.
@@ -50,43 +147,12 @@ object-oriented polymorphism when the set of data types varies more frequently t
 runtime type checks of sealed class hierarchies when the set of operations varies more frequently than the set of data types they apply to.
 
 
-=== Itinerary -- A Core Type in Our Application
 
-We can see this tension play out in the evolution of the `Itinerary` type.
-The traveller's itinerary is a core concept in our travel planning application.
-Many features of the application present views of, alter the contents of, or calculate information about `Itinerary` objects.
 
-In <<accumulating-objects-to-transformations>> we modelled the itinerary as a data class with fields holding the route and a list of accommodation required along the route.
-As we extended the application and added more types of item to the itinerary, we found it increasingly cumbersome to hold each type of itinerary item in a separate collection.
-Too much of our code involved combining those collections or applying the same filters and transforms to separate collections.
-We decided to maintain a single collection of itinerary items rather than keep each type of itinerary item in a separate collection.
+TEXT MOVED UP FROM HERE
 
-// begin-insert: tags/open-to-sealed-2.0:src/main/java/travelator/itinerary/Itinerary.kt
-[source,kotlin]
-----
-data class Itinerary(
-    val id: Id<Itinerary>,
-    val items: List<ItineraryItem>
-) : Iterable<ItineraryItem> by items
-----
-// end-insert
 
-`ItineraryItem` is an interface, implemented by the concrete item types: `Journey`, `Accommodation`, `Restaurant` and `Attraction`.
 
-// begin-insert: tags/open-to-sealed-2.0:src/main/java/travelator/itinerary/ItineraryItem.kt#item
-[source,kotlin]
-----
-interface ItineraryItem {
-    val description: String
-    val costs: List<Money>
-    val geoShape: GeoShape
-    val sufferScore: Int
-    ... and other methods
-}
-----
-// end-insert
-
-Giving all itinerary items a polymorphic interface means the itinerary operations do not depend on the concrete type of the items in the itinerary.
 For example:
 
 // begin-insert: tags/open-to-sealed.0:src/main/java/travelator/itinerary/ItineraryTimespan.kt
