@@ -155,33 +155,42 @@ Now we can turn the interface and its implementations into a sealed class hieara
 IntelliJ does not have an automated refactoring for this, so we have to do it by manually editing the code.
 At least this is made easier by now having all the classes in the same file.
 
-// TODO reproduce these steps on the new branch
-
-// begin-insert: tags/open-to-sealed.2:src/main/java/travelator/itinerary/Itinerary.kt#sealed
+// begin-insert: tags/open-to-sealed-2.2:src/main/java/travelator/itinerary/ItineraryItem.kt#sealed
 [source,kotlin]
 ----
 sealed class ItineraryItem { // <1>
-    abstract fun description(): String // <2>
-    abstract fun costs(): Sequence<Money>
-    abstract fun geoShape(): GeoShape
-    abstract fun timespan(): ClosedRange<ZonedDateTime>?
-    open fun sufferScore(): Int = 0 // <3>
+    abstract val id: Id<ItineraryItem> // <2>
+    abstract val description: String
+    abstract val costs: List<Money>
+    abstract val mapOverlay: MapOverlay
+    abstract val sufferScore: Int
     ... and other methods
 }
 
 data class Accommodation(
+    override val id: Id<Accommodation>,
     val location: Location,
     val checkInFrom: ZonedDateTime,
     val checkOutBefore: ZonedDateTime,
     val pricePerNight: Money
-) : ItineraryItem() { // <4>
-    val nights = Duration.between(checkInFrom, checkOutBefore).toDays().toInt()
+) : ItineraryItem() { // <3>
+    val nights = Period.between(checkInFrom.toLocalDate(), checkOutBefore.toLocalDate()).days
     val totalPrice: Money = pricePerNight * nights
 
-    override fun description() = "$nights nights at ${location.userReadableName}"
-    override fun costs() = sequenceOf(totalPrice)
-    override fun geoShape(): GeoShape = pointShape(location.position)
-    override fun timespan() = checkInFrom..checkOutBefore
+    override val description
+        get() = "$nights nights at ${location.userReadableName}"
+    override val costs
+        get() = listOf(totalPrice)
+    override val mapOverlay
+        get() = PointOverlay(
+            id = id,
+            position = location.position,
+            text = location.userReadableName,
+            icon = StandardIcons.HOTEL
+        )
+    override val sufferScore
+        get() = 0
+
     ... and other methods
 }
 
@@ -189,15 +198,15 @@ data class Accommodation(
 ----
 // end-insert
 
-<1> The class declaration is marked with the `sealed` modifier.
+<1> We declare `ItineraryItem` as a `sealed class` instead of an `interface`.
 
-<2> Because `ItineraryItem` is now a class, not an interface, abstract methods must now be explicitly declared as `abstract`.
+<2> Because it is now a class, we have to explicitly mark its methods as `abstract`.  If the interface had had any methods with a default implementation, we'd have had to declare them as `open` so that subclasses could still override them.
 
-<3> Any methods of the interface that had a default implementation must be declared as `open` so they can be overridden by subclasses.
+<3> We change the declaration of the interface in the concrete item classes with a call to the superclass constructor.
 
-<4> The declaration of the interface in the concrete item classes must be replaced with a call to the superclass constructor, which in our case has no arguments.
-
-Kotlin 1.5 will support sealed _interfaces_, which will make this refactoring easier -- those manual editing steps will not be necessary.
+****
+Kotlin 1.5 will support sealed _interfaces_, which will make this refactoring easier -- these manual editing steps will not be necessary.
+****
 
 That's enough for us write a function to create calendar events from itinerary items without changing the `ItineraryItem` classes.
 We'll do that now to get some immediate value, and continue refactoring to make the other operations on `ItineraryItem` work the same way.
@@ -211,6 +220,8 @@ When we Alt-Enter on the definition of `mapOverlay` in `ItineraryItem`, the cont
 Can it really be that easy?
 Unfortunately, no.
 At the time of writing, the IDE action only gets us part of the way there and leaves us with code that does not compile.
+
+// TODO reproduce these steps on the new branch
 
 // begin-insert: tags/open-to-sealed.3:src/main/java/travelator/itinerary/Itinerary.kt#sealed
 [source,kotlin]
@@ -252,6 +263,8 @@ data class Accommodation(
 <3> ... and left `override` modifiers on the `timespan` methods in the concrete subclasses, which no longer have a method in the superclass to override.
 
 We'll have to fix it up by hand by removing the `override` modifiers, and implementing the body extension function as a `when` expression that switches on the type of `ItineraryItem` and calls the now monomorphic `timespan` method on each concrete class.
+
+// TODO reproduce these steps on the new branch
 
 // begin-insert: tags/open-to-sealed.4:src/main/java/travelator/itinerary/Itinerary.kt#sealed
 [source,kotlin]
@@ -328,6 +341,7 @@ when (instanceOfSealedClass) {
 // end-insert
 ====
 
+// TODO reproduce these steps on the new branch
 
 We can inline those `timespan` methods into the extension function, removing them from the concrete classes.
 
@@ -359,6 +373,8 @@ data class Accommodation(
 ... and other subclasses
 ----
 // end-insert
+
+// TODO reproduce these steps on the new branch
 
 // TODO: Now we're here, I don't know that timespan is a good example.
 // It feels like a fundamental operation of ItineraryItem that should be a method.
@@ -411,6 +427,3 @@ Which to choose depends on what we expect to vary most frequently as the code ev
 When modelling our domain we have to make a choice whether operations will be dispatched by object-oriented polymorphism or by testing for subtypes of a sealed class.
 If our bet turns out to have been wrong, we have to refactor from one form to the other.
 
-In this chapter, we refactored from object-oriented polymorphism to sealed classes.
-In <<sealed-to-open-classes>> we go the other way.
-// TODO: Oh no we don't!
