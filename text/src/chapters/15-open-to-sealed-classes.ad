@@ -48,7 +48,6 @@ interface ItineraryItem {
     val description: String
     val costs: List<Money>
     val mapOverlay: MapOverlay
-    val sufferScore: Int
     ... and other methods
 }
 ----
@@ -204,17 +203,55 @@ data class Accommodation(
 
 <3> We change the declaration of the interface in the concrete item classes with a call to the superclass constructor.
 
-****
-Kotlin 1.5 will support sealed _interfaces_, which will make this refactoring easier -- these manual editing steps will not be necessary.
-****
+NOTE: Kotlin 1.5 will support sealed _interfaces_, which will make this refactoring easier -- these manual editing steps will not be necessary.
 
 That's enough for us write a function to create calendar events from itinerary items without changing the `ItineraryItem` classes.
 We'll do that now to get some immediate value, and continue refactoring to make the other operations on `ItineraryItem` work the same way.
 
-// TODO new method here...
+// begin-insert: tags/open-to-sealed-2.3:src/main/java/travelator/calendar/ItineraryToCalendar.kt
+[source,kotlin]
+----
+fun Itinerary.toCalendar() = Calendar(
+    id = Id.derivedFrom(id),
+    events = mapNotNull { it.toCalendarEvent() }
+)
 
-Now let's go back to refactoring the `ItineraryItem` methods from being polymorphic methods defined on the sealed class to extension functions that use `when` expressions to switch on the type of item.
-We'll start with the `mapOverlay` property getter:
+private fun ItineraryItem.toCalendarEvent(): CalendarEvent? = when (this) {
+    is Accommodation -> CalendarEvent(
+        start = checkInFrom,
+        end = checkOutBefore,
+        description = description,
+        icon = StandardIcons.HOTEL,
+        alarms = listOf(
+            Alarm(checkInFrom, "Check in open"),
+            Alarm(checkOutBefore.minusHours(1), "Check out")
+        )
+    )
+    is Attraction -> null
+    is Journey -> CalendarEvent(
+        start = departureTime,
+        end = arrivalTime,
+        description = description,
+        icon = StandardIcons.iconFor(travelMethod),
+        location = departsFrom,
+        alarms = listOf(
+            Alarm(departureTime.minusHours(1)))
+    )
+    is RestaurantBooking -> CalendarEvent(
+        start = time,
+        end = time + Duration.ofHours(2),
+        description= description,
+        icon = StandardIcons.RESTAURANT,
+        location = location,
+        alarms = listOf(
+            Alarm(time.minusHours(1)))
+    )
+}
+----
+// end-insert
+
+Let's refactor the rest of the `ItineraryItem` methods from being polymorphic methods defined on the sealed class to extension functions that use `when` expressions to switch on the type of item.
+We'll walk through the process with the `mapOverlay` property getter, which returns a representation of the Itinerary item to be drawn onto a map.
 
 When we Alt-Enter on the definition of `mapOverlay` in `ItineraryItem`, the context menu includes the action "Convert member to extension".
 Can it really be that easy?
@@ -223,91 +260,67 @@ At the time of writing, the IDE action only gets us part of the way there and le
 
 // TODO reproduce these steps on the new branch
 
-// begin-insert: tags/open-to-sealed.3:src/main/java/travelator/itinerary/Itinerary.kt#sealed
+// begin-insert: tags/open-to-sealed-2.4:src/main/java/travelator/itinerary/ItineraryItem.kt#item
 [source,kotlin]
 ----
 sealed class ItineraryItem {
-    abstract fun description(): String
-    abstract fun costs(): Sequence<Money>
-    abstract fun geoShape(): GeoShape
-    open fun sufferScore(): Int = 0 // <1>
+    abstract val id: Id<ItineraryItem>
+    abstract val description: String
+    abstract val costs: List<Money> // <1>
     ... and other methods
 }
 
-fun ItineraryItem.timespan(): ClosedRange<ZonedDateTime>? { // <2>
-    TODO("Not yet implemented")
-}
+val ItineraryItem.mapOverlay: MapOverlay // <2>
+    get() = TODO("Not yet implemented")
 
 data class Accommodation(
+    override val id: Id<Accommodation>,
     val location: Location,
     val checkInFrom: ZonedDateTime,
     val checkOutBefore: ZonedDateTime,
     val pricePerNight: Money
 ) : ItineraryItem() {
-    val nights = Duration.between(checkInFrom, checkOutBefore).toDays().toInt()
+    val nights = Period.between(checkInFrom.toLocalDate(), checkOutBefore.toLocalDate()).days
     val totalPrice: Money = pricePerNight * nights
 
-    override fun description() = "$nights nights at ${location.userReadableName}"
-    override fun costs() = sequenceOf(totalPrice)
-    override fun geoShape(): GeoShape = pointShape(location.position)
-    override fun timespan() = checkInFrom..checkOutBefore // <3>
+    override val description
+        get() = "$nights nights at ${location.userReadableName}"
+    override val costs
+        get() = listOf(totalPrice)
+    override val mapOverlay // <3>
+        get() = PointOverlay(
+            id = id,
+            position = location.position,
+            text = location.userReadableName,
+            icon = StandardIcons.HOTEL
+        )
+
     ... and other methods
 }
-
-... and other subclasses
 ----
 // end-insert
 
-<1> The IDE removed the timespan method from the `ItineraryItem` class ...
-<2> ... but it generated a `timespan` extension function that contains only a `TODO` that throws `UnsupportedOperationException` ...
-<3> ... and left `override` modifiers on the `timespan` methods in the concrete subclasses, which no longer have a method in the superclass to override.
+<1> The IDE removed the mapOverlay method from the `ItineraryItem` class ...
+<2> ... and replaced it with an extension function. Unfortunately the extension function only contains a `TODO` that throws `UnsupportedOperationException`.
+<3> The IDE left `override` modifiers on the `mapOverlay` properties in the subclasses, which no longer have a method in the superclass to override.
 
-We'll have to fix it up by hand by removing the `override` modifiers, and implementing the body extension function as a `when` expression that switches on the type of `ItineraryItem` and calls the now monomorphic `timespan` method on each concrete class.
+We can get the code compiling again by removing the `override` modifiers in the subclasses.
+Then we'll make the code actually work by implementing the body of an extension function as a `when` expression that switches on the type of `ItineraryItem` and calls the now monomorphic `mapOverlay` getter on each concrete class.
 
-// TODO reproduce these steps on the new branch
-
-// begin-insert: tags/open-to-sealed.4:src/main/java/travelator/itinerary/Itinerary.kt#sealed
+// begin-insert: tags/open-to-sealed-2.5:src/main/java/travelator/itinerary/ItineraryItem.kt#mapOverlay
 [source,kotlin]
 ----
-sealed class ItineraryItem {
-    abstract fun description(): String
-    abstract fun costs(): Sequence<Money>
-    abstract fun geoShape(): GeoShape
-    open fun sufferScore(): Int = 0
-    ... and other methods
+val ItineraryItem.mapOverlay: MapOverlay get() = when (this) {
+    is Accommodation -> mapOverlay
+    is Attraction -> mapOverlay
+    is Journey -> mapOverlay
+    is RestaurantBooking -> mapOverlay
 }
-
-fun ItineraryItem.timespan(): ClosedRange<ZonedDateTime>? {
-    return when (this) {
-        is Accommodation -> timespan()
-        is Journey -> timespan()
-        is Restaurant -> timespan()
-        is Attraction -> timespan()
-    }
-}
-
-data class Accommodation(
-    val location: Location,
-    val checkInFrom: ZonedDateTime,
-    val checkOutBefore: ZonedDateTime,
-    val pricePerNight: Money
-) : ItineraryItem() {
-    val nights = Duration.between(checkInFrom, checkOutBefore).toDays().toInt()
-    val totalPrice: Money = pricePerNight * nights
-
-    override fun description() = "$nights nights at ${location.userReadableName}"
-    override fun costs() = sequenceOf(totalPrice)
-    override fun geoShape(): GeoShape = pointShape(location.position)
-    fun timespan() = checkInFrom..checkOutBefore
-    ... and other methods
-}
-
-... and other subclasses
 ----
 // end-insert
 
 While we are writing the `when` expression, Intellij marks it as a type error until it covers all subclasses of `ItineraryItem`.
-Intellij also highlights each monomorphic call to `timespan` to show that the compiler's flow-sensitive typing is "smart casting" the `this` reference from `ItineraryItem` to the correct subclass.
+Intellij also highlights each monomorphic call to `mapOverlay` to show that the compiler's flow-sensitive typing is "smart casting" the `this` reference from `ItineraryItem` to the correct subclass.
 
 [WARNING]
 .When statements are not checked for exhaustiveness
@@ -341,36 +354,41 @@ when (instanceOfSealedClass) {
 // end-insert
 ====
 
-// TODO reproduce these steps on the new branch
 
-We can inline those `timespan` methods into the extension function, removing them from the concrete classes.
+We can inline those `mapOverlay` methods into the extension function, removing them from the concrete classes.
 
-// begin-insert: tags/open-to-sealed.6:src/main/java/travelator/itinerary/Itinerary.kt#inlined
+// begin-insert: tags/open-to-sealed-2.6:src/main/java/travelator/itinerary/ItineraryItem.kt#mapOverlay
 [source,kotlin]
 ----
-fun ItineraryItem.timespan() = when (this) {
-    is Accommodation -> checkInFrom..checkOutBefore
-    is Journey -> departureTime..arrivalTime
-    is Restaurant -> time..time + Duration.ofHours(2)
-    is Attraction -> null
-}
-
-data class Accommodation(
-    val location: Location,
-    val checkInFrom: ZonedDateTime,
-    val checkOutBefore: ZonedDateTime,
-    val pricePerNight: Money
-) : ItineraryItem() {
-    val nights = Duration.between(checkInFrom, checkOutBefore).toDays().toInt()
-    val totalPrice: Money = pricePerNight * nights
-
-    override fun description() = "$nights nights at ${location.userReadableName}"
-    override fun costs() = sequenceOf(totalPrice)
-    override fun geoShape(): GeoShape = pointShape(location.position)
-    ... and other methods
-}
-
-... and other subclasses
+val ItineraryItem.mapOverlay: MapOverlay
+    get() = when (this) {
+        is Accommodation -> PointOverlay(
+            id = id,
+            position = location.position,
+            text = location.userReadableName,
+            icon = StandardIcons.HOTEL
+        )
+        is Attraction -> PointOverlay(
+            position = location.position,
+            text = description,
+            icon = StandardIcons.ATTRACTION,
+            id = id
+        )
+        is Journey -> OverlayGroup(
+            id = id,
+            elements = listOf(
+                PathOverlay(path, travelMethod.userReadableName),
+                PointOverlay(departsFrom.position, departsFrom.userReadableName, StandardIcons.START),
+                PointOverlay(arrivesAt.position, arrivesAt.userReadableName, StandardIcons.END)
+            )
+        )
+        is RestaurantBooking -> PointOverlay(
+            id = id,
+            position = location.position,
+            text = location.userReadableName,
+            icon = StandardIcons.RESTAURANT
+        )
+    }
 ----
 // end-insert
 
