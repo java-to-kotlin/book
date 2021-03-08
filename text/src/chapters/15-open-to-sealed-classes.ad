@@ -10,23 +10,22 @@ How do we choose between them?
 
 A constant challenge in designing software is _variability_.
 The more people use our software, the more they think of things they want it to do.
-To extend our software to support new use cases we need to add new functions that apply to the software's existing data types, or add new data types that we can pass to its existing functions.
+To support new use cases we need to add new functions to our software that work with to its existing data types, or add new data types that work with its existing functions.
 If our design is aligned well with the way the software has to evolve, then we can add a new features by adding new code and making very few, localised changes to our existing code.
 If not, then we will have to change many functions when we add a new data type, or change many data types when we need to add a function.
 
-There are some fundamental entities in our system where we feel this tension between the variability of data types and of functions most keenly.
-
-For example, the traveller's itinerary is a core concept in our "Travelator" application.
+We feel this tension between the variability of data types and of functions most keenly in the core entities of our application domain model.
+For example, the traveller's itinerary is a core entity of our "Travelator" application.
 Many features of the application present views of, alter the contents of, or calculate information about itineraries.
 It's no surprise that many of the feature requests from our users affect the `Itinerary` type.
-Our travellers want to include more kinds of things in their itineraries -- not just journeys and accommodation, as we saw in <<refactoring-to-extension-functions>>, but restaurant bookings and tourist attractions they want to visit along the route.
-They also want to do more things with their itineraries -- estimate how much they will cost, as we saw in <<accumulating-objects-to-transformations>>, compare them by cost, time or comfort, view them on a map, import them into their calendar, share them with their friends, ... their imagination is endless.
+Our travellers want to include more kinds of things in their itineraries -- not just journeys and accommodation, as we saw in <<refactoring-to-extension-functions>>, but restaurant bookings and attractions along the route.
+They also want to do lots of things with their itineraries -- estimate how much they will cost, as we saw in <<accumulating-objects-to-transformations>>, compare them by cost, time or comfort, view them on a map, import them into their calendar, share them with their friends, ... their imagination is endless.
 
-When we last looked at the `Itinerary` class, in <<accumulating-objects-to-transformations>>, we modelled the itinerary as a data class with a property holding the route and another holding the accommodation required along the route.
+When we last looked at the `Itinerary` class, in <<accumulating-objects-to-transformations>>, we were modelling an itinerary as a data class with a property for the route and another for the accommodation required along the route.
 Since then, we have added more features to the application and added more types of item to the itinerary.
-We found it increasingly cumbersome to hold each type of itinerary item in a separate collection.
+As the system evolved, we found it increasingly cumbersome to hold each type of itinerary item in a separate collection.
 Too much of our code involved combining those collections or applying the same filters and transforms to separate collections.
-Therefore, we decided that the `Itinerary` would maintain a single collection of `ItineraryItems` rather than keep each type of item in a separate collection.
+Therefore, we decided that an `Itinerary` would maintain a single collection of `ItineraryItems` rather than keep each type of item in a separate collection:
 
 // begin-insert: tags/open-to-sealed-2.0:src/main/java/travelator/itinerary/Itinerary.kt#itinerary
 [source,kotlin]
