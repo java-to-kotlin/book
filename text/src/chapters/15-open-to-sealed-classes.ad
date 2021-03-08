@@ -60,9 +60,10 @@ The `Itinerary` class and its clients don't know, or need to know, how each item
 // begin-insert: tags/open-to-sealed-2.0:src/main/java/travelator/itinerary/Itinerary.kt#mapOverlay
 [source,kotlin]
 ----
-fun Itinerary.mapOverlay() = OverlayGroup(
-    id = id,
-    elements = items.map { it.mapOverlay })
+val Itinerary.mapOverlay
+    get() = OverlayGroup(
+        id = id,
+        elements = items.map { it.mapOverlay })
 ----
 // end-insert
 
@@ -161,7 +162,6 @@ sealed class ItineraryItem { // <1>
     abstract val description: String
     abstract val costs: List<Money>
     abstract val mapOverlay: MapOverlay
-    abstract val sufferScore: Int
     ... and other methods
 }
 
@@ -186,8 +186,6 @@ data class Accommodation(
             text = location.userReadableName,
             icon = StandardIcons.HOTEL
         )
-    override val sufferScore
-        get() = 0
 
     ... and other methods
 }
@@ -211,7 +209,7 @@ We'll do that now to get some immediate value, and continue refactoring to make 
 [source,kotlin]
 ----
 fun Itinerary.toCalendar() = Calendar(
-    id = Id.derivedFrom(id),
+    id = Id.derivedFrom(this.id),
     events = mapNotNull { it.toCalendarEvent() }
 )
 
@@ -220,7 +218,6 @@ private fun ItineraryItem.toCalendarEvent(): CalendarEvent? = when (this) {
         start = checkInFrom,
         end = checkOutBefore,
         description = description,
-        icon = StandardIcons.HOTEL,
         alarms = listOf(
             Alarm(checkInFrom, "Check in open"),
             Alarm(checkOutBefore.minusHours(1), "Check out")
@@ -231,16 +228,13 @@ private fun ItineraryItem.toCalendarEvent(): CalendarEvent? = when (this) {
         start = departureTime,
         end = arrivalTime,
         description = description,
-        icon = StandardIcons.iconFor(travelMethod),
         location = departsFrom,
         alarms = listOf(
             Alarm(departureTime.minusHours(1)))
     )
     is RestaurantBooking -> CalendarEvent(
         start = time,
-        end = time + Duration.ofHours(2),
         description= description,
-        icon = StandardIcons.RESTAURANT,
         location = location,
         alarms = listOf(
             Alarm(time.minusHours(1)))
@@ -400,9 +394,10 @@ Of the other properties, some are clearly there just to support specific feature
 Others, like `description`, are in a grey area: they support many features of the application, but are not a fundamental property of an `ItineraryItem`.
 For example, each subclass derives its description from its fundamental properties.
 Nat prefers to define properties like these as extensions, while Duncan prefers to define them as members of the class.
-You'll have to make your own judgement call.
-
-When we have converted all polymorphic members of the sealed class hierarchy to extensions, the `ItineraryItem` hiearchy looks like this:
+Nat is writing this example, so we'll make `description` an extension.
+You'll have to make your own judgement call in your own code.
+That leaves the sealed `ItineraryItem` class declaring only the `id` property, and its subclasses declaring their fundamental properties.
+The whole hierarchy hiearchy looks like this:
 
 // begin-insert: tags/open-to-sealed-2.8:src/main/java/travelator/itinerary/ItineraryItem.kt
 [source,kotlin]
