@@ -243,7 +243,17 @@ private fun ItineraryItem.toCalendarEvent(): CalendarEvent? = when (this) {
 ----
 // end-insert
 
-Let's refactor the rest of the `ItineraryItem` methods from being polymorphic methods defined on the sealed class to extension functions that use `when` expressions to switch on the type of item.
+[TIP]
+.Only typecast down a sealed class hierarchy
+====
+Only use typecasts to cast from the root of a sealed class hierarchy to one of the children in an exhaustive when expression.
+Otherwise, it is risky to cast away from the static type.
+The actual class used to implement a value may have operations that violate the constraints expressed by the static type.
+For example, as we saw in <<java-to-kotlin-collections>>, the static type `List` prevents mutation, but Kotlin's higher-order functions return an object of a class that can be mutated if you downcast from `List` to `MutableList`.
+Doing so will likely introduce bugs in code that does not expect a value of type `List` returned from a higher-order function to ever change.
+====
+
+Now, let's refactor the rest of the `ItineraryItem` methods from being polymorphic methods defined on the sealed class to extension functions that use `when` expressions to switch on the type of item.
 We'll walk through the process with the `mapOverlay` property getter, which returns a representation of the Itinerary item to be drawn onto a map.
 
 When we Alt-Enter on the definition of `mapOverlay` in `ItineraryItem`, the context menu includes the action "Convert member to extension".
@@ -442,17 +452,6 @@ data class RestaurantBooking(
 ) : ItineraryItem()
 ----
 // end-insert
-
-[TIP]
-.Only typecast down a sealed class hierarchy
-====
-Only use typecasts to cast from the root of a sealed class hierarchy to one of the children in an exhaustive when expression.
-Otherwise, it is risky to cast away from the static type.
-The actual class used to implement a value may have operations that violate the constraints expressed by the static type.
-For example, as we saw in <<java-to-kotlin-collections>>, the static type `List` prevents mutation, but Kotlin's higher-order functions return an object of a class that can be mutated if you downcast from `List` to `MutableList`.
-Doing so will likely introduce bugs in code that does not expect a value of type `List` returned from a higher-order function to ever change.
-====
-
 
 === Conclusion
 
