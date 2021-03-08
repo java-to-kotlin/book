@@ -360,65 +360,91 @@ We can inline those `mapOverlay` methods into the extension function, removing t
 // begin-insert: tags/open-to-sealed-2.6:src/main/java/travelator/itinerary/ItineraryItem.kt#mapOverlay
 [source,kotlin]
 ----
-val ItineraryItem.mapOverlay: MapOverlay
-    get() = when (this) {
-        is Accommodation -> PointOverlay(
-            id = id,
-            position = location.position,
-            text = location.userReadableName,
-            icon = StandardIcons.HOTEL
+val ItineraryItem.mapOverlay: MapOverlay get() = when (this) {
+    is Accommodation -> PointOverlay(
+        id = id,
+        position = location.position,
+        text = location.userReadableName,
+        icon = StandardIcons.HOTEL
+    )
+    is Attraction -> PointOverlay(
+        position = location.position,
+        text = description,
+        icon = StandardIcons.ATTRACTION,
+        id = id
+    )
+    is Journey -> OverlayGroup(
+        id = id,
+        elements = listOf(
+            PathOverlay(path, travelMethod.userReadableName),
+            PointOverlay(departsFrom.position, departsFrom.userReadableName, StandardIcons.START),
+            PointOverlay(arrivesAt.position, arrivesAt.userReadableName, StandardIcons.END)
         )
-        is Attraction -> PointOverlay(
-            position = location.position,
-            text = description,
-            icon = StandardIcons.ATTRACTION,
-            id = id
-        )
-        is Journey -> OverlayGroup(
-            id = id,
-            elements = listOf(
-                PathOverlay(path, travelMethod.userReadableName),
-                PointOverlay(departsFrom.position, departsFrom.userReadableName, StandardIcons.START),
-                PointOverlay(arrivesAt.position, arrivesAt.userReadableName, StandardIcons.END)
-            )
-        )
-        is RestaurantBooking -> PointOverlay(
-            id = id,
-            position = location.position,
-            text = location.userReadableName,
-            icon = StandardIcons.RESTAURANT
-        )
-    }
+    )
+    is RestaurantBooking -> PointOverlay(
+        id = id,
+        position = location.position,
+        text = location.userReadableName,
+        icon = StandardIcons.RESTAURANT
+    )
+}
 ----
 // end-insert
 
-// TODO reproduce these steps on the new branch
+Now that it is an extension property, `ItineraryItem.mapOverlay` does not need to be defined in the same file as the ItineraryItem class hierarchy.
+We can move it and the `Itinerary.mapOverlay` properties to the module or package where we use it.
 
-// TODO: Now we're here, I don't know that timespan is a good example.
-// It feels like a fundamental operation of ItineraryItem that should be a method.
-// Can we find an example where the operation is less fundamental, more arbitrary, more context specific?
-// I'm thinki
+We can do the same with the other members of `ItineraryItem`, until the sealed class declares only the fundamental properties of the type.
+For `ItineraryItem`, only the `id` property is truly fundamental.
+It's useful to declare the `id` property as an abstract property on the sealed class to force every subclass to have an identifier.
+Of the other properties, some are clearly there just to support specific features of the application, like `mapOverlay` and `toCalendar`.
+Others, like `description`, are in a grey area: they support many features of the application, but are not a fundamental property of an `ItineraryItem`.
+For example, each subclass derives its description from its fundamental properties.
+Nat prefers to define properties like these as extensions, while Duncan prefers to define them as members of the class.
+You'll have to make your own judgement call.
 
-The `ItineraryItem.timespan` does not need to be defined in the same file as the ItineraryItem class hierarchy.
-We can move it to a file or package that is more convenient:
-a good place is next to `Itinerary.timespan`
+When we have converted all polymorphic members of the sealed class hierarchy to extensions, the `ItineraryItem` hiearchy looks like this:
 
-// begin-insert: tags/open-to-sealed.7:src/main/java/travelator/itinerary/ItineraryTimespan.kt
+// begin-insert: tags/open-to-sealed-2.8:src/main/java/travelator/itinerary/ItineraryItem.kt
 [source,kotlin]
 ----
-fun Itinerary.timespan(): ClosedRange<ZonedDateTime>? =
-    map(ItineraryItem::timespan)
-        .filterNotNull()
-        .reduceOrNull { a, b ->
-            minOf(a.start, b.start)..maxOf(a.endInclusive, b.endInclusive)
-        }
-
-fun ItineraryItem.timespan() = when (this) {
-    is Accommodation -> checkInFrom..checkOutBefore
-    is Journey -> departureTime..arrivalTime
-    is Restaurant -> time..time + Duration.ofHours(2)
-    is Attraction -> null
+sealed class ItineraryItem {
+    abstract val id: Id<ItineraryItem>
 }
+
+data class Accommodation(
+    override val id: Id<Accommodation>,
+    val location: Location,
+    val checkInFrom: ZonedDateTime,
+    val checkOutBefore: ZonedDateTime,
+    val pricePerNight: Money
+) : ItineraryItem() {
+    val nights = Period.between(checkInFrom.toLocalDate(), checkOutBefore.toLocalDate()).days
+    val totalPrice: Money = pricePerNight * nights
+}
+
+data class Attraction(
+    override val id: Id<Attraction>,
+    val location: Location,
+    val notes: String
+) : ItineraryItem()
+
+data class Journey(
+    override val id: Id<Journey>,
+    val travelMethod: TravelMethod,
+    val departsFrom: Location,
+    val departureTime: ZonedDateTime,
+    val arrivesAt: Location,
+    val arrivalTime: ZonedDateTime,
+    val price: Money
+    ... and other fields
+) : ItineraryItem()
+
+data class RestaurantBooking(
+    override val id: Id<RestaurantBooking>,
+    val location: Location,
+    val time: ZonedDateTime
+) : ItineraryItem()
 ----
 // end-insert
 
