@@ -126,7 +126,7 @@ You must define the sealed class and its subclasses in the same source file, the
 Thanks to this restriction, runtime type checks on sealed class hierarchies do not have the same problem as runtime type checks in Java.
 The static type checker can guarantee that `when` expressions that perform runtime type checks for a subtype of a sealed class cover all possible cases and only the possible cases.
 
-// TODO insert example of safe kotlin when expression here
+// TODO insert example of safe kotlin when expression here?
 
 Compared to polymorphic methods, sealed classes and when expressions make it easy to add new operations that apply to a fixed type hierarchy, but you will have to change all those operations if you add a new type to that hierarchy.
 However, the compiler will help you by checking that all those operations cover all possible types in the hierarchy.
@@ -141,18 +141,15 @@ runtime type checks of sealed class hierarchies when the set of operations varie
 
 === Converting the Interface to a Sealed Class
 
-// TODO expand motivation here...
-Want to export an Itinerary into the traveller's calendar app.
-Don't want to add yet another methods to the `ItineraryItem` interface and couple the core classes of our application's domain to the needs of yet another of its peripheral modules.
-
-Let's convert `ItineraryItem` from an interface with polymorphic methods into a sealed class hierarchy and free-standing functions, and move those free-standing functions into the modules that need them.
+We're about to add another feature that involves itineraries and itinerary items -- making the Itinerary appear in the traveller's calendar app.
+We don't want to add more methods to the already bloated `ItineraryItem` interface and couple the core classes of our application's domain to the needs of another peripheral module.
+It's time to bite the bullet and convert `ItineraryItem` from an interface of polymorphic methods to a sealed class hierarchy and free-standing functions, and move those free-standing functions into the modules that use them.
 
 In the version of Kotlin we're using, a sealed class and all its direct subclasses must be defined in the same file.
-So we must first use the IDE's Move Class refactoring to move the implementations of `ItineraryItem` into the same file as the interface.
-
-Now we can turn the interface and its implementations into a sealed class hieararchy.
-IntelliJ does not have an automated refactoring for this, so we have to do it by manually editing the code.
-At least this is made easier by now having all the classes in the same file.
+Therefore, we must first use the IDE's Move Class refactoring to move the implementations of `ItineraryItem` into the same file as the interface.
+Once we've done that, we can turn the interface and its implementations into a sealed class hieararchy.
+IntelliJ does not have an automated refactoring for this, so we have to do it by manually editing the class definitions.
+At least moving all the classes into the same file has made the task easier.
 
 // begin-insert: tags/open-to-sealed-2.2:src/main/java/travelator/itinerary/ItineraryItem.kt#sealed
 [source,kotlin]
@@ -196,14 +193,16 @@ data class Accommodation(
 
 <1> We declare `ItineraryItem` as a `sealed class` instead of an `interface`.
 
-<2> Because it is now a class, we have to explicitly mark its methods as `abstract`.  If the interface had had any methods with a default implementation, we'd have had to declare them as `open` so that subclasses could still override them.
+<2> Because it is now a class, we have to explicitly mark its methods as `abstract`.  If the interface had any methods with a default implementation, we'd have had to declare them as `open` so that subclasses could still override them.
 
 <3> We change the declaration of the interface in the concrete item classes with a call to the superclass constructor.
 
 NOTE: Kotlin 1.5 will support sealed _interfaces_, which will make this refactoring easier -- these manual editing steps will not be necessary.
 
-That's enough for us write a function to create calendar events from itinerary items without changing the `ItineraryItem` classes.
-We'll do that now to get some immediate value, and continue refactoring to make the other operations on `ItineraryItem` work the same way.
+`ItineraryItem` is now a sealed class.
+Its operations are still polymorphic methods, but we can write _new_ operations  without changing the `ItineraryItem` classes, as extension functions that use a `when` expression to safely dispatch on the concrete item type`.
+We'll write the function we need to translate an itinerary to calendar events.
+Then we'll continue refactoring to make the other operations on `ItineraryItem` work the same way.
 
 // begin-insert: tags/open-to-sealed-2.3:src/main/java/travelator/calendar/ItineraryToCalendar.kt
 [source,kotlin]
