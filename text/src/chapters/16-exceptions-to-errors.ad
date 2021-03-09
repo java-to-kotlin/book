@@ -19,7 +19,7 @@ In the absence of a more deliberate strategy, most systems default to raising ex
 Command-line utilities will just exit in this case, hopefully having provided enough information for the user to correct the problem and try again.
 A server app, or a GUI with an event-loop, will usually abort only the current interaction and get on with the next.
 
-Often this is just a poor experience for our users, but sometimes the error will corrupt the persistent state of the system, so that correcting the initial problem and retrying does not work.
+Often this is just a poor experience for our users, but sometimes the error will corrupt the persistent state of the system, so correcting the initial problem and retrying does not work.
 This is the source of the often good advice to "turn it off and on again" - our systems mainly start in a safe state, so that after a restart a retry should succeed.
 If not; well you've probably been in a situation where the only solution has been to reinstall the operating system - the ultimate way of removing corrupted persistent state.
 
@@ -53,7 +53,7 @@ There are failures that don’t fit into these categories, but most do.
 That doesn't seem to be too long a list, and yet as an industry we don't have a great reputation for reliability.
 Error handling just seems to be hard, why is that?
 
-Well for a start we often don't know whether an operation can fail and, if so, how it can fail.
+Well, for a start we often don't know whether an operation can fail and, if so, how it can fail.
 If we do know, then knowledge about how to handle an error may be in code a long way from where the problem is detected.
 Then the code that detects an error, and the code that recovers from it, are hard to isolate from the happy path and so hard to test.
 Combine these with the tendency for errors to leave our system in unrecoverable states, and we end up with a situation where most developers would rather hope for the best rather than take on the hard work and still get it wrong.
@@ -578,7 +578,7 @@ At the same time we have to be mindful that pretty much any instruction in the J
 
 ==== Starting at the Bottom
 
-If we convert `Customers` to Kotlin wwe get:
+If we convert `Customers` to Kotlin we get:
 
 // begin-insert: tags/errors.3:src/main/java/travelator/Customers.kt
 [source,kotlin]
@@ -597,9 +597,8 @@ interface Customers {
 Without it, a Java implementation of `Customers` cannot override the method (assuming that it does actually throw `DuplicateException`).
 Worse, Java client code can't catch the exception or declare that it is passed on, as it is a compile error for Java code to handle a checked exception that the compiler cannot see is possible.
 
-What we're going to do for now is to add to our interface a version of `Customers.add` that instead of throwing an exception, returns `Result<Customer, DuplicateException>`.
-
-If we were starting from scratch we would probably not use an as exception the type of our error, but here it lets us interoperate with Java easily.
+Our strategy is to add to our interface a version of `Customers::add` that, instead of throwing an exception, returns `Result<Customer, DuplicateException>`.
+If we were starting from scratch we wouldn't use `DuplicateException` as the error type, but here it lets us interoperate with Java easily.
 We are going to keep the old throwy version around for now so that we don't break existing callers, convert those callers to use the `Result` version, then remove the old version when we can.
 That's right, it's our old friend <<expand-contract>>.
 
@@ -727,7 +726,7 @@ override fun register(data: RegistrationData): Customer {
 ----
 // end-insert
 
-Now if we call `addToo` instead it will no longer throw, but the exception will be returned in the Result.
+If we now call `addToo` instead it will no longer throw, but the exception will be returned in the Result.
 This won't compile yet:
 
 // begin-insert: tags/errors.8:src/main/java/travelator/CustomerRegistration.kt#foo
@@ -748,7 +747,7 @@ override fun register(data: RegistrationData): Customer {
 
 <1> `Type mismatch. Required: Customer Found: Result<Customer, DuplicateException>`
 
-Now we have a `Result`, we need to unpack it.
+We have a `Result`, so we need to unpack it.
 When it is `Success`, we want to return the wrapped value, when `Failure`, throw the wrapped `DuplicateException` (in order to keep the current behaviour of `register`):
 
 // begin-insert: tags/errors.8.5:src/main/java/travelator/CustomerRegistration.kt#foo
@@ -832,7 +831,7 @@ OK, ready to go again? Good.
 
 We now have to choose whether to proceed depth or breadth first.
 Depth-first would address the caller of `CustomerRegistration::register`, breadth-first would first fix up the other callers of `Customers::add`, so that we can remove it.
-As it happens our example code has no other callers of `add`, so breadth-first isn't an option, and we can get on with the contract phase at this level.
+As it happens, our example code has no other callers of `add`, so breadth-first isn't an option, and we can get on with the contract phase at this level.
 
 At present, we have implementations of `Customers::add`, and all our code calls them via the default implementation of `Customers::addToo` in the interface.
 We want to delete `add`, so let's go and implement `addToo` directly.
@@ -979,7 +978,7 @@ class InMemoryCustomers : Customers {
 ----
 // end-insert
 
-Lets recap where we are now.
+Let's recap where we are now.
 `Customers` is now Kotlin, and `add` returns a `Result` instead of throwing `DuplicateException`:
 
 // begin-insert: tags/errors.14:src/main/java/travelator/Customers.kt
@@ -1192,9 +1191,9 @@ fun handle(request: Request): Response =
 // end-insert
 
 Note that this code is not exception-free.
-Firstly the `ObjectMapper` can still throw `JSONProcessingException`.
+Firstly, the `ObjectMapper` can still throw `JSONProcessingException`.
 That is the reality of Java (and frankly most Kotlin) APIs, but the code is safe and communicates well, as the throwing and catching are in the same method.
-Secondly we still have to consider other `RuntimeExceptions` that could be thrown from anywhere(`NullPointerException` etc).
+Secondly, we still have to consider other `RuntimeExceptions` that could be thrown from anywhere(`NullPointerException` etc).
 These could have crossed function boundaries and leaked up to here, where the buck stops at the top-level catch-all.
 The reality is that we can still have _unexpected_ exceptions, but the _expected_ failure cases are now expressed by `Results` and communicated in our code.
 
@@ -1342,7 +1341,7 @@ This way if we change the return type of `add` to have a different failure type
 the compiler will force us to change how we handle it.
 
 There are two problems with this.
-Firstly, `registerToo` has no test code, and secondly, we have the duplicate logic caused by our just duplicating `register` to create `registerToo`.
+Firstly, `registerToo` has no test code, and secondly, we have the duplicate logic caused by our duplicating `register` to create `registerToo`.
 We can fix both by implementing `register` in terms of `registerToo` - the opposite of what we did in IRegister.
 
 // begin-insert: tags/errors.22:src/main/java/travelator/CustomerRegistration.kt

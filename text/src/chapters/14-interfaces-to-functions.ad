@@ -1723,7 +1723,7 @@ private fun givenADistanceFrom(
 
 Phew.
 
-Having to use a lamda rather than a method reference in the `Recommendations` constructor invocation is a bit irritating.
+Having to use a lambda rather than a method reference in the `Recommendations` constructor invocation is a bit irritating.
 We can tidy that up with a local `getValue` extension function.
 Did we mention how much we like extension functions?
 
@@ -1799,7 +1799,7 @@ Looked at another way though, we have implemented the recommendation engine's de
 `Recommendations.recommendationsFor` is beginning to look like a simple calculation (<<calculations>>).
 The result of that calculation depends on the `journey` parameter, and the contents of those maps that enable us to lookup featured destinations and distances.
 
-As with our discussion around <<TOOD where is it>>, we know in reality that _when_ we call `recommendationsFor` does matter - it is really an action (<<actions>>).
+As with our discussion around <<TOOD where is it>>, we know that in reality _when_ we call `recommendationsFor` does matter - it is really an action (<<actions>>).
 Arguably the distance between locations won't change over time, but which destinations we find around a location will, as we add or remove them from whatever database they are held in.
 Almost certainly though, the distinction is moot in this case, and we can treat `recommendationsFor` as a calculation.
 
@@ -1822,7 +1822,7 @@ private fun subjectFor(
 // end-insert
 
 Here we create a new instance of `Recommendations` every call, so that it can capture immutable maps representing the rest of the data.
-Note that this is a top-level function, there is now state in our tests at all.
+Note that this is a top-level function, there is now no state in our tests at all.
 We can double down on this by writing a top-level `check` function too:
 
 // begin-insert: tags/interfaces-to-functions-2.18:src/test/java/travelator/recommendations/RecommendationsTests.kt#check
