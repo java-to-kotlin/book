@@ -132,7 +132,8 @@ object Explanation {
         private val objectMapper: ObjectMapper,
     ) {
         /// begin: this
-        fun Customer.toJson(): JsonNode = this@JsonWriter.objectMapper.valueToTree(this@toJson)
+        fun Customer.toJson(): JsonNode =
+            this@JsonWriter.objectMapper.valueToTree(this@toJson)
         /// end: this
     }
 }
