@@ -82,13 +82,13 @@ can also be a calculation if the data it depends on is a value.
 .Computed Property or Function?
 ****
 You may have wondered when to define a computed property and when to have a function that returns a value.
-Computed properties are confusing if they return different results at different types, at least when defined on value types (and you'll be realising by now that your authors think that most of our types should be value types).
+Computed properties are confusing if they return different results at different times, at least when defined on value types (and you'll be realising by now that your authors think that most of our types should be value types).
 So a good rule of thumb is to reserve computed properties for calculations.
 
 We expand on this topic in <<methods-to-properties>>.
 ****
 
-The result of a calculation may depend on data that is not passed as parameters, but only if that data cannot change.
+The result of a calculation may depend on data that is not passed as parameters, but only if that data does not change.
 Otherwise the function's result would be different before and after the change, which would make it an action.
 Even if a function always returns the same result for the same parameters, it may still be an action if it mutates something (either a parameter or an external resource such as a global variable or a database).
 For example:
@@ -119,7 +119,7 @@ Let's look at a `Customers` service:
 [source,kotlin]
 ----
 class Customers {
-    fun save(data: CustomerData) {
+    fun save(newCustomer: Customer) {
         ...
     }
     fun find(id: String): Customer? {
