@@ -1,8 +1,8 @@
-[[immediate-to-gradual]]
-== Sideline to Side-by-Side
+[[money-not-data-class]]
+== An Abstract Data Type Cannot Be A Data Class
 
 So far we have shown the translation of code from Java to Kotlin happening all in one go.
-We have used automatic refactorings to perform the translation safely, but by the end all the affected code has been converted to idiomatic Kotlin.
+We use refactoring to perform the translation safely, but by the end, all the affected code is idiomatic Kotlin.
 
 In large codebases this is not always possible.
 We must continue to evolve features in Java while we are introducing Kotlin.
@@ -11,24 +11,17 @@ This is especially true when we convert fundamental classes that support a lot o
 
 What can we do to support the conventions of both languages as we gradually translate the system to Kotlin?
 
-=== A Fundamental Class: Money
 
-Every system contains some fundamental classes that are used by many parts of the codebase.
-An example in Travelator is the `Money` class.
+=== An Abstract Data Type with Value Semantics
+
+One of the most fundamental value types in our Travelator application is `Money`.
 Travellers need to budget for their trips.
-They want to compare costs of different travel options, see those costs converted to the their preferred currency, book things, pay for things, ...
+They want to compare costs of different travel options, see those costs converted to the their preferred currency, and see a grand total of all the costs the trip will involve.
 
-`Money` is used so widely that we cannot convert it and all the code that depends on it to idiomatic Kotlin in one fell swoop.
-We will have to continue working on features that use `Money` in both Java and Kotlin while the conversion is ongoing.
-This leaves us between Scylla and Charybdis.
-Do we leave `Money` as a Java class while we convert code that depend on it to Kotlin, but in the meantime limit the Kotlin features we can use in that dependent code?
-Or do we convert the `Money` class to Kotlin while we still have Java code using it, allowing us to use Kotlin features in dependent code but leaving the remaining Java code inconsistent and unconventional?
+`Money` class is a value type, and an abstract data type.
+An abstract data type represents a concept in our application, and hides the representation of that concept behind an API.
+The API defines the only operations that the rest of the program can use to work with values of the abstract data type, and guarantees that the hidden representation is always correct.
 
-The fact we even have these options is a testament to how well the Kotlin/Java interop works in both directions.
-Futhermore, with some cunning refactoring tactics and a few annotations to control how the Kotlin compiler generates code for the JVM we can get the best of both worlds.
-We can convert Money to Kotlin, allowing us to take advantage of Kotlin's features, and provide an idiomatic API for Java code that we are still maintaining.
-
-Let's take a look at the `Money` class:
 
 // begin-insert: tags/value_types.4:src/main/java/travelator/money/Money.java#money
 [source,java]
@@ -94,7 +87,7 @@ Other classes obtain Money values by calling the static `Money.of` method, which
 Most currencies have 100 minor units (two digits), but some have fewer and some more: the Japanese Yen has no minor units, and the Jordanian Dinar has one thousand, for example.
 +
 The "of" method follows a coding convention of <<modern-java-style,Modern Java>> that draws a distinction in the source between objects with identity, which are constructed by the new operator, and values, which are obtained from static methods.
-This convention is followed by the Java time API (for example `LocalDate.of(2023,11,31)` denotes a `LocalDate` value) and recent additions to the collections API (for example, `List.of(1,2,3)` denotes an immutable list value)
+This convention is followed by the Java time API (for example `LocalDate.of(2020,8,17)`) and recent additions to the collections API (for example, `List.of(1,2,3)` creates an immutable list)
 +
 The class provides some convenient overloads of the `of` method for String or int amounts.
 <2> A `Money` value exposes its amount and currency properties using Java Bean conventions, even though it is not actually a Java Bean.
@@ -115,7 +108,7 @@ Like our Money class, BigDecimal is an immutable value type, so `setScale` retur
 Sun added the BigDecimal class to the standard library in Java 1.1. This release also included the first version of the Java Beans API. The hype around the Beans API popularised the Java Beans coding conventions, and they were widely adopted, even for classes that, like BigDecimal, were not Java Beans (see <<bean-java-style>>).
 There were no Java conventions for value types.
 
-Nowadays, we avoid the "set" prefix for methods that do not mutate their receiver and instead use names that emphasise when the method returns a transformation of the receiver.
+Today, we avoid the "set" prefix for methods that do not mutate their receiver and instead use names that emphasise when the method returns a transformation of the receiver.
 One convention is to use the prefix "with" for transformations that affect a single property, which would make the code in our Money class read as:
 
 [source,kotlin]
@@ -132,7 +125,6 @@ inline fun BigDecimal.withScale(int scale, RoundingMode mode) =
     setScale(scale, mode)
 ----
 ====
-
 
 Converting Money to Kotlin produces the following code:
 
@@ -182,10 +174,11 @@ private constructor(
 ----
 // end-insert
 
-The Kotlin class has a private primary constructor.
+The Kotlin class still has a primary constructor, but that constructor is now marked private.
 The syntax for this is a little clunky.
+
 The static "of" functions are now methods on a companion object.
-IntelliJ noticed that they are called from our Java code, and annotated them as `@JvmStatic` to ensure they are compiled to static methods and that call sites in our Java code are unaffected.
+IntelliJ noticed that they are called from our Java code, and annotated them as `@JvmStatic` to ensure they are compiled to static methods and the call sites in the Java code are unaffected.
 
 Can we also reduce the size of the class even further by making it a data class?
 
