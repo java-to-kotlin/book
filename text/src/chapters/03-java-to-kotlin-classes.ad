@@ -302,16 +302,225 @@ data class EmailAddress(
 
 Frankly, that `parse` method still rankles - it's taking up a disproportionate amount of space for the work it is doing.
 We'll have a crack at making it suitably short and sweet in <<multi-to-single-expression-functions>>.
-For now though, we're done with seeing how to convert a Java class to Kotlin.
+For now though, we're done with convert our `EmailAddress` Java class to Kotlin.
+
+
+=== The Limitations of Data Classes
+
+A drawback of data classes is that they offer no encapsulation.
+We saw how the compiler generates `equals`, `hashCode` and `toString` methods for data classes.
+It also generates a `copy` method that creates a new copy of the value with different values for one or more of its properties.
+
+For example, the following code creates a copy of an `EmailAddress` with a `localPart` of "postmaster" and the same domain:
+
+----
+val postmasterEmail = customerEmail.copy(localPart = "postmaster")
+----
+
+For many of our classes this is very convenient.
+However, when a class abstracts its internal representation or maintains invariants between its properties, that `copy` method allows client code direct access to internal state of a value and allows it to break its invariants.
+
+Let's look at an abstract data type in the Travelator application: the `Money` class:
+
+// begin-insert: tags/value_types.4:src/main/java/travelator/money/Money.java#money
+[source,java]
+----
+public class Money {
+    private final BigDecimal amount;
+    private final Currency currency;
+
+    private Money(BigDecimal amount, Currency currency) { // <1>
+        this.amount = amount;
+        this.currency = currency;
+    }
+
+    public static Money of(BigDecimal amount, Currency currency) { // <1>
+        return new Money(
+            amount.setScale(currency.getDefaultFractionDigits()),
+            currency);
+    }
+
+    // ... and convenience overloads
+
+    public BigDecimal getAmount() { // <2>
+        return amount;
+    }
+
+    public Currency getCurrency() { // <3>
+        return currency;
+    }
+
+    @Override
+    public boolean equals(Object o) { // <3>
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Money money = (Money) o;
+        return amount.equals(money.amount) &&
+            currency.equals(money.currency);
+    }
+
+    @Override
+    public int hashCode() { // <3>
+        return Objects.hash(amount, currency);
+    }
+
+    @Override
+    public String toString() { // <4>
+        return amount.toString() + " " + currency.getCurrencyCode();
+    }
+
+    public Money add(Money that) { // <5>
+        if (!this.currency.equals(that.currency)) {
+            throw new IllegalArgumentException(
+                "cannot add Money values of different currencies");
+        }
+
+        return new Money(this.amount.add(that.amount), this.currency);
+    }
+}
+----
+// end-insert
+
+<1> The constructor is private.
+Other classes obtain Money values by calling the static `Money.of` method, which guarantees that the scale of the amount is consistent with the number of minor units of the currency.
+Most currencies have 100 minor units (two digits), but some have fewer and some more: the Japanese Yen has no minor units, and the Jordanian Dinar has one thousand, for example.
++
+The "of" method follows a coding convention of <<modern-java-style,Modern Java>> that draws a distinction in the source between objects with identity, which are constructed by the new operator, and values, which are obtained from static methods.
+This convention is followed by the Java time API (for example `LocalDate.of(2020,8,17)`) and recent additions to the collections API (for example, `List.of(1,2,3)` creates an immutable list)
++
+The class provides some convenient overloads of the `of` method for String or int amounts.
+<2> A `Money` value exposes its amount and currency properties using Java Bean conventions, even though it is not actually a Java Bean.
+<3> The equals and hashCode methods implement value semantics.
+<4> The toString method returns a representation of its properties that can be shown to the user, not just for debugging.
+<5> `Money` provides operations for calculating with money values.
+For example, you can add monetary values together.
+The `add` method constructs new Money values by calling the constructor directly, because the result of BigDecimal.add has the correct scale already and so we can avoid the overhead of setting the scale.
+
+[NOTE]
+====
+.BigDecimal.setScale does not set the scale!
+
+The method `BigDecimal.setScale` is confusing.
+Although named like a Java Bean setter, it does not actually mutate the BigDecimal object.
+Like our `EmailAddress` and `Money` classes, `BigDecimal` is an immutable value type, so `setScale` returns a new `BigDecimal` value with the specified scale.
+
+Sun added the BigDecimal class to the standard library in Java 1.1. This release also included the first version of the Java Beans API. The hype around the Beans API popularised the Java Beans coding conventions, and they were widely adopted, even for classes that, like `BigDecimal`, were not Java Beans (see <<bean-java-style>>).
+There were no Java conventions for value types.
+
+Today, we avoid the "set" prefix for methods that do not mutate their receiver and instead use names that emphasise when the method returns a transformation of the receiver.
+A common convention is to use the prefix "with" for transformations that affect a single property, which would make the code in our Money class read as:
+
+[source,kotlin]
+----
+ amount.withScale(currency.getDefaultFractionDigits())
+----
+
+In Kotlin we can write extension functions to fix such historical accidents.
+If we were writing a lot of code that calculated with BigDecimals, it might be worth doing so to improve the clarity of the code:
+
+[source,kotlin]
+----
+inline fun BigDecimal.withScale(int scale, RoundingMode mode) =
+    setScale(scale, mode)
+----
+====
+
+Converting Money to Kotlin produces the following code:
+
+// begin-insert: tags/value_types.5:src/main/java/travelator/money/Money.kt#money
+[source,kotlin]
+----
+class Money
+private constructor(
+    val amount: BigDecimal,
+    val currency: Currency
+) {
+    override fun equals(o: Any?): Boolean {
+        if (this === o) return true
+        if (o == null || javaClass != o.javaClass) return false
+        val money = o as Money
+        return amount == money.amount && currency == money.currency
+    }
+
+    override fun hashCode(): Int {
+        return Objects.hash(amount, currency)
+    }
+
+    override fun toString(): String {
+        return amount.toString() + " " + currency.currencyCode
+    }
+
+    fun add(that: Money): Money {
+        require(currency == that.currency) {
+            "cannot add Money values of different currencies"
+        }
+
+        return Money(amount.add(that.amount), currency)
+    }
+
+    companion object {
+        @JvmStatic
+        fun of(amount: BigDecimal, currency: Currency): Money {
+            return Money(
+                amount.setScale(currency.defaultFractionDigits),
+                currency
+            )
+        }
+
+        // ... and convenience overloads
+    }
+}
+----
+// end-insert
+
+The Kotlin class still has a primary constructor, but that constructor is now marked private.
+The syntax for this is a little clumsy: we've reformatted the code that the translator produced in an attempt to make it easier to scan.
+Like `EmailAddress.parse`, the static "of" functions are now methods on a companion object annotated as `@JvmStatic`.
+Overall, the code is not much more concise than the original Java.
+
+Can we also reduce shrink it even further by making it a data class?
+
+When we change `class` to `data class`, IntelliJ highlights the `private` keyword of the primary constructor with a warning:
+
+----
+Private data class constructor is exposed via the generated 'copy' method."
+----
+
+What's that all about?
+
+The `Money` class maintains an invariant between its properties, guaranteeing that the scale of the amount field is equal to the default number of minor currency digits of the currency field.
+The private constructor prevents code outside the Money class from creating values that violate the invariant.
+The `Money.of(BigDecimal,Currency)` method ensures the invariant is true for new Money values.
+The `add` method maintains the invariant because adding two BigDecimal values with the same scale produces a BigDecimal that also has the same scale, and it can therefore call the constructor directly.
+The constructor, therefore, need only assign fields, safe in the knowledge that it is never called with parameters that violate the class invariant.
+
+However, the `copy` method of a data class is always public and so _would_ allow client code to create Money values that violate the invariant.
+Unlike `EmailAddress`, an abstract data type like the `Money class cannot be implemented by a Kotlin data class.
+
+[WARN]
+****
+Don't define a value type as a data class if it must maintain invariants between its properties.
+****
+
+We can still make the class more concise and convenient with Kotlin features that we will encounter in later chapters.
+So we'll leave the `Money` class for now and come back to it in <<immediate-to-gradual>> to give it a thorough make-over.
+
 
 === Conclusion
 
-For simple cases like the `EmailAddress` shown here, it is quick and easy to convert Java to Kotlin.
+For most classes, it is quick and easy to convert Java to Kotlin.
 The result is completely compatible with existing Java code.
-If we also want value semantics, `data` classes allow us to remove even more boilerplate.
 
-Because they are so quick and easy to create, and require no maintenance, we introduce new value classes far more frequently in Kotlin than in Java -
-to declare application-specific "micro-types" that wrap primitive values, to hold intermediate results of a calculation pipeline, or to pivot data into temporary structures that make it easier to write application logic.
+If we also want value semantics, `data` classes allow us to remove even more boilerplate for simple classes like `EmailAddress`.
+Because data classes are so quick and easy to create, and require no maintenance, we use them to define new value types far more frequently in Kotlin than in Java:
+to declare application-specific "micro-types" that wrap primitive values,
+to hold intermediate results of a calculation pipeline,
+or to pivot data into temporary structures that make it easier to write application logic.
 
 We look at more advantages of value types in <<beans-to-values>>.
 <<static-methods-to-top-level-functions>> examines how Kotlin represents static methods and data.
+
+If our value types must maintain invariants or encapsulate their representation, data classes are not suitable.
+In that case we have to implement value semantics ourselves.
+<<single-expresssion-functions-for-calculations>> looks at how we can make calculation functions and methods, such `equals` and `hashCode` of `Money`, more concise by refactoring them to single expression form.
+In <<immediate-to-gradual>> we make the `Money` type more convenient to use in Kotlin by defining operators instead of methods.
