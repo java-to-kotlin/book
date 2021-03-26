@@ -5,7 +5,7 @@ import java.util.List;
 
 /// begin: reduce
 public class Lists {
-    public static <A,R> R reduce(List<A> l, R initial, Function2<R, A, R> f) {
+    public static <A,R> R fold(List<A> l, R initial, Function2<R, A, R> f) {
         R result = initial;
         for (A a : l) {
             result = f.apply(result, a);

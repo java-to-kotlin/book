@@ -28,10 +28,20 @@ When you work with the grain, things go smoothly.
 When you work against the grain, things are more difficult: going against the grain involves constant effort with an uncertain pay-off.
 
 For example, it has always been possible to write Java code in a functional style, but few programmers did before Java 8 -- for good reasons.
-Look what was required in Java 1.0 to do something as simple as calculating the sum of a list of numbers by reducing them with the addition operator.
+
+Here's Kotlin code that calculates the sum of a list of numbers by folding the list with the addition operator:
+
+// begin-insert: src/test/java/grain/kotlin/TheGrainOfKotlinTest.kt#reduce
+[source,kotlin]
+----
+val sum = numbers.fold(0, Int::plus)
+----
+// end-insert
+
+Let's compare that to what was required in Java 1.0 to do the same.
 
 Java 1.0 did not have first-class functions, so we would have had to implement functions as objects and define our own interfaces for different types of function.
-For example, the addition function takes two arguments:
+For example, the addition function takes two arguments, so we would have had to define the type of two-argument functions.
 
 // begin-insert: src/main/java/grain/java1/Function2.java
 [source,java]
@@ -42,14 +52,14 @@ public interface Function2 {
 ----
 // end-insert
 
-Then we would have had to write the `reduce` higher-order function, hiding the iteration and mutation required by the Vector class.
+Then we would have had to write the `fold` higher-order function, hiding the iteration and mutation required by the Vector class.
 (The Java standard library didn't include the collections framework yet).
 
 // begin-insert: src/main/java/grain/java1/Vectors.java#reduce
 [source,java]
 ----
 public class Vectors {
-    public static Object reduce(Vector l, Object initial, Function2 f) {
+    public static Object fold(Vector l, Object initial, Function2 f) {
         Object result = initial;
         for (int i = 0; i < l.size(); i++) {
             result = f.apply(result, l.get(i));
@@ -62,7 +72,7 @@ public class Vectors {
 ----
 // end-insert
 
-We would have had to define a separate class for every function we wanted to pass to our `reduce` function.
+We would have had to define a separate class for every function we wanted to pass to our `fold` function.
 The addition operator couldn't be passed around as a value, and the language had no method references, lambdas or closures back then, not even inner classes.
 Nor did Java 1.0 have generics or autoboxing -- we would have had to cast the arguments to the expected type and write the boxing between reference types and primitives.
 
@@ -84,12 +94,12 @@ And, finally, we could use all that to calculate the sum:
 // begin-insert: src/test/java/grain/java1/TheGrainOfJavaTest.java#reduce
 [source,java]
 ----
-int sum = ((Integer) Vectors.reduce(counts, new Integer(0), new AddIntegers()))
+int sum = ((Integer) Vectors.fold(counts, new Integer(0), new AddIntegers()))
     .intValue();
 ----
 // end-insert
 
-That's a lot of effort for what can be achieved with a single expression in a modern language.
+That's a lot of effort for what is a single expression in a modern language.
 But that's not the end of it --
 because Java didn't have standard function types, we couldn't have easily combined different libraries written in a functional style.
 We would have had to write adapter classes to map between the function types defined in different libraries.
@@ -110,17 +120,16 @@ for (int i = 0; i < counts.size(); i++) {
 
 Writing code in a functional style _went against the grain_ of Java.
 
-
 A language's grain forms over time as its designers and users build a common understanding of how language features interact, and encode their understanding and preferences in libraries that others build upon.
 The grain influences the way that programmers write code in the language, which influences the evolution of the language, its libraries and programming tools, changing the grain, altering the way that programmers write code in the language, on and on in a continual cycle of mutual feedback and evolution.
 
 For example, Java 1.1 added anonymous inner classes to the language, and Java 2 added the collections framework to the standard library.
-Anonymous inner classes meant that we wouldn't need to write a named class for each function we wanted to pass to our `reduce` function, but the resulting code would arguably be harder to read.
+Anonymous inner classes meant that we wouldn't need to write a named class for each function we wanted to pass to our `fold` function, but the resulting code would arguably be harder to read.
 
 // begin-insert: src/test/java/grain/java2/TheGrainOfJavaTest.java#reduce
 [source,java]
 ----
-int sum = ((Integer) Lists.reduce(counts, new Integer(0),
+int sum = ((Integer) Lists.fold(counts, new Integer(0),
     new Function2() {
         public Object apply(Object arg1, Object arg2) {
             int i1 = ((Integer) arg1).intValue();
@@ -147,7 +156,7 @@ public interface Function2<A,B,R> {
 // begin-insert: src/test/java/grain/java5/TheGrainOfJavaTest.java#reduce
 [source,java]
 ----
-int sum = Lists.reduce(counts, 0,
+int sum = Lists.fold(counts, 0,
     new Function2<Integer, Integer, Integer>() {
         @Override
         public Integer apply(Integer arg1, Integer arg2) {
@@ -157,7 +166,7 @@ int sum = Lists.reduce(counts, 0,
 ----
 // end-insert
 
-https://github.com/google/guava[Google's Guava library] included some common higher-order functions over collections, although `reduce` was not among them.
+https://github.com/google/guava[Google's Guava library] included some common higher-order functions over collections, although `fold` was not among them.
 Even the authors of Guava recommended writing imperative code where possible, because it had better performance and was usually easier to read.
 
 Functional programming still went largely against the grain of Java 5, but we could see the start of a trend.
@@ -174,7 +183,7 @@ int sum = counts.stream().reduce(0, Integer::sum);
 // end-insert
 
 Still, it wasn't entirely plain sailing.
-We still could not pass the addition operator as a parameter to our `reduce` function, but we now had have the standard library function `Integer::sum` that did the same thing.
+We still could not pass the addition operator as a parameter to the Streams `reduce` function, but we now had  the standard library function `Integer::sum` that did the same thing.
 Java's type system still created awkward edge cases because of its distinction between reference and primitive types.
 The Streams API was missing some common higher-order functions that we would expect to find if coming from a functional language (or even Ruby).
 Checked exceptions didn't play well with the Streams API and functional programming in general.

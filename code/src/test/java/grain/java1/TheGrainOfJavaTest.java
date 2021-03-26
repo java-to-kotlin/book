@@ -58,7 +58,7 @@ public class TheGrainOfJavaTest {
         counts.add(new Integer(12));
 
         /// begin: reduce
-        int sum = ((Integer) Vectors.reduce(counts, new Integer(0), new AddIntegers()))
+        int sum = ((Integer) Vectors.fold(counts, new Integer(0), new AddIntegers()))
             .intValue();
         /// end: reduce
 

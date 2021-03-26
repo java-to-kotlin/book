@@ -10,47 +10,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 
 public class TheGrainOfJavaTest{
-
-    @Test
-    public void testMap() {
-        List words = Arrays.asList("a", "b", "c");
-
-        /// begin: map
-        List upperCaseWords = Lists.map(words, new Function1() {
-            public Object apply(Object arg) {
-                return ((String) arg).toUpperCase();
-            }
-        });
-        /// end: map
-
-        List expected = Arrays.asList("A", "B", "C");
-
-        assertEquals(expected, upperCaseWords);
-    }
-
-    @Test
-    public void testMutateList() {
-        List words = Arrays.asList("a", "b", "c");
-
-        /// begin: map_iteratively
-        List upperCaseWords = new ArrayList();
-        for (int i = 0; i < words.size(); i++) {
-            upperCaseWords.add(((String) words.get(i)).toUpperCase());
-        }
-        /// end: map_iteratively
-
-        List expected = Arrays.asList("A", "B", "C");
-
-        assertEquals(expected, upperCaseWords);
-    }
-
-
     @Test
     public void testReduce() {
         List counts = Arrays.asList(new Integer(1), new Integer(20), new Integer(12));
 
         /// begin: reduce
-        int sum = ((Integer) Lists.reduce(counts, new Integer(0),
+        int sum = ((Integer) Lists.fold(counts, new Integer(0),
             new Function2() {
                 public Object apply(Object arg1, Object arg2) {
                     int i1 = ((Integer) arg1).intValue();

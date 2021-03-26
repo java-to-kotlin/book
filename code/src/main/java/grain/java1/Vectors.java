@@ -4,7 +4,7 @@ import java.util.Vector;
 
 /// begin: reduce
 public class Vectors {
-    public static Object reduce(Vector l, Object initial, Function2 f) {
+    public static Object fold(Vector l, Object initial, Function2 f) {
         Object result = initial;
         for (int i = 0; i < l.size(); i++) {
             result = f.apply(result, l.get(i));

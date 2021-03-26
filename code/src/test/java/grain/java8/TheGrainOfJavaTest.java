@@ -11,17 +11,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TheGrainOfJavaTest{
     @Test
-    public void testMap() {
-        List<String> words = Arrays.asList("a", "b", "c");
-
-        /// begin: map
-        List<String> upperCaseWords = words.stream().map(String::toUpperCase).collect(toList());
-        /// end: map
-
-        assertEquals(Arrays.asList("A", "B", "C"), upperCaseWords);
-    }
-
-    @Test
     public void testReduce() {
         List<Integer> counts = Arrays.asList(1, 20, 12);
 
