@@ -511,16 +511,22 @@ So we'll leave the `Money` class for now and come back to it in <<immediate-to-g
 For most classes, it is quick and easy to convert Java to Kotlin.
 The result is completely compatible with existing Java code.
 
-If we also want value semantics, `data` classes allow us to remove even more boilerplate for simple classes like `EmailAddress`.
+If we want value semantics, `data` classes allow us to remove even more boilerplate for simple classes like `EmailAddress`.
 Because data classes are so quick and easy to create, and require no maintenance, we use them to define new value types far more frequently in Kotlin than in Java:
 to declare application-specific "micro-types" that wrap primitive values,
 to hold intermediate results of a calculation pipeline,
 or to pivot data into temporary structures that make it easier to write application logic.
 
-We look at more advantages of value types in <<beans-to-values>>.
-<<static-methods-to-top-level-functions>> examines how Kotlin represents static methods and data.
-
 If our value types must maintain invariants or encapsulate their representation, data classes are not suitable.
 In that case we have to implement value semantics ourselves.
 <<single-expresssion-functions-for-calculations>> looks at how we can make calculation functions and methods, such `equals` and `hashCode` of `Money`, more concise by refactoring them to single expression form.
 In <<immediate-to-gradual>> we make the `Money` type more convenient to use in Kotlin by defining operators instead of methods.
+
+Not all our Java classes are value types.
+The prevalent Java coding style favours mutable objects.
+In <<beans-to-values>>, we look at the advantages of using value types where Java would use mutable objects, and show how to refactor code from mutating objects to transforming values.
+
+Many classes in Java code exist to hold static utility methods.
+In Kotlin, functions and data are first class features.
+They do not need to be declared as members of classes.
+<<static-methods-to-top-level-functions>> explores how to convert Java classes of utility methods into top-level declarations.
