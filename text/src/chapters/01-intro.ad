@@ -248,25 +248,26 @@ Java had the potential to be a strong competitor to Visual Basic and Delphi.
 Sun added a slew of APIs that were heavily inspired by Microsoft APIs:
 JDBC for data base access (equivalent to Microsoft's ODBC); Swing for desktop GUI programming (equivalent to Microsoft's MFC); and the framework that had the greatest influence on Java programming style: Java Beans.
 
-Java Beans was Sun's attempt to compete with Microsoft's ActiveX component model for low-code, graphical, drag-and-drop programming.
-Programmers could use ActiveX components in their Visual Basic programs, embed them in office documents, or in web pages on their corporate intranet.
+Java Beans was Sun's answer to Microsoft's ActiveX component model for low-code, graphical, drag-and-drop programming.
+Windows programmers could use ActiveX components in their Visual Basic programs, embed them in office documents, or in web pages on their corporate intranet.
 Despite how easy it was to use Active-X components, they were notoriously difficult to write.
 Java Beans were much easier: you merely had to follow some additional coding conventions for your Java class to be considered a "bean" that could be instantiated and configured in a graphical designer.
+The promise of "Write once. Run anywhere." meant you would be able to use -- or sell -- Java Bean components on any operating system, not just Windows.
 
-For a class to be a Java Bean, it had to have a constructor that took no arguments, be serializable, and declare an API made up of public properties that could be read and optionally written, methods that could be invoked, and events that objects of the class would emit.
-Programmers could instantiate beans in an application designer, configure them by seting their properties, and connect events emitted by beans to the methods of other beans.
-By default, the Beans API defined properties by methods with names that started with "get" and "set".
+For a class to be a Java Bean, it must have a constructor that took no arguments, be serializable, and declare an API made up of public properties that could be read and optionally written, methods that could be invoked, and events that objects of the class would emit.
+The idea was that programmers would instantiate beans in a graphical application designer, configure them by seting their properties, and connect events emitted by beans to the methods of other beans.
+By default, the Beans API defined properties by pairs of methods whose names started with "get" and "set".
 This default could be overridden, but doing so required the programmer to write more classes of boilerplate code.
-Programmers usually went to the effort when retrofitting existing classes to act as Java Beans.
+Programmers usually went to the effort only when retrofitting existing classes to act as Java Beans.
 In new code, it was much easier to go with the grain.
 
 The drawback of Beans style is that it relies heavily on mutable state, and requires more of that state to be public than plain old Java objects because you cannot pass parameters to an object's constructor.
 Object state must be mutable so that it can be set after construction and objects must often be instantiated in an invalid state -- with required properties initialised to null, for example -- and then put into a valid state by setting their public properties.
-User interface components work well as beans, because they can safely be initialised with default content and styling and adjusted after construction.
+User interface components work well as beans, because they can safely be initialised with default content and styling, and adjusted after construction.
 When we have classes that have no reasonable defaults treating them in the same way is error prone, because the type checker can’t tell us when we have provided all the required values.
 The Beans conventions make writing correct code harder and changes in dependencies can silently break client code.
 
-In the end, graphical composition of Java beans never became mainstream, but the coding conventions stuck.
+In the end, graphical composition of Java beans did not become mainstream, but the coding conventions stuck.
 Java programmers followed the Java Bean conventions even when they had no intention of their class being used as a Java Bean.
 Beans had an enormous, lasting, and not entirely positive, influence on Java programming style.
 
@@ -275,14 +276,14 @@ Beans had an enormous, lasting, and not entirely positive, influence on Java pro
 
 Java did eventually spread through the enterprise.
 It didn't replace Visual Basic on the corporate desktop as expected, but unseated C++ as the server-side language of choice.
-In 1998, Sun released Java 2 Enterprise Edition (J2EE, later rebranded as JavaEE), a suite of standard APIs for programming server-side, transaction processing systems.
+In 1998, Sun released Java 2 Enterprise Edition (J2EE, later rebranded as JavaEE, and later still rerebranded as JakartaEE), a suite of standard APIs for programming server-side, transaction processing systems.
 
 The J2EE APIs suffer from _abstraction inversion_.
 The Java Beans and applets APIs also suffer from abstraction inversion -- they both disallow passing parameters to constructors, for example -- but it is far more severe in J2EE.
 J2EE applications don't have a single entry point.
 They are composed of many small components whose lifetime is managed by an "application container", and are exposed to one another through a JNDI name service.
-Applications need a lot of boilerplate code and mutable state to look up and store the resources they depend on.
-Programmers responded by inventing [role="pattern"]_dependency injection_ (DI) frameworks that did all the resource look up and binding and managed lifetimes.
+Applications need a lot of boilerplate code and mutable state to look up the resources they depend on.
+Programmers responded by inventing [role="pattern"]_dependency injection_ (DI) frameworks that did all the resource look up and binding, and managed lifetimes.
 The most successful of these is Spring.
 It builds upon the Java Beans coding conventions, and uses reflection to compose applications from Bean-like objects.
 
