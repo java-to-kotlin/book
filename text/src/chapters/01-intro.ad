@@ -300,7 +300,7 @@ In fact, the "web application" wasn't written in Java at all:
 it was an XML file that listed the classes that the servlet container would instantiate.
 Therefore, every servlet had to have a no-argument constructor and the web application couldn't initialise its servlets by passing objects to their constructors.
 
-Instead, you had to write a "ServletContextListener" to store objects required by the servlets in the "ServletContext" -- an untyped map shared by all servlets.
+Instead, you had to write a "ServletContextListener" that created objects required by the application's servlets and stored them as named, untyped attributes of the "ServletContext".
 
 // begin-insert: src/main/java/grain/j2ee/ExampleServletContextListener.java#listener
 [source,java]
@@ -327,7 +327,7 @@ public class ExampleServletContextListener implements ServletContextListener {
 ----
 // end-insert
 
-Servlets had to fetch the objects they needed from the context in their `init` method:
+Servlets initialised themselves by looking for the objects they needed in the context, and casting them to the expected type.
 
 // begin-insert: src/main/java/grain/j2ee/ExampleServlet.java#servlet
 [source,java]
@@ -353,8 +353,10 @@ public class ExampleServlet extends HttpServlet {
 // end-insert
 
 That's a lot of effort to reimplement what you could do with constructors if the Servlet API didn't prevent you using them.
-It's no wonder that Java programmers found dependency injection frameworks an improvement!
-The Servlet API finally allowed web applications to instantiate servlets and pass dependencies as constructor parameters in version 3.0, over _twenty years_ after the Servlet API spec was first released.
+And the constructor calls would be type checked.
+It's no wonder that Java programmers found dependency injection frameworks to be an improvement!
+
+The Servlet API finally allowed web applications to instantiate servlets and pass dependencies to their constructors in version 3.0, over _twenty years_ after the Servlet API was first published.
 ****
 
 In terms of programming style, DI frameworks encourage programmers to eschew direct use of the `new` keyword and instead rely on the framework to instantiate objects.
