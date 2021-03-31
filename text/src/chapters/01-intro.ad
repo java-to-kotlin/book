@@ -293,6 +293,68 @@ It builds upon the Java Beans coding conventions, and uses reflection to compose
 [role="antipattern"]_Abstraction inversion_ is an architectural flaw in which a software platform prevents client code from using lower level mechanisms that it requires.
 This forces programmers to reimplement those lower level mechanisms using the higher-level facilities exposed by the platform's API, which in turn use the very features being reimplemented.
 The end result is unnecessary code, poor performance, and additional maintenance and testing costs.
+
+Take, for example, J2EE servlets.
+In the servlets API, the servlet container, not the web application, was responsible for instantiating servlet objects.
+In fact, the "web application" wasn't written in Java at all:
+it was an XML file that listed the classes that the servlet container would instantiate.
+Therefore, every servlet had to have a no-argument constructor and the web application couldn't initialise its servlets by passing objects to their constructors.
+
+Instead, you had to write a "ServletContextListener" to store objects required by the servlets in the "ServletContext" -- an untyped map shared by all servlets.
+
+// begin-insert: src/main/java/grain/j2ee/ExampleServletContextListener.java#listener
+[source,java]
+----
+public class ExampleServletContextListener implements ServletContextListener {
+    public void contextInitialized(ServletContextEvent servletContextEvent) {
+        ServletContext context = servletContextEvent.getServletContext();
+        context.setAttribute("example.httpClient", createHttpClient());
+        context.setAttribute("example.serviceUriTemplate", new URITemplate(
+            context.getInitParameter("example.serviceUriTemplate")));
+        ...
+    }
+
+    public void contextDestroyed(ServletContextEvent servletContextEvent) {
+        ...
+    }
+
+    private HttpClient createHttpClient() {
+        ...
+    }
+
+    ...
+}
+----
+// end-insert
+
+Servlets had to fetch the objects they needed from the context in their `init` method:
+
+// begin-insert: src/main/java/grain/j2ee/ExampleServlet.java#servlet
+[source,java]
+----
+public class ExampleServlet extends HttpServlet {
+    private HttpClient httpClient;
+    private URITemplate routeServiceTemplate;
+    ...
+
+    public void init(ServletConfig servletConfig) throws ServletException {
+        super.init(servletConfig);
+        ServletContext context = servletConfig.getServletContext();
+        this.httpClient =
+            (HttpClient) context.getAttribute("example.httpClient");
+        this.routeServiceTemplate =
+            (URITemplate) context.getAttribute("example.serviceUriTemplate");
+        ...
+    }
+
+    ...
+}
+----
+// end-insert
+
+That's a lot of effort to reimplement what you could do with constructors if the Servlet API didn't prevent you using them.
+It's no wonder that Java programmers found dependency injection frameworks an improvement!
+The Servlet API finally allowed web applications to instantiate servlets and pass dependencies as constructor parameters in version 3.0, over _twenty years_ after the Servlet API spec was first released.
 ****
 
 In terms of programming style, DI frameworks encourage programmers to eschew direct use of the `new` keyword and instead rely on the framework to instantiate objects.
