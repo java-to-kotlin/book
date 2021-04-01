@@ -264,9 +264,9 @@ You can see that Java is accessing the domain property through the `getDomain()`
 Conversely, when the class was Java and had an explicit `getDomain()` method, Kotlin code could have called it as `address.domain`.
 We'll discuss properties in more detail in <<methods-to-properties>>.
 
-So far converting our class to Kotlin has saved us 10 or so lines of code, but we aren't done yet.
+So far, converting our class to Kotlin has saved us 14 lines of code, but we aren't done yet.
 Value types like this are so useful, but so tedious to get right and keep right, that Kotlin supports them at a language level.
-Mark the class with the `data` modifier, and the compiler will generate `equals`, `hashCode` and `toString` methods automatically (if they are not defined by the class).
+So we mark the class with the `data` modifier so that the compiler generates the `equals` and `hashCode` methods for us.
 That reduces the `EmailAddress` class to:
 
 // begin-insert: tags/java-to-kotlin-classes.4:src/main/java/travelator/EmailAddress.kt
@@ -301,8 +301,8 @@ data class EmailAddress(
 <1>  We don't want the generated `toString()` method, so we define the one we do want.
 
 Frankly, that `parse` method still rankles - it's taking up a disproportionate amount of space for the work it is doing.
-We'll have a crack at making it suitably short and sweet in <<multi-to-single-expression-functions>>.
-For now though, we're done with convert our `EmailAddress` Java class to Kotlin.
+We'll have a crack at making it shorter and sweeter in <<multi-to-single-expression-functions>>.
+For now though, we're done with converting our `EmailAddress` Java class to Kotlin.
 
 
 === The Limitations of Data Classes
@@ -383,7 +383,7 @@ public class Money {
 
 <1> The constructor is private.
 Other classes obtain Money values by calling the static `Money.of` method, which guarantees that the scale of the amount is consistent with the number of minor units of the currency.
-Most currencies have 100 minor units (two digits), but some have fewer and some more: the Japanese Yen has no minor units, and the Jordanian Dinar has one thousand, for example.
+Most currencies have 100 minor units (two digits), but some have fewer, and some more. For example, the Japanese Yen has no minor units, and the Jordanian Dinar is made up of one thousand fils.
 +
 The "of" method follows a coding convention of <<modern-java-style,Modern Java>> that draws a distinction in the source between objects with identity, which are constructed by the new operator, and values, which are obtained from static methods.
 This convention is followed by the Java time API (for example `LocalDate.of(2020,8,17)`) and recent additions to the collections API (for example, `List.of(1,2,3)` creates an immutable list)
@@ -394,7 +394,7 @@ The class provides some convenient overloads of the `of` method for String or in
 <4> The toString method returns a representation of its properties that can be shown to the user, not just for debugging.
 <5> `Money` provides operations for calculating with money values.
 For example, you can add monetary values together.
-The `add` method constructs new Money values by calling the constructor directly, because the result of BigDecimal.add has the correct scale already and so we can avoid the overhead of setting the scale.
+The `add` method constructs new `Money` values by calling the constructor directly (rather than using `Money.of`), because the result of `BigDecimal.add` already has the correct scale, so we can avoid the overhead of setting the scale in `Money.of`.
 
 [NOTE]
 ====
