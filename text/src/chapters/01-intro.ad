@@ -462,14 +462,19 @@ Refactoring _between_ languages is usually harder than refactoring _within_ a si
 Porting logic from one language to another must be done manually, which takes longer and introduces more risk.
 Once multiple languages are in use, the language boundary impedes refactoring because when you refactor code in one language, the IDE does not update dependent code written in other languages to be compatible.
 
-What makes the combination of Java and Kotlin unique is the seamless boundary between the two languages.
+What makes the combination of Java and Kotlin unique is the (relatively) seamless boundary between the two languages.
 Thanks to the design of the Kotlin language, the way it is mapped to the JVM platform, and JetBrains' investment in developer tooling, refactoring Java to Kotlin and refactoring a combined Java/Kotlin codebase is almost as easy as refactoring in a single codebase.
 
 Our experience has been that we can refactor Java to Kotlin without impacting productivity, and that as more of the codebase is converted to Kotlin, productivity accelerates.
 
-[[minimise-text-edits]]
-==== We Try Not To Change Code By Editing Text
+==== Refactoring Principles
 
+The practice of refactoring has come a long way since its initial popularisation in Martin Fowler's book (<<F_RITDOEC_1999,_Refactoring: Improving the Design of Existing Code_>>).
+In 1999 the book had to detail manual steps for even simple refactorings like renaming identifiers, but notes that some state-of-the-art development environments were beginning to provide automated support to reduce such drudgery.
+Nowadays we expect our tools to automate even complicated scenarios such as extracting an interface or changing function signatures.
+
+These individual refactorings rarely stand alone though.
+Now that the building-block refactorings can be performed automatically, we have the time and energy to combine them to make larger-scale changes to our codebase.
 When the IDE does not have distinct user-interface actions for a large-scale transformation we wish to do, we have to perform it as a sequence of more granular refactorings.
 We use the IDE's automatic refactoring whenever we can, and fall back on text editing when the IDE does not automate a transformation we need.
 
@@ -485,10 +490,12 @@ They typically take a few seconds, a few minutes at most.
 
 // TODO - on refactoring. IntelliJ is continually improving and the sequences we show may be done more easily in the version you have when you read the book.  Experiment with the tools and find ways of gradually and safely transforming your code that are better than those we have.
 
+// TODO - on refactoring. We've a policy of not just finishing a refactor just because we have shown the thing that is the subject of the chapter. So few books following refactoring to its conclusion - we want to show that it's not just isolated techniques, it's often what we do all day for days.
+
 
 ==== We Assume Good Test Coverage
 
-As Martin Fowler says in <<F_RITDOEC_1999,_Refactoring: improving the design of existing code_>>: "if you want to refactor, the essential precondition is having solid tests."
+As Martin Fowler says in <<F_RITDOEC_1999,_Refactoring: Improving the Design of Existing Code_>>: "if you want to refactor, the essential precondition is having solid tests."
 Good test coverage ensures that the code transformations we want to only improve design have not inadvertently changed our system's behaviour.
 In this book, we assume that you have good test coverage.
 We do not cover how to write automated tests.
@@ -617,5 +624,3 @@ If we say that we are moving some aspect of code (functionality or mutability or
 
 The reality of software is that this metaphor will sometimes fail us.
 In these cases we hope to make ourselves clear in context.
-
-// TODO - on refactoring. We've a policy of not just finishing a refactor just because we have shown the thing that is the subject of the chapter. So few books following refactoring to its conclusion - we want to show that it's not just isolated techniques, it's often what we do all day for days.
