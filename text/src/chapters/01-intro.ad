@@ -33,6 +33,8 @@ Maybe you're in a technical leadership position and/or have successfully convinc
 You've spent some political capital to get Kotlin into the project.
 Now you need to ensure that the transition goes smoothly and doesn't destabilise the existing, business critical Java code you are responsible for.
 
+// TODO: Also, not just people who have Java to convert, but also Java programmers who have their thinking to convert.
+
 If this is you, then you've come to the right place.
 This book will help you adapt your thinking and designs to take advantage of Kotlin.
 That's not enough though, because you have existing code that you need to maintain and enhance.
@@ -539,6 +541,38 @@ ifdef::todos[]
 
 endif::todos[]
 
+=== How This Book is Organised
+
+This book is about how to transition from Java to Kotlin, mainly focused on code, but touching on projects and organisations.
+Each chapter addresses an aspect of this transition, looking at some aspect of typical Java projects that can be improved on the journey.
+They are named in the pattern _Java Way_ to _Kotlin Way_, where we recommend that you prefer the latter over the former.
+Maybe Kotlin makes easier an approach that was difficult in Java, or Kotlin discourages an approach that is common in Java, to guide design in a direction that is less error prone, more concise, and more tool-friendly.
+
+We don't just _recommend_ you adopt the Kotlin way though; the chapters also show how to make the transformation.
+Not by just re-writing the Java, but by gradually refactoring it to Kotlin it in a way that is safe and allows us to maintain a mixed language codebase.
+
+=== How Did We Choose the Topics?
+
+We began by analyzing Java and Kotlin developers' use of their respective languages and conducting interviews to identify areas of difference and confusion.
+This was backed by a machine learning analysis of 33,459 open source Java and Kotlin codebases.
+These identified candidates that we named in the thing-to-another-thing form before ranking them according to frequency and developer-pain-quotient in order to establish which should make the cut.
+Finally, we ordered the topics by
+
+It's no good, we can't lie to you.
+
+The truth is that we started by choosing topics that we wanted to write about, and that we felt would be interesting and informative. <<encapsulated-collections-to-typealiases>> <<multi-to-single-expression-functions>>, and <<performing-io-to-passing-data>> are typical of these chapters.
+We also looked for places where the grain of Kotlin and Java differ significantly, because those were the places where we found we learned most by asking why they were different.
+This lead to chapters like <<optional-to-nullable>>, <<java-to-kotlin-collections>>, and <<static-methods-to-top-level-functions>>.
+
+As we wrote those chapters other topics presented themselves and were added to the list.
+In particular, as we wrote the refactoring steps for a chapter, we often found ourselves making changes to code that we felt deserved their own chapter. <<streams-to-sequences>>, <<functions-to-extension-functions>>, and <<methods-to-properties>> are examples of these.
+
+The result of this process is by no means exhaustive, or even, unfortunately, optimal.
+Space and time limitations have meant that we have many more potential topics than chapters.
+Having been through this journey there are subjects that we should have covered and haven't, and chapters which, whilst we believe them interesting, we would swap for others if we had our time again.
+We are all developers here though, so we trust that our readers will appreciate the analogs between this book and the codebases it hopes to improve.
+
+
 === What Are We Working On?
 
 In the chapters that follow we demonstrate refactorings from Java to Kotlin in the codebase of _Travelator_, a (fictional) application for planning and booking international, overland travel.  Our users plan routes by sea, rail, and road; search for places to stay and sights to see; compare their options by price, time and spectacle; book their trips; and share photos and writings from their travels.
@@ -548,24 +582,6 @@ Travelator has web and mobile front-ends that invoke web services via HTTP.
 Each chapter pulls an informative example from a different part of the Travelator system, but they share common domain concepts: money, currency conversion, journeys, itineraries, bookings, and so on.
 
 We hope that, like our Travelator application, this book will help you plan your journey from Java to Kotlin.
-
-// TODO: attractive route map here.
-
-=== How This Book is Organised
-
-This book is about how to transition from Java to Kotlin, mainly focused on code, but touching on projects and organisations.
-Each chapter each addresses an aspect of this transition, looking at some aspect of typical Java projects that can be improved on the journey.
-They are named in the pattern _Java Way_ to _Kotlin Way_, where we recommend that you prefer the latter over the former.
-Maybe Kotlin makes easier an approach that was difficult in Java, or Kotlin discourages an approach that is common in Java, to guide design in a direction that is less error prone, more concise, and more tool-friendly.
-
-We don't just recommend you adopt the Kotlin way though; the chapters also show how to make the transformation.
-Not by just re-writing the Java, but by gradually refactoring it to Kotlin it in a way that is safe and allows us to maintain a mixed language codebase.
-
-How did we choose the topics?
-We looked for places where the grain of Kotlin and Java differ significantly.
-The topics are not exhaustive: we cannot cover every way in which the languages differ.
-We cover the areas that we found most notable as we adopted Kotlin.
-We also favour transformations that result in code that is less complex.
 
 === Complexity
 
@@ -583,7 +599,25 @@ Java has been moving in this direction over the years.
 Scala ran full-tilt towards functional programming but away from OO.
 We have found that the grain of Kotlin allows the mixing of functional and object programming in a way that reduces complexity and allows the writing of high-quality software by mere mortal developers.
 
-=== Code Conventions
+=== Perfect Code
+
+On the subject of mere-mortals, we should address code quality.
+It is sorely tempting to aim for perfection when committing code to a book.
+We know that you will be judging us by the code here, and like many developers, a great deal of our own self-worth is tied up in the quality of the work we produce.
+
+At the same time, we are engineers not artists.
+Our job is to balance scope, schedule and cost for our customers.
+No-one but us really cares about the quality of the code except when it affects one of these three higher values.
+
+So in our examples we have tried to show realistic production code.
+The starting points are sometimes not as good as we might like - we are, after all, trying to show ways of improving them.
+Often refactorings will make things worse before they get better, so definitely don't judge us by code in the middle of a chapter.
+By the end of a chapter, our aim is to have code that is good enough, but not so perfect that we could be accused of wasting Travelator's money.
+
+That said, we have a policy of applying cost-effective changes to tidy up, even once we have covered the topic we set out to illustrate, and more than once we have invented a topic and written a chapter just in order to leave the code in a state that we're happy with.
+In the end, we are artists as well as engineers.
+
+=== Code Formatting
 
 Our code follows (our interpretation of) the standard coding conventions of Java and Kotlin where possible.
 
@@ -624,3 +658,5 @@ If we say that we are moving some aspect of code (functionality or mutability or
 
 The reality of software is that this metaphor will sometimes fail us.
 In these cases we hope to make ourselves clear in context.
+
+// TODO: something on the Kotlin version
