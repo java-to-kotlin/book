@@ -1,9 +1,9 @@
 [[java-to-kotlin-projects]]
-== Java To Kotlin Projects
+== Java Projects To Kotlin Projects
 
 What is the first step of the journey from pure Java to a mixed and then increasingly Kotlin codebase?
 
-The first time we introduced Kotlin to a Java codebase, we were a small team that included six developers, building a relatively greenfield project.
+The first time your authors Nat and Duncan introduced Kotlin to a Java codebase, we were a small team that included six developers, building a relatively greenfield project.
 We had already deployed some web applications with Kotlin, but our enterprise architects insisted that we write the new system in Java 8.
 This was shortly after Kotlin 1.0 had been released, but before Google announced that Kotlin was an official language for Android, so the architects were understandably wary about committing to a language with an uncertain future for a strategic system that they expected to be around for decades.
 
@@ -31,7 +31,7 @@ Kotlin's lightweight syntax for closures offered a way to define the structure o
 They gradually refactored the underpinnings of their system from a framework that obscured the architecture to a compositional style in which the architecture was visible in the code.
 This work became the https://http4k.org[http4k] web programming toolkit.
 
-As these two examples show, the choice of starting point depends on a number of factors: why is the team adopting Kotlin, how large is the codebase, how frequently is it changed, ... You probably have reasons aren't in this list.
+As these two examples show, the choice of starting point depends on a number of factors: why the is team adopting Kotlin, how large the codebase is, how frequently it changes, ... You probably have reasons that aren't in this list.
 
 If you are choosing Kotlin for its language features it makes sense to convert the classes you are working in most frequently, as we did in the first example above.
 If you are choosing Kotlin to use a specific library then it makes sense to start writing Kotlin against the API, annotate it to make your Kotlin code convenient to the Java code in the rest of the app, and continue from there.
@@ -90,7 +90,7 @@ dependencies {
 ----
 // end-insert
 
-and after
+After we have added the Kotlin plugin, our build file looks like this:
 
 // begin-insert: tags/baseline.1:build.gradle#kotlin_plugin
 [source,groovy]
@@ -124,12 +124,12 @@ Given those changes, we can rerun our build, and see that ...
 
 ...
 
-the build still works!
+... the build still works!
 
 If we resync the Gradle project in IntelliJ (this may happen automatically on saving), we can run our tests and programs within the IDE.
 
 Our tests still pass, so we haven't broken anything, but neither have we proved that we can use Kotlin in our project.
-Let's test that by writing a hello world program.
+Let's test that by writing a "hello world" program.
 We create a file, `HelloWorld.kt`, in the root package of our Java source tree, `src/main/java`:
 
 .HelloWorld.kt
@@ -148,7 +148,7 @@ fun main() {
 The Kotlin build plugin adds additional source roots, `src/main/kotlin` and `src/test/kotlin`, and compiles Kotlin source files found in any of their subdirectories.
 
 It will also compile Kotlin source found in Java source trees, in particular `src/main/java` and `src/test/java`.
-Whilst you can separate your source files by language, putting Java files in the 'java' directories and Kotlin into `kotlin`, in practice your authors don't bother.
+Whilst you can separate your source files by language, putting Java files in the `java` directories and Kotlin into `kotlin`, in practice your authors don't bother.
 It's nice to be able to look into a directory and see all the source for the the corresponding package rather than casting around the filesystem.
 In order to make this work though, we keep Kotlin source in directories mirroring the package structure rather than taking advantage of Kotlin's ability to have files in a single directory but multiple packages.
 
@@ -175,8 +175,8 @@ We now have the _option_ to use Kotlin in our project - the first part of this c
 
 .Other Build Systems
 ****
-We've chosen to show the changes necessary to add Kotlin support to a Gradle build here, but we can use Maven or Ant by following the instructions provided in the Tools section at https://KotlinLang.org[https://kotlinlang.org/docs/reference/].
-This also gives instructions for using the command-line compiler, kotlinc.
+We've chosen to show the changes necessary to add Kotlin support to a Gradle build here, but you can use Maven or Ant by following the instructions provided in the Tools section at https://KotlinLang.org[https://kotlinlang.org/docs/reference/].
+This also gives instructions for using the command-line compiler, `kotlinc`.
 
 If you use Gradle, there is the option to use Kotlin, rather than the traditional Groovy, as the build definition language.
 This has the advantage of providing better tool support through strong typing, at the expense of having to translate historical StackOverflow answers into a new language.
