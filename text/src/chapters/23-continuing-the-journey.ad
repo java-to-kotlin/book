@@ -14,13 +14,13 @@ Java's grain favours mutable objects and reflection, over type safety and compos
 In contrast, Kotlin favours the transformation of immutable values, free standing functions, and has a type system that is unobtrusive and helpful.
 
 Java and Kotlin can coexist in the same codebase.
-The interop boundary is almost seamless, although there are some risks when you pass information from the strictly typed world of Kotlin to the loosely typed world of Java.
+The interop boundary is almost seamless, although there are some risks when you pass information from the strictly typed world of Kotlin to the more loosely typed world of Java.
 
 It is easy to convert Java to Kotlin with the IntelliJ IDE, but we end up with "Java in Kotlin syntax."
 To make the most of Kotlin, we have to change the way we design to work with the grain of the new language:
 separate calculations and data from actions;
-move mutation and mutable state outwards (towards where I/O happens) or inwards (to become the responsibility of the runtime);
-move I/O and other effects outwards.
+move I/O and other effects outwards;
+move mutation and mutable state outwards (towards where I/O happens) or inwards (to become the responsibility of the runtime).
 
 Transform code from idiomatic Java to idiomatic Kotlin in small, safe steps.
 Use automatic refactoring tools where possible; edit text as a last resort.
@@ -30,7 +30,7 @@ We can support conventions of both languages at the same time if we will continu
 
 As we've seen in some of our history lessons, the grain of Java was formed in the 1990s, when we thought that object-oriented programming might be the mythical silver bullet.
 When OO turned out not to solve all our problems, mainstream programming languages, and even Java itself, began to adopt ideas from functional programming.
-Kotlin was born from Java in this age, and, like our children our better equipped for the next 50 years than we are, it is more suited to modern programming than Java.
+Kotlin was born from Java in this age, and, like our children are better equipped for the next 50 years than we are, it is more suited to modern programming than Java.
 
 What do we mean by function thinking?
 Answering that question has been the reason for this journey, and having accompanied you on its many legs, here's our take.
@@ -41,7 +41,7 @@ Functional programmers have learned that the easiest way to tame that complexity
 They call things happening an _effect_: a change that is observable in some scope.
 
 Mutating a variable or a collection _inside_ a function is an effect, but unless that variable is shared _outside_ the function it doesn't _affect_ any other code.
-The scope of the effect is local to the function, and we don't have to consider it when reasoning about what our system does.
+When the scope of an effect is local to a function, we don't have to consider it when reasoning about what our system does.
 As soon as we mutate shared state (a parameter to the function perhaps, or a global variable, or a file or network socket) our local effect becomes an effect in whatever scope can see the shared thing, and that quickly increases complexity and reduces understanding.
 
 It isn't enough that a function doesn't _actually_ mutate shared state -- if it _can_ mutate it we have to examine the source of the function (and, recursively, every function that it calls that can also access that state) to be sure that it doesn't mutate anything if we are to understand what our system does.
@@ -49,7 +49,8 @@ Every piece of global mutable state makes every function suspect.
 Similarly, if we program in an environment in which every function can write to the database, we lose the ability to predict when such writes can occur and plan accordingly.
 
 So functional programmers tame complexity by reducing mutation.
-Sometimes they program in languages (like Clojure and Haskell) that enforce controls on mutation, otherwise they work by convention.
+Sometimes they program in languages (like Clojure and Haskell) that enforce controls on mutation.
+Otherwise they work by convention.
 If we adopt these conventions in more general languages, we gain the ability to reason with our code in proportion to how much we adopt the conventions.
 Kotlin chooses not to enforce the control of effects, but the language and its runtime come with some built-in conventions to nudge us in the right direction.
 Compared to Java we have, for example: `val` rather than a non-default `final` modifier, read-only views of collections, and data classes to encourage copy-on-write rather than mutation.
@@ -63,6 +64,8 @@ Encapsulating immutable data
 Following the data
 Polymorphism
     Actually, for managing in-memory representations of heavily-mutable state, in particular in user-interfaces, OO is still appropriate.
+        - Is it?  The industry has come down pretty strongly on a more functional approach to UIs, at least in web front-ends (React, etc).
+        - maybe its better to think of the OO UI components as an FP runtime and the React code as expressions that calculate UI structure to be interpreted by the runtime, just as Haskell expressions calculate IO values to be interpreted by its runtime
 
 === Refactoring
 
@@ -78,6 +81,7 @@ That big idea is: all programming is program transformation.
 Text is just a presentation of the program. It is not _the_ program.
 The program is the graph of which the text is a projection.
 Programming is applying transformations to that graph.
+
 We refactor all the time.
 "Make the change easy, then make the easy change" -- Kent Beck.
 
