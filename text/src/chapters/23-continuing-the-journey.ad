@@ -50,22 +50,29 @@ Similarly, if we program in an environment in which every function can write to 
 
 So functional programmers tame complexity by reducing mutation.
 Sometimes they program in languages (like Clojure and Haskell) that enforce controls on mutation.
-Otherwise they work by convention.
+Otherwise, they work by convention.
 If we adopt these conventions in more general languages, we gain the ability to reason with our code in proportion to how much we adopt the conventions.
 Kotlin chooses not to enforce the control of effects, but the language and its runtime come with some built-in conventions to nudge us in the right direction.
 Compared to Java we have, for example: `val` rather than a non-default `final` modifier, read-only views of collections, and data classes to encourage copy-on-write rather than mutation.
-Many of this book's chapters describe more subtle conventions with the same aim.
+Many of this book's chapters describe more subtle conventions with the same aim - <<beans-to-values>>, <<java-to-kotlin-collections>>, <<actions-to-calculations>>, <<accumulating-objects-to-transformations>> and <<performing-io-to-passing-data>>.
 
+There is of course much more to functional programming than simply not mutating shared state,
+but, if we just focus on solving problems without mutation (or where mutation is the point, we minimise its scope), our systems become easier to understand and to change.
+Like https://en.wikipedia.org/wiki/Don%27t_repeat_yourself[Don't Repeat Yourself] (aka https://wiki.c2.com/?OnceAndOnlyOnce[Once and Only Once]) assiduous application of a simple rule has profound effects.
+Both rules share another property though -- if we aren't careful their application can  increase complexity faster than they reduce it.
+We need to learn techniques that allow us to manage mutation (and remove duplication, and facilitate testing, and so on) without making our code even harder to understand, and to recognise these techniques for what they are when we see them.
+These techniques will tend to be different in different languages, environments and domains, and are the craft of our profession.
 
-
-Points to cover
-Immutability
-Encapsulating immutable data
-Following the data
-Polymorphism
-    Actually, for managing in-memory representations of heavily-mutable state, in particular in user-interfaces, OO is still appropriate.
-        - Is it?  The industry has come down pretty strongly on a more functional approach to UIs, at least in web front-ends (React, etc).
-        - maybe its better to think of the OO UI components as an FP runtime and the React code as expressions that calculate UI structure to be interpreted by the runtime, just as Haskell expressions calculate IO values to be interpreted by its runtime
+As you research functional techniques, you will come across a lot of anti-object sentiment.
+This seems to be rooted in a perception that OO is all about mutable objects, but we shouldn't throw the message-passing baby out with the mutable bathwater.
+Whilst we can use OO to manage shared mutable state, in practice these days we generally use it to encapsulate immutable state, or to represent services and their service dependencies.
+We saw in <<interfaces-to-functions>> that we can use both functions with closure, and classes with properties, to encapsulate data.
+Both can also hide code details, and allow a client to work with different implementations.
+We need these points of inflection to build flexible, robust and testable systems.
+Where in Java we traditionally reach for subclassing as tool; Kotlin, with its default-closed classes, encourages a more compositional style.
+Instead of overriding a protected method, we have a function-typed property representing an inflection.
+We should favour this style, but not be embarrassed to define class and sub-class hierarchies where they simplify our implementation.
+Similarly, extension functions <<functions-to-extension-functions>> are all very well, and they can work wonders to reduce coupling between disparate concerns in our codebases, but they are no substitute for polymorphic methods when that is what we need.
 
 === Functional Programming and Textual Reasoning
 
