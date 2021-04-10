@@ -26,6 +26,41 @@ Transform code from idiomatic Java to idiomatic Kotlin in small, safe steps.
 Use automatic refactoring tools where possible; edit text as a last resort.
 We can support conventions of both languages at the same time if we will continue to maintain Java code in a large codebase that is being converted to Kotlin over time.
 
+=== Functional Thinking
+
+As we've seen in some of our history lessons, the grain of Java was formed in the 1990s, when we thought that object-oriented programming might be the mythical silver bullet.
+When OO turned out not to solve all our problems, mainstream programming languages, and even Java itself, began to adopt ideas from functional programming.
+Kotlin was born from Java in this age, and, like our children our better equipped for the next 50 years than we are, it is more suited to modern programming than Java.
+
+What do we mean by function thinking?
+Answering that question has been the reason for this journey, and having accompanied you on its many legs, here's our take.
+
+Our software is ultimately limited by our ability to understand it.
+Complexity drives lack of understanding, and a lot of that complexity arises over confusion about _when_ things happen.
+Functional programmers have learned that the easiest way to tame that complexity is simply to have things _happen_ a lot less.
+They call things happening an _effect_: a change that is observable in some scope.
+
+Mutating a variable or a collection _inside_ a function is an effect, but unless that variable is shared _outside_ the function it doesn't _affect_ any other code.
+The scope of the effect is local to the function, and we don't have to consider it when reasoning about what our system does.
+As soon as we mutate shared state (a parameter to the function perhaps, or a global variable, or a file or network socket) our local effect becomes an effect in whatever scope can see the shared thing, and that quickly increases complexity and reduces understanding.
+
+It isn't enough that a function doesn't _actually_ mutate shared state -- if it _could_ mutate it we have to examine the source of the function (and, recursively, every function that it calls that can also access that state) to be sure that it doesn't mutate anything if we are to understand what our system does.
+Every piece of global mutable state makes every function suspect.
+Similarly, eve
+
+Points to cover
+Immutability
+Encapsulating immutable data
+Following the data
+Polymorphism
+    Actually, for managing in-memory representations of heavily-mutable state, in particular in user-interfaces, OO is still appropriate.
+
+=== Refactoring
+
+=== Fixing the Small Things
+
+=== Planning the Big Things
+
 // After this point it's just sketched out.
 
 We didn't mention it until now.
@@ -39,3 +74,7 @@ We refactor all the time.
 
 Note: no diagrams!
 Moving from OO to FP makes it easier to reason algebraically -- by manipulating textual expressions, not by thinking hard about mechanisms that are not immediately apparent in the source and have to be visualised to be understood.
+
+
+
+
