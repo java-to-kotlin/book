@@ -44,9 +44,18 @@ Mutating a variable or a collection _inside_ a function is an effect, but unless
 The scope of the effect is local to the function, and we don't have to consider it when reasoning about what our system does.
 As soon as we mutate shared state (a parameter to the function perhaps, or a global variable, or a file or network socket) our local effect becomes an effect in whatever scope can see the shared thing, and that quickly increases complexity and reduces understanding.
 
-It isn't enough that a function doesn't _actually_ mutate shared state -- if it _could_ mutate it we have to examine the source of the function (and, recursively, every function that it calls that can also access that state) to be sure that it doesn't mutate anything if we are to understand what our system does.
+It isn't enough that a function doesn't _actually_ mutate shared state -- if it _can_ mutate it we have to examine the source of the function (and, recursively, every function that it calls that can also access that state) to be sure that it doesn't mutate anything if we are to understand what our system does.
 Every piece of global mutable state makes every function suspect.
-Similarly, eve
+Similarly, if we program in an environment in which every function can write to the database, we lose the ability to predict when such writes can occur and plan accordingly.
+
+So functional programmers tame complexity by reducing mutation.
+Sometimes they program in languages (like Clojure and Haskell) that enforce controls on mutation, otherwise they work by convention.
+If we adopt these conventions in more general languages, we gain the ability to reason with our code in proportion to how much we adopt the conventions.
+Kotlin chooses not to enforce the control of effects, but the language and its runtime come with some built-in conventions to nudge us in the right direction.
+Compared to Java we have, for example: `val` rather than a non-default `final` modifier, read-only views of collections, and data classes to encourage copy-on-write rather than mutation.
+Many of this book's chapters describe more subtle conventions with the same aim.
+
+
 
 Points to cover
 Immutability
