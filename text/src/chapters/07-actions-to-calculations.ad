@@ -792,7 +792,8 @@ After all this work, we haven't actually promoted our action to a calculation af
 Should we be downhearted?
 No.
 Despite our previous assertion that functions are either calculations _or_ actions, the truth is that in practice action-ness is graduated, actions can be more or less susceptible to time.
-In this case, unless other code _in this interaction_ is also going to fetch the trips for a customer and find an inconsistency, we can treat `Trips` as effectively immutable, and so `tripsFor`, and by extension `currentTripsFor`, are effectively calculations.
+In this case, unless other code _in this interaction_ is also going to fetch the trips for a customer and find an inconsistency, we can treat `Trips` as effectively immutable.
+So `tripsFor`, and by extension `currentTripsFor`, are effectively calculations.
 In this respect our `InMemoryTrips` is less safe than our database implementation, because if accessed on multiple threads it can mutate the collection returned by `tripsFor`, leading to potential `ConcurrentModificationExceptions` in the `filter` implementation.
 Categorising our code into calculations and actions has helped us see these issues, and given us a framework for deciding if they are important in context.
 
