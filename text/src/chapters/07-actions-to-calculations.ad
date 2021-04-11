@@ -130,7 +130,8 @@ Both `save` and `find` are actions, as find's result depends on whether it is ru
 Functions returning `void` or `Unit` are a dead giveaway for actions, because if they do anything they have to do it by side effect.
 
 Functions that have no parameters (so this doesn't include methods or extension functions which can have implicit parameters accessed via `this`) must also either be returning a constant, or be reading from some other source and so be categorised as actions.
-So we can deduce that the top-level function:
+
+So we can deduce that the top-level function `requestRate`, below, is probably an action, reading from some global mutable state:
 
 [source,kotlin]
 ----
@@ -139,7 +140,7 @@ fun requestRate(): Double {
 }
 ----
 
-is probably an action, reading from some global mutable state, whereas:
+Conversely, if defined as a method it is probably a calculation that depends on properties of `Metrics` (provided `Metrics` is immutable):
 
 [source,kotlin]
 ----
@@ -153,7 +154,6 @@ class Metrics(
 }
 ----
 
-is probably a calculation that depends on properties of `Metrics` (provided `Metrics` is immutable).
 We say probably, because in languages like Java or Kotlin that allow IO or accessing global mutable data from any code, there is no way to be sure if a function represents a calculation or action short of examining it, and all the functions that it calls.
 We'll return to that problem soon.
 
