@@ -740,13 +740,14 @@ public class TrackingTests {
 ==== End Game
 
 We're nearly almost done now (refactoring is never completely done).
-Neither of our `currentTripFor` methods fetch the time, leaving that to the handler, tests for the handler may well require us to control _now_.
-So we'll probably inject the clock into `CurrentTripHandler` rather than call the raw `Instant.now()`.
+Neither of our `currentTripFor` methods fetch the time, leaving that to the handler.
+Tests for the handler may well require us to control _now_,  so we'll probably inject the clock into `CurrentTripHandler` rather than call the raw `Instant.now()`.
 
 Then there is the production implementation of `Trips` that reads from a database table.
 We are lucky and find that this passes the current time into the SQL query - so now we can just use a rendering of the new `at` in `Trips.currentTripsFor(String customerId, Instant at)`.
-Actions are so pervasive that it isn't unusual to find the time fetched inside the SQL query itself, using some variant of `CURRENT_TIMESTAMP` or `NOW`.
-In this case we would have to update the query to accept the value from our function rather than reading it from the database server itself.
+It would have been a more complicated refactor if the SQL query was using the current time of the database server.
+Actions are so pervasive that it isn't unusual to find the time fetched inside SQL queries, using a database-specific construct such as `CURRENT_TIMESTAMP` or `NOW`.
+If this was case we would have to change the query to receive the time from our function as a query parameter.
 
 Oh, and we haven't converted the code to Kotlin!
 
