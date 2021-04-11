@@ -31,6 +31,7 @@ As we've seen in some of our history lessons, the grain of Java was formed in th
 When OO turned out not to solve all our problems, mainstream programming languages, and even Java itself, began to adopt ideas from functional programming.
 Kotlin was born from Java in this age, and, like our children are better equipped for the next 50 years than we are, it is more suited to modern programming than Java.
 
+// TODO need to introduce the phrase "functional thinking" into the section before this (besides the title)
 What do we mean by function thinking?
 Answering that question has been the reason for this journey, and having accompanied you on its many legs, here's our take.
 
@@ -39,11 +40,11 @@ Complexity drives lack of understanding, and a lot of that complexity arises ove
 Functional programmers have learned that the easiest way to tame that complexity is simply to have things _happen_ a lot less.
 They call things happening an _effect_: a change that is observable in some scope.
 
-Mutating a variable or a collection _inside_ a function is an effect, but unless that variable is shared _outside_ the function it doesn't _affect_ any other code.
+Mutating a variable or a collection _inside_ a function is an effect, however, unless that variable is shared _outside_ the function it doesn't _affect_ any other code.
 When the scope of an effect is local to a function, we don't have to consider it when reasoning about what our system does.
-As soon as we mutate shared state (a parameter to the function perhaps, or a global variable, or a file or network socket) our local effect becomes an effect in whatever scope can see the shared thing, and that quickly increases complexity and reduces understanding.
+As soon as we mutate shared state (a parameter to the function perhaps, or a global variable, or a file or network socket) our local effect becomes an effect in whatever scope can see the shared thing, and that quickly increases complexity and makes understanding more difficult.
 
-It isn't enough that a function doesn't _actually_ mutate shared state -- if it _can_ mutate it we have to examine the source of the function (and, recursively, every function that it calls that can also access that state) to be sure that it doesn't mutate anything if we are to understand what our system does.
+It isn't enough that a function doesn't _actually_ mutate shared state -- if it _could_ mutate shared state, then to understand what our system does we have to examine the source of the function and, recursively, every function that it calls that can also access that state, to be sure that it doesn't mutate anything.
 Every piece of global mutable state makes every function suspect.
 Similarly, if we program in an environment in which every function can write to the database, we lose the ability to predict when such writes can occur and plan accordingly.
 
@@ -52,8 +53,9 @@ Sometimes they program in languages (like Clojure and Haskell) that enforce cont
 Otherwise, they work by convention.
 If we adopt these conventions in more general languages, we gain the ability to reason with our code in proportion to how much we adopt the conventions.
 Kotlin chooses not to enforce the control of effects, but the language and its runtime come with some built-in conventions to nudge us in the right direction.
-Compared to Java we have, for example: `val` rather than a non-default `final` modifier, read-only views of collections, and data classes to encourage copy-on-write rather than mutation.
-Many of this book's chapters describe more subtle conventions with the same aim - <<beans-to-values>>, <<java-to-kotlin-collections>>, <<actions-to-calculations>>, <<accumulating-objects-to-transformations>> and <<performing-io-to-passing-data>>.
+Compared to Java we have, for example: immutable `val` rather than an optional `final` modifier, read-only views of collections, and concise data classes to encourage copy-on-write rather than mutation.
+Many of this book's chapters describe more subtle conventions with the same aim.
+// TODO This many cross-references reads poorly when rendered with O'Reilly's formatting. Is there a way to include the chapter titles instead of chapter numbers? - <<beans-to-values>>, <<java-to-kotlin-collections>>, <<actions-to-calculations>>, <<accumulating-objects-to-transformations>> and <<performing-io-to-passing-data>>.
 
 There is of course much more to functional programming than simply not mutating shared state,
 but, if we just focus on solving problems without mutation (or where mutation is the point, we minimise its scope), our systems become easier to understand and to change.
@@ -144,20 +146,8 @@ Start with Kent Beck's Rules of Simple Design:
 * No duplication
 * Fewest elements
 
-Either add a lazer-focus on controlling effects, or consider effects to be one of the key features of revealing intention - after all, if we don't know when we are having an effect, what did we intend.
+Have a laser-focus on controlling effects and consider effects to be one of the key features of revealing intention - after all, if we don't know when we are having an effect, what did we intend.
 
-
-=== Nat's Notes
-
-
-We didn't mention it until now.
-This book is based on an implicit "big idea" that we so take for granted that we didn't think of writing about it.
-That big idea is: all programming is program transformation.
-Text is just a presentation of the program. It is not _the_ program.
-The program is the graph of which the text is a projection.
-Programming is applying transformations to that graph.
-
-We refactor all the time.
-"Make the change easy, then make the easy change" -- Kent Beck.
-
-
+When changing code, keep in mind another Kent Beck aphorism: "Make the change easy, then make the easy change".
+Continually be refactoring so that every change you need to make is an easy change.
+Refactoring is the fundamental practice for tackling the inherent complexity of our software.
