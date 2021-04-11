@@ -245,8 +245,8 @@ Most of what we have to say about extension functions applies to extension prope
 .Extensions are Not Polymorphic
 ====
 Although invoking an extension looks like a method call, it is not, in fact, sending a message to an object.
-For a polymorphic method call, the dynamic type of the object is used to select the method to execute at runtime.
-For an extension, the static type of the receiver is used to select which extension function to call at compile time.
+For polymorphic method calls, Kotlin uses the dynamic type of the receiver at runtime to select the method to execute.
+For extensions, Kotlin uses the static type of the receiver at compile time to select the function to call.
 ====
 
 === Conversions
@@ -256,11 +256,15 @@ Conversions from one type to another are a common case.
 Travelator needs to convert customer details to and from JSON and XML.
 How should we convert from `JsonNode` to `Customer`?
 
-We could add a constructor, `Customer(JsonNode)` (or a static `Customer` method) that knew how to extract the relevant data, but it really doesn't feel right to pollute our `Customer` class with dependencies on a specific JSON library, and then an XML library, and then what?
+We could add a constructor, `Customer(JsonNode)` (or method on the `Customer` class' companion object) that knew how to extract the relevant data, but it really doesn't feel right to pollute our `Customer` class with dependencies on a specific JSON library.
+We'd also have to add a dependency on an XML library.
+And what do we do if we need to parse other formats?
+Add more and more dependencies?
+
 The same argument applies to adding conversions to the `JsonNode` class.
 Even if we could change its code, pretty soon it would be unmanageable with all the `JsonNode.toMyDomainType()` methods.
 
-In Java then, we would write a class of utility functions of the form:
+In Java, we would write a class of utility functions of the form:
 
 // begin-insert: src/main/java/extensionFunctions/SomeJava.java#toCustomer
 [source,java]
@@ -271,7 +275,7 @@ static Customer toCustomer(JsonNode node) {
 ----
 // end-insert
 
-or Nat and Duncan's preference:
+Or with Nat and Duncan's preferred naming convention:
 
 // begin-insert: src/main/java/extensionFunctions/SomeJava.java#customerFrom
 [source,java]
@@ -365,7 +369,7 @@ val marketingLength = jsonNode.toCustomer().nameForMarketing().length
 ----
 // end-insert
 
-Ah, that's much more readable.
+Ahh ... that's much more readable.
 
 === Nullability
 
@@ -393,7 +397,7 @@ fun Element?.toCustomer(): Customer? = this?.let { element ->
 // end-insert
 
 Inside a method, `this` can never be `null`.
-Inside an extension function, it can be, so we use `this?.let` to create the customer only if the receiver isn't `null`.
+Inside an extension function declared on a nullable type, it can be, so we use `this?.let` to create the customer only if the receiver isn't `null`.
 
 Extension functions on nullable types can significantly reduce the noise of properly handling `null` values in Kotlin, again reducing the cognitive load of understanding what our code is doing.
 
