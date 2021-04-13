@@ -84,11 +84,19 @@ class ListInteropTest {
     @Test
     fun testKotlinHOFResultsCanBeModified() {
         /// begin: kotlinHOF
-        val aList: List<String> = listOf("0", "1").map { it}
+        val aList: List<String> = listOf("0", "1").myMap { it}
         val aMutableList: MutableList<String> = aList as MutableList<String>
         aMutableList.removeAt(1)
         assertEquals(listOf("0"), aMutableList)
         /// end: kotlinHOF
+    }
+
+    @Test
+    fun testStandardKotlinHOFResultsCanBeModified() {
+        val aList: List<String> = listOf("0", "1").map { it}
+        val aMutableList: MutableList<String> = aList as MutableList<String>
+        aMutableList.removeAt(1)
+        assertEquals(listOf("0"), aMutableList)
     }
 
     @Test
