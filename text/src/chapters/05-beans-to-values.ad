@@ -64,11 +64,11 @@ We hope you'll forgive the clickbait chapter title.
 A value is immutable data.
 Why should we prefer immutable objects to mutable objects, and objects that represent data to other types of object?
 This is a theme that we will visit time and again in this book.
-But for now, we prefer immutable objects because they are much easier to reason about:
+For now, let's just say that immutable objects are easier to reason about because:
 
 * We can put them into sets or use them as map keys.
 * We never have to worry about an immutable collection changing as we iterate over its contents.
-* We can explore different scenarios without having to deep-copy initial states, which makes it easy to implement undo and redo.
+* We can explore different scenarios without having to deep-copy initial states (this also makes it easy to implement undo and redo).
 * We can safely share immutable objects between different threads.
 
 === Refactoring Beans to Values
@@ -345,9 +345,9 @@ class Application(
 // end-insert
 
 Of course `showModal()` is currently returning the same object passed to the view in the constructor, so this doesn't change anything really.
+In fact, we have the worst of both worlds: a mutable reference to mutable data.
 
-In fact, we have the worst of both worlds: a mutable reference to mutable data, but we haven't finished.
-Oh no, we can make things even worse by making the `preferences` property in `PreferencesPane` mutable too, so that we can change set it to a new `UserPreferences` object when any UI elements are updated:
+We haven't finished though - we can make things even worse by making the `preferences` property in `PreferencesPane` mutable too, so that we can set it to a new `UserPreferences` object when any UI elements are updated:
 
 // begin-insert: tags/beans-to-values.4:src/main/java/travelator/mobile/PreferencesView.kt#foo
 [source,kotlin]
@@ -394,8 +394,8 @@ class PreferencesView(
 ----
 // end-insert
 
-Actually we say even worse, but this has just removed the uses of the setters on `UserPreferences`.
-Without setters we can make it a proper value - always initialising its properties in its constructor and never modifying them.
+Actually we say "even worse", but this has now removed the uses of the setters on `UserPreferences`.
+Without setters, we can make it a proper value - initialising its properties in its constructor and never modifying them.
 In Kotlin this means changing the `var` properties to `val` and inlining any use of the default constructor.
 Here then is the revised `UserPreferences` class:
 
@@ -412,7 +412,7 @@ data class UserPreferences(
 
 The eagle-eyed reader will notice that we sneakily made `UserPreferences` a data class.
 We didn't do that before now, because it was mutable.
-While Kotlin allows mutable data classes they are suspect, because the meaning of equality is then much more complicated.
+While Kotlin allows mutable data classes, we should be even more wary of them than other mutable classes, because data classes provide an implementation of `equals` and `hashCode`.
 
 [[object-equality]]
 .Object Equality
@@ -422,7 +422,7 @@ So two instances of the same class will be equal when (and only when) all their 
 
 If we take two instances with the different properties and add them to a set, they will both be present in the set.
 If we now mutate one to have the same properties as the other, they will both still be in the set, and so the set will have two of the same object (at least as far as equality goes).
-Similarly, weird things happen if we use an object as a key in a map, and then mutate it.
+Similar weird things happen if we use an object as a key in a map, and then mutate it.
 
 To keep things simple, don't rely on equality and hash code for mutable objects.
 An easy application of this rule is just never to define mutable data classes.
