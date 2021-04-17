@@ -147,7 +147,7 @@ So in `kotlin.collections` we have `MutableList` which is subtype of `List` whic
 That `MutableList` also implements `MutableCollection`.
 
 On the face of it this is a simple scheme.
-Collections that are mutable have the same operations as collections that are not mutable, plus the mutation methods.
+Mutable collections have the same operations as collections that are not mutable, plus the mutation methods.
 It is safe to pass a `MutableList` as an argument to code that expects a `List`, because all the `List` methods will be present and can be invoked.
 In terms of the https://en.wikipedia.org/wiki/Liskov_substitution_principle[Liskov Substitution Principle], we can substitute a `MutableList` for a `List`, without affecting our program correctness.
 
@@ -260,7 +260,7 @@ The official line is that a non-mutable Kotlin collection is not _immutable_, bu
 As with the Java `UnmodifiableList`, a read-only collection can't be changed through its interface, but may be changed through some other mechanism.
 Only true _immutable_ collections are guaranteed never to change.
 
-It is possible to have a true immutable collection in Kotlin, (the result of `java.util.List.of(...) for example), but this is not a standard Kotlin feature.
+It is possible to have a true immutable collection in Kotlin, (the result of `java.util.List.of(...)` for example), but this is not yet a standard Kotlin feature.
 ====
 
 This is the unfortunate consequence of having your mutable collections extend your otherwise non-mutable collections -- the recipient of a non-mutable collection cannot modify it, but cannot know that it won't change, because a reference of type non-mutable `List` may in fact be pointing to an object of type `MutableList`.
@@ -490,7 +490,7 @@ private static void removeUnbearableRoutes(List<List<Journey>> routes) {
 
 Hmmm, that's so pathologically mutating that it might have been written as an example in a book!
 At least `removeUnbearableRoutes` is telling us that it must mutate something by returning `void`.
-We can take baby steps by changing the function to return the parameter it is mutating and using the result - a case of making something worse before making it better:
+We can take baby steps by changing the function to return the parameter it is mutating and using the result - another case of making something worse before making it better:
 
 // begin-insert: tags/java-to-kotlin-collections.5:src/main/java/travelator/Suffering.java#routesToShowFor
 [source,java]
@@ -665,9 +665,8 @@ fun List<Journey>.longestJourneys(limit: Int): List<Journey> =
 ----
 // end-insert
 
-Because it doesn't modify its parameter we've made it a single-expression function (<<multi-to-single-expression-functions>>).
-
-The `longestJourneys` function can still be called from Java as a static method, but reads particularly nicely when called from Kotlin, especially if we name the argument:
+Because `longestJourneys` doesn't modify its parameter we've made it a single-expression function (<<multi-to-single-expression-functions>>).
+It can still be called from Java as a static method, but reads particularly nicely when called from Kotlin, especially if we name the argument:
 
 // begin-insert: tags/java-to-kotlin-collections.10:src/main/java/travelator/Suffering.kt#sufferScoreFor
 [source,kotlin]
