@@ -262,7 +262,7 @@ public class Marketing {
 
 You can see that Java is accessing the domain property through the `getDomain()` method.
 Conversely, when the class was Java and had an explicit `getDomain()` method, Kotlin code could have called it as `address.domain`.
-(We'll discuss properties in more detail in <<methods-to-properties>>.)
+We'll discuss properties in more detail in <<methods-to-properties>>.
 
 So far, converting our class to Kotlin has saved us 14 lines of code, but we aren't done yet.
 Value types like this are so useful, but so tedious to get right and keep right, that Kotlin supports them at a language level.
@@ -308,8 +308,7 @@ For now though, we're done with converting our `EmailAddress` Java class to Kotl
 === The Limitations of Data Classes
 
 A drawback of data classes is that they offer no encapsulation.
-We saw how the compiler generates `equals`, `hashCode` and `toString` methods for data classes.
-It also generates a `copy` method that creates a new copy of the value with different values for one or more of its properties.
+We saw how the compiler generates `equals`, `hashCode` and `toString` methods for data classes, but didn't mention that it also generates a `copy` method that creates a new copy of the value with different values for one or more of its properties.
 
 For example, the following code creates a copy of an `EmailAddress` with a `localPart` of "postmaster" and the same domain:
 
@@ -317,8 +316,8 @@ For example, the following code creates a copy of an `EmailAddress` with a `loca
 val postmasterEmail = customerEmail.copy(localPart = "postmaster")
 ----
 
-For many of our classes this is very convenient.
-However, when a class abstracts its internal representation or maintains invariants between its properties, that `copy` method allows client code direct access to internal state of a value and allows it to break its invariants.
+For many types this is very convenient.
+However, when a class abstracts its internal representation or maintains invariants between its properties, that `copy` method allows client code direct access to the internal state of a value, which can break its invariants.
 
 Let's look at an abstract data type in the Travelator application: the `Money` class:
 
