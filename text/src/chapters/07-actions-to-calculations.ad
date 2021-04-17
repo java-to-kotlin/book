@@ -110,6 +110,8 @@ We call `println` for its _side effect_ - the effect it has on its environment.
 _Side effect_, is a bit of a misleading term, because, unlike drug side effects, they are often exactly the thing that we want to happen.
 Maybe _outside effect_ would be a better name, to emphasise that they are external to a function's parameters, local variables and return value.
 In any case, functions with observable side effects are actions not calculations.
+Functions returning `void` or `Unit` are almost always actions, because if they do anything, they have to do it by side effect.
+
 As we saw previously, code that reads from external mutable state must also be an action (provided that anything does actually mutate the state).
 
 Let's look at a `Customers` service:
@@ -117,7 +119,7 @@ Let's look at a `Customers` service:
 [source,kotlin]
 ----
 class Customers {
-    fun save(newCustomer: Customer) {
+    fun save(data: CustomerData): Customer {
         ...
     }
     fun find(id: String): Customer? {
@@ -126,12 +128,13 @@ class Customers {
 }
 ----
 
-Both `save` and `find` are actions, as find's result depends on whether it is run before or after a customer with that id has been saved.
-Functions returning `void` or `Unit` are a dead giveaway for actions, because if they do anything they have to do it by side effect.
+Both `save` and `find` are actions.
+`save` creates a new customer record in our database and returns it.
+This is an action because the state of our database depends on when we call it.
+The result of `find` is also time sensitive, because it depends on previous calls to `save`.
 
-Functions that have no parameters (so this doesn't include methods or extension functions which can have implicit parameters accessed via `this`) must also either be returning a constant, or be reading from some other source and so be categorised as actions.
-
-So we can deduce that the top-level function `requestRate`, below, is probably an action, reading from some global mutable state:
+Functions that have no parameters (this doesn't include methods or extension functions which can have implicit parameters accessed via `this`) must either be returning a constant, or be reading from some other source and so be categorised as actions.
+Without looking at its source, we can deduce that a top-level function `requestRate` is almost certainly an action, reading from some global mutable state:
 
 [source,kotlin]
 ----
@@ -140,7 +143,7 @@ fun requestRate(): Double {
 }
 ----
 
-Conversely, if defined as a method it is probably a calculation that depends on properties of `Metrics` (provided `Metrics` is immutable):
+If a function with the same apparent signature is defined as a method, it is probably a calculation that depends on properties of `Metrics` (provided `Metrics` is immutable):
 
 [source,kotlin]
 ----
@@ -500,22 +503,19 @@ When we "Introduce Parameter", IntelliJ knows to use the value from the body of 
 // begin-insert: tags/effects.3:src/main/java/travelator/handlers/CurrentTripsHandler.java#foo
 [source,java]
 ----
-public class CurrentTripsHandler {
-    ...
-    public Response handle(Request request) {
-        try {
-            var customerId = request.getQueryParam("customerId").stream()
-                .findFirst();
-            if (customerId.isEmpty())
-                return new Response(HTTP_BAD_REQUEST);
-            var currentTrip = tracking.currentTripFor(customerId.get(), null); // <1>
-            return currentTrip.isPresent() ?
-                new Response(HTTP_OK,
-                    objectMapper.writeValueAsString(currentTrip)) :
-                new Response(HTTP_NOT_FOUND);
-        } catch (Exception x) {
-            return new Response(HTTP_INTERNAL_ERROR);
-        }
+public Response handle(Request request) {
+    try {
+        var customerId = request.getQueryParam("customerId").stream()
+            .findFirst();
+        if (customerId.isEmpty())
+            return new Response(HTTP_BAD_REQUEST);
+        var currentTrip = tracking.currentTripFor(customerId.get(), null); // <1>
+        return currentTrip.isPresent() ?
+            new Response(HTTP_OK,
+                objectMapper.writeValueAsString(currentTrip)) :
+            new Response(HTTP_NOT_FOUND);
+    } catch (Exception x) {
+        return new Response(HTTP_INTERNAL_ERROR);
     }
 }
 ----
@@ -637,7 +637,7 @@ public void returns_single_active_booked_trip() {
 <1> These `nulls` are now being dereferenced inside `InMemoryTrips`.
 
 Instead of `null`, we need to pass the value that the tests were setting into the `clock`.
-A cunning refactor (suggested by Jordan Stewart) is to replace the ++null++s with `clock.now`:
+A cunning refactor is to replace the ++null++s with `clock.now`:
 
 // begin-insert: tags/effects.5:src/test/java/travelator/TrackingTests.java#foo
 [source,java]
@@ -669,7 +669,7 @@ public void returns_single_active_booked_trip() {
 
 This gets our tests to pass, because we are now passing the correct time as the argument, albeit via setting and immediately reading a field in the `StoppedClock`.
 To fix that, we can search and replace `clock.now =` with `var clockNow =` and then `clock.now` with `clockNow`.
-This cleverness disintermediates the clock.
+This cleverness disintermediates the `clock` property in the test.
 
 // begin-insert: tags/effects.6:src/test/java/travelator/TrackingTests.java#foo
 [source,java]
@@ -737,23 +737,87 @@ public class TrackingTests {
 ----
 // end-insert
 
+This is pattern we often see as we refactor towards more functional code.
+As we reduce the scope of actions, our tests become simpler, because they can express more of their variation in parameters rather than preparing test state.
+We'll see this again in <<mocks-to-maps>>.
+
 ==== End Game
 
-We're nearly almost done now (refactoring is never completely done).
-Neither of our `currentTripFor` methods fetch the time, leaving that to the handler.
-Tests for the handler may well require us to control _now_,  so we'll probably inject the clock into `CurrentTripHandler` rather than call the raw `Instant.now()`.
+We're almost done now (refactoring is never completely done).
 
-Then there is the production implementation of `Trips` that reads from a database table.
-We are lucky and find that this passes the current time into the SQL query - so now we can just use a rendering of the new `at` in `Trips.currentTripsFor(String customerId, Instant at)`.
-It would have been a more complicated refactor if the SQL query was using the current time of the database server.
-Actions are so pervasive that it isn't unusual to find the time fetched inside SQL queries, using a database-specific construct such as `CURRENT_TIMESTAMP` or `NOW`.
-If this was case we would have to change the query to receive the time from our function as a query parameter.
+With all this focus on the tests, we were about to check in before we realised that we haven't completed our refactor in `CurrentTripsHandler`.
 
-Oh, and we haven't converted the code to Kotlin!
+// begin-insert: tags/effects.7:src/main/java/travelator/handlers/CurrentTripsHandler.java#foo
+[source,java]
+----
+public Response handle(Request request) {
+    try {
+        var customerId = request.getQueryParam("customerId").stream()
+            .findFirst();
+        if (customerId.isEmpty())
+            return new Response(HTTP_BAD_REQUEST);
+        var currentTrip = tracking.currentTripFor(customerId.get(), null); // <1>
+        return currentTrip.isPresent() ?
+            new Response(HTTP_OK,
+                objectMapper.writeValueAsString(currentTrip)) :
+            new Response(HTTP_NOT_FOUND);
+    } catch (Exception x) {
+        return new Response(HTTP_INTERNAL_ERROR);
+    }
+}
+----
+// end-insert
+
+<1> We're still passing `null`
+
+Now that neither of our `currentTripFor` methods fetch the time, `CurrentTripHandler` is the only action - the place that we need to call `Instant.now()`.
+We can fix things by inserting the call, leaving us with:
+
+// begin-insert: tags/effects.7.5:src/main/java/travelator/handlers/CurrentTripsHandler.java
+[source,java]
+----
+public class CurrentTripsHandler {
+    private final ITrackTrips tracking;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    public CurrentTripsHandler(ITrackTrips tracking) {
+        this.tracking = tracking;
+    }
+
+    public Response handle(Request request) {
+        try {
+            var customerId = request.getQueryParam("customerId").stream()
+                .findFirst();
+            if (customerId.isEmpty())
+                return new Response(HTTP_BAD_REQUEST);
+            var currentTrip = tracking.currentTripFor(customerId.get(), Instant.now());
+            return currentTrip.isPresent() ?
+                new Response(HTTP_OK,
+                    objectMapper.writeValueAsString(currentTrip)) :
+                new Response(HTTP_NOT_FOUND);
+        } catch (Exception x) {
+            return new Response(HTTP_INTERNAL_ERROR);
+        }
+    }
+}
+----
+// end-insert
+
+Looking through our code, we find (shock horror) that we don't have any unit tests for the handler.
+If we want to add them, this is the level at which we would now inject a `Clock`, rather than into the individual services.
+Mocks or stubs allow us to test actions, but are rarely required to test calculations.
+
+We won't show it, but we also have to consider the production implementation of `Trips` - the one that reads from a database table.
+We are lucky and find that this passes the current time into its SQL query - so now we can just pass the `at` in `Trips.currentTripsFor(String customerId, Instant at)`.
+It would have been more complicated if the SQL query was using the current time of the database server from a database-specific construct such as `CURRENT_TIMESTAMP` or `NOW`.
+Actions are so pervasive that this is quite a common practice even though it makes testing queries more complicated, and the queries themselves less versatile.
+If our query did use the database time, we would have to rewrite it to receive the time from our function as a parameter, and make a mental note to default to this strategy unless we have a very good reason not to.
+
+That done, we review our changes, and find that we haven't converted the code to Kotlin!
 
 This last observation is quite significant.
 This way of thinking about calculations and actions is not exclusive to Kotlin.
-It is certainly possible to make the distinction between calculations and actions in any language, and the grain of Java is becoming more functional with time.
+It is possible to make the distinction between them in any language, and the grain of Java is becoming more functional with time.
 We find, though, that Kotlin's more natural support for immutable data and other functional constructs means that the costs of making the distinction are lower, and so the cost/benefit ratio looks more favourable.
 It's also worth observing that a lot of the refactoring steps taken in this chapter (and others) are safe only because we are moving around the invocation of calculations and not actions.
 
