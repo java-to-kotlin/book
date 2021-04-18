@@ -60,8 +60,8 @@ fun calling(customer: Customer) {
 
     /*
     /// begin: invoke3
-    customer.methodAsFunctionReference() // <1> doesn't compile
-    customer.extensionAsFunctionReference() // doesn't compile
+    customer.methodAsFunctionReference()
+    customer.extensionAsFunctionReference()
     /// end: invoke3
      */
 

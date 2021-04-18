@@ -1,7 +1,7 @@
 [[functions-to-extension-functions]]
 == Functions to Extension Functions
 
-Kotlin has a special form of function called an _extension function_, which is called like a method but is in fact (usually) a free-standing function.
+Kotlin has a special form of function called an _extension function_, which is called like a method but is in fact (usually) a top-level function.
 It's easy to convert from a normal function to an extension function, and back, but when should we prefer one to the other?
 
 === Functions and Methods
@@ -112,8 +112,8 @@ In Kotlin, those functions don't have to be as hard to find as we've made out th
 === Extension Functions
 
 Kotlin's extension functions look like methods, but are in fact just functions.
-(As we said in <<static-methods-to-top-level-functions>>, technically they are _also_ methods on the JVM, because all code has to be, but that's an implementation detail of how Kotlin targets the JVM platform).
-In <<extension-functions-as-methods>> we'll see they can in fact also be non-static methods of another class.
+(As we saw in <<static-methods-to-top-level-functions>>, technically they are _also_ methods, because on the JVM all code has to be a defined in a method.
+In <<extension-functions-as-methods>> we'll see that extension functions can in fact also be non-static methods of another class.)
 
 As their name implies, extension functions give us the ability to _extend_ the operations available on a type.
 They do this while supporting the intuitive, dot-means-send-a-message calling convention of methods, which allows them to be discoverable in the same Ctrl-Space way.
@@ -206,17 +206,17 @@ extensionFunctionReference(customer)
 ----
 // end-insert
 
-We cannot, however, call the plain references as if they had a receiver:
+We cannot, however, call the plain references as if they had a receiver.
+Both of these lines fail to compile, with an `Unresolved reference` error:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#invoke3
 [source,kotlin]
 ----
-customer.methodAsFunctionReference() // <1> doesn't compile
-customer.extensionAsFunctionReference() // doesn't compile
+customer.methodAsFunctionReference()
+customer.extensionAsFunctionReference()
 ----
 // end-insert
 
-<1> `Unresolved reference: methodAsFunctionReference`
 ====
 
 Note that extension functions don't have any special access to the private members of the class that they are extending, they can only have the same privileges as normal functions in their scope.
@@ -244,9 +244,11 @@ Most of what we have to say about extension functions applies to extension prope
 [WARNING]
 .Extensions are Not Polymorphic
 ====
-Although invoking an extension looks like a method call, it is not, in fact, sending a message to an object.
+Although invoking an extension function looks like a method call, it is not, in fact, sending a message to an object.
 For polymorphic method calls, Kotlin uses the dynamic type of the receiver at runtime to select the method to execute.
 For extensions, Kotlin uses the static type of the receiver at compile time to select the function to call.
+
+If we need to use extensions in a polymorphic way, we can often achieve this by calling polymorphic methods from our extension functions.
 ====
 
 === Conversions
@@ -256,13 +258,9 @@ Conversions from one type to another are a common case.
 Travelator needs to convert customer details to and from JSON and XML.
 How should we convert from `JsonNode` to `Customer`?
 
-We could add a constructor, `Customer(JsonNode)` (or method on the `Customer` class' companion object) that knew how to extract the relevant data, but it really doesn't feel right to pollute our `Customer` class with dependencies on a specific JSON library.
-We'd also have to add a dependency on an XML library.
-And what do we do if we need to parse other formats?
-Add more and more dependencies?
-
+We could add a constructor: `Customer(JsonNode)` that knows how to extract the relevant data, but it really doesn't feel right to pollute our `Customer` class with dependencies on a specific JSON library, and then maybe an XML parser, and then what?
 The same argument applies to adding conversions to the `JsonNode` class.
-Even if we could change its code, pretty soon it would be unmanageable with all the `JsonNode.toMyDomainType()` methods.
+Even if we _could_ change its code, pretty soon it would be unmanageable with all the `JsonNode.toMyDomainType()` methods.
 
 In Java, we would write a class of utility functions of the form:
 
@@ -331,8 +329,8 @@ _For_ implies a lookup operation: `phoneNumberFor(customer)`, or composition: `w
 
 Do these distinctions actually matter?
 Mostly no, and we should be wary of leaning on the subtleties of English when our teammates and clients may not be native speakers.
-But there is no point in not using the most apposite words we can.
-Compared to `createCustomer(node)`, `customerFrom(node)` may allow a reader to understand what is happening in one pass rather than two, or stop them making an incorrect assumption that leads to an error.
+But there is no point in not using the bestest words that we can.
+Compared to `createCustomer(node)`, the use of `customerFrom(node)` may help a reader to understand what is happening in one pass rather than two, or prevent an incorrect assumption that leads to an error.
 We can make small but significant improvements by looking at how our code reads in context.
 ****
 
@@ -482,7 +480,8 @@ We can also extract parts of collections pipelines into named operations - see <
 
 The Kotlin library authors faced the same issue extending types that they don't own as we do - in their case the types provided by the Java standard library.
 While they sometimes resorted to compiler trickery, a lot of the Kotlin standard library is extension functions.
-This includes fundamental functions like `map`, `filter` and `reduce` (defined as extensions on `Iterable`), and the scope functions `let`, `run`, `with`, `apply` and `also`. There is even an extension function `Any?.toString`.
+This includes fundamental functions like `map`, `filter` and `reduce` (defined as extensions on `Iterable`), and the scope functions `let`, `run`, `with`, `apply` and `also`. There is also an extension function `Any?.toString`.
+This returns the `String` representation of any reference, including `null`.
 
 [WARNING]
 .toString on Nullable Types
@@ -820,7 +819,7 @@ object HighValueCustomersReport {
 // end-insert
 
 <1> `The integer literal does not conform to the expected type Double`.
-<3> Odd formatting.
+<2> Two parameters to a line for some strange reason.
 
 The converter hasn't been smart enough to know that Kotlin doesn't coerce the integer 0 to double, leading to a compile error.
 On the bright side, if this is the best computers can do, maybe our jobs are safe for a few years yet!
@@ -1262,7 +1261,7 @@ private val CustomerData.outputLine: String
 // end-insert
 
 This still isn't quite as sweet as we might like, but we've proved the point of extension functions.
-<<performing-io-to-passing-data>> will finish off this refactoring, looking at the use of the reader and writer.
+<<performing-io-to-passing-data>> and <<ignoring-to-handling-errors>> will finish off this refactoring, looking at the use of the reader and writer.
 In the meantime, here's the whole file:
 
 // begin-insert: tags/functions-to-extension-methods.21:src/main/java/travelator/marketing/HighValueCustomersReport.kt#all
