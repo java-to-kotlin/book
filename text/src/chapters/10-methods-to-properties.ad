@@ -238,8 +238,11 @@ data class PersonWithProperties(
 ----
 // end-insert
 
-So, in Java, we _can_ access fields directly, but _should_ generally write and call accessors, which are just methods, although often with a `get` (and maybe `set`) prefix.
-In Kotlin, we cannot _publish_ direct field access, but we can auto-generate accessors, and call accessors as if they are field access if they match a naming convention.
+So, in Java, we _can_ define classes that give direct access to fields, but _should_ generally write and call accessors, which are just methods named, by convention but not always, with a `get` and maybe `set` prefix.
+In Kotlin, we cannot define fields and accessors separately.
+When we define a property in Kotlin, the compiler generates a field and accessors that follow the Java naming convention.
+When we refer to a property in Kotlin, the syntax is the same as Java's syntax for field access, but the compiler generates a call to the accessor.
+This even applies across the interop boundary: when we refer to properties of Java objects, the compiler will generate a call to the accessor if one exists and follows the Java naming convention.
 
 === How to Choose
 
