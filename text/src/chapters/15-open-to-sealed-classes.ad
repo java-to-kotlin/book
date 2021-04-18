@@ -128,7 +128,7 @@ The static type checker can guarantee that `when` expressions that perform runti
 
 // TODO insert example of safe kotlin when expression here?
 
-Compared to polymorphic methods, sealed classes and when expressions make it easy to add new operations that apply to a fixed type hierarchy, but you will have to change all those operations if you add a new type to that hierarchy.
+Compared to polymorphic methods, sealed classes and `when` expressions make it easy to add new operations that apply to a fixed type hierarchy, but you will have to change all those operations if you add a new type to that hierarchy.
 However, the compiler will help you by checking that all those operations cover all possible types in the hierarchy.
 
 // TODO should this move to the conclusion?
@@ -200,9 +200,10 @@ data class Accommodation(
 NOTE: Kotlin 1.5 will support sealed _interfaces_, which will make this refactoring easier -- these manual editing steps will not be necessary.
 
 `ItineraryItem` is now a sealed class.
-Its operations are still polymorphic methods, but we can write _new_ operations  without changing the `ItineraryItem` classes, as extension functions that use a `when` expression to safely dispatch on the concrete item type`.
+Its operations are still polymorphic methods, but we can write _new_ operations  without changing the `ItineraryItem` classes, by writing extension functions that use a `when` expression to safely dispatch on the concrete item type`.
+
 We'll write the function we need to translate an itinerary to calendar events.
-Then we'll continue refactoring to make the other operations on `ItineraryItem` work the same way.
+When we're done, we'll continue refactoring to make the other operations on `ItineraryItem` work the same way.
 
 // begin-insert: tags/open-to-sealed-2.3:src/main/java/travelator/calendar/ItineraryToCalendar.kt
 [source,kotlin]
