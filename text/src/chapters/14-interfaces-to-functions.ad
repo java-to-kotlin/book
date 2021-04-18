@@ -109,6 +109,7 @@ fun sendThanks() {
 // end-insert
 
 In general, the place where we know the configuration, and the place where we want to send an email, will be separated in our code, often by many layers.
+(That's a thing that we may want to fix, as email sending, an action (<<actions>>) will ideally be located close to the entry points of our system so that the action doesn't contaminate lots of code.)
 Usually in OO, the `sender` will be captured as a property of a class and used by its methods:
 
 // begin-insert: src/main/java/encapsulation/OO-usage.kt#oo_class
@@ -282,7 +283,7 @@ fun createEmailSender(
 <1> The return type of our function is itself a function, that takes an `Email` and returns `Unit`.
 
 `createEmailSender` is a constructor; not a class constructor, but a function taking the same role.
-Both are `createEmailSender` and `::EmailSender` are functions that return an object that knows how to send a message.
+Both `createEmailSender` and `::EmailSender` are functions that return an object that knows how to send a message.
 
 To see how this works in functions, we can write this in longhand first, by defining an inner function that captures the arguments it requires from the parent:
 
@@ -333,7 +334,7 @@ fun createEmailSender(
 ----
 // end-insert
 
-before inlining `result` and converting to a single expression to leave this functional definition:
+If we inline `result` and convert the whole function to a single expression we are left with this functional definition:
 
 // begin-insert: src/main/java/encapsulation/encapsulation.kt#createEmailSender3
 [source,kotlin]
@@ -355,7 +356,7 @@ fun createEmailSender(
 // end-insert
 
 So `createEmailSender` is a function that returns a lambda that calls `sendEmail` combining the lambda's single `Email` argument with the configuration from `createEmailSender`.
-This is a closure in functional land, and it's worth noting how similar this is to the OO versions with a fun interface or object definition.
+This is a closure in functional land, and it's worth noting how similar this is to the OO versions with a `fun interface` or `object` definition.
 
 To use this function, we can create it in one place and invoke it in another, very much as we did with the object solution.
 
@@ -383,7 +384,9 @@ fun sendThanks() {
 ----
 // end-insert
 
-Here we are showing the `invoke` call on `sender`, to allow us to see the similarity with the OO version:
+<1> There is an implicit `invoke` call hidden here.
+
+This is the same shape as the OO case (if we replace the missing `invoke` with `send`):
 
 // begin-insert: src/main/java/encapsulation/OO-usage.kt#excerpt
 [source,kotlin]
@@ -401,26 +404,7 @@ fun sendThanks() {
 ----
 // end-insert
 
-Usually though, we would elide the call, to give us:
-
-// begin-insert: src/main/java/encapsulation/FP-usage.kt#nonInvoke
-[source,kotlin]
-----
-fun sendThanks() {
-    sender(
-        Email(
-            to = parse("support@internationalrescue.org"),
-            from = parse("support@travelator.com"),
-            subject = "Thanks for your help",
-            body = "..."
-        )
-    )
-}
-----
-// end-insert
-
-
-In the unlikely event that you're joining us from JavaScript, or Clojure, the functional form will be much more familiar, but if you came to Kotlin from Java, this solution probably feels quite alien.
+In the unlikely event that you're joining us from JavaScript, or Clojure, the functional form will be familiar, but if you came to Kotlin from Java, this solution probably feels quite alien.
 
 === Function Types in Java
 
@@ -510,10 +494,9 @@ static Consumer<Email> createEmailSender(
 
 We say "equivalent to creating an anonymous implementation of the interface," but under the hood, the implementation is more complex to avoid unnecessarily defining classes and instantiating objects.
 
-It's worth noting at this point we can't assign the `(Email) -> Unit` result of the Kotlin `createEmailSender` to a variable of type `Consumer<Email>`.
+Note that we can't assign the `(Email) -> Unit` result of the Kotlin `createEmailSender` to a variable of type `Consumer<Email>`.
 This is because the Kotlin runtime has its own function types that it uses, and the compiler compiles `(Email) -> Unit` into `Function1<Email, Unit>`.
 There are a whole series of Kotlin `FunctionN` interfaces for the different numbers of parameters.
-(To get us used to their existence, IntelliJ helpfully introduces this function form rather than the `(P) -> R` syntax as the result of some automated refactorings in Kotlin.)
 
 As the interfaces are not compatible, in order to mix Java and Kotlin at this functional level we are going to have to thunk sometimes.
 Given a Kotlin function type `(Email) -> Unit`:
@@ -568,7 +551,7 @@ class Rescuing {
 ----
 // end-insert
 
-Here, the compiler _is_ able to convert `(Email) -> Unit` to `Consumer<Email>`:
+Here, the compiler _is_ able to convert `(Email) -> Unit` to `Consumer<Email>`, because Kotlin will convert parameters automatically:
 
 // begin-insert: src/main/java/encapsulation/thunking-consumer.kt#foo4
 [source,kotlin]
@@ -576,9 +559,6 @@ Here, the compiler _is_ able to convert `(Email) -> Unit` to `Consumer<Email>`:
 Rescuing(sender)
 ----
 // end-insert
-
-
-<3> Kotlin will convert parameters automatically.
 
 === Mix and Match
 
@@ -1024,7 +1004,7 @@ val organiser = Organiser(emailSystem::list)
 // end-insert
 
 Taking a wider interface misses the opportunity to communicate precisely which operations we require, and forces clients to provide an implementation of the whole interface.
-This is particularly irritating in tests, and leads to the introduction of fake objects just to get our test code to compile.
+This is particularly irritating in tests, where we have to introduce fake objects just to get our test code to compile.
 
 The drives of communication and reduced coupling are so strong that even if our client needs to send and delete email, and in practice these are going to be supplied by a single `EmailSystem`, it should probably depend on two functions rather than the interface:
 
@@ -1167,6 +1147,7 @@ Once we have introduced a mocking framework into our codebase (or, more usually,
 Usually though, our code would be improved by restructuring to avoid the need for mocks.
 Expressing dependencies as function types is one example, another is moving the interaction with external systems out of our code, as we will see in <<performing-io-to-passing-data>>.
 
+ifdef::optional-content[]
 [TIP]
 .Faking in Kotlin
 ====
@@ -1194,10 +1175,11 @@ val testCollaborator: EmailSystem = object: EmailSystem by fake() {
 ----
 // end-insert
 ====
+endif::[]
 
 === Traceability
 
-We should say that there is a downside to expressing dependencies with function types, and it is a common issue with adding a layer of indirection.
+There is a downside to expressing dependencies with function types, and it is a common issue with adding a layer of indirection.
 If we use IntelliJ to find the callers of `EmailSystem.send`, the trail goes cold at the point where `EmailSystem::send` is converted to `(Email) -> Unit`.
 It's like our hero enters a river, and the posse have to scour both banks upstream and downstream to find where she gets out.
 
@@ -1363,53 +1345,11 @@ public void returns_recommendations_for_multi_location() {
 ----
 // end-insert
 
-.Mock-Induced Test Damage
-****
-David Heinemeier Hansson coined the term https://dhh.dk/2014/test-induced-design-damage.html[Test Induced Design Damage] to refer to harm caused to systems in the name of testability.
-In practice, your authors don't recognise this as much of a problem - we find that systems are usually improved by the decoupling required to test them well.
-We _do_ often see tests ruined by mocks though, so much so that mocks have become a bit of a dirty word in our circles.
-This despite the fact that these circles spawned the technique, and wrote the book (<<FP_GOOSGBT_2009,_Growing Object-Oriented Software Guided By Tests_>>).
-
-The problem seems to be that, as well as implementing interfaces, mock frameworks allow us to specify the expected invocations of their methods, and what should be returned in those cases.
-But expected calls and their results don't make for a human-readable description, as we'll see if we look at the inlined version of the last expectations:
-
-// begin-insert: tags/interfaces-to-functions-2.2:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt
-[source,java]
-----
-when(featuredDestinations.findCloseTo(paris))
-    .thenReturn(List.of(
-        eiffelTower,
-        louvre
-    ));
-when(distanceCalculator.distanceInMetersBetween(
-    paris, eiffelTower.getLocation())
-).thenReturn(5000);
-when(distanceCalculator.distanceInMetersBetween(
-    paris, louvre.getLocation())
-).thenReturn(1000);
-
-when(featuredDestinations.findCloseTo(alton))
-    .thenReturn(List.of(
-        flowerFarm,
-        watercressLine
-    ));
-when(distanceCalculator.distanceInMetersBetween(
-    alton, flowerFarm.getLocation())
-).thenReturn(5300);
-when(distanceCalculator.distanceInMetersBetween(
-    alton, watercressLine.getLocation())
-).thenReturn(320);
-----
-// end-insert
-
-Defining methods like `givenADistanceBetween` allows us to express the relationship between the mock expectations and our test - they can hide the _how_ to expose the _why_.
-In practice though, very few developers take this step, leading to cryptic tests which are blamed on the use of mocking.
-****
-
 ==== Introduce Functions
 
-Before we start refactoring, this is a Kotlin book, so let's convert at least something to Kotlin.
-We'll start with `Recommendations`, because this is the class that currently expresses its dependencies with interfaces.
+Before we start moving from interfaces to functions, we'll convert `Recommendations` to Kotlin.
+This is the class that currently expresses its dependencies with interfaces, and Kotlin function types are less clunky than Java's.
+
 Converting to Kotlin and applying the refactorings introduced in <<streams-to-sequences>> and <<functions-to-extension-functions>> gives:
 
 // begin-insert: tags/interfaces-to-functions-2.4:src/main/java/travelator/recommendations/Recommendations.kt
