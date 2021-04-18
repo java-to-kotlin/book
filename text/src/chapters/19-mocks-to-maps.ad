@@ -67,6 +67,49 @@ private void givenADistanceBetween(
 ----
 // end-insert
 
+.Mock-Induced Test Damage
+****
+David Heinemeier Hansson coined the term https://dhh.dk/2014/test-induced-design-damage.html[Test Induced Design Damage] to refer to harm caused to systems in the name of testability.
+In practice, your authors don't recognise this as much of a problem - we find that systems are usually improved by the decoupling required to test them well.
+We _do_ often see tests ruined by mocks though, so much so that mocks have become a bit of a dirty word in our circles.
+This despite the fact that these circles spawned the technique, and wrote the book (<<FP_GOOSGBT_2009,_Growing Object-Oriented Software Guided By Tests_>>).
+
+The problem seems to be that, as well as implementing interfaces, mock frameworks allow us to specify the expected invocations of their methods, and what should be returned in those cases.
+But expected calls and their results don't make for a human-readable description, as we'll see if we look at the inlined version of the last expectations:
+
+// begin-insert: tags/interfaces-to-functions-2.2:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt
+[source,java]
+----
+when(featuredDestinations.findCloseTo(paris))
+    .thenReturn(List.of(
+        eiffelTower,
+        louvre
+    ));
+when(distanceCalculator.distanceInMetersBetween(
+    paris, eiffelTower.getLocation())
+).thenReturn(5000);
+when(distanceCalculator.distanceInMetersBetween(
+    paris, louvre.getLocation())
+).thenReturn(1000);
+
+when(featuredDestinations.findCloseTo(alton))
+    .thenReturn(List.of(
+        flowerFarm,
+        watercressLine
+    ));
+when(distanceCalculator.distanceInMetersBetween(
+    alton, flowerFarm.getLocation())
+).thenReturn(5300);
+when(distanceCalculator.distanceInMetersBetween(
+    alton, watercressLine.getLocation())
+).thenReturn(320);
+----
+// end-insert
+
+Defining methods like `givenADistanceBetween` allows us to express the relationship between the mock expectations and our test - they can hide the _how_ to expose the _why_.
+In practice though, very few developers take this step, leading to cryptic tests which are blamed on the use of mocking.
+****
+
 Nat is keen to point out that the mocks that he and Steve Freeman wrote about (<<FP_GOOSGBT_2009,_Growing Object-Oriented Software Guided By Tests_>>) were never supposed to be used to implement query functionality like `findCloseTo` and `distanceInMetersBetween`, but only to abstract methods that change state.
 Duncan doesn't remember noticing that, and is personally not against using mocks in this way, as they are still a nice way to specify what we expect of collaborators when practicing outside-in TDD, whether reading-from or writing-to.
 In the end, maybe it doesn't matter, because in both of our experiences, most Java codebases have mocks that are used in this way, and most Kotlin codebases would be better off without them.
