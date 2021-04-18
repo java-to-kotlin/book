@@ -70,7 +70,7 @@ Not shown in this example are the operations `skip(n)` and `limit(n)`.
 These return streams without the first and last `n` elements respectively.
 
 Java streams are lazy: `strings.filter(...).mapToInt(...)` does nothing but set up a pipeline for some terminal operation (`sum()` in this case) to suck values through.
-Laziness allows later pipeline stages to limit the amount of work performed by earlier stages.
+Laziness means that later pipeline stages can limit the amount of work performed by earlier stages.
 
 Consider translating a list of words until we see the word `STOP`.
 The loop version might look like this:
@@ -140,6 +140,7 @@ As does `map`, so the net result is that this single expression creates two addi
 
 The first is a `List` of the non-blank strings, the second is a `List` of the lengths of those strings.
 When (if) we care about performance, this can be a problem, because both of those lists will take time to populate and memory to support.
+
 The `List` of lengths is a particular issue, because the integers will have been _boxed_ (wrapped in an `Integer` object) to fit in the list.
 The Java streams example used `mapToInt(String::length)` to avoid this problem.
 `IntStream` (and `LongStream` and `DoubleStream`, but curiously not `BooleanStream` or `CharStream`) were created to prevent streams having to boxing and unbox, but you have to remember to use them, and `IntStream` is not a `Stream<Integer>`.
@@ -202,9 +203,11 @@ fun averageNonBlankLength(strings: List<String>): Double =
 
 `sumBy` (also available as an extension on `Iterable`) avoids boxing by taking a function that returns an `Int`.
 
+ifdef::optional-content[]
 IntelliJ is getting increasingly good at spotting when pipeline stages can be merged like this, although at the time of writing it failed to spot this opportunity.
 There are also times when it will suggest converting an `Iterable` chain to a `Sequence` chain, although the heuristics that it uses seem to vary over Kotlin plugin releases.
 Bear in mind that IntelliJ doesn't know how large our collections will be, see <<choosing-sequences>> for how we can use that information to choose.
+endif::[]
 
 [[sequences-multiple-operations]]
 === Multiple Iterations
