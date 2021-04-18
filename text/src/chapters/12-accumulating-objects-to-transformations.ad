@@ -76,21 +76,22 @@ For example, a `Route` contains a list of `Journey`, each of which has a cost, a
 However, our use of mutable state has two significant disadvantages.
 
 First, it introduces the possibility of https://martinfowler.com/bliki/AliasingBug.html[aliasing errors].
-If we reuse a calculator to summarise the costs of multiple entities, we have to reset its state between each calculation to stop costs collected during one calculation from being included in the next.
-The type system cannot help us avoid this mistake.
-The example code shown previously (<<cost-summary-calculator-usage>>) _may_ make this error.
-The calculator is not local to the `costSummary` method, and `costSummary` does not reset the calculator before each calculation.
+Aliasing errors create "spooky action at a distance" (as Einstein famously described quantum entanglement) that is not immediately obvious from the source code.
+We saw an example in <<java-to-kotlin-collections>>, when a function sorted a mutable list parameter and broke its caller.
 
+In the case of the `CostSummaryCalculator`,  if we reuse a calculator to summarise the costs of multiple entities, we have to reset its state between each calculation.
+If we do not reset the calculator state, costs collected during one calculation will be included in the next.
+The type system cannot help us avoid this mistake.
+
+The example at the start of this chapter_may_ make this error.
+The calculator is not local to the `costSummary` method, and `costSummary` does not reset the calculator before each calculation.
 We can't tell if this is a problem or not merely by looking at the `costSummary` method.
 We have to understand how that method is used in its wider context, and as we make changes in that context, we have to make sure those changes do not break our assumptions about how the `costSummary` method is used.
 
-Another aliasing error is "spooky action at a distance" (as Einstein famously described quantum entanglement) that is not immediately obvious from the source code.
-We saw this in <<java-to-kotlin-collections>>, when a function sorted a list parameter and broke its caller.
-
-The second problem with mutable state is that it smears the implementation of our algorithms across the code.
+The second problem with mutable state is that it scatters the implementation of our algorithms across the code.
 We'll return to this later in this chapter.
 
-Before we look at `CostSummaryCalculator`, first here is the `CostSummary` that it is calculating:
+Before we look at `CostSummaryCalculator`, let's have a look at the `CostSummary` that it computes:
 
 // begin-insert: tags/accumulator.0:src/main/java/travelator/itinerary/CostSummary.java
 [source,java]
@@ -119,7 +120,7 @@ public class CostSummary {
 ----
 // end-insert
 
-A `CostSummary` is a mutable POJO (as described in <<beans-to-values>>) that holds a list of `CurrencyConversion`, from local currencies to the traveller's preferred currency.
+A `CostSummary` is a mutable POJO (as described in <<beans-to-values>>) that holds a list of `CurrencyConversion`s, from local currencies to the traveller's preferred currency.
 It also reports the total cost in the preferred currency.
 It stores the total cost in a field rather than calculating it in `getTotal` because the application often sorts items by their `CostSummary.total`, and recalculating every comparison turned out to be a bottleneck.
 This means that a `CostSummary` has to update the total whenever a `CurrencyConversion` is added.
