@@ -5,7 +5,7 @@ Java uses exceptions to represent and handle errors.
 Kotlin can do this, but doesn't build checked exceptions into the language in the same way.
 Why did Kotlin reject Java's approach, and what should we use instead?
 
-You don't have to have programmed computers for long to discover that things go wrong...
+You don't have program computers for long to discover that things go wrong...
 
 ...in _so many_ different ways.
 
@@ -23,12 +23,14 @@ Often this is just a poor experience for our users, but sometimes the error will
 This is the source of the often good advice to "turn it off and on again" - our systems mainly start in a safe state, so that after a restart a retry should succeed.
 If not; well you've probably been in a situation where the only solution has been to reinstall the operating system - the ultimate way of removing corrupted persistent state.
 
+ifdef::optional-content[]
 .Rebooting the Internet
 ****
 Duncan had a problem where the integration between his Nest thermostat and IfThisThenThat was not working.
 IFTTT was receiving notifications when the Nest entered home mode, but not away mode.
 The great AWS outage of 28th February 2017 mysteriously fixed the problem - it turns out that all it required was a reboot of the Internet.
 ****
+endif::[]
 
 If errors are not well managed, but despite this the system becomes successful, diagnosing and fixing corruption due to errors can expand to fill all the team's time.
 This is not a great place for a software project to be - ask us how we know!
@@ -56,7 +58,7 @@ Error handling just seems to be hard, why is that?
 Well, for a start we often don't know whether an operation can fail and, if so, how it can fail.
 If we do know, then knowledge about how to handle an error may be in code a long way from where the problem is detected.
 Then the code that detects an error, and the code that recovers from it, are hard to isolate from the happy path and so hard to test.
-Combine these with the tendency for errors to leave our system in unrecoverable states, and we end up with a situation where most developers would rather hope for the best rather than take on the hard work and still get it wrong.
+Combine these with the tendency for errors to leave our system in unrecoverable states, and we end up with a situation where most developers would rather hope for the best than take on the hard work and still get it wrong.
 
 Hard work _and_ error-prone?
 Weren't computers supposed to free us from tasks like these, taking on the drudge work, so that we can focus on the fun creative stuff?
@@ -68,64 +70,62 @@ Most error handling these days is based on exceptions, but other techniques have
 We'll look at the pros and cons of those techniques first.
 The cons will show us why exceptions now dominate, the pros may give us options when exceptions aren't appropriate.
 
-==== Ignoring Errors
+Ignoring Errors::
 
 We can ignore errors - either the failing routine does nothing to bring them to the attention of the caller, or the caller doesn't bother to check.
-
++
 This may lead to corruption of persistent data and silent failure to do the job - in most cases we need to aim higher.
 
-==== Just Crashing
+Just Crashing::
 
 Some programs just exit when an error is detected.
-
++
 Combined with a supervisor to restart on error and careful coding to prevent corruption of persistent state, this is a battle-tested strategy that may be appropriate.
-Throwing an exception and aborting an operation can be seen as the application of this technique to a procedure rather than a whole program.
+Throwing an exception to abort an operation is the application of this technique to a procedure rather than a whole program.
 
-==== Returning a Special Value
+Returning a Special Value::
 
 Returning a special value to signify an error can be a useful technique.
 For example, returning `-1` instead of an index when an item is not found in a list.
-
++
 This technique can only be used when not all of the range of return values are valid results for a function.
 It can also be dangerous, because the caller has to know (and remember) the convention.
 If we try to calculate the distance between two items in a list by subtracting their indices, when one of them is not found and returns -1, our calculation will be incorrect unless we explicitly handle the special case.
 We can't lean on the type checker to help us avoid errors.
-
++
 A special case of returning a special value is returning null on error.
 This is quite dangerous in most languages, because if the caller doesn't explicitly check for null, then using the result will throw a `NullPointerException`, which may be worse than the initial problem.
 In Kotlin though, the type-checker forces callers to deal with null - making this a safe and effective technique.
 
-==== Setting a Global Flag
+Setting a Global Flag::
 
 One problem with returning special values is that they make it hard to signal which of several possible errors occurred.
 To solve this we can combine the special value with setting a global variable.
 When the special value is detected the caller can read `errno` for example to establish what the problem was.
-
++
 This technique was popular in C, but was largely superseded by exception-based error handling.
 
-==== Returning a Status Code
+Returning a Status Code::
 
 Another technique from the days before exceptions is returning a status code.
 This is possible when a function either returns no value (it is entirely side-effect), or returns a value in another way, often by mutating a parameter passed by reference.
 
 [[errors-invoking-a-function]]
-==== Invoking a Special Function
+Invoking a Special Function::
 
 Even when exceptions are available, invoking a special function when an error occurs is sometimes a good strategy.
 Usually the error function is passed as a parameter to the invoked function - if a problem is detected the error function is invoked with a value representing the error as a parameter.
 Sometimes the error function can signal by its return value if the failed operation should be retried or aborted.
 Another technique is for the error function to provide the value that should be returned by the invoked function.
-
++
 This technique is an example of the strategy pattern applied to error handling.
 Even when exceptions are available, it is a useful tool in niche situations.
 
 ifdef::todos[]
-
-==== Continuation Passing Style
+Continuation Passing Style::
 
 Maybe mention this.
 It bears comparison with folding over an error type.
-
 endif::[]
 
 === Error Handling With Exceptions
@@ -202,6 +202,7 @@ Once a good proportion of the code that you call just uses unchecked exceptions 
 You can't rely on checked exceptions to warn you about how a function might fail.
 Instead you are reduced to some tactical defensive programming and the age-old technique of putting it into production, seeing what errors you log, and adding code to handle those you don't like the look of.
 
+ifdef::optional-content[]
 .What should Hibernate Throw?
 ****
 In the checked exceptions scheme, where a programmer explicitly invokes a Hibernate method to load an object, that method should declare `IOException`.
@@ -223,6 +224,7 @@ So perhaps Hibernate should have declared a checked `HibernateException`
 and an unchecked `HibernateRuntimeException`?
 As you can see, checked exceptions do introduce complication.
 ****
+endif::[]
 
 The final nail in the coffin of checked exceptions was the introduction of lambdas in Java 8.
 The decision was taken to not declare an exception type in the signature of the functional interfaces introduced to support lambdas (`Producer`, `Consumer` etc), and so these cannot propagate checked exceptions.
@@ -240,7 +242,7 @@ The result is that Kotlin programs are by default no better or worse than most J
 
 An exception (lower case e) to this is that, as we observed above, Kotlin can use `null` to indicate an error, safe in the knowledge that callers will have to take the possibility of `null` into consideration.
 An example of this is the `<T> Iterable<T>.firstOrNull(): T?` in the runtime.
-(Telling though the runtime also defines `first()`, which throws `NoSuchElementException` if the collection is empty.)
+(Tellingly though the runtime also defines `first()`, which throws `NoSuchElementException` if the collection is empty.)
 
 === Beyond Exceptions - Functional Error Handling
 
@@ -271,6 +273,7 @@ As a result, the value of `secondsIn(today())` may differ depending on when we c
 
 This is the same concept as we saw in <<actions-to-calculations>>.
 <<calculations>> are referentially transparent, <<actions>> are not.
+// TODO - fix references
 
 Why should we care?
 Because referential transparency makes it a lot easier to reason about the behaviour of a program, which in turn leads to fewer errors and more opportunities to refactor and optimise.
@@ -499,7 +502,8 @@ The HTTP protocol returns 4xx errors when a request is unsuccessful because the 
 We have to take care to map error types in our application to and from status codes correctly when designing systems that communicate over HTTP.
 ****
 
-`CustomerRegistration` implements the business rules, which is that potential customers should be vetted against an `ExclusionList` of undesireables.
+`CustomerRegistration` implements the business rules, which is that potential customers should be vetted against an `ExclusionList`.
+We don't want to allow known-undesirables to register and abuse our services, so we reject them at this point:
 
 // begin-insert: tags/errors.0:src/main/java/travelator/CustomerRegistration.java
 [source,java]
@@ -529,7 +533,8 @@ public class CustomerRegistration implements IRegisterCustomers {
 ----
 // end-insert
 
-Hiding in that `throws` clause of `register` is the information that, as well as failing because of exclusion, `register` can also fail because `customers.add` can fail with a `DuplicateException`.
+Look at the `throws` clause of `register`.
+It tells us that the method can fail because of the explicit exclusion, but also that `customers.add` can fail with a `DuplicateException`.
 Here is the `Customers` interface:
 
 // begin-insert: tags/errors.0:src/main/java/travelator/Customers.java
@@ -599,7 +604,8 @@ Worse, Java client code can't catch the exception or declare that it is passed o
 
 Our strategy is to add to our interface a version of `Customers::add` that, instead of throwing an exception, returns `Result<Customer, DuplicateException>`.
 If we were starting from scratch we wouldn't use `DuplicateException` as the error type, but here it lets us interoperate with Java easily.
-We are going to keep the old throwy version around for now so that we don't break existing callers, convert those callers to use the `Result` version, then remove the old version when we can.
+We are going to keep the current throwy version around for now so that we don't break existing callers.
+Then we will convert those callers to use the `Result` version, then remove the old version when we can.
 That's right, it's our old friend <<expand-contract>>.
 
 First we add Result4k to our build:
@@ -616,7 +622,7 @@ dependencies {
 ----
 // end-insert
 
-Now we write the method that works like `Cutomers::add` but returns a `Result`.
+Now we write the method that works like `Customers::add` but returns a `Result`.
 We can't call it `add` too, as both have the same parameters, so we call it `addToo` for now.
 If the new method delegates to `add`, we can make it a default method so that it is available to all implementations:
 
@@ -748,7 +754,7 @@ override fun register(data: RegistrationData): Customer {
 <1> `Type mismatch. Required: Customer Found: Result<Customer, DuplicateException>`
 
 We have a `Result`, so we need to unpack it.
-When it is `Success`, we want to return the wrapped value, when `Failure`, throw the wrapped `DuplicateException` (in order to keep the current behaviour of `register`):
+When it is `Success`, we want to return the wrapped value; when `Failure`, throw the wrapped `DuplicateException` (in order to keep the current behaviour of `register`):
 
 // begin-insert: tags/errors.8.5:src/main/java/travelator/CustomerRegistration.kt#foo
 [source,kotlin]
@@ -830,8 +836,8 @@ Now we've replaced one of the uses of exceptions with a result type, let's have 
 OK, ready to go again? Good.
 
 We now have to choose whether to proceed depth or breadth first.
-Depth-first would address the caller of `CustomerRegistration::register`, breadth-first would first fix up the other callers of `Customers::add`, so that we can remove it.
-As it happens, our example code has no other callers of `add`, so breadth-first isn't an option, and we can get on with the contract phase at this level.
+Depth-first would address the caller of `CustomerRegistration::register`; breadth-first would first fix up the other callers of `Customers::add`, so that we can remove it.
+As it happens, our example code has no other callers of `add`, so breadth-first isn't an option, and we can get on with the contract phase of expand and contract at this level.
 
 At present, we have implementations of `Customers::add`, and all our code calls them via the default implementation of `Customers::addToo` in the interface.
 We want to delete `add`, so let's go and implement `addToo` directly.
@@ -1027,16 +1033,18 @@ class CustomerRegistration(
 ----
 // end-insert
 
-==== Stepping Out
 
 Now we have converted a whole layer of our interaction to use a result type, we move out to the next.
+
+==== Stepping Out
 
 If we are to follow the same pattern with `IRegisterCustomers::register` as we did with `Customers` - providing a default implementation of an adapter between exception-throwing and error-returning - we are going to have to address the issue of how to express the result of a function that can fail for two reasons.
 That's because `register` is currently declaring that it throws both `ExcludedException` and `DuplicateException` checked exceptions.
 In code, we want something like `Result<Customer, Either<ExcludedException, DuplicateException>>`.
 
 We _could_ use a generic `Either` type, but that only gets us so far as a strategy.
-For a start, `Either<ExcludedException, DuplicateException>` is not the same thing as `Either<DuplicateException, ExcludedException>`, which is at best really confusing, and will get even worse if we ever have to expand to `OneOf<ExcludedException, DuplicateException, SomeOtherProblem>`.
+Unlike Java, where the order that we declare exceptions doesn't matter, `Either<ExcludedException, DuplicateException>` is not the same thing as `Either<DuplicateException, ExcludedException>`.
+The `Either` is as best really confusing, and will get even worse if we ever have more that two exceptions: `OneOf<ExcludedException, DuplicateException, SomeOtherProblem>`.
 
 Another option is to move up to the common superclass of the two exceptions and declare the return type as `Result<Customer, Exception>`.
 This fails the communication test - we can't look at the signature and gain any clues about what types of errors we are expecting.
@@ -1435,7 +1443,7 @@ public class CustomerRegistrationTests {
 
 This would be a good way to keep both `register` and `registerToo` while we migrate away from Java and exceptions to Kotlin and an error type.
 In this case though the tests are actually the last callers of `register`, so let's convert them to call `registerToo`.
-We could take the time to show how to use Result4k in Java, but we're all pretty tired of this example now, so we'll convert the tests to Kotlin and then to call `register` with the immortal words, "Here's one I made earlier":
+We could take the time to show how to use Result4k in Java, but we're all pretty tired of this example now, so we'll convert the tests to Kotlin and then have them call `register` with the immortal words, "Here's one I made earlier":
 
 // begin-insert: tags/errors.23:src/test/java/travelator/CustomerRegistrationTests.kt
 [source,kotlin]
@@ -1523,19 +1531,23 @@ interface Customers {
 ----
 // end-insert
 
-Hmm, not quite exception-free because of that `DuplicateException`, which is not thrown from anywhere anymore, just created and put into a `Failure`.
-It's an easy fix to rename the class to `DuplicateCustomerProblem` and stop extending `Exception`, or to reuse the existing `Duplicate` subclass of `RegistrationProblem`.
+Hmm, not quite exception-free because of that `DuplicateException`.
+It is not actually _thrown_ from anywhere anymore, just created and put into a `Failure`.
+We can fix this either by renaming the class to `DuplicateCustomerProblem` and stop it extending `Exception`, or to reuse the existing `Duplicate` subclass of `RegistrationProblem`.
 Which is better?
 
 === Layers
 
 If we think in terms of layers, `Customers` is in a lower layer than `Registration`, which depends on it.
 So `Customers` should not depend on the higher level `RegistrationProblem`.
-We could try to invert the dependency, so that the `Duplicate` subclass of `RegistrationProblem` was a subtype (or even just the same type) of `DuplicateCustomerProblem` declared in the repository layer.
-That would work here, but if `Customers::add` ever needs to declare another way that it might fail, so that then we will run into another problem.
+We could try to invert the dependency, so that the `Duplicate` subclass of `RegistrationProblem` is a subtype (or even just the same type) of `DuplicateCustomerProblem` declared in the repository layer.
+That would work here, but is a bit of a dead-end if `Customers::add` ever needs to declare another way that it might fail.
+If, for example, we want to show in our result that database communications might fail, we can't (well, certainly shouldn't)
+ make that a subtype of `DuplicateCustomerProblem`.
+So we will be back to the problem of expressing more that one error type in a single result.
 
-Let's chase that through, adding the equivalent of a checked exception to express database communication failures that perhaps we always should have had.
-Now that `Customers::add` needs to declare more than one way that it can fail, we introduce a sealed `CustomersProblem` as the error type, with our previous `DuplicateCustomerProblem` as one subtype, `DatabaseCustomerProblem` as the other:
+Let's chase that through.
+If `Customers::add` needs to declare more than one way that it can fail - our previous `DuplicateCustomerProblem` and our new `DatabaseCustomerProblem` - we introduce a sealed `CustomersProblem` as the error type, and make the two known problems its only subclasses:
 
 // begin-insert: tags/errors.26:src/main/java/travelator/Customers.kt
 [source,kotlin]
@@ -1580,7 +1592,7 @@ class CustomerRegistration(
 // end-insert
 
 This no longer compiles, as the type of the failure is now `CustomersProblem`.
-You can see that we are getting the advantages of checked exceptions - code is communicating the ways in which is can fail, and forcing us to deal with the likely cases.
+You can see that we are getting the advantages of checked exceptions - code is communicating the ways in which it can fail, and forcing us to deal with the likely cases.
 
 We can fix this by converting `DatabaseCustomerProblem` to a new `DatabaseProblem` subtype of `RegistrationProblem`:
 
@@ -1635,12 +1647,12 @@ private fun RegistrationProblem.toResponse() = when (this) {
 ----
 // end-insert
 
-To be frank, managing separate error types for each layer of code, and potentially for each operation, can be tedious -- if you try it you'll gain a new appreciation for the Java compiler and the way in which checked exceptions can be combined.
+To be frank, managing separate error types for each layer of code, and potentially for each operation, can be tedious -- if you try it you'll gain a new appreciation for the Java compiler how checked exceptions can be combined.
 
 === Conclusion
 
 Your Java project may already have declared exception bankrupcy, with no systematic use of checked exceptions.
-In this case Kotlin's treating everything as an unchecked exception will fine.
+In this case Kotlin's policy of treating everything as an unchecked exception will be fine.
 
 If you do lean on checked exceptions and want to translate to Kotlin, or want to raise your error-handling game as part of the conversion, then using a result type is the best strategy.
 Where an operation can fail in multiple ways we can use sealed classes to enumerate the failure modes, at the expense of not being able to propagate the same type through multiple layers.
