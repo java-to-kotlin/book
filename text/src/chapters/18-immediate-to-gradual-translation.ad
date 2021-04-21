@@ -89,21 +89,31 @@ In the meantime, we want to ensure that code that uses `Money` in either languag
 
 === Adding A User-Defined Operator
 
-Kotlin code that adds Money values is still rather clumsy:
+Kotlin code that calculates with Money values is still rather clumsy:
 
 [source,kotlin]
 ----
-val total = price.add(tax)
+val grossPrice = netPrice.add(netPrice.mul(taxRate))
 ----
 
-This is the best we can do in Java, but in Kotlin we can define arithmetic operators for our own classes, allowing us to write that code as:
+It is not significantly different from the equivalent Java:
+
+[source,java]
+----
+final var grossPrice = netPrice.add(netPrice.mul(taxRate));
+----
+
+Using methods for arithmetic operations makes the calculation harder to read.
+It's the best we can do in Java, but in Kotlin we can define arithmetic operators for our own classes, allowing us to write that calculation as:
 
 [source,kotlin]
 ----
-val total = price + tax
+val grossPrice = netPrice + netPrice*taxRate
 ----
 
-We give classes the `+` operator by writing an operator method or extension function called `plus`.
+Using addition as an example, let's take a look at how we can give our `Money` class arithmetic operators.
+
+We give a class the `+` operator by writing an operator method or extension function called `plus`.
 For our Money class we can rename the existing `add` method to `plus` and add the `operator` modifier:
 
 // begin-insert: tags/value_types.9:src/main/java/travelator/money/Money.kt#money
@@ -130,8 +140,13 @@ class Money private constructor(
 
 With this change, our Kotlin code can add Money values with the + operator, while the Java code calls `plus` as a method.
 
-The name "plus" isn't conventional Java.
-Java classes in the standard library that have arithmetic operations, such as BigDecimal and BigInteger, use the name "add", not "plus".
+====
+As a shorthand, we use the term "the operator plus method" to mean the `plus` method declared with the operator modifier.  Similarly for extensions -- we'll say "the operator plus extension" as a shorthand.
+====
+
+One small fly in the ointment is that although we've converted our `Money` class to Kotlin, its still used by a lot of Java code that is under active development.
+Our rename has rippled across a lot of Java code, and introduced a name that doesn't follow Java conventions.
+Java classes in the standard library that have arithmetic operations, such as BigDecimal and BigInteger, all use the name "add", not "plus".
 
 We can make the method appear to have different names in Java and Kotlin by annotating it's definition with the `@JvmName` annotation.
 Let's revert the change we just made and take another run at it, starting by annotating the method with `@JvmName("add")`.
@@ -167,7 +182,7 @@ operator fun plus(that: Money): Money {
 ----
 // end-insert
 
-Whether this is desirable is a matter of opinion.
+It's a matter of opinion whether this is desirable.
 It can be quite confusing to have the same method appear under different names in different parts of the same codebase,
 but on the other hand, because it's an operator method, the name "plus" should only appear in the definition of the method, and all uses of the method from Kotlin be via the `+` operator. The phrase `operator fun plus` is more like a language keyword than a method name.
 The IDE navigates seamlessly between calls to `add` in Java and the definition of `operator plus` in Kotlin.
