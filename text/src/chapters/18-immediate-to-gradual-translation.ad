@@ -332,6 +332,7 @@ We would have to declare it as `internal`, rather than `private`.
 Internal visibility would make the constructor visible to any Kotlin code in the same compilation unit (equivalent to a Gradle subproject or IntelliJ module), but prevent it being called by Kotlin code in other compilation units.
 The compilation unit, rather than the class, would be responsible for guaranteeing the invariants of the Money class by never calling its constructor inappropriately.
 That would be safe enough, if it wasn't for those parts of our system that we will continue to maintain in Java during our system's transition to Kotlin.
+
 Java and the JVM do not have the concept of internal visibility.
 The Kotlin compiler translates internal features of a class to a public features in the JVM classfiles it generates, and records the internal visibility as additional metadata that is processed by the Kotlin compiler but ignored by the Java compiler.
 As a result, Kotlin features declared as internal appear to be public to the Java compiler and JVM, allowing us to accidentally create invalid Money values when we're working in the Java code of our project.
