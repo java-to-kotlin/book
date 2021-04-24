@@ -111,12 +111,12 @@ In practice though, very few developers take this step, leading to cryptic tests
 ****
 
 Nat is keen to point out that the mocks that he and Steve Freeman wrote about (<<FP_GOOSGBT_2009,_Growing Object-Oriented Software Guided By Tests_>>) were never supposed to be used to implement query functionality like `findCloseTo` and `distanceInMetersBetween`, but only to abstract methods that change state.
-Duncan doesn't remember noticing that, and is personally not against using mocks in this way, as they are still a nice way to specify what we expect of collaborators when practicing outside-in TDD, whether reading-from or writing-to.
+Duncan doesn't remember noticing that, and is personally not against using mocks in this way, as they are still a nice way to specify what we expect of collaborators when practicing outside-in Test Driven Development (<<B_TDDBE_2002>>), whether reading-from or writing-to.
 In the end, maybe it doesn't matter, because in both of our experiences, most Java codebases have mocks that are used in this way, and most Kotlin codebases would be better off without them.
 
 For now though, we are still mocking, but our refactoring has resulted in our passing narrow interfaces (the function types) to the code under test.
 Now that we don't need to implement uncalled methods, do we still need the mocks?
-Let's see where that takes us.
+Let's see where pulling that thread takes us.
 
 === Replacing Mocks With Maps
 
@@ -243,7 +243,8 @@ private fun givenADistanceFrom(
 ----
 // end-insert
 
-It might take a couple of passes to see how that works, or let it go for now and come back to it if you need it.
+It might take a couple of passes to see how that works - these are the details that mocking frameworks hide for us.
+You can safely ignore the details and come back here if you ever execute this refactoring yourself.
 
 Having to use a lambda rather than a method reference in the `Recommendations` constructor invocation is a bit irritating.
 We can tidy that up with a local `getValue` extension function.
