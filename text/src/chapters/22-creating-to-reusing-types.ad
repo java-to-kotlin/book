@@ -1,5 +1,5 @@
 [[creating-to-reusing-types]]
-== Creating to Reusing Types
+== Creating Types to Reusing Them
 
 Object-oriented programmers are adept at solving problems by creating types.
 Functional programmers tend to augment existing types with functions.
@@ -10,10 +10,11 @@ In this chapter we'll apply the lessons we've learned to write some Kotlin from 
 
 === Our Mission
 
-Even in these days of REST APIs and web-hooks, much of the automatic business to business communication is in the form of tabular text data exchanged by SFTP.
+Even in these days of REST APIs and web-hooks, much of automatic business to business communication is in the form of tabular text data exchanged by SFTP.
 Travelator has to import data for campsite locations, points of interest, unsettled bills and more, all in regular rows and columns, with different  column separators, and with and without a header naming the columns for the remaining rows.
 In <<performing-io-to-passing-data>> we saw that one team had created their own parser, in other places we use the tried-and-trusted http://commons.apache.org/proper/commons-csv/[Apache Commons CSV library].
 Honestly, for most uses we would still use Commons CSV, because it works out of the box, is nicely configurable for special cases, and plays really well with Kotlin.
+
 Today though we're going to see what a clean-room Kotlin parser would look like.
 When we're done, we'll compare what we come up with to the Commons CSV functionality, so that we can see how the grains of Java and Kotlin lead to different APIs and implementations.
 
@@ -218,11 +219,11 @@ fun readTable(input: List<String>): List<Map<String, String>> {
 This passes.
 It may seem trivial, but it's always a good idea to have a test for empty input - the more complicated our algorithm, the more likely it is to fail in this case.
 It's a poor parser that always returns an empty result though, so let's crack on.
-Following Test-Driven Development, we need to add a failing test first to give us a reason to change the implementation.
+Following Test Driven Development (<<B_TDDBE_2002>>), we need to add a failing test first to give us a reason to change the implementation.
 We choose to add the case of reading a table with no header and one line of data.
 
 Why this rather than a header and one line of data?
-To be honest, this is just the first thing that came to mind -- maybe if we were actually been pairing at this point you would have suggested using a header row.
+To be honest, this is just the first thing that came to mind -- maybe if we were actually pairing at this point you would have suggested using a header row.
 Our choice leaves us having to decide how to name the columns, and we decide to use the `String` representation of their index, `"0"` for the first column, `"1"` for the second and so on -- this feels like the simplest way that we can generate a `String` key:
 
 // begin-insert: tags/table-reader.2:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
@@ -780,7 +781,7 @@ fun `can specify header names when there is no header row`() {
 
 It's worth noting how easy it is to convert from a `List<String>` to our header provider function `(Int) -> String` - with the method reference `headers::get`.
 This is an interesting way to view collections.
-We can view
+We can view:
 
 [cols="1,1,1"]
 |===
@@ -1185,8 +1186,8 @@ Our API suffers from one major issue - it works on a `List<String>` loaded into 
 Roughly speaking, the memory footprint of `readTable` is twice the number of bytes of the input, which is probably twice the size of a UTF-8 encoded file containing the data.
 In order to process large files it would be nice to work in terms of sequences rather than lists, since if necessary sequences can keep only one item in each stage of a pipeline in memory at a time.
 
-As we saw in <<streams-to-sequences>>, we can convert a `Sequence` to a `List` and back (with some caveats) very easily.
-We could implement `Sequence` functions by delegating to our existing `List` API, but as our aim is to reduce our memory footprint, we will write the `Sequence` versions and delegate the `List` versions to them.
+As we saw in <<streams-to-sequences>>, we can convert a `Sequence` to a `List` and back (with some caveats) very easily, so we could implement `Sequence` functions by delegating to our existing `List` API.
+This wouldn't reduce our memomry footprint though, so instead we'll write the `Sequence` versions and delegate the `List` versions to them.
 If we're clever we can test through the convenient `List` API, thus getting two sets of tests for the price of one.
 
 `readTable` currently looks like this:
@@ -1514,8 +1515,9 @@ In order to use our `Sequence` interface on data in files we are either going to
 Given that we introduced the `Sequence` specifically in order to avoid loading all the data into memory at once, we choose the latter.
 All we need to do then is to check whether a `Sequence` has any items without consuming it.
 A little thought leads us to conclude that we can't do this.
-Sometimes though we can't do a thing in isolation, but we can do it and another thing that we want together.
-In this case we don't just want to see if the `Sequence` is empty, we want to split it into its head and tail if it isn't.
+
+Sometimes when we can't do a thing in isolation, we can do it, and another thing that we want, together.
+In this case we don't just want to see if the `Sequence` is empty - we want to split it into its head and tail if it isn't.
 We can acheive that wider goal by destructuring the `Sequence` with a function like this:
 
 // begin-insert: tags/table-reader.49:src/main/java/travelator/tablereader/table-reading.kt#destruct
@@ -1943,4 +1945,5 @@ private fun tableOf(
 
 === Conclusion
 
+TODO
 To cover - types, the problem with sequences, customisation with functions, where errors can occur, actual CSV parsing.
