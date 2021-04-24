@@ -1,10 +1,10 @@
 [[ignoring-to-handling-errors]]
-== Ignoring to Handling Errors
+== Ignoring Errors to Handling Them
 
 In <<exceptions-to-errors>> we looked at error-handling strategies for Kotlin, and how to refactor from exceptions in Java to more functional techniques.
 The truth is that most code ignores errors in the hope that they won't happen -- can we do better?
 
-Someone new in marketing has taken to tweaking the spreadsheet that we last saw in <<performing-io-to-passing-data>>, the one that generates the high-value customer scores.
+Someone new in marketing has taken to tweaking the spreadsheet that we last saw in <<performing-io-to-passing-data>> - the one that generates the high-value customer scores.
 We don't know what they are doing in detail, but they keep on exporting files that break our parsing.
 It's getting a bit embarrassing on both sides of the relationship, so the cake has begun to dry up.
 Could there be any more incentive?
@@ -63,7 +63,7 @@ private val CustomerData.marketingName: String
 // end-insert
 
 If we're to do a good job of error handling, the first thing we have to do is to establish what might go wrong.
-As we discussed in <<exceptions-to-errors>>, in Kotlin we don't have checked exceptions to give us clue, but these were so badly used in most Java code that in this respect there isn't much of a difference between the languages.
+As we discussed in <<exceptions-to-errors>>, in Kotlin we don't have checked exceptions to give us clues, but these were so badly used in most Java code that in this respect there isn't much of a difference between the languages.
 Unless the code has been written to communicate the ways that it can fail, we are going to have to rely on examination, intuition, and experience to work it out.
 In this case, experience tells us that the failures we actually get are due to missing fields, so we can concentrate there, but we should still do due-diligence on all the code.
 Let's work our way up the functions from the bottom of the listing, looking for potential errors.
@@ -109,7 +109,7 @@ private val CustomerData.outputLine: String
 This only calls code that we have just reasoned shouldn't fail, so by the transitive property of failure, it should also be safe.
 
 Note this has been easy so far because these functions are all calculations (<<calculations>>).
-They don't depend on any external state, so we can reason with them just by looking at them.
+They don't depend on any external state, so we can reason about them just by looking at them.
 
 So far so good, now `String.toCustomerData()`:
 
@@ -132,23 +132,17 @@ internal fun String.toCustomerData(): CustomerData =
 OK, this is another partial function -- almost no values of the `String` receiver will lead to this function being able to return a result.
 Luckily almost all the ones that we are getting in practice are OK, which is why error handling is only now becoming a priority.
 What can go wrong?
+
 Starting from the top of the function, `String.split` may behave oddly if we pass it an empty delimiter, but we aren't.
 Then we may not have enough parts, so that `parts[n]` throws `IndexOutOfBoundsException`.
 Finally, `parts[3]` may not represent an `Int`, or `parts[4]` may not represent a `Double`, both of which will throw `NumberFormatException`.
-
-Actually, is that it?
-Can calling the `CustomerData` constructor fail?
-The answer is no, but maybe it should, if, for example, `id` is an empty `String`.
-We'll come back to this.
-
-TODO - do we?
 
 Having established that `toCustomerData` can fail if passed a `String` that doesn't meet our format specification, what should we do about it?
 At the moment, all the ways that it can fail result in an exception being thrown, and the program being aborted with an unfriendly error message.
 Which leads to two follow-on questions: should we abort?; and how can we improve the error message?
 
 As we saw in <<exceptions-to-errors>>, we shouldn't use exceptions to abort on predictable errors.
-The lack of checked exceptions in Kotlin (and their lack of use in Java) means if we do, we lose the opportunity to communicate how (and that it is likely that) the code can fail.
+The lack of checked exceptions in Kotlin (and their lack of use in Java) means that if we do, we lose the opportunity to communicate that the code is susceptible to failure.
 The callers of our code then have to do what we are currently doing - reason with every line of code in an implementation.
 Even after then, the implementation might change, silently invalidating the findings.
 
@@ -364,7 +358,7 @@ This is an expedient error handling solution that is flexible and communicates w
 
 === Representing Errors
 
-Now that we are communicating _that_ our parsing can fail (by returning a nullable type), and where it has failed (with a callback passing the line), can we better communicate betterer _how_ it has failed?
+Now that we are communicating _that_ our parsing can fail (by returning a nullable type), and _where_ it has failed (with a callback passing the line), can we communicate betterer _how_ it has failed?
 
 Returning a result type rather than a nullable type allows us to specify what failure modes there are, and provide details when they happen.
 Let's change `String.toCustomerData()` to return a `Result` rather than nullable:
@@ -693,7 +687,7 @@ private fun List<ParseFailure>.writeTo(error: OutputStreamWriter) {
 
 That's nearly good enough.
 Before we go though, we should think about IO errors.
-Since we introduced the ++Sequences++s, our report generation code does not have to worry about writing failing, as it is the calling (`main`) code's responsibility to iterate over the result and actually write.
+Since we introduced the ++Sequence++s, our report generation code does not have to worry about writing failing, as it is the calling code's responsibility to iterate over the result and actually write.
 The `main` function in this case makes the reasonable assumption that `System.out` will always be there, but when we implement the unattended job we will have to deal with the possibility that the file or network socket may disappear even though it was open when we started.
 
 There is a similar situation reading.
