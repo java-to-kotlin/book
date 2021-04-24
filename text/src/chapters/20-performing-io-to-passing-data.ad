@@ -8,7 +8,7 @@ How can we limit the scope of the problems that IO causes?
 
 Now that earlier chapters have built some foundations, we're going to up the pace here, going straight into refactoring and learning lessons as we go.
 
-=== Starting Point
+=== Listening to the Tests
 
 In <<functions-to-extension-functions>>, we looked at some Java code that produced a report for marketing.
 When we left the code, we had introduced extension functions to the `HighValueCustomersReport`, giving us:
@@ -84,12 +84,10 @@ class HighValueCustomersReportTests {
 ----
 // end-insert
 
-=== Listening to the Tests
-
 We didn't really look at the tests in <<functions-to-extension-functions>>, but if we do now, what stands out in the light of our chapter (<<actions-to-calculations>>) discussing calculations and actions?
 In particular, look at that `check` function.
 
-`check` is evidently not a calculation (<<calculations>>), as it works entirely by throwing an exception not returning a value.
+`check` is evidently not a calculation (<<calculations>>), as it works entirely by throwing an exception instead of returning a value.
 But look at it this way:
 
 // begin-insert: tags/bonus.0.6:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
@@ -384,14 +382,15 @@ Even in the best-gelled teams, individuals also differ in their preferences.
 === Efficient Writing
 
 We're quite pleased with this refactor.
-It has simplified our tests and the production code, and we have moved from imperative code that mixes IO and logic to a nice pure function with no side-effects.
+It has simplified our tests, and the production code, and we have moved from imperative code that mixes IO and logic to a nice pure function with no side effects.
+
 For a while all is fine in production too, but with the easing of COVID-19 travel restrictions, Travelator becomes the roaring success that we all knew it would be.
-Eventually marketing start complaining that the report generation is failing with an `OutOfMemoryError`.
+Eventually, though, marketing start complaining that the report generation is failing with an `OutOfMemoryError`.
 Could we look into it?
 
 We haven't bothered you with the details so far, but there is a `main` method that invokes our report.
 It is designed to be invoked with shell redirection, reading from a file piped as the standard input, and writing to a file collected from the standard output.
-It started out as Java:
+This was its Java incarnation:
 
 // begin-insert: tags/functions-to-extension-methods.0:src/main/java/travelator/marketing/HighValueCustomersMain.java
 [source,java]
@@ -411,7 +410,8 @@ public class HighValueCustomersMain {
 // end-insert
 
 You can see that by reading and writing this way we don't have to worry about reading filenames from the command-line.
-We have had two issues with errors in living memory.
+
+We have had two issues with errors in this code in living memory.
 Both these times the input file turned out to have been malformed, but marketing sit next door and just call us over to help if these occur.
 They give us cake in these cases, so we're hardly incentivized to do a better job of error handling for now (but see <<ignoring-to-handling-errors>>).
 If we can fix the `OutOfMemoryError` quickly we think we saw some crumpets...
@@ -825,7 +825,7 @@ At this point we resorted to converting our ++List++s to ++Sequence++s.
 Sequences have state and are not values, but with a little care we can treat them like lazy values -- lazy in that we don't need all their contents up front, but can read or supply them on demand.
 They aren't as simple as values, but their compatible Kotlin API allows something of the best of both worlds.
 
-Before we go, we should note that while the original version of `generate` had to worry about `IOExceptions`, the new version doesn't.
+Before we go, note that while the original version of `generate` had to worry about `IOExceptions`, the new version doesn't.
 Or at least, the new version doesn't worry about IO errors because they are hidden from it by the `Sequence` abstractions wrapping the `Reader` and `Writer`.
 That doesn't mean that they can't happen, just that `generate` isn't warned that they can.
 We'll take a break to see if marketing have any more batter-based rewards before addressing that topic in <<ignoring-to-handling-errors>>.
