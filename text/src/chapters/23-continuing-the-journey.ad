@@ -46,7 +46,7 @@ When the scope of an effect is local to a function, we don't have to consider it
 As soon as we mutate shared state (a parameter to the function perhaps, or a global variable, or a file or network socket) our local effect becomes an effect in whatever scope can see the shared thing, and that quickly increases complexity and makes understanding more difficult.
 
 It isn't enough that a function doesn't _actually_ mutate shared state.
-If there is a possibility that a function _could_ mutate shared state, we have to examine the source of the function and, recursively, every function that it calls that can also access that state, to understand what our system does.
+If there is a possibility that a function _could_ mutate shared state, we have to examine the source of the function and, recursively, every function that it calls, to understand what our system does.
 Every piece of global mutable state makes every function suspect.
 Similarly, if we program in an environment in which every function can write to the database, we lose the ability to predict when such writes can occur and plan accordingly.
 
