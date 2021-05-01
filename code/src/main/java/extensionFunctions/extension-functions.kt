@@ -2,7 +2,6 @@ package extensionFunctions
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
-import java.time.Clock
 import java.time.Duration
 import java.time.ZonedDateTime
 
@@ -225,7 +224,7 @@ object NullsAndNestedFunctionCalls {
             if (nextTrip != null) {
                 val timeToDeparture = timeUntilDepartureOfTrip(nextTrip, currentTime)
                 if (timeToDeparture != null) {
-                    "${durationToUserFriendlyText(timeToDeparture)} until your next trip!"
+                    durationToUserFriendlyText(timeToDeparture) + " until your next trip!"
                 } else null
             } else null
         } else null
@@ -241,7 +240,7 @@ object NullsAndNestedFunctionCalls {
             if (nextTrip == null) null else {
                 val timeToDeparture = timeUntilDepartureOfTrip(nextTrip, currentTime)
                 if (timeToDeparture == null) null else {
-                    "${durationToUserFriendlyText(timeToDeparture)} until your next trip!"
+                    durationToUserFriendlyText(timeToDeparture) + " until your next trip!"
                 }
             }
         }
@@ -255,7 +254,7 @@ object NullsAndNestedFunctionCalls {
         val reminder: String? = customer?.let {
             nextTripForCustomer(it)?.let {
                 timeUntilDepartureOfTrip(it, currentTime)?.let {
-                    "${durationToUserFriendlyText(it)} until your next trip!"
+                    durationToUserFriendlyText(it)+" until your next trip!"
                 }
             }
         }
@@ -270,7 +269,8 @@ object NullsAndNestedFunctionCalls {
         val reminder: String? = customer
             ?.let { nextTripForCustomer(it) }
             ?.let { timeUntilDepartureOfTrip(it, currentTime) }
-            ?.let { "${durationToUserFriendlyText(it)} until your next trip!" }
+            ?.let { durationToUserFriendlyText(it) }
+            ?.let { it+" until your next trip!" }
         /// end: chained_lets
     }
 

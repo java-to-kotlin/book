@@ -411,7 +411,7 @@ val currentTime: ZonedDateTime = SOME_CODE()
 val reminder: String? = customer?.let {
     nextTripForCustomer(it)?.let {
         timeUntilDepartureOfTrip(it, currentTime)?.let {
-            "${durationToUserFriendlyText(it)} until your next trip!"
+            durationToUserFriendlyText(it)+" until your next trip!"
         }
     }
 }
@@ -426,7 +426,8 @@ Even when we can flatten nested null checks into a pipeline of calls to `let`, a
 val reminder: String? = customer
     ?.let { nextTripForCustomer(it) }
     ?.let { timeUntilDepartureOfTrip(it, currentTime) }
-    ?.let { "${durationToUserFriendlyText(it)} until your next trip!" }
+    ?.let { durationToUserFriendlyText(it) }
+    ?.let { it+" until your next trip!" }
 ----
 // end-insert
 
@@ -443,12 +444,12 @@ val reminder: String? = customer
 ----
 // end-insert
 
-When Nat and Duncan first adopted Kotlin, they found that extensions and nullability form a virtuous circle.
-Because it was easier to process optional data with extension functions, they extracted extensions private to the file, or refactored functions to extensions where it made logic easier to write.
+When Nat and Duncan first adopted Kotlin, they soon found that extensions and nullability form a virtuous circle.
+It was easier to process optional data with extension functions, so they extracted extensions private to the file, or refactored functions into extensions where it made logic easier to write.
 They found that the names of these extensions could be more concise than that of an equivalent function without obscuring intent.
-As a result, they wrote more functions as extensions to make their application logic concise.
+As a result, they wrote more extensions to make their application logic concise.
 Private extensions often proved to be useful elsewhere, so they moved them into common modules where they could easily be shared.
-This made it easier to work with optional data across the application, which encouraged them to write more extension methods, which made application logic more concise, ... and so on.
+This made it easier to use optional data in other parts of the application, which led them to write more extensions, which made application logic more concise, ... and so on.
 
 Although extensions are promoted as a way to extend third-party types, nullability in the type system and the concise naming they allow encourage us to define extensions of our own types as well.
 The two language features combine to form a grain -- it's easier to define extension functions on our own types than not.
