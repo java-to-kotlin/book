@@ -372,6 +372,89 @@ Ahh ... that's much more readable.
 
 === Nullability
 
+Extensions really come into their own when we work with nullable data.
+Whenever we have a function that takes non-null data, the type system forces us to deal with the null case.
+If we have to pass nullable data to the function in a parameter, we cannot use the null-safe dereference operator we saw in <<optional-to-nullable>>.
+We have to wrap the call in conditional logic:
+
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#single_if
+[source,kotlin]
+----
+val customer: Customer? = loggedInCustomer()
+val greeting: String? = when {
+    customer != null -> greetingForCustomer(customer)
+    else -> null
+}
+----
+// end-insert
+
+We can, and usually do, make the logic more concise by using one of Kotlin's _scoping functions_, such as `let`, `apply` or `also`, in combination with the null-safe dereference operator.
+
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#single_let
+[source,kotlin]
+----
+val customer: Customer? = loggedInCustomer()
+val greeting: String? = customer?.let { greetingForCustomer(it) }
+----
+// end-insert
+
+The null-safe dereference operator ensures that `let` is only called when the customer is not null, allowing us to pass it to the function we want to call within the body of the lambda.
+
+If a function returns a nullable result, and we must pass that result to another function that expects a non-null parameter, even the scoping operators start to get cumbersome.
+
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#nested_lets
+[source,kotlin]
+----
+val customer: Customer? = loggedInCustomer()
+val currentTime: ZonedDateTime = SOME_CODE()
+
+val reminder: String? = customer?.let {
+    nextTripForCustomer(it)?.let {
+        timeUntilDepartureOfTrip(it, currentTime)?.let {
+            "${durationToUserFriendlyText(it)} until your next trip!"
+        }
+    }
+}
+----
+// end-insert
+
+Even when we can flatten nested null checks into a pipeline of calls to `let`, all this additional _mechanism_ adds syntactic noise and obscures the _intent_ of the code.
+
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#chained_lets
+[source,kotlin]
+----
+val reminder: String? = customer
+    ?.let { nextTripForCustomer(it) }
+    ?.let { timeUntilDepartureOfTrip(it, currentTime) }
+    ?.let { "${durationToUserFriendlyText(it)} until your next trip!" }
+----
+// end-insert
+
+Extension functions, on the other hand, combine with the null-safe dereference operator to bring the application logic to the fore.
+
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#chained_extensions
+[source,kotlin]
+----
+val reminder: String? = customer
+    ?.nextTrip()
+    ?.timeUntilDeparture(currentTime)
+    ?.toUserFriendlyText()
+    ?.plus(" until your next trip!")
+----
+// end-insert
+
+When Nat and Duncan first adopted Kotlin, they found that extensions and nullability form a virtuous circle.
+Because it was easier to process optional data with extension functions, they extracted extensions private to the file, or refactored functions to extensions where it made logic easier to write.
+They found that the names of these extensions could be more concise than that of an equivalent function without obscuring intent.
+As a result, they wrote more functions as extensions to make their application logic concise.
+Private extensions often proved to be useful elsewhere, so they moved them into common modules where they could easily be shared.
+This made it easier to work with optional data across the application, which encouraged them to write more extension methods, which made application logic more concise, ... and so on.
+
+Although extensions are promoted as a way to extend third-party types, nullability in the type system and the concise naming they allow encourage us to define extensions of our own types as well.
+The two language features combine to form a grain -- it's easier to define extension functions on our own types than not.
+
+=== Nullable _Receivers_
+
 One major difference between invoking a method and calling a function is in the treatment of `null` references.
 If we have a reference that is `null`, we can't send a message to it, because there is nothing to send a message to.
 Some languages will allow you to pretend by silently ignoring such calls, but not Kotlin or Java, which signal their disgust with a `NullPointerException`.
