@@ -1,7 +1,8 @@
 package encapsulation
 
-import extensionFunctions.SOME_CODE
 import java.net.InetAddress
+
+fun SOME_CODE(): Nothing = TODO()
 
 /// begin: send
 fun send(email: Email) {

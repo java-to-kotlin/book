@@ -2,7 +2,9 @@ package extensionFunctions
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
-import java.io.OutputStream
+import java.time.Clock
+import java.time.Duration
+import java.time.ZonedDateTime
 
 /// begin: customerFull
 /// begin: customer
@@ -167,7 +169,7 @@ object CounterFactuals {
 
 }
 
-fun SOME_CODE(): Nothing = TODO()
+fun <T> SOME_CODE(): T = TODO()
 
 fun nullableToString() {
     /// begin: nullableToString
@@ -191,5 +193,110 @@ fun Iterable<Customer>.familyNames(): Set<String> =
 /// end: familyNames
 
 
+object NullsAndNestedFunctionCalls {
+    data class Trip(
+        val departureTime: ZonedDateTime? = null
+    )
 
+    fun conditional() {
+        /// begin: single_if
+        val customer: Customer? = loggedInCustomer()
+        val greeting: String? = when {
+            customer != null -> greetingForCustomer(customer)
+            else -> null
+        }
+        /// end: single_if
+    }
+
+    fun single_let() {
+        /// begin: single_let
+        val customer: Customer? = loggedInCustomer()
+        val greeting: String? = customer?.let { greetingForCustomer(it) }
+        /// end: single_let
+    }
+
+    fun nesting_ifs() {
+        /// begin: nested_ifs
+        val customer: Customer? = loggedInCustomer()
+        val currentTime: ZonedDateTime = SOME_CODE()
+
+        val reminder: String? = if (customer != null) {
+            val nextTrip: Trip? = nextTripForCustomer(customer)
+            if (nextTrip != null) {
+                val timeToDeparture = timeUntilDepartureOfTrip(nextTrip, currentTime)
+                if (timeToDeparture != null) {
+                    "${durationToUserFriendlyText(timeToDeparture)} until your next trip!"
+                } else null
+            } else null
+        } else null
+        /// end: nested_ifs
+    }
+
+    fun nesting_ifs_negated() {
+        val customer: Customer? = loggedInCustomer()
+        val currentTime: ZonedDateTime = SOME_CODE()
+
+        val reminder: String? = if (customer == null) null else {
+            val nextTrip: Trip? = nextTripForCustomer(customer)
+            if (nextTrip == null) null else {
+                val timeToDeparture = timeUntilDepartureOfTrip(nextTrip, currentTime)
+                if (timeToDeparture == null) null else {
+                    "${durationToUserFriendlyText(timeToDeparture)} until your next trip!"
+                }
+            }
+        }
+    }
+
+    fun nested_lets() {
+        /// begin: nested_lets
+        val customer: Customer? = loggedInCustomer()
+        val currentTime: ZonedDateTime = SOME_CODE()
+
+        val reminder: String? = customer?.let {
+            nextTripForCustomer(it)?.let {
+                timeUntilDepartureOfTrip(it, currentTime)?.let {
+                    "${durationToUserFriendlyText(it)} until your next trip!"
+                }
+            }
+        }
+        /// end: nested_lets
+    }
+
+    fun flattened_lets() {
+        val customer: Customer? = SOME_CODE()
+        val currentTime: ZonedDateTime = SOME_CODE()
+
+        /// begin: chained_lets
+        val reminder: String? = customer
+            ?.let { nextTripForCustomer(it) }
+            ?.let { timeUntilDepartureOfTrip(it, currentTime) }
+            ?.let { "${durationToUserFriendlyText(it)} until your next trip!" }
+        /// end: chained_lets
+    }
+
+    fun extensions() {
+        val customer: Customer? = SOME_CODE()
+        val currentTime: ZonedDateTime = SOME_CODE()
+
+        /// begin: chained_extensions
+        val reminder: String? = customer
+            ?.nextTrip()
+            ?.timeUntilDeparture(currentTime)
+            ?.toUserFriendlyText()
+            ?.plus(" until your next trip!")
+        /// end: chained_extensions
+    }
+
+    private fun loggedInCustomer(): Customer? = SOME_CODE()
+
+    private fun greetingForCustomer(customer: Customer): String? = SOME_CODE()
+
+    private fun nextTripForCustomer(customer: Customer): Trip? = SOME_CODE()
+    private fun timeUntilDepartureOfTrip(trip: Trip, now: ZonedDateTime): Duration? = SOME_CODE()
+    private fun durationToUserFriendlyText(duration: Duration): String = SOME_CODE()
+
+    private fun Customer.nextTrip(): Trip? = SOME_CODE()
+    private fun Trip.timeUntilDeparture(now: ZonedDateTime): Duration? = SOME_CODE()
+    private fun Duration.toUserFriendlyText(): String = SOME_CODE()
+}
 
