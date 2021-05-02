@@ -484,15 +484,18 @@ We don't need to use the null-safe dereference operator to call `Element?.toCust
 This removes some syntactic noise from the calling function.
 On the other hand, it makes the flow of nullability in the calling function harder to understand, because, although type-checked, it is not visible in the code.
 
-`Element?.toCustomer()` function has a more obtrusive drawback: the return type is always nullable.
-This makes it much less convenient when we have non-nullable `Element`s.
-For example, if we map `Element?.toCustomer()` over a collection of elements, we would expect to get a `List<Customer>` back, but we would actually get a `List<Customer?>`.
+`Element?.toCustomer()` function has another, more obtrusive, drawback: the return type is always nullable.
+This makes it much less convenient when we want to apply it to a non-nullable `Element`.
+For example, if we map it over a collection of elements, we would expect to get a `List<Customer>` back, but we would actually get a `List<Customer?>`.
 None of the elements of that list would be null, but the static type would force us to deal with the non-existent null case, probably by ignoring the static type with the double-bang operator (`!!`) or throwing an exception with the plaintive message that "this should never happen".
-Either non-solution is a bug waiting to happen when code around it changes, because we've made it impossible for the type checker to detect an incompatible change.
+Either work-around is a bug waiting to happen when code around it changes, because we've made it impossible for the type checker to detect an incompatible change.
 
 Therefore, your authors do not write extensions on nullable types that return null if the receiver is null.
-We write extensions on non-nullable types and use the null-safe dereference operator in the calling function.
+We write an extension on the non-nullable type and use the null-safe dereference operator in calling code.
 As a result, we have very few extensions on nullable types and those we do write tend to always return a non-null value.
+In fact, that's a good rule of thumb:
+
+TIP: Only define extensions of nullable types that return non-nullable types.
 
 For example:
 
