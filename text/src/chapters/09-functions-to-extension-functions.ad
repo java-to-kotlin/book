@@ -459,10 +459,10 @@ One major difference between invoking a method and calling an extension is in th
 If we have a reference that is `null`, we can't send a message to it, because there is nothing to send a message to.
 Some languages represent `null` as an object that silently ignores all messages, but not Kotlin or Java.
 The runtime detects when we dereference a null pointer and signal its disgust with a `NullPointerException`.
-In contrast, we are able to define extensions on nullable receivers.
+In contrast, we can define an extension with a nullable receiver.
 So whilst `thing.method()` and `thing.extensionFunction()` look like equivalent calls, `method` can never be called if `thing` is `null`, whereas it might be possible for `extensionFunction`.
 
-Here's an example of an extension that converts an optional XML `Element` to a `Customer`.
+Here's an example of an extension that converts an optional XML `Element` to an optional `Customer`.
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#xml
 [source,kotlin]
@@ -480,8 +480,9 @@ fun Element?.toCustomer(): Customer? = this?.let { element ->
 Inside a method, `this` can never be `null`.
 Inside an extension function declared on a nullable type, it can be, so we use `this?.let` to create the customer only if the receiver isn't `null`.
 
-We don't need to use the null-safe dereference operator when calling `Element?.toCustomer()`, which removes some syntactic noise from the calling function.
-On the other hand, it makes the flow of nullability in the calling function harder to understand, because -- although type-checked -- it is not visible in the code.
+We don't need to use the null-safe dereference operator to call `Element?.toCustomer()`.
+This removes some syntactic noise from the calling function.
+On the other hand, it makes the flow of nullability in the calling function harder to understand, because, although type-checked, it is not visible in the code.
 
 `Element?.toCustomer()` function has a more obtrusive drawback: the return type is always nullable.
 This makes it much less convenient when we have non-nullable `Element`s.
