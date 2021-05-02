@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import java.time.Duration
 import java.time.ZonedDateTime
+import java.util.*
 
 /// begin: customerFull
 /// begin: customer
@@ -300,3 +301,9 @@ object NullsAndNestedFunctionCalls {
     private fun Duration.toUserFriendlyText(): String = SOME_CODE()
 }
 
+
+object NullableAsOptional {
+    /// begin: as_optional
+    fun <T: Any> T?.asOptional(): Optional<T> = Optional.ofNullable(this)
+    /// end: as_optional
+}
