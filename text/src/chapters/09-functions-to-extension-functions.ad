@@ -373,17 +373,16 @@ Ahh ... that's much more readable.
 === Nullability
 
 Extensions really come into their own when we work with nullable data.
-Whenever we have a function that takes non-null data, the type system forces us to deal with the null case.
-If we have to pass nullable data to the function in a parameter, we cannot use the null-safe dereference operator we saw in <<optional-to-nullable>>.
+When we have nullable data and want to pass it to a function that takes a non-null a parameter, the type system forces us to consider the null case but we cannot use the null-safe dereference operator we saw in <<optional-to-nullable>>.
 We have to wrap the call in conditional logic:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#single_if
 [source,kotlin]
 ----
 val customer: Customer? = loggedInCustomer()
-val greeting: String? = when {
-    customer != null -> greetingForCustomer(customer)
-    else -> null
+val greeting: String? = when (customer) {
+    null -> null
+    else -> greetingForCustomer(customer)
 }
 ----
 // end-insert
@@ -411,7 +410,7 @@ val currentTime: ZonedDateTime = SOME_CODE()
 val reminder: String? = customer?.let {
     nextTripForCustomer(it)?.let {
         timeUntilDepartureOfTrip(it, currentTime)?.let {
-            durationToUserFriendlyText(it)+" until your next trip!"
+            durationToUserFriendlyText(it) + " until your next trip!"
         }
     }
 }
@@ -427,7 +426,7 @@ val reminder: String? = customer
     ?.let { nextTripForCustomer(it) }
     ?.let { timeUntilDepartureOfTrip(it, currentTime) }
     ?.let { durationToUserFriendlyText(it) }
-    ?.let { it+" until your next trip!" }
+    ?.let { it + " until your next trip!" }
 ----
 // end-insert
 
@@ -499,7 +498,7 @@ For example:
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#as_optional
 [source,kotlin]
 ----
-fun <T: Any> T?.asOptional(): Optional<T> = Optional.ofNullable(this)
+fun <T : Any> T?.asOptional(): Optional<T> = Optional.ofNullable(this)
 ----
 // end-insert
 

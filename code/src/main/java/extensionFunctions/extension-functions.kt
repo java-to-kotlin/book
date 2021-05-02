@@ -201,9 +201,9 @@ object NullsAndNestedFunctionCalls {
     fun conditional() {
         /// begin: single_if
         val customer: Customer? = loggedInCustomer()
-        val greeting: String? = when {
-            customer != null -> greetingForCustomer(customer)
-            else -> null
+        val greeting: String? = when (customer) {
+            null -> null
+            else -> greetingForCustomer(customer)
         }
         /// end: single_if
     }
@@ -255,7 +255,7 @@ object NullsAndNestedFunctionCalls {
         val reminder: String? = customer?.let {
             nextTripForCustomer(it)?.let {
                 timeUntilDepartureOfTrip(it, currentTime)?.let {
-                    durationToUserFriendlyText(it)+" until your next trip!"
+                    durationToUserFriendlyText(it) + " until your next trip!"
                 }
             }
         }
@@ -271,7 +271,7 @@ object NullsAndNestedFunctionCalls {
             ?.let { nextTripForCustomer(it) }
             ?.let { timeUntilDepartureOfTrip(it, currentTime) }
             ?.let { durationToUserFriendlyText(it) }
-            ?.let { it+" until your next trip!" }
+            ?.let { it + " until your next trip!" }
         /// end: chained_lets
     }
 
@@ -304,6 +304,6 @@ object NullsAndNestedFunctionCalls {
 
 object NullableAsOptional {
     /// begin: as_optional
-    fun <T: Any> T?.asOptional(): Optional<T> = Optional.ofNullable(this)
+    fun <T : Any> T?.asOptional(): Optional<T> = Optional.ofNullable(this)
     /// end: as_optional
 }
