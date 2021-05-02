@@ -456,15 +456,14 @@ The two language features combine to form a grain -- it's easier to define exten
 
 === Nullable _Receivers_
 
-One major difference between invoking a method and calling a function is in the treatment of `null` references.
+One major difference between invoking a method and calling an extension is in the treatment of `null` _receivers_.
 If we have a reference that is `null`, we can't send a message to it, because there is nothing to send a message to.
-Some languages will allow you to pretend by silently ignoring such calls, but not Kotlin or Java, which signal their disgust with a `NullPointerException`.
-In contrast, we are able to have `null` _parameters_.
-We may not know what to do with them, but they don't prevent the runtime from finding code to invoke.
+Some languages represent `null` as an object that silently ignores all messages, but not Kotlin or Java.
+The runtime detects when we dereference a null pointer and signal its disgust with a `NullPointerException`.
+In contrast, we are able to define extensions on nullable receivers.
+So whilst `thing.method()` and `thing.extensionFunction()` look like equivalent calls, `method` can never be called if `thing` is `null`, whereas it might be possible for `extensionFunction`.
 
-So whilst `thing.method()` and `thing.extensionFunction()` look like equivalent calls, `method` can never be called if `thing` is `null`, whereas `extensionFunction` can.
-In order to allow this we have to declare the receiver as nullable.
-Here's an example from the code to convert an XML `Element` to a `Customer`.
+Here's an example of an extension that converts an optional XML `Element` to a `Customer`.
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#xml
 [source,kotlin]
@@ -482,7 +481,29 @@ fun Element?.toCustomer(): Customer? = this?.let { element ->
 Inside a method, `this` can never be `null`.
 Inside an extension function declared on a nullable type, it can be, so we use `this?.let` to create the customer only if the receiver isn't `null`.
 
-Extension functions on nullable types can significantly reduce the noise of properly handling `null` values in Kotlin, again reducing the cognitive load of understanding what our code is doing.
+We don't need to use the null-safe dereference operator when calling `Element?.toCustomer()`, which removes some syntactic noise from the calling function.
+On the other hand, it makes the flow of nullability in the calling function harder to understand, because -- although type-checked -- it is not visible in the code.
+
+`Element?.toCustomer()` function has a more obtrusive drawback: the return type is always nullable.
+This makes it much less convenient when we have non-nullable `Element`s.
+For example, if we map `Element?.toCustomer()` over a collection of elements, we would expect to get a `List<Customer>` back, but we would actually get a `List<Customer?>`.
+None of the elements of that list would be null, but the static type would force us to deal with the non-existent null case, probably by ignoring the static type with the double-bang operator (`!!`) or throwing an exception with the plaintive message that "this should never happen".
+Either non-solution is a bug waiting to happen when code around it changes, because we've made it impossible for the type checker to detect an incompatible change.
+
+Therefore, your authors do not write extensions on nullable types that return null if the receiver is null.
+We write extensions on non-nullable types and use the null-safe dereference operator in the calling function.
+As a result, we have very few extensions on nullable types and those we do write tend to always return a non-null value.
+
+For example:
+
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#as_optional
+[source,kotlin]
+----
+fun <T: Any> T?.asOptional(): Optional<T> = Optional.ofNullable(this)
+----
+// end-insert
+
+This extension is convenient at the interop boundary with Java, to shim between Kotlin's nullable types and Java's `Optional` class.
 
 === Generics
 
