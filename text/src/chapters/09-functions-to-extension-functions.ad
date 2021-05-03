@@ -1,7 +1,7 @@
 [[functions-to-extension-functions]]
 == Functions to Extension Functions
 
-Kotlin has a special form of function called an _extension function_ that is called like a method but is in fact (usually) a top-level function.
+Kotlin has a special form of function called an _extension function_, that is called like a method but is in fact (usually) a top-level function.
 It's easy to convert from a normal function to an extension function, and back.
 When should we prefer one to the other?
 
@@ -161,7 +161,7 @@ nameForMarketing(customer) // doesn't compile <1>
 <1> `Unresolved reference. None of the following candidates is applicable because of receiver type mismatch:
 public fun Customer.nameForMarketing(): String ...`.
 
-_Receiver_, by the way, is the term that Kotlin uses for `this` in an extension function.
+_Receiver_, by the way, is the term that Kotlin uses for the object named `this` in an extension function (or normal method) -- the object that receives messages.
 
 [TIP]
 .Function Types for Methods and Extension Functions
@@ -372,7 +372,7 @@ Ahh ... that's much more readable.
 === Nullability
 
 Extensions really come into their own when we work with nullable data.
-When we have nullable data and want to pass it to a function that takes a non-null a parameter, the type system forces us to consider the null case but we cannot use the null-safe dereference operator we saw in <<optional-to-nullable>>.
+When we have nullable data and want to pass it to a function that takes a non-null parameter, the type system forces us to consider the null case, but we cannot use the null-safe dereference operator we saw in <<optional-to-nullable>>.
 We have to wrap the call in conditional logic:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#single_if
@@ -387,6 +387,7 @@ val greeting: String? = when (customer) {
 // end-insert
 
 We can, and usually do, make the logic more concise by using one of Kotlin's _scoping functions_, such as `let`, `apply` or `also`, in combination with the null-safe dereference operator.
+`let`, in particular, converts its receiver into a lambda parameter:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#single_let
 [source,kotlin]
@@ -396,9 +397,9 @@ val greeting: String? = customer?.let { greetingForCustomer(it) }
 ----
 // end-insert
 
-The null-safe dereference operator ensures that `let` is only called when the customer is not null, allowing us to pass it to the function we want to call within the body of the lambda.
+The null-safe dereference operator ensures that `let` is only called when the customer is not `null`, allowing us to pass it to the function we want to call within the body of the lambda.
 
-If a function returns a nullable result, and we must pass that result to another function that expects a non-null parameter, even the scoping operators start to get cumbersome.
+If a function returns a nullable result, and we must pass that result to another function that expects a non-null parameter, the scoping operators start to get cumbersome.
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#nested_lets
 [source,kotlin]
