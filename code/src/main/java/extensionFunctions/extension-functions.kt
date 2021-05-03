@@ -120,6 +120,22 @@ fun Element?.toCustomer(): Customer? = this?.let { element ->
 }
 /// end: xml
 
+fun xmlUsage() {
+    /// begin: xmlUsage
+    val customerElement: Element? = SOME_CODE()
+
+    val customer: Customer? = customerElement?.toCustomer()
+    /// end: xmlUsage
+}
+
+fun xmlUsage2() {
+    val customerElement: Element? = SOME_CODE()
+
+    /// begin: xmlUsage2
+    val customer: Customer? = customerElement.toCustomer()
+    /// end: xmlUsage2
+}
+
 
 /// begin: jsonWriter
 class JsonWriter(

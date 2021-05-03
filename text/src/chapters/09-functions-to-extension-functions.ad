@@ -331,7 +331,7 @@ Do these distinctions actually matter?
 Mostly no, and we should be wary of leaning on the subtleties of English when our teammates and clients may not be native speakers.
 But there is no point in not using the bestest words that we can.
 Compared to `createCustomer(node)`, the use of `customerFrom(node)` may help a reader to understand what is happening in one pass rather than two, or prevent an incorrect assumption that leads to an error.
-We can make small but significant improvements by looking at how our code reads in context.
+We can make small but significant improvements by optimizing how our code reads in context.
 ****
 
 Calling the conversions individually isn't too horrible:
@@ -369,11 +369,12 @@ val marketingLength = jsonNode.toCustomer().nameForMarketing().length
 
 Ahh ... that's much more readable.
 
-=== Nullability
+=== Nullable Parameters
 
-Extensions really come into their own when we work with nullable data.
-When we have nullable data and want to pass it to a function that takes a non-null parameter, the type system forces us to consider the null case, but we cannot use the null-safe dereference operator we saw in <<optional-to-nullable>>.
-We have to wrap the call in conditional logic:
+Extensions really come into their own when we work with optional data.
+When we have nullable data and want to pass it to a function that takes a non-null parameter, the type system forces us to consider the `null` case.
+When we are sending messages to a potentially `null` object we can use the null-safe dereference operator `?.` that we saw in <<optional-to-nullable>>.
+That doesn't help with parameters though -- we have to wrap the call in conditional logic:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#single_if
 [source,kotlin]
@@ -386,7 +387,7 @@ val greeting: String? = when (customer) {
 ----
 // end-insert
 
-We can, and usually do, make the logic more concise by using one of Kotlin's _scoping functions_, such as `let`, `apply` or `also`, in combination with the null-safe dereference operator.
+Kotlin's _scoping functions_, such as `let`, `apply` and `also`, can help here.
 `let`, in particular, converts its receiver into a lambda parameter:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#single_let
@@ -397,9 +398,9 @@ val greeting: String? = customer?.let { greetingForCustomer(it) }
 ----
 // end-insert
 
-The null-safe dereference operator ensures that `let` is only called when the customer is not `null`, allowing us to pass it to the function we want to call within the body of the lambda.
+Here the `?.` ensures that `let` is only called when the customer is not `null`, allowing us to pass a non-null `it` to the function we want to call within the body of the lambda.
 
-If a function returns a nullable result, and we must pass that result to another function that expects a non-null parameter, the scoping operators start to get cumbersome.
+If a function returns a nullable result, and we must pass that result to another function that expects a non-null parameter, the scoping operators start to get cumbersome:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#nested_lets
 [source,kotlin]
@@ -417,7 +418,7 @@ val reminder: String? = customer?.let {
 ----
 // end-insert
 
-Even when we can flatten nested null checks into a pipeline of calls to `let`, all this additional _mechanism_ adds syntactic noise and obscures the _intent_ of the code.
+Even when we can flatten nested null checks into a pipeline of calls to `let`, all this additional mechanism adds syntactic noise and obscures the _intent_ of the code:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#chained_lets
 [source,kotlin]
@@ -430,7 +431,7 @@ val reminder: String? = customer
 ----
 // end-insert
 
-Extension functions, on the other hand, combine with the null-safe dereference operator to bring the application logic to the fore.
+If we convert the problematic parameters to extension function receivers, we can chain calls directly, bringing the application logic to the fore:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#chained_extensions
 [source,kotlin]
@@ -450,19 +451,20 @@ As a result, they wrote more extensions to make their application logic concise.
 Private extensions often proved to be useful elsewhere, so they moved them into common modules where they could easily be shared.
 This made it easier to use optional data in other parts of the application, which led them to write more extensions, which made application logic more concise, ... and so on.
 
-Although extensions are promoted as a way to extend third-party types, nullability in the type system and the concise naming they allow encourage us to define extensions of our own types as well.
-The two language features combine to form a grain -- it's easier to define extension functions on our own types than not.
+Although extensions are promoted as a way to extend third-party types; nullability in the type system, and the concise naming they allow, encourage us to define extensions of our own types as well.
+Part of the grain of Kotlin is the way that these features interact to smooth our way.
 
-=== Nullable _Receivers_
+=== Nullable Receivers
 
-One major difference between invoking a method and calling an extension is in the treatment of `null` _receivers_.
-If we have a reference that is `null`, we can't send a message to it, because there is nothing to send a message to.
-Some languages represent `null` as an object that silently ignores all messages, but not Kotlin or Java.
-The runtime detects when we dereference a null pointer and signal its disgust with a `NullPointerException`.
-In contrast, we can define an extension with a nullable receiver.
-So whilst `thing.method()` and `thing.extensionFunction()` look like equivalent calls, `method` can never be called if `thing` is `null`, whereas it might be possible for `extensionFunction`.
+One major difference between invoking a method and calling a function is in the treatment of `null` references.
+If we have a reference that is `null`, we can't send a message to it, because there is nothing to send a message to -- we get a `NullPointerException` if we try.
+In contrast, we are able to have `null` _parameters_.
+We may not know what to do with them, but they don't prevent the runtime from finding code to invoke.
 
-Here's an example of an extension that converts an optional XML `Element` to an optional `Customer`.
+Because the receiver in an extension function is actually a parameter, it _can_ be `null`.
+So whilst `anObject.method()` and `anObject.extensionFunction()` look like equivalent calls, `method` can never be called if `anObject` is `null`, whereas `extensionFunction` can be called with `null` if the receiver is declared as nullable.
+
+Here's some code that converts an optional XML `Element` to an optional `Customer`:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#xml
 [source,kotlin]
@@ -477,11 +479,29 @@ fun Element?.toCustomer(): Customer? = this?.let { element ->
 ----
 // end-insert
 
-Inside a method, `this` can never be `null`.
+Inside a _method_, `this` can never be `null`.
 Inside an extension function declared on a nullable type, it can be, so we use `this?.let` to create the customer only if the receiver isn't `null`.
 
-We don't need to use the null-safe dereference operator to call `Element?.toCustomer()`.
-This removes some syntactic noise from the calling function.
+Had we declared `toCustomer` on the non-nullable `Element`, we would have to write:
+
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#xmlUsage
+[source,kotlin]
+----
+val customerElement: Element? = SOME_CODE()
+
+val customer: Customer? = customerElement?.toCustomer()
+----
+// end-insert
+
+With this function, we can remove the noise of the `?.`:
+
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#xmlUsage2
+[source,kotlin]
+----
+val customer: Customer? = customerElement.toCustomer()
+----
+// end-insert
+
 On the other hand, it makes the flow of nullability in the calling function harder to understand, because, although type-checked, it is not visible in the code.
 
 `Element?.toCustomer()` function has another, more obtrusive, drawback: the return type is always nullable.
@@ -490,14 +510,13 @@ For example, if we map it over a collection of elements, we would expect to get 
 None of the elements of that list would be null, but the static type would force us to deal with the non-existent null case, probably by ignoring the static type with the double-bang operator (`!!`) or throwing an exception with the plaintive message that "this should never happen".
 Either work-around is a bug waiting to happen when code around it changes, because we've made it impossible for the type checker to detect an incompatible change.
 
-Therefore, your authors do not write extensions on nullable types that return null if the receiver is null.
-We write an extension on the non-nullable type and use the null-safe dereference operator in calling code.
-As a result, we have very few extensions on nullable types and those we do write tend to always return a non-null value.
-In fact, that's a good rule of thumb:
+So, except for private functions:
 
-TIP: Only define extensions of nullable types that return non-nullable types.
+TIP: Don't write extensions on nullable types that return `null` if the receiver is `null`.
+Write an extension on the non-nullable type and use the null-safe dereference operator in calling code.
 
-For example:
+It's fine though, and often useful, to write extensions on nullable types that return a non-nullable result.
+Here, for example, is an extension function to convert from a nullable Kotlin reference to a Java `Optional`:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#as_optional
 [source,kotlin]
@@ -506,15 +525,14 @@ fun <T : Any> T?.asOptional(): Optional<T> = Optional.ofNullable(this)
 ----
 // end-insert
 
-This extension is convenient at the interop boundary with Java, to shim between Kotlin's nullable types and Java's `Optional` class.
+This neatly brings up the subject of generic extensions.
 
 === Generics
 
-So far we have looked at extension functions defined on concrete types.
-Just as with normal functions, they can have generic parameters though, and things become really interesting when the receiver is generic.
+Just as with normal functions, extensions can have generic parameters, and things become really interesting when the receiver is generic.
 
 Here's a useful extension function that for some reason isn't part of the standard library.
-It is defined as an extension on any type, including `null` references.
+It is defined as an extension on any type, including `null` references:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#printed
 [source,kotlin]
@@ -522,9 +540,6 @@ It is defined as an extension on any type, including `null` references.
 fun <T> T.printed(): T = this.also(::println)
 ----
 // end-insert
-
-(This definition, by the way, breaks a rule of thumb we explain in <<single-expresssion-functions-for-calculations>>.
-We like to live on the edge.)
 
 We can use this when we want to debug the value of an expression in place.
 For example, remember this:
