@@ -373,8 +373,8 @@ Ahh ... that's much more readable.
 
 Extensions really come into their own when we work with optional data.
 When we have nullable data and want to pass it to a function that takes a non-null parameter, the type system forces us to consider the `null` case.
-When we are sending messages to a potentially `null` object we can use the null-safe dereference operator `?.` that we saw in <<optional-to-nullable>>.
-That doesn't help with parameters though -- we have to wrap the call in conditional logic:
+When we are sending messages to a potentially `null` object we can use the null-safe dereference operator, `?.`, that we saw in <<optional-to-nullable>>.
+That doesn't help with parameters though -- if we have a nullable reference and a function that takes a non-null parameter, we have to wrap the call in conditional logic:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#single_if
 [source,kotlin]
@@ -388,7 +388,7 @@ val greeting: String? = when (customer) {
 // end-insert
 
 Kotlin's _scoping functions_, such as `let`, `apply` and `also`, can help here.
-`let`, in particular, converts its receiver into a lambda parameter:
+For example, `let` converts its receiver into a lambda parameter:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#single_let
 [source,kotlin]
@@ -398,7 +398,7 @@ val greeting: String? = customer?.let { greetingForCustomer(it) }
 ----
 // end-insert
 
-Here the `?.` ensures that `let` is only called when the customer is not `null`, allowing us to pass a non-null `it` to the function we want to call within the body of the lambda.
+Here the `?.` ensures that `let` is only called when the customer is not `null`, allowing us to pass the non-null `it` to the function we want to call within the body of the lambda.
 
 If a function returns a nullable result, and we must pass that result to another function that expects a non-null parameter, the scoping operators start to get cumbersome:
 
