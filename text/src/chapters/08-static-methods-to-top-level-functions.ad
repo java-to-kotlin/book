@@ -225,40 +225,47 @@ That is true of the whole JVM actually, so even top-level functions have to be h
 If these functions were compiled to methods on a class called `Shortlists` Java would be happy - and that is the job of the `@file:JvmName` annotation we mentioned earlier.
 We can manually add the annotation at the top of the file, and remove the `object` scope and `@JvmStatic` annotations to get:
 
-// begin-insert: tags/static-to-object-to-functions.11:src/main/java/travelator/Shortlists.kt#all_functions
+// begin-insert: tags/static-to-object-to-functions.51:src/main/java/travelator/Shortlists.kt#excerpt
 [source,kotlin]
 ----
-@file:JvmName("Shortlists")
+// @file:JvmName("Shortlists")
 package travelator
 
 ...
 
-fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>) =
-    shortlist.stream().sorted(ordering).collect(toUnmodifiableList())
+fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>): List<T> {
+    return shortlist.stream().sorted(ordering)
+        .collect(toUnmodifiableList())
+}
 
-
-fun <T> removeItemAt(shortlist: List<T>, index: Int) =
-    Stream.concat(
+fun <T> removeItemAt(shortlist: List<T>, index: Int): List<T> {
+    return Stream.concat(
         shortlist.stream().limit(index.toLong()),
         shortlist.stream().skip((index + 1).toLong())
     ).collect(toUnmodifiableList())
+}
 
-fun byRating() =
-    comparingDouble(HasRating::rating).reversed()
-
-fun byPriceLowToHigh() =
-    comparing(HasPrice::price)
-
-fun <T> byValue() where T : HasPrice, T : HasRating =
-    comparingDouble { t: T -> t.rating / t.price }.reversed()
-
-... and other comparators
+... etc.
 ----
 // end-insert
 
+This keeps our Java happy, but irritatingly, it breaks some Kotlin code that was calling the methods.
+Here for example are the imports for a test:
 
-This keeps our Java happy, but irritatingly breaks some Kotlin code that was calling the methods.
-The now broken Kotlin code was importing the methods from an object, for example `import travelator.Shortlists.sorted`, but Kotlin can't import top-level functions that way.
+// begin-insert: tags/static-to-object-to-functions.51:src/test/java/travelator/hotels/ShortlistScenarioTest.kt#imports
+[source,kotlin]
+----
+import org.junit.jupiter.api.Test
+import travelator.Shortlists.byPriceLowToHigh
+import travelator.Shortlists.byRating
+import travelator.Shortlists.byRelevance
+import travelator.Shortlists.byValue
+import travelator.Shortlists.removeItemAt
+import travelator.Shortlists.sorted
+----
+// end-insert
+
+These were importing the static Java methods, but Kotlin can't import its own top-level functions in the same way.
 As far as Kotlin is concerned, the functions are defined in the scope of the package, not a class in that package.
 The compiler may compile them to static methods of a JVM class called `ShortlistsKt`, but that class is an implementation detail of how the compiler maps Kotlin language concepts to the JVM platform and is not visible to our Kotlin code at compile time.
 
