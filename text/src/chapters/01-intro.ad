@@ -258,19 +258,19 @@ Java 1.2 (1998) added a standard collections API and the Swing cross-platform GU
 At this time, Sun was eyeing Microsoft and Borland's domination of corporate software development.
 Java had the potential to be a strong competitor to Visual Basic and Delphi.
 Sun added a slew of APIs that were heavily inspired by Microsoft APIs:
-JDBC for data base access (equivalent to Microsoft's ODBC); Swing for desktop GUI programming (equivalent to Microsoft's MFC); and the framework that had the greatest influence on Java programming style: Java Beans.
+JDBC for data base access (equivalent to Microsoft's ODBC); Swing for desktop GUI programming (equivalent to Microsoft's MFC); and the framework that had the greatest influence on Java programming style: JavaBeans.
 
-Java Beans was Sun's answer to Microsoft's ActiveX component model for low-code, graphical, drag-and-drop programming.
+JavaBeans was Sun's answer to Microsoft's ActiveX component model for low-code, graphical, drag-and-drop programming.
 Windows programmers could use ActiveX components in their Visual Basic programs, embed them in office documents, or in web pages on their corporate intranet.
 Despite how easy it was to use Active-X components, they were notoriously difficult to write.
-Java Beans were much easier: you merely had to follow some additional coding conventions for your Java class to be considered a "bean" that could be instantiated and configured in a graphical designer.
-The promise of "Write once. Run anywhere." meant you would be able to use -- or sell -- Java Bean components on any operating system, not just Windows.
+JavaBeans were much easier: you merely had to follow some additional coding conventions for your Java class to be considered a "bean" that could be instantiated and configured in a graphical designer.
+The promise of "Write once. Run anywhere." meant you would be able to use -- or sell -- JavaBean components on any operating system, not just Windows.
 
-For a class to be a Java Bean, it must have a constructor that took no arguments, be serializable, and declare an API made up of public properties that could be read and optionally written, methods that could be invoked, and events that objects of the class would emit.
+For a class to be a JavaBean, it must have a constructor that took no arguments, be serializable, and declare an API made up of public properties that could be read and optionally written, methods that could be invoked, and events that objects of the class would emit.
 The idea was that programmers would instantiate beans in a graphical application designer, configure them by seting their properties, and connect events emitted by beans to the methods of other beans.
 By default, the Beans API defined properties by pairs of methods whose names started with "get" and "set".
 This default could be overridden, but doing so required the programmer to write more classes of boilerplate code.
-Programmers usually went to the effort only when retrofitting existing classes to act as Java Beans.
+Programmers usually went to the effort only when retrofitting existing classes to act as JavaBeans.
 In new code, it was much easier to go with the grain.
 
 The drawback of Beans style is that it relies heavily on mutable state, and requires more of that state to be public than plain old Java objects because you cannot pass parameters to an object's constructor.
@@ -279,8 +279,8 @@ User interface components work well as beans, because they can safely be initial
 When we have classes that have no reasonable defaults treating them in the same way is error prone, because the type checker can’t tell us when we have provided all the required values.
 The Beans conventions make writing correct code harder and changes in dependencies can silently break client code.
 
-In the end, graphical composition of Java beans did not become mainstream, but the coding conventions stuck.
-Java programmers followed the Java Bean conventions even when they had no intention of their class being used as a Java Bean.
+In the end, graphical composition of JavaBeans did not become mainstream, but the coding conventions stuck.
+Java programmers followed the JavaBean conventions even when they had no intention of their class being used as a JavaBean.
 Beans had an enormous, lasting, and not entirely positive, influence on Java programming style.
 
 [[enterprise-java-style]]
@@ -291,13 +291,13 @@ It didn't replace Visual Basic on the corporate desktop as expected, but unseate
 In 1998, Sun released Java 2 Enterprise Edition (J2EE, later rebranded as JavaEE, and later still rerebranded as JakartaEE), a suite of standard APIs for programming server-side, transaction processing systems.
 
 The J2EE APIs suffer from _abstraction inversion_.
-The Java Beans and applets APIs also suffer from abstraction inversion -- they both disallow passing parameters to constructors, for example -- but it is far more severe in J2EE.
+The JavaBeans and applets APIs also suffer from abstraction inversion -- they both disallow passing parameters to constructors, for example -- but it is far more severe in J2EE.
 J2EE applications don't have a single entry point.
 They are composed of many small components whose lifetime is managed by an "application container", and are exposed to one another through a JNDI name service.
 Applications need a lot of boilerplate code and mutable state to look up the resources they depend on.
 Programmers responded by inventing [role="pattern"]_dependency injection_ (DI) frameworks that did all the resource look up and binding, and managed lifetimes.
 The most successful of these is Spring.
-It builds upon the Java Beans coding conventions, and uses reflection to compose applications from Bean-like objects.
+It builds upon the JavaBeans coding conventions, and uses reflection to compose applications from Bean-like objects.
 
 [[abstraction-inversion]]
 .Abstraction Inversion
@@ -384,12 +384,12 @@ This was followed by best in class development tools, including IntelliJ which w
 
 Java 8 brought the next big change to the language -- lambdas -- and significant additions to the standard library to take advantage of them.
 The Streams API encouraged a functional programming style, in which processing is performed by transforming streams of immutable values rather than changing the state of mutable objects.
-A new date/time API ignored Java Beans coding conventions for property accessors, and followed coding conventions common to the Primeval Style.
+A new date/time API ignored JavaBeans coding conventions for property accessors, and followed coding conventions common to the Primeval Style.
 
 The growth of the cloud platforms meant that programmers didn't need to deploy their servers into JavaEE application containers.
 Lightweight web application frameworks let programmers write a `main` function to compose their applications.
 Many server-side programmers stopped using DI frameworks -- function and object composition were good enough -- and DI frameworks released greatly simplified APIs to stay relevant.
-With no DI framework or mutable state, there's less need to follow Java Bean coding conventions.
+With no DI framework or mutable state, there's less need to follow JavaBean coding conventions.
 Within a single codebase, exposing fields of immutable values works fine, because the IDE can encapsulate a field behind accessors in an instant if they're needed.
 
 Java 9 introduced modules, but so far they have not seen widespread adoption outside the JDK itself.
