@@ -4,14 +4,10 @@
 The class is the basic unit of code organisation in Java.
 How do we convert our Java classes to Kotlin, and what differences will we see when we have?
 
-=== Converting Java Classes to Kotlin
-
-Many chapters in this book will start with some history or philosophy (if you're very lucky both), but here we're just going to launch straight into converting a simple class from Java to Kotlin.
-
 In this book, we'll work together on the code in Travelator, our fictional trip-planning webapp.
 Imagine that we have a feature to implement, but we want to take the opportunity to make our code a little better before we do.
-You're pairing with one of Nat or Duncan.
-The pair is the _we_ in our refactoring discussions; not just your authors, but also you as part of the team working on Travelator.
+You're pairing with one of Nat or Duncan (choose your favourite, just don't let Nat know).
+The pair is the _we_ in our refactoring discussions; not just your author, but also you as part of the team working on Travelator.
 Welcome aboard!
 
 .Source Code
@@ -19,15 +15,17 @@ Welcome aboard!
 The source code we show here is available in a GitHub repo at TODO.
 A single snapshot of the code isn't helpful though, because this book is about refactoring.
 The important details are the changes, both between single commits and over longer intervals.
-In order to follow along in Git, you would need to check out a repository and then step over commits.
+In order to follow along in Git, you need to check out a repository and then step over commits.
 
-If you want to do that, we provide instructions on this book's website at TODO, but we have tried to show everything you need to make sense of the code here in print.
-It helps to imagine the last code sample being the active editor as we talk about what changes we are about to make.
+If you want to do that, we provide instructions on this book's website at TODO.
+But we have tried to show everything you need to make sense of the code here in print.
+It helps to imagine the last code sample shown being the active editor as we talk about what changes we are about to make.
 ****
 
+=== Converting Java Classes to Kotlin
 
-Travelator has an `EmailAddress` class.
-This is a value type that holds the two parts of an email address.
+Let's jump into the deep end of the codebase and convert some of our existing Java to Kotlin, starting with `EmailAddress`.
+This is a value type that holds the two parts of, you guessed it, an email address:
 
 // begin-insert: tags/java-to-kotlin-classes.0:src/main/java/travelator/EmailAddress.java
 [source,java]
@@ -89,12 +87,12 @@ Even so, it has a lot of code:
 <1> Values are immutable, so the class declares its fields as final.
 <2> There is a static factory method to `parse` an `EmailAddress` from a string - this calls the primary constructor.
 <3> The fields are initialised in a constructor.
-<4> The accessor methods of its properties follow the Java Bean naming conventions.
+<4> The accessor methods of its properties follow the JavaBean naming conventions.
 <5> The class implements the `equals` and `hashCode` methods to ensure that two `EmailAddress` values with equal fields compare as equal.
 <6> `toString` returns the canonical form.
 
 Your authors come from the school of Java that assumes that everything we pass, store or return is not null unless explicitly indicated otherwise.
-You can't _see_ that, but it's why there are no `@Nullable` annotations or null checks of parameters (<<optional-to-nullable>> discusses nullability).
+You can't see that convention, because it results in an absence of `@Nullable` annotations or null checks of parameters (<<optional-to-nullable>> discusses nullability).
 What you _can_ see is the amount of boilerplate code required to express a value composed of two other values.
 Happily our IDE generated the `equals` and `hashCode` methods for us, but we have to remember to delete and regenerate those methods if we change the fields of the class to avoid confusing bugs.
 
@@ -146,7 +144,7 @@ class EmailAddress(val localPart: String, val domain: String) {
 // end-insert
 
 The Kotlin class is noticeably more succinct because it declares its properties in the primary constructor - the parameters after the class name.
-Those marked `val` are considered properties, and so stand in for all this Java:
+Parameters marked `val` are considered properties, and so stand in for all this Java:
 
 // begin-insert: tags/java-to-kotlin-classes.1:src/main/java/travelator/EmailAddress.java#replaced_by_primary_constructor
 [source,java]
@@ -222,8 +220,8 @@ class EmailAddress(
 ----
 // end-insert
 
-One place where Kotlin is noticeably less succinct than Java is that it uses companion objects to house static state and methods - in this case `parse()`.
-In Kotlin we prefer top-level state and functions to these class-scoped members.
+One place where Kotlin is noticeably less succinct than Java is that it uses companion objects to host static state and methods - in this case `parse()`.
+In Kotlin, we often prefer top-level state and functions to these class-scoped members.
 <<static-methods-to-top-level-functions>> discusses the pros and cons.
 
 We currently have Java code that uses the static method, for example the tests:
@@ -246,10 +244,6 @@ public class EmailAddressTests {
         assertThrows(
             IllegalArgumentException.class,
             () -> EmailAddress.parse("@")
-        );
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> EmailAddress.parse("fred@")
         );
         ...
     }
@@ -284,7 +278,7 @@ We'll discuss properties in more detail in <<methods-to-properties>>.
 
 So far, converting our class to Kotlin has saved us 14 lines of code, but we aren't done yet.
 Value types like this are so useful, but so tedious to get right and keep right, that Kotlin supports them at a language level.
-So we mark the class with the `data` modifier so that the compiler generates the `equals` and `hashCode` methods for us.
+If we mark the class with the `data` modifier the compiler generates any undefined `equals`, `hashCode` and `toString` methods for us.
 That reduces the `EmailAddress` class to:
 
 // begin-insert: tags/java-to-kotlin-classes.4:src/main/java/travelator/EmailAddress.kt
@@ -319,9 +313,8 @@ data class EmailAddress(
 <1>  We don't want the generated `toString()` method, so we define the one we do want.
 
 Frankly, that `parse` method still rankles - it's taking up a disproportionate amount of space for the work it is doing.
-We'll have a crack at making it shorter and sweeter in <<multi-to-single-expression-functions>>.
+We'll finally relieve this tension in <<multi-to-single-expression-functions>>.
 For now though, we're done with converting our `EmailAddress` Java class to Kotlin.
-
 
 === The Limitations of Data Classes
 
@@ -399,29 +392,31 @@ public class Money {
 // end-insert
 
 <1> The constructor is private.
-Other classes obtain Money values by calling the static `Money.of` method, which guarantees that the scale of the amount is consistent with the number of minor units of the currency.
+Other classes obtain `Money` values by calling the static `Money.of` method, which guarantees that the scale of the amount is consistent with the number of minor units of the currency.
 Most currencies have 100 minor units (two digits), but some have fewer, and some more. For example, the Japanese Yen has no minor units, and the Jordanian Dinar is made up of one thousand fils.
 +
-The "of" method follows a coding convention of <<modern-java-style,Modern Java>> that draws a distinction in the source between objects with identity, which are constructed by the new operator, and values, which are obtained from static methods.
+// TODO - cut for space?
+The `of` method follows a coding convention of <<modern-java-style,Modern Java>> that draws a distinction in the source between objects with identity, which are constructed by the new operator, and values, which are obtained from static methods.
 This convention is followed by the Java time API (for example `LocalDate.of(2020,8,17)`) and recent additions to the collections API (for example, `List.of(1,2,3)` creates an immutable list)
 +
 The class provides some convenient overloads of the `of` method for String or int amounts.
-<2> A `Money` value exposes its amount and currency properties using Java Bean conventions, even though it is not actually a Java Bean.
-<3> The equals and hashCode methods implement value semantics.
-<4> The toString method returns a representation of its properties that can be shown to the user, not just for debugging.
+<2> A `Money` value exposes its amount and currency properties using JavaBean conventions, even though it is not actually a JavaBean.
+<3> The `equals` and `hashCode` methods implement value semantics.
+<4> The `toString` method returns a representation of its properties that can be shown to the user, not just for debugging.
 <5> `Money` provides operations for calculating with money values.
 For example, you can add monetary values together.
 The `add` method constructs new `Money` values by calling the constructor directly (rather than using `Money.of`), because the result of `BigDecimal.add` already has the correct scale, so we can avoid the overhead of setting the scale in `Money.of`.
 
+// TODO cut for space?
 [NOTE]
 ====
 .BigDecimal.setScale does not set the scale!
 
 The method `BigDecimal.setScale` is confusing.
-Although named like a Java Bean setter, it does not actually mutate the BigDecimal object.
+Although named like a JavaBean setter, it does not actually mutate the BigDecimal object.
 Like our `EmailAddress` and `Money` classes, `BigDecimal` is an immutable value type, so `setScale` returns a new `BigDecimal` value with the specified scale.
 
-Sun added the BigDecimal class to the standard library in Java 1.1. This release also included the first version of the Java Beans API. The hype around the Beans API popularised the Java Beans coding conventions, and they were widely adopted, even for classes that, like `BigDecimal`, were not Java Beans (see <<bean-java-style>>).
+Sun added the BigDecimal class to the standard library in Java 1.1. This release also included the first version of the JavaBeans API. The hype around the Beans API popularised the JavaBeans coding conventions, and they were widely adopted, even for classes that, like `BigDecimal`, were not JavaBeans (see <<bean-java-style>>).
 There were no Java conventions for value types.
 
 Today, we avoid the "set" prefix for methods that do not mutate their receiver and instead use names that emphasise when the method returns a transformation of the receiver.
@@ -492,7 +487,7 @@ private constructor(
 
 The Kotlin class still has a primary constructor, but that constructor is now marked private.
 The syntax for this is a little clumsy: we've reformatted the code that the translator produced in an attempt to make it easier to scan.
-Like `EmailAddress.parse`, the static "of" functions are now methods on a companion object annotated as `@JvmStatic`.
+Like `EmailAddress.parse`, the static `of` functions are now methods on a companion object annotated as `@JvmStatic`.
 Overall, the code is not much more concise than the original Java.
 
 Can we shrink it even further by making it a data class?
@@ -505,20 +500,20 @@ Private data class constructor is exposed via the generated 'copy' method."
 
 What's that all about?
 
-The `Money` class maintains an invariant between its properties, guaranteeing that the scale of the amount field is equal to the default number of minor currency digits of the currency field.
-The private constructor prevents code outside the Money class from creating values that violate the invariant.
-The `Money.of(BigDecimal,Currency)` method ensures the invariant is true for new Money values.
-The `add` method maintains the invariant because adding two BigDecimal values with the same scale produces a BigDecimal that also has the same scale, and it can therefore call the constructor directly.
+There is a detail hiding in the implementation of `Money`.
+The class maintains an invariant between its properties, guaranteeing that the scale of the amount field is equal to the default number of minor currency digits of the currency field.
+The private constructor prevents code outside the `Money` class from creating values that violate the invariant.
+The `Money.of(BigDecimal,Currency)` method ensures the invariant is true for new `Money` values.
+The `add` method maintains the invariant because adding two `BigDecimal` values with the same scale produces a `BigDecimal` that also has the same scale, and it can therefore call the constructor directly.
 The constructor, therefore, need only assign fields, safe in the knowledge that it is never called with parameters that violate the class invariant.
 
-However, the `copy` method of a data class is always public and so _would_ allow client code to create Money values that violate the invariant.
-Unlike `EmailAddress`, an abstract data type like the `Money class cannot be implemented by a Kotlin data class.
+However, the `copy` method of a data class is always public and so _would_ allow client code to create `Money` values that violate the invariant.
+Unlike `EmailAddress`, an abstract data type like the `Money` class cannot be implemented by a Kotlin data class.
 
 WARNING: Don't define a value type as a data class if it must maintain invariants between its properties.
 
 We can still make the class more concise and convenient with Kotlin features that we will encounter in later chapters.
 So we'll leave the `Money` class for now and come back to it in <<functions-to-operators>> to give it a thorough make-over.
-
 
 === Conclusion
 
@@ -534,7 +529,7 @@ or to pivot data into temporary structures that make it easier to write applicat
 If our value types must maintain invariants or encapsulate their representation, data classes are not suitable.
 In that case we have to implement value semantics ourselves.
 
-We left both `EmailAddress` and `Money` still looking rather "Java-y" ... "Java-ish"? ... "Java-esque"? ... Whatever.
+We left both `EmailAddress` and `Money` still looking rather "Java-y" ... "Java-ish"? ... "Java-esque"? ... whatever.
 In the following chapters we will explore how to apply Kotlin idioms to make code more concise, more type safe, and easier to build code upon.
 <<multi-to-single-expression-functions>> looks at how we can make calculation functions and methods, such the `toString` method of both classes or `equals` and `hashCode` of `Money`, more concise by refactoring them to single expression form.
 In <<functions-to-operators>> we make the `Money` type more convenient to use in Kotlin by defining operators instead of methods.
