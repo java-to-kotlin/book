@@ -21,9 +21,7 @@ It is used like this:
 [source,kotlin]
 ----
 val fx: ExchangeRates = ...
-
 val userCurrency = ...
-
 val calculator = CostSummaryCalculator(userCurrency, fx) // <1>
 
 fun costSummary(i: Itinerary): CostSummary {
@@ -37,7 +35,7 @@ fun costSummary(i: Itinerary): CostSummary {
 <2> This tells the `Itinerary` to add its costs to the calculator.  In response, the `Itinerary` adds the cost of its elements: the journeys along the route, accommodation, and other chargeable services.
 <3> This calls the calculator's `summarise` method to obtain the `CostSummary`, after all the costs have been collected.
 
-Someone has already converted the `Itinerary` class to Kotlin, but the implementation of `addCostsTo` still has a Java flavour:
+Someone has already converted the `Itinerary` class to Kotlin, but the implementations of `addCostsTo` still have a Java flavour:
 
 // begin-insert: tags/accumulator.0:src/main/java/travelator/itinerary/Itinerary.kt#costs
 [source,kotlin]
@@ -68,10 +66,10 @@ fun Iterable<Accommodation>.addCostsTo(calculator: CostSummaryCalculator) {
 The logic relies upon side effects to accumulate costs in the mutable state of the `CostSummaryCalculator`.
 
 The benefit of this design is that we can use the calculator to summarise the costs of any object in our domain model, without knowing the structure of that object.
-The object is responsible for adding costs to the calculator and passing the calculator to its sub-objects so that they can add _their_ costs.
+The object is responsible for adding its costs to the calculator, and passing the calculator to its children so that they can add _their_ costs.
 This decouples the code that needs the costs from the code that provides the costs, allowing us to evolve them independently.
 
-For example, a `Route` contains a list of `Journey`, each of which has a cost, and `Accommodation` has a room rate, a number of nights, and additional costs such as meals and hotel services.  The `Itinerary` doesn't know or care how these objects are structured or how to collect their respective costs:  that is encapsulated in the `Route` and `Accomodation` classes.
+For example, a `Route` contains a list of `Journey`, each of which has a cost, and `Accommodation` has a room rate, a number of nights, and additional costs such as meals and hotel services.  The `Itinerary` doesn't have to know or care how these objects are structured or how to collect their respective costs:  that is encapsulated in the `Route` and `Accomodation` classes.
 
 However, our use of mutable state has two significant disadvantages.
 
@@ -79,11 +77,11 @@ First, it introduces the possibility of https://martinfowler.com/bliki/AliasingB
 Aliasing errors create "spooky action at a distance" (as Einstein famously described quantum entanglement) that is not immediately obvious from the source code.
 We saw an example in <<java-to-kotlin-collections>>, when a function sorted a mutable list parameter and broke its caller.
 
-In the case of the `CostSummaryCalculator`,  if we reuse a calculator to summarise the costs of multiple entities, we have to reset its state between each calculation.
+In the case of the `CostSummaryCalculator`, if we reuse a calculator to summarise the costs of multiple entities, we have to reset its state between each calculation.
 If we do not reset the calculator state, costs collected during one calculation will be included in the next.
 The type system cannot help us avoid this mistake.
 
-The example at the start of this chapter_may_ make this error.
+The example at the start of this chapter _may_ make this error.
 The calculator is not local to the `costSummary` method, and `costSummary` does not reset the calculator before each calculation.
 We can't tell if this is a problem or not merely by looking at the `costSummary` method.
 We have to understand how that method is used in its wider context, and as we make changes in that context, we have to make sure those changes do not break our assumptions about how the `costSummary` method is used.
@@ -91,7 +89,20 @@ We have to understand how that method is used in its wider context, and as we ma
 The second problem with mutable state is that it scatters the implementation of our algorithms across the code.
 We'll return to this later in this chapter.
 
-Before we look at `CostSummaryCalculator`, let's have a look at the `CostSummary` that it computes:
+Before we look at `CostSummaryCalculator`, let's have a look at the `CostSummary` that it computes.
+It uses `CurrencyConversion` (thankfully already Kotlin):
+
+// begin-insert: tags/accumulator.0:src/main/java/travelator/money/CurrencyConversion.kt
+[source,kotlin]
+----
+data class CurrencyConversion(
+    val fromMoney: Money,
+    val toMoney: Money
+)
+----
+// end-insert
+
+A `CostSummary` is a mutable POJO (as described in <<beans-to-values>>) that holds a list of `CurrencyConversion`, from local currencies to the traveller's preferred currency.
 
 // begin-insert: tags/accumulator.0:src/main/java/travelator/itinerary/CostSummary.java
 [source,java]
@@ -120,16 +131,15 @@ public class CostSummary {
 ----
 // end-insert
 
-A `CostSummary` is a mutable POJO (as described in <<beans-to-values>>) that holds a list of `CurrencyConversion`s, from local currencies to the traveller's preferred currency.
-It also reports the total cost in the preferred currency.
-It stores the total cost in a field rather than calculating it in `getTotal` because the application often sorts items by their `CostSummary.total`, and recalculating every comparison turned out to be a bottleneck.
-This means that a `CostSummary` has to update the total whenever a `CurrencyConversion` is added.
+`CostSummary` also reports the total cost in the preferred currency.
+It stores the total cost in a field rather than calculating it in `getTotal` because the application often sorts items by their `CostSummary.total`, and recalculating every time we make a comparison turned out to be a bottleneck.
+This means that a `CostSummary` has to update `total` whenever a `CurrencyConversion` is added.
 
 `CostSummary` is also effectively a shared mutable collection.
 As this breaks our rule of thumb in <<dont-mutate-shared-collections>>, it performs a copy in `getLines` to limit the damage.
 
 Now to `CostSummaryCalculator`.
-It keeps a running total for each `Currency` in `currencyTotals` when `addCost` is called.
+It keeps a running total for each `Currency` in a `currencyTotals` field when `addCost` is called.
 The `summarise` method constructs a `CostSummary` using a source of exchange rates to convert local costs to the traveller's preferred currency:
 
 // begin-insert: tags/accumulator.0:src/main/java/travelator/itinerary/CostSummaryCalculator.java
@@ -173,15 +183,15 @@ public class CostSummaryCalculator {
 
 Thus, the calculation of a `CostSummary` is spread between two classes that intertwine the following responsibilities:
 
-* Hold information from the context of the calculation that is needed to compute the summary
-* Calculate per-currency totals, so the calculation doesn't accumulate rounding errors
-* Convert costs to the traveller's preferred currency
-* Calculate the grand total in the traveller's preferred currency
-* Sort the currency conversions in alphabetical order of the original currency code
+* Hold information from the context of the calculation that is needed to compute the summary.
+* Calculate per-currency totals, so the calculation doesn't accumulate rounding errors.
+* Convert costs to the traveller's preferred currency.
+* Calculate the grand total in the traveller's preferred currency.
+* Sort the currency conversions in alphabetical order of the original currency code.
 * Store the currency conversions and grand total, so they can be displayed to the traveller.
 
-Such commingling of responsibilities across classes is common when we compute by mutating shared state.
-We'd like to disentangle the responsibilities and simplify the implementation - what final structure we should we aim for?
+Such smearing of responsibilities across classes is common when we compute by mutating shared state.
+We'd like to disentangle the responsibilities and simplify the implementation -- what final structure we should we aim for?
 
 One clue is in the name of the `CostCurrencyCalculator` class.
 In linguistic jargon, the `CostCurrencyCalculator` is an _agent noun_ -- a noun derived from a verb that means no more than a thing that performs the action identified by the verb, like _driver_ or _baker_ or _calculator_.
@@ -223,7 +233,7 @@ class CostSummary(userCurrency: Currency) {
 ----
 // end-insert
 
-We have fettled the automatic conversion less for `CostSummaryCalculator`:
+The automatic conversion of `CostSummaryCalculator` needs less tidying:
 
 // begin-insert: tags/accumulator.1:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
 [source,kotlin]
@@ -257,7 +267,7 @@ class CostSummaryCalculator(
 // end-insert
 
 We can start from here and refactor away the mutability.
-We'll work from the inside, by making `CostSummary` an immutable value type, and gradually push immutability outwards through the `CostSummaryCalculator`.
+We'll work from the inside, making `CostSummary` an immutable value type, and gradually push immutability outwards through the `CostSummaryCalculator`.
 Before we do though, we've been stung by Java's obsession with sorting collections in place before now, so we fix that first:
 
 // begin-insert: tags/accumulator.1.5:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise
@@ -276,8 +286,8 @@ fun summarise(): CostSummary {
 ----
 // end-insert
 
-Now we see a pattern that is common in mutating code - create an object, call some initialisation steps and then return it.
-Whenever we see initialisation steps like this we should reach for `apply`.
+Now we see a pattern that is common in mutating code: create an object (`CostSummary` in this case), call some initialisation steps and then return it.
+Whenever we see initialisation steps like this we should reach for `apply`:
 
 // begin-insert: tags/accumulator.1.6:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise
 [source,kotlin]
@@ -297,10 +307,10 @@ fun summarise(): CostSummary {
 // end-insert
 
 `apply` allows us to group the initialisation steps into a block to better express our intent.
-It's like a mini builder - the `summarise` function never sees a reference to a partially-initialised `CostSummary`; only the completed object.
+It's like a mini builder -- the `summarise` function never sees a reference to a partially-initialised `CostSummary`; only the completed object.
 
 This is small-scale functional thinking - trying to limit the scope of mutation even within a function.
-Functional thinking also helps us to see that looping over `totals`, creating a `CurrencyConversion` for each, and calling `addLine` with it, is the same as creating a list of conversions and looping over that:
+Functional thinking also helps us to see that looping over `totals`, creating a `CurrencyConversion` for each, and calling `addLine` with it, is the same as creating a `conversions` list and looping over that:
 
 // begin-insert: tags/accumulator.1.7:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise
 [source,kotlin]
@@ -318,11 +328,10 @@ fun summarise(): CostSummary {
 // end-insert
 
 Why make this change?
-Well we want to strip building a `CostSummary` down to its essence, and that doesn't include calculating the conversions.
-Why strip it down to its essence?
-Because we are looking for what its constructor should look like.
+Well we want to strip a `CostSummary` down to its immutable essence.
 If `CostSummary` was immutable, client code would have to pass the list of lines to its constructor instead of calling its `addLine` method.
-We can baby-step our way there by adding a secondary constructor that duplicates the initialisation logic that we just wrote in the `apply` block:
+`CostSummary` shouldn't be responsible for currency conversion, so we're making the `apply` block look like we want its constructor to look.
+From here we add a secondary constructor that duplicates this initialisation logic:
 
 // begin-insert: tags/accumulator.2:src/main/java/travelator/itinerary/CostSummary.kt
 [source,kotlin]
@@ -351,7 +360,7 @@ class CostSummary(userCurrency: Currency) {
 ----
 // end-insert
 
-Now we can change the `CostSummaryCalculator.summarise` method to call the new constructor: treating the `CostSummary` class as if it was an immutable value type.
+Now we can change the `CostSummaryCalculator.summarise` method to call the new constructor: treating the `CostSummary` class as if it was an immutable value type:
 
 // begin-insert: tags/accumulator.2:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise
 [source,kotlin]
@@ -391,7 +400,7 @@ class CostSummary(
 As we can see from that nasty `var` and `init`, it's sometimes hard to get away from mutation once it has set in, especially for accumulators like this.
 `fold` is our friend here.
 We had a series of actions (<<actions>>) acting on the mutable variable `total`.
-`fold` converts the actions to a single calculation <<calculations>> that we can use to initialise an immutable variable:
+`fold` converts the actions to a single calculation (<<calculations>>) that we can use to initialise an immutable variable:
 
 // begin-insert: tags/accumulator.3:src/main/java/travelator/itinerary/CostSummary.kt
 [source,kotlin]
@@ -504,70 +513,11 @@ val total = lines
 ----
 // end-insert
 
-Similarly, whatever is happening with currencies is still hidden in the remaining mutations in `CostSummaryCalculator`.
-We can apply a similar process to eliminate these, but this time we won't add a secondary constructor.
-Instead, we will apply <<expand-contract>>, by adding an overload of the `summarise` method that takes the costs, calls `addCost` for each one, and then returns the result of the original `summarise` method.
-Then we will move our callers to the new method, deleting the old `summarise` when they are all migrated.
-Here's the new overload:
+=== Let's do that Again
 
-// begin-insert: tags/accumulator.7:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise_overload
-[source,kotlin]
-----
-fun summarise(costs: Iterable<Money>): CostSummary {
-    reset()
-    costs.forEach(::addCost)
-    return summarise()
-}
-----
-// end-insert
+Similarly, whatever is happening with currencies is still hidden in the remaining mutations in `CostSummaryCalculator`:
 
-This draws a distinction between the _context_ of cost-summary calculations, which we pass to the constructor (`userCurrency` and `exchangeRates`), and the parameters of a _specific_ calculation (the `costs` which we pass to the `summarise` method).
-
-To switch over to using the new `summarise` method, we'll have to extract the costs from the entities we want to summarise, rather than telling them to add their costs to a mutable calculator that we pass in.
-Instead of asking children to add their costs to the `CostSummaryCalculator`, parents will ask their children for their costs and combine them.
-
-We'll end up using the calculator like this:
-
-// begin-insert: tags/accumulator.8:src/test/java/travelator/itinerary/Itinerary_CostTest.kt#calculation
-[source,kotlin]
-----
-val fx: ExchangeRates = ...
-val userCurrency = ...
-
-val calculator = CostSummaryCalculator(userCurrency, fx)
-
-fun costSummary(i: Itinerary) =
-    calculator.summarise(i.costs())
-----
-// end-insert
-
-And we'll report the costs from our domain models like this:
-
-// begin-insert: tags/accumulator.8:src/main/java/travelator/itinerary/Itinerary.kt#costs
-[source,kotlin]
-----
-data class Itinerary(
-    val id: Id<Itinerary>,
-    val route: Route,
-    val accommodations: List<Accommodation> = emptyList()
-) {
-    ...
-
-    fun costs() =
-        route.costs() + accommodations.costs()
-
-    ...
-}
-
-fun Iterable<Accommodation>.costs() =
-    flatMap { it.costs() }
-----
-// end-insert
-
-When all uses of `CostSummaryCalculator` in the application are using our new `summarise` method, we can move the calculation of the `currencyTotals` and `CostSummary` into that method.
-Here's the whole class before we start:
-
-// begin-insert: tags/accumulator.8:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
+// begin-insert: tags/accumulator.5:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
 [source,kotlin]
 ----
 class CostSummaryCalculator(
@@ -575,12 +525,6 @@ class CostSummaryCalculator(
     private val exchangeRates: ExchangeRates
 ) {
     private val currencyTotals = mutableMapOf<Currency, Money>()
-
-    fun summarise(costs: Iterable<Money>): CostSummary {
-        reset()
-        costs.forEach(::addCost)
-        return summarise()
-    }
 
     fun addCost(cost: Money) {
         currencyTotals.merge(cost.currency, cost, Money::add)
@@ -605,8 +549,80 @@ class CostSummaryCalculator(
 ----
 // end-insert
 
-The state required to calculate the `CostSummary` is currently accumulated in the `currencyTotals` map, and read in the no-arguments overload of `summarise`.
-Let's recreate the algorithm inside the new `summarise` by using local variables instead:
+We can apply a similar process to eliminate these, but this time we won't add a secondary constructor.
+Instead, we will apply <<expand-contract>>, by adding an overload of the `summarise` method that takes the costs:
+
+// begin-insert: tags/accumulator.7:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise_overload
+[source,kotlin]
+----
+fun summarise(costs: Iterable<Money>): CostSummary {
+    val delegate = CostSummaryCalculator(userCurrency, exchangeRates)
+    costs.forEach(delegate::addCost)
+    return delegate.summarise()
+}
+----
+// end-insert
+
+This is quite sneaky.
+The old `summarise` method is an action -- its result depends on the past history of calling `addCost` and `reset`.
+This new `summarise` is a calculation -- its result depends only on the values of its inputs (the `costs` parameter, plus the `userCurrency` and `exchangeRates` properties it accesses).
+And yet the new `summarise` uses old one, it just limits the scope of mutation to a local variable, converting it into a calculation.
+
+When we use this version of `summarise`, we have drawn a distinction between the _context_ of cost-summary calculations, which we pass to the constructor as `userCurrency` and `exchangeRates`, and the parameters of a _specific_ calculation (the `costs` which we pass to the `summarise` method).
+This will be significant later (<<pricing-context>>).
+
+Now that we have two `summarise` methods, we can move our callers to the new one.
+To switch over to using the new `summarise`, we'll have to extract the costs from the entities we want to summarise, rather than telling them to add their costs to a mutable calculator that we pass in.
+Instead of asking children to add their costs to the `CostSummaryCalculator`, parents will ask their children for their costs and combine them.
+
+We'll end up using the calculator like this:
+
+// begin-insert: tags/accumulator.8:src/test/java/travelator/itinerary/Itinerary_CostTest.kt#calculation
+[source,kotlin]
+----
+val fx: ExchangeRates = ...
+val userCurrency = ...
+val calculator = CostSummaryCalculator(userCurrency, fx)
+
+fun costSummary(i: Itinerary) =
+    calculator.summarise(i.costs())
+----
+// end-insert
+
+And we'll report the costs from our domain models like this:
+
+// begin-insert: tags/accumulator.8:src/main/java/travelator/itinerary/Itinerary.kt#costs
+[source,kotlin]
+----
+data class Itinerary(
+    val id: Id<Itinerary>,
+    val route: Route,
+    val accommodations: List<Accommodation> = emptyList()
+) {
+    ...
+
+    fun costs(): List<Money> = route.costs() + accommodations.costs()
+    ...
+}
+
+fun Iterable<Accommodation>.costs(): List<Money> = flatMap { it.costs() }
+----
+// end-insert
+
+When all uses of `CostSummaryCalculator` in the application are using our new `summarise` method, we can flatten the calculation of the `currencyTotals` and `CostSummary` into that method, the one that currently uses a local to do the job:
+
+// begin-insert: tags/accumulator.7:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise_overload
+[source,kotlin]
+----
+fun summarise(costs: Iterable<Money>): CostSummary {
+    val delegate = CostSummaryCalculator(userCurrency, exchangeRates)
+    costs.forEach(delegate::addCost)
+    return delegate.summarise()
+}
+----
+// end-insert
+
+We can effectively inline the entire class into this method using local variables instead:
 
 // begin-insert: tags/accumulator.8.5:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise_overload
 [source,kotlin]
@@ -628,40 +644,44 @@ fun summarise(costs: Iterable<Money>): CostSummary {
 // end-insert
 
 Our tests still pass, and IntelliJ tells us that all the other methods of `CostSummaryCalculator` are now unused, as is the `currencyTotals` field, so by deleting them all we have finally succeeded in removing all the mutable state from the class.
-Not from that method though - we still have a mutable map!
+Not from that method though -- we still have a mutable map!
 This is the last remnant of the smearing out of the algorithm that we mentioned earlier.
-We have finally bought all the logic into this one method.
-And because all our logic is in one place, we know that it happens at one time, and is safe to refactor to any equivalent form.
+We have finally bought all the logic into this one method, and because all our logic is in one place, we know that it happens at one time, and is safe to refactor to any equivalent form.
 
 What is that form?
 We have to think about that, but come to the conclusion that the `MutableMap.merge` is accumulating a total per currency.
 When we have all the data at once, as we do now, we can perform the same calculation by grouping by currency and summing the lists:
 
-// begin-insert: tags/accumulator.9:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise_overload
+// begin-insert: tags/accumulator.9:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
 [source,kotlin]
 ----
-fun summarise(costs: Iterable<Money>): CostSummary {
-    val currencyTotals = costs
-        .groupBy { it.currency }
-        .values
-        .map { moneys -> moneys.reduce(Money::add) }
-    val lines = currencyTotals
-        .sortedBy { it.currency.currencyCode }
-        .map { exchangeRates.convert(it, userCurrency) }
-    val total = lines
-        .map { it.toMoney }
-        .fold(Money(0, userCurrency), Money::add)
-    return CostSummary(lines, total)
+class CostSummaryCalculator(
+    private val userCurrency: Currency,
+    private val exchangeRates: ExchangeRates
+) {
+    fun summarise(costs: Iterable<Money>): CostSummary {
+        val currencyTotals: List<Money> = costs
+            .groupBy { it.currency }
+            .values
+            .map { moneys -> moneys.reduce(Money::add) }
+        val lines: List<CurrencyConversion> = currencyTotals
+            .sortedBy { it.currency.currencyCode }
+            .map { exchangeRates.convert(it, userCurrency) }
+        val total = lines
+            .map { it.toMoney }
+            .fold(Money(0, userCurrency), Money::add)
+        return CostSummary(lines, total)
+    }
 }
 ----
 // end-insert
 
-It is a bit irritating that we have to use `reduce` to sum moneys instead of having a nice `Iterable<Money>.sum()` extension function - we should probably fix that.
+It is a bit irritating that we have to use `reduce` to sum moneys instead of having a nice `Iterable<Money>.sum()` extension function -- we should probably fix that.
 And now that the calculation is all in one place we might ponder whether there is meaning in the fact that we use `reduce` in one expression and `fold` in another (hint, there is), but these are thoughts that we can have only because the code is now set out in one place.
 
 The key thing is that we can see the shape of the `summarise` calculation more clearly now.
 It is a pure function that is applied to a collection of costs, and is evaluated in the context of some exchange rates and the traveller's preferred currency.
-The function transforms the nested entities of our domain model into a flat collection of costs, then transforms the costs into a map of the total for each currency, transforms the totals for each currency into a list of currency conversions, and finally transforms the list of currency conversions into a `CostSummary`.
+The function transforms the nested entities of our domain model into a flat collection of costs, then transforms the costs into a map of the total for each currency, transforms the totals for each `Currency` into a list of `CurrencyConversion`, and finally transforms the list of currency conversions into a `CostSummary`.
 
 [TIP]
 ====
@@ -674,6 +694,7 @@ Introduce intermediate forms and transformations until you have a pipeline of si
 
 We will look more at pure functions evaluated in context in <<interfaces-to-functions>>.
 
+[[pricing-context]]
 === Enriching the Abstraction We Discovered
 
 Travelator does more with exchange rates and the traveller's preferred currency than summarise costs.
@@ -694,17 +715,17 @@ class PricingContext(
     private val userCurrency: Currency,
     private val exchangeRates: ExchangeRates
 ) {
-    fun toUserCurrency(it: Money) =
-        exchangeRates.convert(it, userCurrency)
+    fun toUserCurrency(money: Money) =
+        exchangeRates.convert(money, userCurrency)
 
     fun summarise(costs: Iterable<Money>): CostSummary {
-        val currencyTotals = costs
+        val currencyTotals: List<Money> = costs
             .groupBy { it.currency }
             .values
             .map {
                 it.sumOrNull() ?: error("Unexpected empty list")
             }
-        val lines = currencyTotals
+        val lines: List<CurrencyConversion> = currencyTotals
             .sortedBy { it.currency.currencyCode }
             .map(::toUserCurrency)
         val total = lines
@@ -730,11 +751,9 @@ This leaves the code that used to use the `CostSummaryCalculator` looking like t
 ----
 val fx: ExchangeRates = ...
 val userCurrency = ...
-
 val pricing = PricingContext(userCurrency, fx)
 
-fun costSummary(i: Itinerary) =
-    pricing.summarise(i.costs())
+fun costSummary(i: Itinerary) = pricing.summarise(i.costs())
 ----
 // end-insert
 
@@ -753,12 +772,12 @@ Outwards was obvious: we made the `CostSummaryCalculator` treat the `CostSummary
 But inwards?
 We replaced the imperative code that mutated collections and fields with calls to standard higher-order functions, like `groupingBy`, `fold` and `reduce`.
 Under the hood those functions may mutate state, but they hide that mutation from their callers.
-From outside, the functions are calculations <<calculations>>.
+From outside, the functions are calculations.
 
 We can use the same approach in our own code when we need to.
 Sometimes mutating a collection is the easiest thing to do.
-The standard library does not always have a higher-order function that tranforms data the way we want.
-If we do need a mutable collection, we can hide that mutation inside a referentially transparent function to limit the blast-radius of any potential aliasing errors.
+The standard library does not always have a higher-order function that transforms data the way we want.
+If we do need a mutable collection, we can hide that mutation inside a calculation to limit the blast-radius of any potential aliasing errors.
 However, every release adds more functions to the standard library, so the need diminishes over time.
 
 Functional programming does not eliminate mutable state but instead _makes it the responsibility of the runtime_.
