@@ -17,11 +17,11 @@ This was carried forward into Java.
 Kotlin uses `Unit` in almost the same way, except that `Unit` is not the absence of a return value, but rather a singleton value that is returned instead.
 
 In this book we use the term _function_ to refer to both result-returning and non-result-returning subroutines, whether free-standing or associated with an object.
-Where they are associated with an object, we'll often refer to them as methods.
+Where it's significant that they are associated with an object, we'll call them as methods.
 
 Whatever we call them, functions are one of fundamental building blocks of our software.
 We define them with some sort of notation, generally the programming language we are using.
-We also tend to view their definitions as fixed during a run of the program - in static languages at least we don't usually redefine functions on the fly.
+They are also generally fixed during a run of the program -- in static languages at least we don't usually redefine functions on the fly.
 
 This is in contrast to the other fundamental building block: data.
 We expect data to vary as we run our program and different data is bound to variables.
@@ -31,7 +31,7 @@ Even when they are `final`, or `val`, they are usually bound to different data i
 We hinted earlier at a subdivision of functions into those that return a result, and those that do not.
 This might seem like a fundamental difference, but in practice there is a more useful way to divide functions - into _calculations_ and _actions_.
 
-Actions are functions that depend on when or how many times they are run, calculations are functions that are timeless.
+Actions are functions that depend on when or how many times they are run, calculations are functions that don't -- they are timeless.
 Most functions that we write are actions, as we have to take special care to write code that doesn't depend on when it is run.
 How would we go about doing that?
 
@@ -66,7 +66,8 @@ data class Customer(
 }
 ----
 
-To see when they are, we consider any data accessed via `this` to be an input to the function, so both `upperCaseGivenName` and `fullName` are calculations because `givenName` and `familyName` are both values.
+For a method or extension, the receiver `this`, and any property accessed via `this`, is also an input.
+So both `upperCaseGivenName` and `fullName` are calculations because `givenName` and `familyName` are both values.
 
 An extension function or property can also be a calculation if the data it depends on is a value:
 
@@ -79,7 +80,7 @@ val Customer.fullName get() = "$givenName $familyName"
 
 .Computed Property or Function?
 ****
-You may have wondered when to define a computed property and when to have a function that returns a value.
+You may have wondered when to define a computed property and when to have a function that returns a result.
 Computed properties are confusing if they return different results at different times, at least when defined on value types (and you'll be realising by now that your authors think that most of our types should be value types).
 So a good rule of thumb is to reserve computed properties for calculations.
 
@@ -107,7 +108,7 @@ If we don't call it, nothing is output, which is different from calling it once,
 The order that we call `println` with different arguments also matters to the results we see on the console.
 
 We call `println` for its _side effect_ - the effect it has on its environment.
-_Side effect_, is a bit of a misleading term, because, unlike drug side effects, they are often exactly the thing that we want to happen.
+Side effect is a bit of a misleading term, because, unlike drug side effects, they are often exactly the thing that we want to happen.
 Maybe _outside effect_ would be a better name, to emphasise that they are external to a function's parameters, local variables and return value.
 In any case, functions with observable side effects are actions not calculations.
 Functions returning `void` or `Unit` are almost always actions, because if they do anything, they have to do it by side effect.
@@ -175,17 +176,18 @@ Actions prevent us having free-rein to refactor our code, because doing so may c
 Calculations on the other hand can be invoked at any time, with no consequences to calling them again and again with the same arguments except a waste of time and energy.
 If we are refactoring code and find that we don't need the result of a calculation, we can safely not invoke it.
 If it is an expensive calculation, we can safely cache its result; if it is inexpensive, we can safely recalculate it on demand if that simplifies things.
-It is this feeling of safety that puts the smug smile on the faces of functional programmers.
-Well, that and knowing that a monad is just a monoid in the category of endofunctors.
+It is this feeling of safety that puts the smug smile on the faces of functional programmers (well, that and knowing that a monad is just a monoid in the category of endofunctors).
+Those functional programmers also have a term for the property of a function that makes it a calculation: _referential transparency_.
+If a function is referentially transparent, we can replace its call with its result, and we can only do that if it doesn't matter when or if we call it.
 
 .Procedural Code
 ****
-Nat and Duncan are both old enough to have learned to program in Sinclair BASIC.
-This dialect has no immutable data, and no support for defining functions with local variables or more than one parameter.
+Nat and Duncan are both old enough to have learned to program in Sinclair BASIC on the ZX81.
+This dialect had no immutable data, and no support for subroutines parameters or local variables.
 It requires real discipline to program in such a system, because practically every line of code is an action, and hence potentially affects the functioning of every other statement.
 
 This is in fact very close to the way that our computers actually work, with mutable values held in registers and global memory, manipulated by machine-code actions.
-The evolution of programming languages has been a process of restricting the ultimate flexibility of this model, in order that humans can better reason with the code that they create.
+The evolution of programming languages has been a process of restricting the ultimate flexibility of this model, so that humans can better reason with the code that they create.
 ****
 
 === Why Prefer Calculations?
@@ -198,8 +200,8 @@ We see the same thing with susceptibility to errors in <<exceptions-to-errors>>.
 If we value purity (which in all these cases brings ease of reasoning and refactoring), we must strive to pull the boundary between impure and pure code to the outer layers of our system - those closest to the entry points.
 If we succeed, then a significant proportion of our code can be calculations, and hence easily tested, reasoned-with, and refactored.
 
-What if we don't succeed in keeping actions at the top of our call-stack?
-Then we can fix things with refactoring.
+What if we don't succeed in keeping actions at the bottom of our call-stack?
+Then we can fix things with refactoring!
 
 === Refactoring Actions to Calculations
 
@@ -207,7 +209,7 @@ Let's have a look at recognising and refactoring actions in existing code.
 
 ==== Existing Code
 
-There is an HTTP endpoint in Travelator that allows the client app to fetch information about the customers current trip.
+There is an HTTP endpoint in Travelator that allows the client app to fetch information about the customers current trip:
 
 // begin-insert: tags/effects.0:src/main/java/travelator/handlers/CurrentTripsHandler.java
 [source,java]
@@ -301,12 +303,13 @@ Can you spot it?
 
 Yes - `clock.instant()`.
 That definitely depends on when we call it.
-(If you found another action, well done, but keep it to yourself for now, we'll come back to it.)
+(If you found another action, well done, but keep it to yourself for now.
+We'll come back to it.)
 
 Even if we chose not go on with the rest of this refactoring, there is one change that we should make now.
 We have discussed calculations and actions as applying to named blocks of code, but they also apply at the expression level.
 Once you start to differentiate actions from calculations, it makes sense not to throw a random action into an otherwise pure calculation.
-Let's pull the action out so that the remainder of the expression is pure - select `clock.instant()` and "Introduce Variable", calling it `now`
+Let's pull the action out so that the remainder of the expression is pure - select `clock.instant()` and "Introduce Variable", calling it `now`:
 
 // begin-insert: tags/effects.0.5:src/test/java/travelator/InMemoryTrips.java#foo
 [source,java]
@@ -338,7 +341,7 @@ public Set<Trip> currentTripsFor(String customerId) {
 ----
 // end-insert
 
-This one simple act has allowed us to realise that we were previously comparing every trip against a slightly different time!
+This simple act has allowed us to realise that we were previously comparing every trip against a slightly different time!
 Was that a problem?
 Probably not here, but you may have worked on systems where it would be.
 Duncan for one has recently finished diagnosing an issue where half of a banking transaction could be accounted for in one day, and the other half in the next.
@@ -385,32 +388,32 @@ public class TrackingTests {
 // end-insert
 
 In order to give predictable results we have had to use a fake clock, injected into `InMemoryTrips`.
-Having previously said that `clock.instant()` depends on when we call it, in our tests it doesn't (at least, not in the same way).
+Having previously said that `clock.instant()` depends on when we call it; in our tests it doesn't (at least, not in the same way).
 We could instead have set up trips relative to the time that the tests are being run - this makes our tests harder to understand and subject to failure if you run them around midnight.
 
 .2015 was the End of Time
 ****
-Duncan and Nat returned to work after Christmas holidays at the beginning of 2015 to find a slew of previously-passing unit tests now failing.
-It turns out that 2015-01-01T00:00:00 had been used as a constant for a time that would always be in the future.
-When it became in the past, all the tests that relied on before and after relationships began failing.
+Duncan and Nat returned to work after the Christmas holidays at the beginning of 2015 to find a slew of previously-passing unit tests now failing.
+It turns out that 2015-01-01T00:00:00 had been used as a time that would always be in the future.
+When 2015 arrived, all the tests that relied on before and after relationships began failing.
 
-The solution was the refactoring that we are presenting here.
+We fixed the tests with the refactoring in this chapter.
 ****
 
 Is having to inject a clock https://dhh.dk/2014/test-induced-design-damage.html[Test-Induced Design Damage]?
 In this case it is.
 The fake clock has allowed us to solve a testing problem, but at the expense of making the code more complicated.
-It has also allowed us to avoid a rethink that might lead to a better design.
+It has also allowed us to avoid a rethink that might lead to ...
 
 ==== A Better Design
 
 What would a better design look like here?
 
-In order to make this code less time-dependant, we can simply supply the time as an argument to the method.
-Whilst this forces the caller to know the time, it is as easy for our caller to ask the time as it is for this method.
-This is a special case of the way that we refactor to avoid dependencies on other global variables - instead of calling out to read, pass the value into the function.
+In order to make this code less time-dependant, we can supply the time as an argument to the method.
+Whilst this forces the _caller_ to know the time, it is as easy for our caller to ask the time as it is for this method.
+This is a special case of the way that we refactor to avoid dependencies on other global state -- instead of reading a value within a function, we pass the value into it.
 
-Let's start the refactor by adding an (as yet unused) `Instant` parameter to the `Trips.currentTripsFor(customerId)` method.
+The function we want to pass the time into overrides `Trips.currentTripsFor`, so we start by adding an `Instant` parameter to that.
 Before this was:
 
 // begin-insert: tags/effects.0:src/main/java/travelator/Trips.java#foo
@@ -425,8 +428,8 @@ public interface Trips {
 
 We use IntelliJ's "Change Signature" refactoring to add the parameter, calling it `at`.
 When we add a parameter we need to tell IntelliJ what value it should use when updating the callers of our function.
-As we aren't using the value in the method yet, we should be able to use `null` without breaking anything.
-Running the tests shows that we are right - they still pass.
+As we aren't using the value in the method yet (and this is Java), we should be able to use `null` without breaking anything.
+Running the tests shows that we are right -- they still pass.
 
 `Trips` now looks like this:
 
@@ -467,39 +470,28 @@ class Tracking implements ITrackTrips {
 ----
 // end-insert
 
-<1> IntelliJ uses `null` as the argument value.
+<1> IntelliJ introduced `null` as the argument value.
 
 Remember that we aren't using the value of the time in our implementations of `Trips` yet, just trying to supply it on the outside of our system in order to convert as much code as possible to calculations.
-`Tracking` isn't the outside yet, so we take select the `null` `Instant`, and "Introduce Parameter" to add it to the signature of `Tracking.currentTripFor`:
+`Tracking` isn't the outside of our interaction, so we take select the `null` `Instant`, and "Introduce Parameter" to add it to the signature of `Tracking.currentTripFor`:
 
 // begin-insert: tags/effects.3:src/main/java/travelator/Tracking.java#foo
 [source,java]
 ----
-class Tracking implements ITrackTrips {
-    ...
-
-    @Override
-    public Optional<Trip> currentTripFor(String customerId, Instant at) { // <1>
-        var candidates = trips.currentTripsFor(customerId, at)
-            .stream()
-            .filter((trip) -> trip.getBookingStatus() == BOOKED)
-            .collect(toList());
-        if (candidates.size() == 1)
-            return Optional.of(candidates.get(0));
-        else if (candidates.size() == 0)
-            return Optional.empty();
-        else
-            throw new IllegalStateException(
-                "Unexpectedly more than one current trip for " + customerId
-            );
-    }
+@Override
+public Optional<Trip> currentTripFor(String customerId, Instant at) { // <1>
+    var candidates = trips.currentTripsFor(customerId, at) // <1>
+        .stream()
+        .filter((trip) -> trip.getBookingStatus() == BOOKED)
+        .collect(toList());
+        ...
 }
 ----
 // end-insert
 
 <1> Our new `Instant` parameter.
 
-When we "Introduce Parameter", IntelliJ knows to use the value from the body of the method (`null` in this case) as the value in callers, so that `CurrentTripsHandler` still compiles:
+When we "Introduce Parameter", IntelliJ moves the expression (`null` in this case) from the body of the method to the callers, so `CurrentTripsHandler` still compiles:
 
 // begin-insert: tags/effects.3:src/main/java/travelator/handlers/CurrentTripsHandler.java#foo
 [source,java]
@@ -529,42 +521,32 @@ public Response handle(Request request) {
 // begin-insert: tags/effects.3:src/test/java/travelator/TrackingTests.java#foo
 [source,java]
 ----
-public class TrackingTests {
+@Test
+public void returns_empty_when_no_trip_planned_to_happen_now() {
+    clock.now = anInstant();
+    assertEquals(
+        Optional.empty(),
+        tracking.currentTripFor("cust1", null) // <1>
+    );
+}
 
-    final StoppedClock clock = new StoppedClock();
+@Test
+public void returns_single_active_booked_trip() {
+    var diwaliTrip = givenATrip("cust1", "Diwali",
+        "2020-11-13", "2020-11-15", BOOKED);
+    givenATrip("cust1", "Christmas",
+        "2020-12-24", "2020-11-26", BOOKED);
 
-    final InMemoryTrips trips = new InMemoryTrips(clock);
-    final Tracking tracking = new Tracking(trips);
-
-    @Test
-    public void returns_empty_when_no_trip_planned_to_happen_now() {
-        clock.now = anInstant();
-        assertEquals(
-            Optional.empty(),
-            tracking.currentTripFor("cust1", null) // <1>
-        );
-    }
-
-    @Test
-    public void returns_single_active_booked_trip() {
-        var diwaliTrip = givenATrip("cust1", "Diwali",
-            "2020-11-13", "2020-11-15", BOOKED);
-        givenATrip("cust1", "Christmas",
-            "2020-12-24", "2020-11-26", BOOKED);
-
-        clock.now = diwaliTrip.getPlannedStartTime().toInstant();
-        assertEquals(
-            Optional.of(diwaliTrip),
-            tracking.currentTripFor("cust1", null) // <1>
-        );
-    }
-
-    ...
+    clock.now = diwaliTrip.getPlannedStartTime().toInstant();
+    assertEquals(
+        Optional.of(diwaliTrip),
+        tracking.currentTripFor("cust1", null) // <1>
+    );
 }
 ----
 // end-insert
 
-<1> New arguments are `null`.
+<1> `null` argument value.
 
 At this point everything compiles and passes the tests, but we aren't actually using the (`null`) time that we are passing down from our handler.
 Let's fix that in `InMemoryTrips`, where we started.
@@ -605,7 +587,7 @@ public class InMemoryTrips implements Trips {
 ----
 // end-insert
 
-This causes the tests that use `InMemoryTrips` to fail with ++NullPointerException++s, because the method is now using the value of the parameter, and the tests are passing `null`.
+This causes the tests that use `InMemoryTrips` to fail with a `NullPointerException`, because the method is now using the value of the parameter, and the tests are passing in `null`:
 
 // begin-insert: tags/effects.4:src/test/java/travelator/TrackingTests.java#foo
 [source,java]
@@ -669,39 +651,8 @@ public void returns_single_active_booked_trip() {
 // end-insert
 
 This gets our tests to pass, because we are now passing the correct time as the argument, albeit via setting and immediately reading a field in the `StoppedClock`.
-To fix that, we can search and replace `clock.now =` with `var clockNow =` and then `clock.now` with `clockNow`.
-This cleverness disintermediates the `clock` property in the test.
-
-// begin-insert: tags/effects.6:src/test/java/travelator/TrackingTests.java#foo
-[source,java]
-----
-@Test
-public void returns_empty_when_no_trip_planned_to_happen_now() {
-    var clockNow = anInstant();
-    assertEquals(
-        Optional.empty(),
-        tracking.currentTripFor("cust1", clockNow)
-    );
-}
-
-@Test
-public void returns_single_active_booked_trip() {
-    var diwaliTrip = givenATrip("cust1", "Diwali",
-        "2020-11-13", "2020-11-15", BOOKED);
-    givenATrip("cust1", "Christmas",
-        "2020-12-24", "2020-11-26", BOOKED);
-
-    var clockNow = diwaliTrip.getPlannedStartTime().toInstant();
-    assertEquals(
-        Optional.of(diwaliTrip),
-        tracking.currentTripFor("cust1", clockNow)
-    );
-}
-----
-// end-insert
-
-Now we have simply to inline all the uses of `clockNow` to have a nice functional expression of the tests.
-Taking the opportunity to remove the now unused `clock` from the tests and `InMemoryTrips` we have:
+To fix that, we replace the `clock.now` reads with the values from the `clock.now` writes.
+Then the `clock` is unused and we can delete it:
 
 // begin-insert: tags/effects.7:src/test/java/travelator/TrackingTests.java#foo
 [source,java]
@@ -744,7 +695,7 @@ We'll see this again in <<mocks-to-maps>>.
 
 ==== End Game
 
-We're almost done now (refactoring is never completely done).
+We're almost done now. (Refactoring is never completely done.)
 
 With all this focus on the tests, we were about to check in before we realised that we haven't completed our refactor in `CurrentTripsHandler`.
 
@@ -791,7 +742,10 @@ public class CurrentTripsHandler {
                 .findFirst();
             if (customerId.isEmpty())
                 return new Response(HTTP_BAD_REQUEST);
-            var currentTrip = tracking.currentTripFor(customerId.get(), Instant.now());
+            var currentTrip = tracking.currentTripFor(
+                customerId.get(),
+                Instant.now() // <1>
+            );
             return currentTrip.isPresent() ?
                 new Response(HTTP_OK,
                     objectMapper.writeValueAsString(currentTrip)) :
@@ -804,23 +758,24 @@ public class CurrentTripsHandler {
 ----
 // end-insert
 
-Looking through our code, we find (shock horror) that we don't have any unit tests for the handler.
+<1> Now our action is at the application entry point.
+
+Looking through our code, we find (scream) that we don't have any unit tests for the handler.
 If we want to add them, this is the level at which we would now inject a `Clock`, rather than into the individual services.
 Mocks or stubs allow us to test actions, but are rarely required to test calculations.
 
-We won't show it, but we also have to consider the production implementation of `Trips` - the one that reads from a database table.
-We are lucky and find that this passes the current time into its SQL query - so now we can just pass the `at` in `Trips.currentTripsFor(String customerId, Instant at)`.
+We won't show it, but we also have to consider the production implementation of `Trips` - the one that reads from our database.
+We are lucky and find that this passes the current time into its SQL query -- so now we can just pass the `at` in `Trips.currentTripsFor(String customerId, Instant at)`.
 It would have been more complicated if the SQL query was using the current time of the database server from a database-specific construct such as `CURRENT_TIMESTAMP` or `NOW`.
-Actions are so pervasive that this is quite a common practice even though it makes testing queries more complicated, and the queries themselves less versatile.
-If our query did use the database time, we would have to rewrite it to receive the time from our function as a parameter, and make a mental note to default to this strategy unless we have a very good reason not to.
+As with non-SQL code, actions are so pervasive that this is quite a common practice even though it makes testing more complicated, and the code itself less versatile.
+If our query had used the database time, we would have to rewrite it to receive the time from our function as a parameter, and make a mental note not to read the time unless we have a very good reason not to.
 
-That done, we review our changes, and find that we haven't converted the code to Kotlin!
+That done, we review our changes, and find that we haven't converted any code to Kotlin!
 
-This last observation is quite significant.
-This way of thinking about calculations and actions is not exclusive to Kotlin.
-It is possible to make the distinction between them in any language, and the grain of Java is becoming more functional with time.
+This is quite significant.
+This way of thinking about calculations and actions doesn't depend on our language, and the grain of Java is becoming more functional with time.
 We find, though, that Kotlin's more natural support for immutable data and other functional constructs means that the costs of making the distinction are lower, and so the cost/benefit ratio looks more favourable.
-It's also worth observing that a lot of the refactoring steps taken in this chapter (and others) are safe only because we are moving around the invocation of calculations and not actions.
+Note also that a lot of the refactoring steps taken in this chapter (and others) are safe only because we are moving around the invocation of calculations and not actions.
 
 Before we finish this chapter, what about the other action we hinted at?
 Here is the implementation of `InMemoryTrips`, now converted to Kotlin:
@@ -848,8 +803,9 @@ class InMemoryTrips : Trips {
 ----
 // end-insert
 
-That `MutableMap` of ``MutableSet``s is a sign that something can change over time - in this case if we add a trip for a customer the result of `tripsFor` may change.
-`tripsFor` is an action not a calculation.
+That `MutableMap` of ++MutableSet++s is a sign that something can change over time.
+If they have the same customer, the result of `tripsFor` will be different after we have called `addTrip`.
+So `tripsFor` is an action not a calculation.
 If `tripsFor` is an action, then anything that calls it is an action, including our `currentTripsFor`.
 The same will obviously be true of the production version of `Trips` that reads and writes to the database.
 After all this work, we haven't actually promoted our action to a calculation after all!
@@ -862,13 +818,15 @@ So `tripsFor`, and by extension `currentTripsFor`, are effectively calculations.
 In this respect our `InMemoryTrips` is less safe than our database implementation, because if accessed on multiple threads it can mutate the collection returned by `tripsFor`, leading to potential `ConcurrentModificationExceptions` in the `filter` implementation.
 Categorising our code into calculations and actions has helped us see these issues, and given us a framework for deciding if they are important in context.
 
-Lastly, it is worth noting that Kotlin's default use of immutable data makes this categorisation easier.
-When you see `List` in Java you have to find the places in which it is created or referenced in order to establish its mutability, and hence the likelihood that code accessing it can be an action.
+Lastly, note that Kotlin's preference for immutable data makes this categorisation easier.
+For example, when you see `List` in Java you have to find the places in which it is created or referenced in order to establish its mutability, and hence the likelihood that code accessing it can be an action.
 In Kotlin when you see `MutableList` you can infer an action, although as we have seen with `InMemoryTrips`, exposing a mutable collection with a read-only alias can lead to actions pretending to be calculations.
 
 === Conclusion
 
 Categorising code into calculations and actions (along with data) is a formalism introduced by Eric Normand in his book <<N_GSTCSWFT_2021,_Grokking Simplicity: Taming Complex Software with Functional Thinking_>>.
+As developers, we intuit the difference, and soon learn to rely on our intuition, but often without realising how or why.
+Giving names to the categories, and studying their qualities, allows us to reason at a more conscious and effective level.
 
 In <<beans-to-values>> we refactored from a mutable bean to an immutable value.
 Similarly, in <<java-to-kotlin-collections>> we refactored from mutable to immutable collections.
