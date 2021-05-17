@@ -1,13 +1,13 @@
 package extensionFunctions;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import static extensionFunctions.Extension_functionsKt.nameForMarketing;
+import static extensionFunctions.MarketingStuffKt.*;
 
 public class SomeJava {
 
     public static void callingExt(Customer customer) {
         /// begin: callingExt
-        var s = Extension_functionsKt.nameForMarketing(customer); // <1>
+        var s = MarketingStuffKt.nameForMarketing(customer); // <1>
         /// end: callingExt
     }
 
@@ -30,7 +30,7 @@ public class SomeJava {
     public static void callingUtil(JsonNode node) {
         /// begin: calling
         var customer = customerFrom(node);
-        var customer2 = toCustomer(node);
+        var marketingName = nameForMarketing(customer);
         /// end: calling
 
         /// begin: chaining

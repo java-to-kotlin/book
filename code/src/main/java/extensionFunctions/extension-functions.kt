@@ -74,11 +74,6 @@ fun delme() {
     val s = null.toString()
 }
 
-/// begin: nameForMarketingExt
-fun Customer.nameForMarketing() = "${familyName.toUpperCase()}, $givenName}"
-/// end: nameForMarketingExt
-
-
 object Chaining {
     val jsonNode: JsonNode = SOME_CODE()
 
@@ -123,7 +118,6 @@ fun Element?.toCustomer(): Customer? = this?.let { element ->
 fun xmlUsage() {
     /// begin: xmlUsage
     val customerElement: Element? = SOME_CODE()
-
     val customer: Customer? = customerElement?.toCustomer()
     /// end: xmlUsage
 }
