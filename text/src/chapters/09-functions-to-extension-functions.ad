@@ -512,10 +512,10 @@ For example, if we map it over a collection of elements, we would expect to get 
 None of the elements of that list would be null, but the static type would force us to deal with the non-existent null case, probably by ignoring the static type with the double-bang operator (`!!`) or throwing an exception with the plaintive message that "this should never happen".
 Either work-around is a bug waiting to happen when code around it changes, because we've made it impossible for the type checker to detect an incompatible change.
 
-So, except for private functions:
-
 TIP: Don't write extensions on nullable types that return `null` if the receiver is `null`.
 Write an extension on the non-nullable type and use the safe call operator in calling code.
+
+We may occasionally break this rule for private functions, but only if their use is limited to a very small scope.
 
 It's fine though, and often useful, to write extensions on nullable types that return a non-nullable result.
 Here, for example, is an extension function to convert from a nullable Kotlin reference to a Java `Optional`:
@@ -606,7 +606,8 @@ We can also extract parts of collections pipelines into named operations -- see 
 
 The Kotlin library authors faced the same issue extending types that they don't own as we do - in their case the types provided by the Java standard library.
 While they sometimes resorted to compiler trickery, a lot of the Kotlin standard library is extension functions.
-This includes fundamental functions like `map`, `filter` and `reduce` (defined as extensions on `Iterable`), and the scope functions `let`, `run`, `with`, `apply` and `also`. There is also an extension function `Any?.toString`.
+This includes fundamental functions like `map`, `filter` and `reduce` (defined as extensions on `Iterable`), and the scope functions `let`, `run`, `with`, `apply` and `also`.
+There is also an extension function `Any?.toString`.
 This returns the `String` representation of any reference, including `null`.
 
 [WARNING]
