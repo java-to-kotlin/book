@@ -163,9 +163,11 @@ public fun Customer.nameForMarketing(): String ...`.
 
 _Receiver_, by the way, is the term that Kotlin uses for the object named `this` in an extension function (or normal method) -- the object that receives messages.
 
-[TIP]
-.Function Types for Methods and Extension Functions
-====
+Note that extension functions don't have any special access to the private members of the class that they are extending -- they only have the same privileges as normal functions in their scope.
+
+
+=== Extensions and Function Types
+
 While we can't call extension functions as normal functions in Kotlin, we can assign them to normal function references. So the following compiles:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#references
@@ -217,9 +219,6 @@ customer.extensionAsFunctionReference()
 ----
 // end-insert
 
-====
-
-Note that extension functions don't have any special access to the private members of the class that they are extending -- they only have the same privileges as normal functions in their scope.
 
 === Extension Properties
 
@@ -607,6 +606,7 @@ We can also extract parts of collections pipelines into named operations -- see 
 The Kotlin library authors faced the same issue extending types that they don't own as we do - in their case the types provided by the Java standard library.
 While they sometimes resorted to compiler trickery, a lot of the Kotlin standard library is extension functions.
 This includes fundamental functions like `map`, `filter` and `reduce` (defined as extensions on `Iterable`), and the scope functions `let`, `run`, `with`, `apply` and `also`.
+
 There is also an extension function `Any?.toString`.
 This returns the `String` representation of any reference, including `null`.
 
