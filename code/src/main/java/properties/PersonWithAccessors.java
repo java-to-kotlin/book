@@ -8,7 +8,9 @@ public class PersonWithAccessors {
     private final String familyName;
     private final LocalDate dateOfBirth;
 
+
     public PersonWithAccessors(
+        /// mute: excerpt
         String givenName,
         String familyName,
         LocalDate dateOfBirth
@@ -16,16 +18,18 @@ public class PersonWithAccessors {
         this.givenName = givenName;
         this.familyName = familyName;
         this.dateOfBirth = dateOfBirth;
+    /// resume: excerpt
     }
 
     public String getGivenName() {
         return givenName;
     }
 
-    /// mute: excerpt
     public String getFamilyName() {
         return familyName;
     }
+    
+    /// mute: excerpt
 
     public LocalDate getDateOfBirth() {
         return dateOfBirth;
