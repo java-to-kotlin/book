@@ -25,7 +25,6 @@ public static double averageNonBlankLength(List<String> strings) {
 ----
 // end-insert
 
-Feel free to suggest a better name for the function!
 With Java streams we can express this algorithm as `filter`, `map` and `reduce` by first converting the `List` to a `Stream` and applying transformations:
 
 // begin-insert: src/main/java/sequences/Streams.java#stream
@@ -62,16 +61,15 @@ public static double averageNonBlankLength(List<String> strings) {
 
 <1> `parallelStream` will divide the work across multiple threads.
 
-Note that there are different types of fundamental operations going on here.
+There are different types of fundamental operations going on here.
 `map` changes the type of items, not their number.
 `filter` keeps or rejects items depending on some property, but keeps their type the same.
-`sum` is a _reduction_ of the collection to a single property.
+`sum` is a reduction of the collection to a single property.
 Not shown in this example are the operations `skip(n)` and `limit(n)`.
 These return streams without the first and last `n` elements respectively.
 
-Java streams are lazy: `strings.filter(...).mapToInt(...)` does nothing but set up a pipeline for some terminal operation (`sum()` in this case) to suck values through.
+Java streams are lazy: `strings.filter(...).mapToInt(...)` does nothing but set up a pipeline for some terminal operation, `sum` in this case, to suck values through.
 Laziness means that later pipeline stages can limit the amount of work performed by earlier stages.
-
 Consider translating a list of words until we see the word `STOP`.
 The loop version might look like this:
 
@@ -108,14 +106,12 @@ public static List<String> translatedWordsUntilSTOP(List<String> strings) {
 ----
 // end-insert
 
-This works because the `collect` causes values to be sucked through the pipeline, and `takeWhile` stops sucking from its predecessor when the predicate fails.
+This works because the `collect` causes values to be sucked through the pipeline, and `takeWhile` stops sucking from its predecessor when its predicate returns `false`.
 
-On the subject of sucking, we find that streams can be surprisingly slow for small collections.
+On the subject of sucking, streams can be surprisingly slow for small collections.
 They are great for large-scale data crunching where we want to throw all available cores at a problem; not so great for summing the cost of 5 items in a shopping cart.
-
 The problem is that Java streams were designed to provide general collection transformations, lazy evaluation, _and_ parallel processing, and these have different demands.
-Kotlin doesn't try to implement parallel operations, leaving two abstractions .
-Iterables are good for transforming and reducing collections, while sequences give lazy evaluation.
+Kotlin doesn't try to implement parallel operations, leaving two abstractions: iterables are good for transforming and reducing collections, while sequences give lazy evaluation.
 
 === Kotlin Iterables
 
@@ -135,8 +131,8 @@ fun averageNonBlankLength(strings: List<String>): Double =
 // end-insert
 
 Here `filter` is an extension function on `Iterable`.
-Unlike the `Stream.filter` though, which returns another `Stream`, the Kotlin `filter` returns a `List`.
-As does `map`, so the net result is that this single expression creates two additional lists in memory.
+Unlike the `Stream.filter` though, which returns another `Stream`, the Kotlin `filter` returns a `List` (which is `Iterable`, so we can continue the chain).
+`map` returns a `List` too, so this single expression creates two additional lists in memory.
 
 The first is a `List` of the non-blank strings, the second is a `List` of the lengths of those strings.
 When (if) we care about performance, this can be a problem, because both of those lists will take time to populate and memory to support.
@@ -145,8 +141,8 @@ The `List` of lengths is a particular issue, because the integers will have been
 The Java streams example used `mapToInt(String::length)` to avoid this problem.
 `IntStream` (and `LongStream` and `DoubleStream`, but curiously not `BooleanStream` or `CharStream`) were created to prevent streams having to boxing and unbox, but you have to remember to use them, and `IntStream` is not a `Stream<Integer>`.
 
-Anyway, should we care about performance?
-Mostly no - this Kotlin will be fast enough _unless_ we have large collections; the opposite of streams, which are only fast enough _if_ we have large collections.
+Should we care about performance?
+Mostly no - this Kotlin will be fast _unless_ we have large collections; the opposite of streams, which are only fast _if_ we have large collections.
 When we do have large collections, we can switch over to sequences.
 
 === Kotlin Sequences
@@ -175,13 +171,12 @@ This code reads the same as the iterable version, but each of the functions is a
 
 .Swapping Iterables and Sequences
 ****
-`Iterable<T>` and `Sequence<T>` have the same single method signature: `public operator fun iterator(): Iterator<T>`
+`Iterable<T>` and `Sequence<T>` have the same single method signature: `public operator fun iterator(): Iterator<T>`.
 They both also have extension functions for `map`, `filter`, `reduce` etc which take the same parameters.
-But they are not the same type.
-They are different types because their semantics are very different.
+But they are not the same type, because their semantics are very different.
 The operations on `Iterable` are eager, whilst those on `Sequence` are lazy - so we cannot swap one for the other with impunity (as we will see later in this chapter).
 
-Nevertheless, the fact that they have such similar APIs means that in situations like this, we can often change very little (source) code when we swap between them.
+Nevertheless, the fact that they have such similar APIs means that in situations like this, we can often change very little (source) code when we do want to swap between them.
 ****
 
 The sequence version of `averageNonBlankLength` won't pay the price of creating the intermediate lists to hold the results of each stage, but for small numbers of items, the cost of setting up and executing the pipeline may be higher than creating the lists.
@@ -202,6 +197,7 @@ fun averageNonBlankLength(strings: List<String>): Double =
 // end-insert
 
 `sumBy` (also available as an extension on `Iterable`) avoids boxing by taking a function that returns an `Int`.
+It can do this because it is a terminal operation and so doesn't return another sequence or collection.
 
 ifdef::optional-content[]
 IntelliJ is getting increasingly good at spotting when pipeline stages can be merged like this, although at the time of writing it failed to spot this opportunity.
@@ -231,13 +227,13 @@ public static double averageNonBlankLength(Stream<String> strings) {
 ----
 // end-insert
 
-This looks very plausible: we've extracted a function taking a `Stream` rather than the `List`.
+This looks very plausible: we've just extracted a function taking a `Stream` parameter rather than the `List`.
 There is no `size` property on `Stream`, but `count()` gives the same result, so we use that.
 When we run it though, we get `java.lang.IllegalStateException: stream has already been operated upon or closed`.
 
 The problem is that a `Stream` has hidden state.
-Once we have consumed all its items (and `sum()` does just that), we can't go round again to `count()` them.
-(Even though the `sum` is actually on an `IntStream`, each stream in the pipeline consumes its predecessor, so the input `strings` is consumed by the `sum`.)
+Once we have consumed all its items (and `sum` does just that), we can't go round again to `count` them.
+Even though `sum` is actually a method on `IntStream`, each stream in the pipeline consumes its predecessor, so the input `strings` is consumed by the `sum`.
 
 In Java this is enough to put you off extracting `Stream` operations into functions.
 Let's try the same thing with a Kotlin `Sequence`:
@@ -256,9 +252,7 @@ fun averageNonBlankLength(strings: Sequence<String>): Double =
 ----
 // end-insert
 
-In Kotlin, we can call the `Sequence` version from the `List` version and all is fine.
-
-For now.
+In Kotlin, we can call the `Sequence` version from the `List` version and all is fine ... for now.
 
 We are storing up trouble though.
 To see why, let's step out another layer and add a function that takes an `Iterator`:
@@ -277,7 +271,7 @@ What changed?
 
 It turns out that some sequences can safely be iterated over multiple times - those backed by a collection which is held in memory, for example.
 Others cannot.
-Now our `Sequence` is provided by an `Iterator`, the first run through (to calculate the `sum`) continued until `Iterator.hasNext()` returned `false`.
+Now that our `Sequence` is provided by an `Iterator`, the first run through (to calculate the `sum`) continued until `Iterator.hasNext()` returned `false`.
 If we were to try to run through the `Sequence` again (to `count`) the `Iterator` state has not changed, so `hasNext()` will immediately return `false`.
 This would lead `strings.count()` to return `0`; and `averageNonBlankLength` would always return `Infinity` (if there was any input).
 
@@ -308,32 +302,31 @@ fun averageNonBlankLength(strings: Sequence<String>): Double {
 ----
 // end-insert
 
-When we wrote this, it was the first problem that we solved in the book text with a mutable variable!
-We can hide our shame inside a more generally useful utility class:
+This is the first problem that we have solved in this book with a mutable local variable!
+We can hide our shame inside a more generally useful utility class: `CountingSequence`:
 
 // begin-insert: src/main/java/sequences/sequences.kt#CountingSequence
 [source,kotlin]
 ----
-fun averageNonBlankLength(strings: Sequence<String>): Double =
-    CountingSequence(strings).let { counter ->
-        (counter
-            .filter { it.isNotBlank() }
-            .sumBy(String::length)
-            / counter.count.toDouble())
-    }
-
 class CountingSequence<T>(
     private val wrapped: Sequence<T>
 ) : Sequence<T> {
     var count = 0
-
     override fun iterator() =
         wrapped.onEach { count++ }.iterator()
+}
+
+fun averageNonBlankLength(strings: Sequence<String>): Double {
+    val countingSequence = CountingSequence(strings)
+    return (countingSequence
+            .filter { it.isNotBlank() }
+            .sumBy(String::length)
+            / countingSequence.count.toDouble())
 }
 ----
 // end-insert
 
-This a recurrent theme in implementing Kotlin algorithms - we might occasionally need to stoop to mutation to implement something in a sensible or efficient way, but we can often hide the mutation in a way that both reduces its visibility and makes for a useful abstraction.
+This a recurrent theme in Kotlin algorithms -- we might occasionally need to stoop to mutation to implement something in a sensible or efficient way, but we can usually hide the mutation in a way that both reduces its visibility and makes for a useful abstraction.
 In this case this is aided by the fact that `Sequence` is an interface with just one method, making it very easy to implement it ourselves.
 Java's `Stream` is also an interface, but with 42 methods, and no `AbstractStream` class to provide default implementations!
 
@@ -403,7 +396,7 @@ public static List<String> translatedWordsUntilSTOP(List<String> strings) {
 ----
 // end-insert
 
-If we convert this to use `Iterable`:
+We can convert this to the equivalent iterable expression:
 
 // begin-insert: src/main/java/sequences/sequences.kt#translatingList
 [source,kotlin]
@@ -415,9 +408,8 @@ fun translatedWordsUntilSTOP(strings: List<String>): List<String> =
 ----
 // end-insert
 
-then _all_ words in the input `List` will be converted to another `List` by `map`.
-We will form another `List` of only those until `STOP`.
-Using a `Sequence`:
+But then _all_ words in the input `List` will be translated to another `List` by `map`, even those after `STOP`.
+Using a `Sequence` avoids translating words we aren't going to return:
 
 // begin-insert: src/main/java/sequences/sequences.kt#translatingSequence
 [source,kotlin]
@@ -431,8 +423,6 @@ fun translatedWordsUntilSTOP(strings: List<String>): List<String> =
 ----
 // end-insert
 
-We will translate only the words up to the first translated to `STOP`.
-
 If we don't need lazy evaluation, and for smaller collections, or when writing from scratch in Kotlin, `Iterable` pipelines are simple, generally quick, and easy to reason with.
 Your authors will often convert streams to iterables in order to take advantage of the far richer API that Kotlin provides.
 If iterables prove too slow (or sometimes too greedy for memory) with large collections, then we can convert to sequences.
@@ -445,31 +435,30 @@ If any of our algorithm depends on the order of operations it may be broken if w
 What we want is code with a predictable _algebra_ - a set of rules for manipulating operations while preserving behaviour.
 
 We saw in <<actions-to-calculations>> that we can categorise functions (actually any code, including lambdas), according to whether they depend on when they are run.
-Calculations (<<calculations>>) are safe to refactor because we can move their invocations around without affecting their result, or the result of any other calculation.
-In contrast, moving an action (<<actions>>) from an iterable to a sequence or vice-verse may change when it is invoked, and hence the outcome of our program.
+Calculations (<<calculations>>) are safe to refactor because we can move their invocations around without affecting their result, or the result of any other code.
+In contrast, moving an action (<<actions>>) from an iterable to a sequence, or vice-verse, may change when it is invoked, and hence the outcome of our program.
 The more of our code is expressed as calculations, the more we can treat its representation as something that we can transform according to rules.
 
-We can also apply an algebra, this time of arithmetic, to simplify our definition of `averageNonBlankLength`.
+We can also apply another algebra -- arithmetic -- to simplify our definition of `averageNonBlankLength`.
 This is currently:
 
 // begin-insert: src/main/java/sequences/sequences.kt#CountingSequence
 [source,kotlin]
 ----
-fun averageNonBlankLength(strings: Sequence<String>): Double =
-    CountingSequence(strings).let { counter ->
-        (counter
-            .filter { it.isNotBlank() }
-            .sumBy(String::length)
-            / counter.count.toDouble())
-    }
-
 class CountingSequence<T>(
     private val wrapped: Sequence<T>
 ) : Sequence<T> {
     var count = 0
-
     override fun iterator() =
         wrapped.onEach { count++ }.iterator()
+}
+
+fun averageNonBlankLength(strings: Sequence<String>): Double {
+    val countingSequence = CountingSequence(strings)
+    return (countingSequence
+            .filter { it.isNotBlank() }
+            .sumBy(String::length)
+            / countingSequence.count.toDouble())
 }
 ----
 // end-insert
@@ -570,7 +559,7 @@ public static double averageNonBlankLength(List<String> strings) {
 ----
 // end-insert
 
-Ah, then our initial translation would probably have been:
+Ah -- then our initial translation would probably have been:
 
 // begin-insert: src/main/java/sequences/Streams.java#stream2
 [source,java]
@@ -585,7 +574,7 @@ public static double averageNonBlankLength(List<String> strings) {
 ----
 // end-insert
 
-In that case we would have had a shorter chapter, but learned less about streams, iterables and sequences.
+In that case we would have had a shorter chapter, but learned less.
 
 === Refactoring from Streams to Iterables and Sequences
 
@@ -594,8 +583,7 @@ These are sent as JSON to an indexing server, which can generate pretty graphs a
 Somehow though, those nice people in marketing are always asking questions that we can't write queries for.
 
 In these cases we fetch events from the server and process them locally.
-The querying, marshalling and paging of the events is hidden behind a simple `EventStore` interface that returns an `Iterator<Map<String, Object>`.
-`Map<String, Object>` represents JSON objects.
+The querying, marshalling and paging of the events is hidden behind a simple `EventStore` interface that returns an `Iterator<Map<String, Object>`, where `Map<String, Object>` represents JSON objects.
 
 // begin-insert: tags/streams-to-sequences.0:src/main/java/travelator/analytics/EventStore.java
 [source,java]
@@ -612,7 +600,7 @@ public interface EventStore {
 ----
 // end-insert
 
-The interface contains its own conversion of the `Iterator` to a `Stream` for our happy convenience (we still find it awesome that there is no conversion function built in to the JDK).
+The interface contains its own conversion of the `Iterator` to a `Stream` for our happy convenience (amazingly there is no conversion function built in to the JDK).
 
 Here is the sort of thing that we haven't been able to write in the indexing server's query language.
 It calculates the average number of interactions customers make to successfully complete a booking:
@@ -647,18 +635,17 @@ public double averageNumberOfEventsPerCompletedBooking(
 
 We did our best when we wrote this to make it understandable.
 We named intermediate variables, and specified their types when and only when it seemed to help, and formatted carefully, and still it looks like a cleaner knocked the code on the floor and tried to put it back together in the hope that we didn't notice.
-We sometimes end up in a losing battle like this.
-We could extract a function to simplify code at the call site, but if we can't give that function a good name, then we have just kicked the can down the source file.
+We sometimes end up in a losing battle like this: we could extract a function to simplify code at the call site, but if we can't give that function a good name, then we have just kicked the can down the source file.
 
 [TIP]
 .Implicit or Explicit Types
 ====
 Sometimes a variable's type is essential to understanding how code works, other times it just clutters an already wordy block.
 In this respect explicit types are like comments, but they have the added advantage that they are checked and enforced by the compiler.
-As with comments, we should strive to write code that doesn't need explicit variable types.
+As with comments, we should try to write code that doesn't need explicit variable types.
 Good naming can help, as can refactoring into functions where the return type can be shown.
 
-If these fail though, there is no shame in showing the type of a variable if it improves the readability of the code, and we should certainly prefer to communicate in types than comments.
+If these fail though, there is no shame in showing a variables type if it improves the readability of the code, and we should certainly prefer to communicate in types than comments.
 ====
 
 We're going to convert this code to Kotlin, in the fervent hope that our favourite language will allow us to do a better job.
@@ -694,7 +681,7 @@ fun averageNumberOfEventsPerCompletedBooking(
 // end-insert
 
 At the time of writing, the Java to Kotlin converter is not as clever as it might be mapping between lambdas in the two languages.
-This is particularly noticeable in streams codes, because that is where most Java lambdas are to be found.
+This is particularly noticeable in streams code, because that is where most Java lambdas are to be found.
 Most of the issues can be fixed with Alt-Enter on the odd code and accepting a quick-fix.
 Let's start by tidying up nullability, removing the vestigial `Function`, and simplifying that ugly `mapToInt` lambda:
 
@@ -728,9 +715,9 @@ The conversion has dropped the explicit types.
 It is certainly less intimidating this way, but also less comprehensible if we actually care how it is doing whatever it is doing.
 We'll leave it this way for now but review our decision before we finish.
 
-At this point we have code that runs just fine calling Java streams from Kotlin.
+At this point we have Kotlin code using Java streams that runs just fine.
 We could leave it alone.
-Travelator is a huge success, with many thousands of completed bookings a day, so streams are a good choice for throughput.
+Travelator is a huge success, with many thousands of completed bookings a day, streams are a good choice for throughput, so why convert to Kotlin?
 You didn't buy this book for that sort of attitude though, so we'll push on under the pretense that we are measuring performance at every stage and will stop if we see it degrade.
 
 ==== Iterables First
@@ -775,8 +762,8 @@ Usually we would have tests to make this safer, but this is fast-moving and arbi
 Before we begin refactoring proper we write a quick test that talks to production and shows that the result for yesterday was 7.44 - now we can keep running that to check that it doesn't change.
 
 We know that we can apply collection operations directly to `Map.values` in Kotlin (those on `Iterable`), so we can remove the `.stream()`.
-`average()` is an operation on `IntStream` in Java, but Kotlin conveniently declares `Iterable<Int>.average(), so we don't have to `mapToInt`, just `map`.
-Finally, where `IntStream.average()` returns an empty `OptionalDouble` if the stream has no elements, Kotlin's `Iterable<Int>.average()` returns _Not A Number_, which means we can use the result directly:
+`average()` is an operation on `IntStream` in Java, but Kotlin conveniently declares `Iterable<Int>.average()`, so we don't have to `mapToInt`, just `map`.
+Finally, where `IntStream.average()` returns an empty `OptionalDouble` if the stream has no elements, Kotlin's `Iterable<Int>.average()` returns `NaN` (Not A Number), which means we can use the result directly:
 
 // begin-insert: tags/streams-to-sequences.3:src/main/java/travelator/analytics/MarketingAnalytics.kt#part2
 [source,kotlin]
@@ -794,10 +781,10 @@ Has this been a good change though?
 Looking at the code, we are now creating an intermediate `List<Int>` on which to call `average()`.
 This will result in boxing each value, and this time there is no `averageBy()` (as there was `sumBy()` in the previous example) to prevent this.
 
-Whether this code performs better or worse than the stream version will depend on the number of values in the `Map`, how our particular JVM optimizes boxing, and how heavily HotSpot has optimized this path - only measuring in real conditions will tell.
+Whether this code performs better or worse than the stream version will depend on the number of values in the `Map`, how our particular JVM optimizes boxing, and how heavily HotSpot has optimized this path -- only measuring in real conditions will tell.
 If we have to choose a generic solution then we should probably write our own `List.averageBy` - that way we can leverage knowing the size of a `List`.
-We could use the one we prepared earlier (albeit for `Sequence`), or refactor from here.
-We can do this by extracting `values` and using `sumBy()`:
+We could use the one we prepared earlier in the chapter (albeit for `Sequence`), or refactor from here.
+We can refactor from here by extracting `values` and using `sumBy()`:
 
 // begin-insert: tags/streams-to-sequences.4:src/main/java/travelator/analytics/MarketingAnalytics.kt#part2
 [source,kotlin]
@@ -807,7 +794,7 @@ return values.sumBy { it.size } / values.size.toDouble()
 ----
 // end-insert
 
-Now "Extract Function" `averageBy`:
+Now "Extract Function" `averageBy` on the returned expression:
 
 // begin-insert: tags/streams-to-sequences.5:src/main/java/travelator/analytics/MarketingAnalytics.kt#part2
 [source,kotlin]
@@ -831,7 +818,7 @@ private fun averageBy(
 Eeek!
 It turns out that the type of `bookingEventsByInteractionId` was a lot more mutable than we wanted.
 It came from `Collectors.groupingBy`, a stream operation which only has Java collections to return after all.
-We'll just use `Collection` in place of the `MutableCollection` for now, and then "Introduce Parameter" named `selector` on the lambda:
+We'll change it to use `Collection` in place of the `MutableCollection` for now, and then "Introduce Parameter" named `selector` on the lambda:
 
 // begin-insert: tags/streams-to-sequences.6:src/main/java/travelator/analytics/MarketingAnalytics.kt#averageBy
 [source,kotlin]
@@ -860,7 +847,7 @@ private fun <T : MutableList<MutableMap<String, Any>>> averageBy(
 ----
 // end-insert
 
-That refactoring is clever enough that we don't begrudge having to tell IntelliJ that `T` can be anything really by removing the `MutableList<MutableMap<String, Any>>` type restriction:
+That refactoring is clever enough that we don't begrudge having to tell IntelliJ that `T` can be anything really (by removing the `MutableList<MutableMap<String, Any>>` type restriction):
 
 // begin-insert: tags/streams-to-sequences.8:src/main/java/travelator/analytics/MarketingAnalytics.kt#averageBy
 [source,kotlin]
@@ -896,17 +883,16 @@ inline fun <T> Collection<T>.averageBy(selector: (T) -> Int): Double =
 ----
 // end-insert
 
-This version doesn't box integers, nor iterate more than once, so it is probably as efficient as we are going to get, but again: only measuring in our specific circumstances will tell for sure.
+This version doesn't box integers, nor iterate more than once, so it is probably as efficient as we are going to get.
+But again, only measuring in our specific circumstances will tell for sure.
 
-Note that when we wrote `averageNonBlankLength` taking a `Sequence` earlier, we had to count the number of items.
-By defining `averageBy` as an extension on `Collection` rather than `Iterable`, we can make use of the fact that we can ask the `size` of in-memory collections to avoid this tedious book-keeping.
-
-On the subject of which...
+Note that when we wrote `Sequence.averageNonBlankLength` earlier, we had to count the number of items.
+By defining `averageBy` as an extension on `Collection` rather than `Iterable`, we can make use of the fact that we can ask the `size` of in-memory collections to avoid the tedious book-keeping.
 
 ==== Then Sequences
 
 So far we have converted the in-memory pipeline.
-Now we are left with the code that reads an unknown number of events from the `eventStore` - we will want to keep this code lazy.
+Now we are left with the code that reads an unknown number of events from the `eventStore` -- we will want to keep this code lazy.
 
 Returning to the entry point we now have:
 
@@ -930,8 +916,8 @@ fun averageNumberOfEventsPerCompletedBooking(
 ----
 // end-insert
 
-Now we can begin to see that the variable `bookingEventsByInteractionId` is only really there to give a checkpoint in the algorithm: it names an intermediate in the hope that aids understanding.
-`eventsForSuccessfulBookings` is a `Stream`, so we can convert the `collect(groupingBy(...))` to Kotlin with `asSequence().groupBy {...}` - the lambda remains unchanged:
+Now the variable `bookingEventsByInteractionId` is only really there to give a checkpoint in the algorithm: it names an intermediate in the hope that it aids understanding.
+Moving up the function,`eventsForSuccessfulBookings` is a `Stream`, so we can convert the `collect(groupingBy(...))` to Kotlin with `asSequence().groupBy {...}` -- the lambda remains unchanged:
 
 // begin-insert: tags/streams-to-sequences.10:src/main/java/travelator/analytics/MarketingAnalytics.kt#part2
 [source,kotlin]
@@ -960,8 +946,8 @@ val eventsForSuccessfulBookings = eventStore
 ----
 // end-insert
 
-This would also _probably just work_ if we had a sequences rather than streams.
-Thankfully, we know how to convert from the `Stream` to a `Sequence` - it's the `.asSequence()` extension.
+This would also _probably just work™_ if we had a sequences rather than streams.
+Thankfully, we know how to convert from the `Stream` to a `Sequence` - it's the `.asSequence()` extension provided by the Kotlin JDK interop.
 We need to apply it to both streams:
 
 // begin-insert: tags/streams-to-sequences.11:src/main/java/travelator/analytics/MarketingAnalytics.kt#part1
@@ -980,7 +966,7 @@ val eventsForSuccessfulBookings = eventStore
 // end-insert
 
 Awesomely, this continues to compile and to pass our (cursory) test!
-It works because, while we have changed the type of `eventsForSuccessfulBookings` from `Stream` to `Sequence`, we have `eventsForSuccessfulBookings.asSequence()`:
+It compiles because, while we have changed the type of `eventsForSuccessfulBookings` from `Stream` to `Sequence`, we then call `eventsForSuccessfulBookings.asSequence()`:
 
 // begin-insert: tags/streams-to-sequences.11:src/main/java/travelator/analytics/MarketingAnalytics.kt#part2
 [source,kotlin]
@@ -1006,7 +992,7 @@ val bookingEventsByInteractionId = eventsForSuccessfulBookings
 ----
 // end-insert
 
-Returning to `eventsForSuccessfulBookings`:
+Returning to `eventsForSuccessfulBookings`, we now have:
 
 // begin-insert: tags/streams-to-sequences.11:src/main/java/travelator/analytics/MarketingAnalytics.kt#part1
 [source,kotlin]
@@ -1033,7 +1019,7 @@ fun EventStore.queryAsSequence(query: String) =
 ----
 // end-insert
 
-This allows us to write:
+This allows us to remove the `asSequence` calls from the calling function:
 
 // begin-insert: tags/streams-to-sequences.12:src/main/java/travelator/analytics/MarketingAnalytics.kt#averageNumberOfEventsPerCompletedBooking
 [source,kotlin]
@@ -1058,7 +1044,7 @@ fun averageNumberOfEventsPerCompletedBooking(
 // end-insert
 
 OK, time to review.
-We've converted our Java to Kotlin, and are using iterables to process the in-memory operations, and sequences (backed by streams) to process the unbounded operations.
+We've converted our Java to Kotlin, and are using iterables to process the in-memory operations, and sequences (backed by streams in `EventStore`) to process the unbounded operations.
 We really can't claim, though, that the structure of the algorithm has become much clearer.
 A little less noisy yes, but hardly expressive.
 
@@ -1147,7 +1133,7 @@ private fun allEventsInSameInteractions(
 ----
 // end-insert
 
-That's really ugly, but once we convert the parameter to `allEventsInSameInteractions` to a receiver and reformat we have:
+That's really ugly, but once we convert the `sequence` parameter of `allEventsInSameInteractions` to a receiver and reformat we have:
 
 // begin-insert: tags/streams-to-sequences.16:src/main/java/travelator/analytics/MarketingAnalytics.kt#averageNumberOfEventsPerCompletedBooking
 [source,kotlin]
@@ -1232,3 +1218,5 @@ It has access to both `this` from `MarketingAnalytics` (to access `eventStore`) 
 We aren't going to claim that the refactored Kotlin code in this example is beautiful, but we do think that it is a significant improvement on the original Java.
 Extension functions, Kotlin's lambda syntax, and improved type-inference, combine to reduce a lot of the noise associated with Java streams.
 When we have in-memory collections, using iterables rather than streams can also be more efficient as well as cleaner.
+
+// TODO some more linking to other themes

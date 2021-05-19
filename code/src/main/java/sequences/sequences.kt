@@ -79,21 +79,20 @@ object Sequences4 {
 
 object Sequences5 {
     /// begin: CountingSequence
-    fun averageNonBlankLength(strings: Sequence<String>): Double =
-        CountingSequence(strings).let { counter ->
-            (counter
-                .filter { it.isNotBlank() }
-                .sumBy(String::length)
-                / counter.count.toDouble())
-        }
-
     class CountingSequence<T>(
         private val wrapped: Sequence<T>
     ) : Sequence<T> {
         var count = 0
-
         override fun iterator() =
             wrapped.onEach { count++ }.iterator()
+    }
+
+    fun averageNonBlankLength(strings: Sequence<String>): Double {
+        val countingSequence = CountingSequence(strings)
+        return (countingSequence
+                .filter { it.isNotBlank() }
+                .sumBy(String::length)
+                / countingSequence.count.toDouble())
     }
     /// end: CountingSequence
 }
