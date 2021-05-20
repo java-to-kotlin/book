@@ -71,11 +71,11 @@ This is the problem with making use of conventions that are not underwritten by 
 Once we have a `Route` class, it is a convenient namespace to host operations on routes, like `getDepartsFrom` and `getDuration`.
 In this case all the methods shown only use other public methods, and there is no polymorphic behaviour, so these operations _could_ be defined as static methods taking a `Route` parameter.
 We can view `Route` as more of a namespace than a class: the operations don't _have_ to be methods, it's just more convenient that they are, at least in Java, where static functions are so much less discoverable than methods.
-In Kotlin (as we saw in <<functions-to-extension-functions>>), making the operations into extension functions would let us find and call them as if they were methods.
+In Kotlin, as we saw in <<functions-to-extension-functions>>, making the operations into extension functions would let us find and call them as if they were methods.
 `Route` as a class would then be adding no value to `List` of `Journey`, just preventing people from changing it.
 And in an all Kotlin codebase, that `List` would be effectively immutable anyway.
 
-In fact, `Route` doing worse than adding no value to `List<Journey>`, it is removing value.
+In fact, `Route` is doing worse than adding no value to `List<Journey>`, it is removing value.
 If we had a `List<Journey>`, our front end code could use its `Iterator` when rendering:
 
 // begin-insert: tags/encapsulated-collections.0:src/main/java/travelator/UI.java#iterable
@@ -110,7 +110,7 @@ Before we know it, adding an operation to support a new UI function ends up reco
 
 === Composing Domain Collections
 
-If we don't encapsulate the collection - if we make our domain model _be_ the appropriate data structure, rather than hiding it behind a class boundary - we _extend_ the operations available for us to work with the data.
+If we don't encapsulate the collection -- if we make our domain model _be_ the appropriate data structure, rather than hiding it inside another class boundary -- we _extend_ the operations available for us to work with the data.
 Then we have our application-specific operations _and_ all the operations defined for the collection.
 Client code can define the operations it needs in terms of the rich collections API without having to add them to the class.
 
@@ -118,7 +118,7 @@ Rather than a `Route` class accreting all the route functionality, and in turn c
 The UI can define functions that render `List<Journey>`, which in turn import functions that transform `Iterable<Journey>`.
 The persistence layer can transform database responses into `List<Journey>` and have no particular concept of routyness at all.
 
-We can program like this in Java, but the poor discoverability of static functions, combined with mutable collections, makes the technique tedious and error-prone.
+We can program like this in Java, but the poor discoverability of static functions, combined with mutable collections, goes against the grain of the language.
 Kotlin's extension functions address the first, and immutable collections the second, so that in Kotlin breaking our domain model into collection types and separate operations is the happy path.
 
 If we don't need to control access to a collection to prevent embarrassing mutation, and we don't need to write a class to host operations on collections of a type, then is our `Route` class doing anything for us?
@@ -166,7 +166,7 @@ We'll get to it in <<collections-with-properties>>.
 One of the core services of our Travelator application is route planning.
 
 The `Route` that we saw earlier is a sequence of journeys that can take the traveller from one location to another.
-We'd like to add some functionality that will allow us to sell accommodation where a `Route` is split over days, but, as key domain abstraction, it is collapsing under the weight of all the operations that we have already added to it, and coupling disparate parts of the codebase together.
+We'd like to add some functionality that will allow us to sell accommodation where a `Route` is split over days, but, as a key domain abstraction, `Route` is collapsing under the weight of all the operations that we have already added to it, and coupling disparate parts of the codebase together.
 Let's see if we can refactor `Route` to make some room before we start work on the new feature.
 
 Here again is the Java Route class:
@@ -200,7 +200,7 @@ public class Route {
 
 ==== Convert Operations to Extensions
 
-We're going to make `Route` less unwieldy by moving its operations from methods to functions.
+We're going to make `Route` less unwieldy (maybe even more wieldy) by moving its operations from methods to functions.
 Extension functions make this a reasonable strategy, but only from Kotlin, where they are much more discoverable.
 So we're only going to attempt this stunt once the majority of our uses of `Route` are Kotlin.
 Luckily, our team really likes converting Java to Kotlin and has been beavering away as they work through the chapters of this book, so we're ready to try this refactoring.
@@ -227,7 +227,7 @@ class Route(
 ----
 // end-insert
 
-As usual, you should assume that we are running our tests between refactors to make sure that we haven't broken anything - all is fine at the moment.
+As usual, you should assume that we are running our tests between refactors to make sure that we haven't broken anything -- all is fine at the moment.
 
 Once a class is in Kotlin, IntelliJ can convert methods into extension methods.
 Let's try out this refactoring on the `departsFrom` property - select it, Alt-Enter and "Convert member to extension".
@@ -307,8 +307,7 @@ public void render(Route route) {
 ----
 // end-insert
 
-Note that we have converted the `size` function to a `size` property, so Java sees a `getSize` function.
-This example could now be converted to iterate over the `journeys` property.
+(Note that as we have converted the `size` method to a `size` extension property, Java sees a `getSize` function.)
 
 Here then is all that is left of the once-bloated `Route` class:
 
@@ -376,7 +375,7 @@ fun replaceJourney() {
 // end-insert
 
 (In passing, note that this test was made more complicated by only having `get` to access the components of a `route`.
-We can fix that now we can access the `journeys`.)
+We can fix that now we can access the `journeys` property directly.)
 
 Here's the implementation again:
 
@@ -416,12 +415,12 @@ fun Route.withJourneyAt(index: Int, replacedBy: Journey): Route =
 
 Any operation that transforms ++Route++s will have this problem: a problem that wouldn't exist if we just used a type alias to say that a `Route` and `List<Journey>` are the same type.
 
-To get there, we are going to have to remove all the calls to the `Route` constructor, and also the accesses of the `journeys` property - effectively unwrapping our carefully-crafted encapsulation.
+To get there, we are going to have to remove all the calls to the `Route` constructor, and also the accesses of the `journeys` property -- effectively unwrapping our carefully-crafted encapsulation.
 There is a trick to do this automagically, but it relies on having converted all clients of `Route` to Kotlin.
-(So does using a type alias though, so if we have any remaining Java clients we are going to have to resign ourselves to some manual editing.)
+So does using a type alias though, so if we have any remaining Java clients we are going to have to resign ourselves to some manual editing.
 
-What we're going to do is to replace the class with a typealias _and_ temporary definitions that emulate the API of the class:
-This is currently:
+What we're going to do is to replace the class with a typealias, and at the same time add temporary definitions that emulate the API of the class:
+That API is currently:
 
 // begin-insert: tags/encapsulated-collections.6:src/main/java/travelator/itinerary/Route.kt#route
 [source,kotlin]
@@ -445,7 +444,7 @@ val Route.journeys get() = this
 ----
 // end-insert
 
-Because there is no `new` keyword in Kotlin, we can emulate the constructor call `Route` with a function of the same name.
+Because there is no `new` keyword in Kotlin, we can emulate the constructor call `Route(...)` with a function of the same name.
 Similarly, we replace the `journeys` property with an extension property that returns the receiver itself.
 The net result is that our Kotlin clients continue to compile against this new API.
 
@@ -466,7 +465,7 @@ assertEquals(
 <1> Our new function, not the constructor
 <2> Extension property, not the class property
 
-Inlining both function and property completes the refactor - the encapsulated collection is now just a collection:
+Inlining both function and property completes the refactor -- the encapsulated collection is now just a collection:
 
 // begin-insert: tags/encapsulated-collections.9:src/test/java/travelator/itinerary/RouteTests.kt#replaceJourney
 [source,kotlin]
@@ -516,7 +515,7 @@ operator fun Route.get(index: Int) = this[index]
 As these have the same signature as their method counterparts on `List`, the compiler warns us that they are shadowed -- our Kotlin will be calling the methods not the extensions.
 That means that if we didn't have any Java client code invoking the extensions as statics, we could delete them.
 
-We do though - that pesky rendering code, which is still calling the extensions as `getSize` and `get` in `RouteKt`.
+We do have a Java client though -- that pesky rendering code, which is still calling the extensions as `getSize` and `get` in `RouteKt`.
 Those extensions are calling the methods that we want to use, but we can't inline code from Kotlin to Java, so we'll just delete the extensions anyway.
 Now the compiler will tell us where we need to fix the Java, and we can do that by hand:
 
@@ -582,7 +581,7 @@ assertEquals(
 ----
 // end-insert
 
-Residual Java is a little ugly, but plausible:
+Any residual Java is readable, if a little ugly:
 
 // begin-insert: tags/encapsulated-collections.11:src/main/java/travelator/UI.java#header
 [source,java]
@@ -622,7 +621,7 @@ class Itinerary(
 ----
 // end-insert
 
-We can get the advantages of being able to query ++Journey++s directly by implementing `Route`.
+We can get the advantages of being able to query ++Journey++s directly by implementing `Route` with delegation:
 
 // begin-insert: tags/encapsulated-collections.13:src/main/java/travelator/itinerary/Itinerary.kt#excerpt
 [source,kotlin]
@@ -643,7 +642,7 @@ class Itinerary(
 <1> The `by route` clause declares that the an `Itinerary` object will delegate all methods of `Route` interface to the `route` parameter passed to its constructor.
     A class can override this behaviour by providing its own implementation of methods of the delegated interface, but we don't want to do this for `Itinerary`.
 
-Now we can treat `Itinerary` as a `Route`, we can move `hasJourneyLongerThan` out as an extension, and have it available to any `Route`, not just `Itinerary`:
+Now that we can treat `Itinerary` as a `Route`, we can move `hasJourneyLongerThan` out as an extension, and have it available to any `Route`, not just `Itinerary`:
 
 // begin-insert: tags/encapsulated-collections.14:src/main/java/travelator/itinerary/Itinerary.kt#hasJourneyLongerThan
 [source,kotlin]
@@ -653,7 +652,7 @@ fun Route.hasJourneyLongerThan(duration: Duration) =
 ----
 // end-insert
 
-We can also use the extensions we defined previously on `Itinerary` as well as `Route`:
+All those extensions to `Route` (aka `List<Journey>`) that we moved from methods to extensions are also now applicable to `Itinerary` as well:
 
 // begin-insert: tags/encapsulated-collections.14:src/main/java/travelator/itinerary/itineraries.kt#shortest
 [source,kotlin]
@@ -667,7 +666,7 @@ fun Iterable<Itinerary>.shortest() =
 
 <1> This is `Route.duration` aka `List<Journey>.duration`
 
-What we can't do as easily is create a new `Itinerary` from an existing one.
+What we can't do as easily is to create a new `Itinerary` from an existing one.
 This is now easy for `Route`, as standard API operations on `List<Journey>` (actually, usually `Iterable<Journey>` as we saw in <<java-to-kotlin-collections>>) return `List<Journey>`, which is the other name for `Route`:
 
 // begin-insert: tags/encapsulated-collections.14:src/main/java/travelator/itinerary/itineraries.kt#withoutJourneysBy
@@ -734,7 +733,7 @@ data class Itinerary(
 ----
 // end-insert
 
-This allows us to create a transformed `Itinerary` almost as easily as we could create transformed ++Route++s:
+This allows us to create a transformed `Itinerary` almost as easily as we could create a transformed `Route`:
 
 // begin-insert: tags/encapsulated-collections.16:src/main/java/travelator/itinerary/itineraries.kt#excerpt
 [source,kotlin]
@@ -759,4 +758,4 @@ Because our class encapsulated a single collection, we were able to eliminate th
 Immutable collections and extensions allow us to organise our code in ways that are not available to us in Java.
 We can group all the logic required by a particular feature of the application in the same module, regardless of the domain classes the logic applies to.
 However, if we wanted methods of those domain classes to be polymorphic methods, we would have to define them on those classes and not in our feature module.
-In <<open-to-sealed-classes>> we look at sealed classes, an alternative to object-oriented polymnorphism that is more convenient when we define class hierarchies in one part of the code and operations on those classes in another part of the code.
+In <<open-to-sealed-classes>> we look at sealed classes, an alternative to object-oriented polymorphism that is more convenient when we define class hierarchies in one part of the code and operations on those classes in another.
