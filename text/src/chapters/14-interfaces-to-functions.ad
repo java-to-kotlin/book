@@ -10,7 +10,7 @@ How do function types help solve this problem?
 Imagine, if you can, that you need to send email from some code that you are writing.
 Just that for now - not receive mail, or list sent messages - just fire and forget.
 
-This client code knows the information that makes up the email:
+The code that describes the email is simple enough:
 
 // begin-insert: src/main/java/encapsulation/Email.kt
 [source,kotlin]
@@ -24,7 +24,7 @@ data class Email(
 ----
 // end-insert
 
-It would _like_ to call the simplest code possible to send the email, which is:
+Given an `Email`, client code would _like_ to call the simplest possible function to send it, which is:
 
 // begin-insert: src/main/java/encapsulation/encapsulation.kt#send
 [source,kotlin]
@@ -37,7 +37,7 @@ fun send(email: Email) {
 
 Of course when we come to implement this function, we discover that, to actually send email, we require all sorts of other information.
 Not information about the email itself, but rather configuration about how to send it.
-Things like the sending server's IP address and security credentials - all the things that your non-technical relative doesn't know, but you need to set up their new computer.
+Things like the sending server's host name and security credentials -- all the things that your non-technical relative doesn't know, but you need to set up their new computer.
 We'll add three extra parameters to `sendEmail` to stand in for all this configuration:
 
 // begin-insert: src/main/java/encapsulation/encapsulation.kt#sendEmail
@@ -54,14 +54,14 @@ fun sendEmail(
 ----
 // end-insert
 
-As a client things have just gotten a lot less convenient.
-Everywhere we want to send email has to know this configuration - we'll be passing it around from the top to the bottom of the codebase.
-Solving that problem by hiding the details in global variables works fine until we discover that every run of the unit test suite now sends 50 emails!
+As a client, things have just become a lot less convenient.
+Everywhere we want to send email has to know this configuration -- we'll be passing it around from the top to the bottom of the codebase.
+Solving that problem by hiding the details in global variables works fine, until we discover that every run of the unit test suite now sends 50 emails!
 There must be a better way of hiding these petty details.
 
 === Object-Oriented Encapsulation
 
-Object-oriented languages have a ready-made solution to this problem - objects can encapsulate the data.
+Object-oriented languages have a ready-made solution to this problem - objects can encapsulate the data:
 
 // begin-insert: src/main/java/encapsulation/EmailSender.kt#plain
 [source,kotlin]
@@ -83,8 +83,8 @@ class EmailSender(
 ----
 // end-insert
 
-Now, when we want to send email we need access to an EmailSender (rather than a static function).
-Once we have one, instead of calling a function, we invoke a method, and we don't need to tell the method all the petty details because it already knows them - they are the fields of its class:
+Now when we want to send email, we need access to an `EmailSender` (rather than the static function).
+Once we have an `EmailSender`, instead of calling a function, we invoke a method, and we don't need to tell the method all the petty details because it already knows them -- they are the fields of its class:
 
 // begin-insert: src/main/java/encapsulation/OO-usage.kt#foo
 [source,kotlin]
@@ -111,7 +111,6 @@ fun sendThanks() {
 // end-insert
 
 In general, the place where we know the configuration, and the place where we want to send an email, will be separated in our code, often by many layers.
-(That's a thing that we may want to fix, as email sending, an action (<<actions>>) will ideally be located close to the entry points of our system so that the action doesn't contaminate lots of code.)
 Usually in OO, the `sender` will be captured as a property of a class and used by its methods:
 
 // begin-insert: src/main/java/encapsulation/OO-usage.kt#oo_class
@@ -144,7 +143,7 @@ class Rescuing(
 ----
 // end-insert
 
-Often we will extract an interface from a class:
+Often we will extract an interface:
 
 // begin-insert: src/main/java/encapsulation/ISendEmail.kt
 [source,kotlin]
@@ -173,14 +172,14 @@ class EmailSender(
 ----
 // end-insert
 
-If our client code depends on the `ISendEmail` interface rather than the `EmailSender` class, we can configure our tests to use a fake implementation of `ISendEmail` which erm, doesn't actually send emails, but instead allows us to check what will be sent from our live system.
+If our client code depends on the `ISendEmail` interface rather than the `EmailSender` class, we can configure our tests to use a fake implementation of `ISendEmail` which doesn't actually send emails, but instead allows us to check what would be sent if it did.
 Not only can we provide fakes that don't send emails at all, but also different non-fake implementations like `SmtpEmailSender` and `X400EmailSender`, each of which hides both its configuration and implementation from its clients.
 We came for the information hiding, but stayed for the implementation hiding.
 
-When we say _hiding_, it sounds a bit pejorative, but the hiding is useful to both client and implementor.
+When we say _hiding_, it sounds a bit pejorative, but the concealment is useful to both client and implementor.
 The former doesn't have the problem of having to supply the configuration details at the point of use; the latter is able to evolve separately from its users (provided it doesn't change API, expressed in the interface).
 
-Before we leave the object-oriented realm, it's worth noting that we don't have to create a named class to implement `ISendEmail`; we can do it anonymously:
+Before we leave the object-oriented realm, note that we don't have to create a named class to implement `ISendEmail`; we can do it anonymously:
 
 // begin-insert: src/main/java/encapsulation/anonymous-class.kt#anon
 [source,kotlin]
@@ -204,7 +203,7 @@ fun createEmailSender(
 
 Why might we want to do this?
 Well in situations where we don't control all the clients of our code (we are publishing a library external to our organisation for example), then this gives us flexibility to change our implementation, safe in the knowledge that clients cannot depend on a specific implementation class by downcasting to it and calling other methods.
-We call this object a _closure_, as it closes-over values that it requires from its enclosing context, capturing them for use later.
+We call the object that we return here a _closure_, as it closes-over values that it requires from its enclosing context (the function call), capturing them for later reference.
 
 In Kotlin 1.4, we can declare our `ISendEmail` interface as a `fun interface` (one with only one abstract method).
 This way we can define the implementation of the single operation with a lambda, rather than an object with a single method:
@@ -231,7 +230,7 @@ fun createEmailSender(
 ----
 // end-insert
 
-Again, the lambda here is a closure, capturing the values of the parameters of its parent function.
+Again, the lambda here is a closure, capturing the values of the parameters of its enclosing function.
 
 === Functional Encapsulation
 
@@ -248,7 +247,7 @@ fun send(email: Email) {
 ----
 // end-insert
 
-We are given an implementation that looks like this:
+But we actually need all this information to send the message:
 
 // begin-insert: src/main/java/encapsulation/encapsulation.kt#sendEmail
 [source,kotlin]
@@ -264,10 +263,10 @@ fun sendEmail(
 ----
 // end-insert
 
-In functional terms, this is an example of https://en.wikipedia.org/wiki/Partial_application[_partial application_] - fixing some of the arguments to a function to yield a function with fewer arguments.
+In functional terms, this is an example of https://en.wikipedia.org/wiki/Partial_application[_partial application_] -- fixing some of the arguments to a function to yield a function with fewer arguments.
 While some languages provide built-in support for this, in Kotlin the easiest approach is to write a function to partially apply our configuration.
 
-What we want is a function that takes the configuration, and returns a function that knows how to send a message:
+What we want is a function that takes the configuration and returns a function that knows how to send an email:
 
 // begin-insert: src/main/java/encapsulation/encapsulation.kt#createEmailSender0
 [source,kotlin]
@@ -357,8 +356,8 @@ fun createEmailSender(
 ----
 // end-insert
 
-So `createEmailSender` is a function that returns a lambda that calls `sendEmail` combining the lambda's single `Email` argument with the configuration from `createEmailSender`.
-This is a closure in functional land, and it's worth noting how similar this is to the OO versions with a `fun interface` or `object` definition.
+So `createEmailSender` is a function that returns a lambda that calls `sendEmail` combining the lambda's single `Email` argument with the configuration from its own parameters.
+This is a closure in functional land, and it's not a coincidence that it is very similar to the OO versions with a `fun interface` or `object` definition.
 
 To use this function, we can create it in one place and invoke it in another, very much as we did with the object solution.
 
@@ -388,7 +387,7 @@ fun sendThanks() {
 
 <1> There is an implicit `invoke` call hidden here.
 
-This is the same shape as the OO case (if we replace the missing `invoke` with `send`):
+This is the same shape as the OO case (if we replace the hidden `invoke` with `send`):
 
 // begin-insert: src/main/java/encapsulation/OO-usage.kt#excerpt
 [source,kotlin]
@@ -417,7 +416,7 @@ Any data-structure could have done that, but because the object and the function
 One way of unifying the functional and OO solutions is to view a function as an object with a single `invoke` method.
 This is exactly what Java 8 did when it introduced lambdas.
 To refer to a function type, Java uses interfaces with a _Single Abstract Method_ (SAM) that has the desired signature.
-Lambdas are a syntax to allow us to implement a SAM interface.
+Lambdas in Java are a special syntax to implement a SAM interface.
 The Java runtime defines SAM interfaces named by role: `Consumer`, `Supplier`, `Function`, `BiFunction`, `Predicate` etc for us.
 It also provides primitive specialisations, like `DoublePredicate`, to avoid boxing issues.
 
@@ -553,7 +552,7 @@ class Rescuing {
 ----
 // end-insert
 
-Here, the compiler _is_ able to convert `(Email) -> Unit` to `Consumer<Email>`, because Kotlin will convert parameters automatically:
+Here, the compiler _is_ able to convert `(Email) -> Unit` to `Consumer<Email>`, because Kotlin will convert parameters automatically, so that we can say:
 
 // begin-insert: src/main/java/encapsulation/thunking-consumer.kt#foo4
 [source,kotlin]
@@ -567,16 +566,16 @@ Rescuing(sender)
 There are two sides to an abstraction, the client code and the implementation code.
 So far, both client and implementor have either been object-oriented or functional.
 In the OO case, fields carry configuration, and the client invokes a method.
-In the functional scheme, the function closes over the configuration, and the client invokes the function.
+In the functional scheme, a function closes over the configuration, and the client invokes the function.
 
-Can we unify these approaches, giving an OO implementation to a function-expecting client or vice versa?
+Can we unify these approaches, passing an OO implementation to a function-expecting client or vice versa?
 Or, in Kotlin terms, can we convert `ISendEmail` to `(Email) -> Unit`, and the inverse.
 Why yes we can!
 
 Remember that in Java and Kotlin, function types are just interfaces.
 Because of this `EmailSender` can implement the type `Consumer<Email>` or  `(Email) -> Unit` respectively, by defining a method with the signature of the function type.
 
-Here it is in Java:
+So in Java we can write:
 
 // begin-insert: src/main/java/encapsulation/MixedUsage.java#consumer
 [source,java]
@@ -661,7 +660,8 @@ fun sendThanks() {
 
 Now our OO implementation has gained an `invoke` method in order to fit in with the FP approach.
 This calls into question the usefulness of our `ISendEmail` interface.
-We can see that it is equivalent to the function type `(Email) -> Unit` : all it does is give the name `send` to what happens when you invoke it.
+We can see that it is equivalent to the function type `(Email) -> Unit`.
+All it does is give the name `send` to what happens when you invoke it.
 Maybe we could just use the type `(Email) -> Unit` everywhere in place of `ISendEmail`?
 
 If you think that isn't expressive enough, then maybe you aren't a functional programmer.
@@ -670,11 +670,11 @@ Luckily there is a middle ground - we can use a type alias to give a name to the
 // begin-insert: src/main/java/encapsulation/typealias.kt#typealias
 [source,kotlin]
 ----
-typealias ISendEmail = (Email) -> Unit
+typealias EmailSenderFunction = (Email) -> Unit
 
 class EmailSender(
     ...
-) : ISendEmail {
+) : EmailSenderFunction {
     override fun invoke(email: Email) {
         sendEmail(
             email,
@@ -687,14 +687,15 @@ class EmailSender(
 ----
 // end-insert
 
-Note that as the type alias is just an alias - it doesn't define a new type - you can write `ISendEmail` and `(Email) -> Unit` interchangeably, so that we don't have to retrofit `sendThanks` with the type alias in order to make this change.
+In reality, we would probably call `EmailSenderFunction`, `EmailSender`.
+Here we've given it a different name to avoid confusion with the OO version, but the fact that we want to call them the same thing shows that they serve the same purpose from the client's perspective.
 
 .Expressive Function Types
 ****
-Once we have our head in the functional mindset, `(Email) -> Unit` may be expressive enough to tell us the role of the function, especially combined with a variable name of `sender`.
+Once we have our head in the functional mindset, the type `(Email) -> Unit` may be expressive enough to tell us the role of the function, especially when bound to a variable named `sender`.
 What can you do with an email that doesn't return a result?
 Well if it doesn't return a result it must be an action (<<actions>>), but deleting an email might also have a similar signature.
-Objects have that advantage over functions - they get to name their methods (`send(email)` compared to `delete(email)`), at the expense of also having to name the type of the object or interface.
+Objects have that advantage over functions -- they get to name their methods (`send(email)` is obviously different to `delete(email)`), at the expense of also having to name the type of the object or interface.
 
 Kotlin has a feature that can help make function types more expressive - we can name the parameters.
 So if it helps, we could write `(toSend: Email) -> Unit`.
@@ -739,7 +740,7 @@ val sender: (Email) -> Unit = { instance.send(it) }
 ----
 // end-insert
 
-or just pass a method reference:
+or just use a method reference:
 
 // begin-insert: src/main/java/encapsulation/mixed-usage.kt#bar
 [source,kotlin]
@@ -788,7 +789,7 @@ val sender = ISendEmail { function(it) }
 
 Let's remind ourselves of the OO approach.
 
-First we define a type
+First we define a type:
 
 // begin-insert: src/main/java/encapsulation/EmailSender.kt#plain
 [source,kotlin]
@@ -810,7 +811,7 @@ class EmailSender(
 ----
 // end-insert
 
-then we create instances and call methods
+Then we create instances and call methods:
 
 // begin-insert: src/main/java/encapsulation/OO-usage.kt#foo
 [source,kotlin]
@@ -836,7 +837,7 @@ fun sendThanks() {
 ----
 // end-insert
 
-In functional land we don't have to define a type, because `(Email) -> Unit` just exists, so we can just say:
+In functional land we don't have to define a type, because `(Email) -> Unit` just exists (which is to say, is provided by the runtime), so we can just say:
 
 // begin-insert: src/main/java/encapsulation/FP-usage.kt#foo
 [source,kotlin]
@@ -865,7 +866,7 @@ fun sendThanks() {
 <1> With or without the `invoke`.
 
 Clients using the _object_ have to know to call the `send` method to send email; in contrast, clients using the _function_ just have to invoke it, but they only know that the function sends email because it has been assigned the name `sender`.
-If that name got lost in the call hierarchy, we are left to guess what happends from the function signature..
+If that name got lost in the call hierarchy, we are left to guess what happens from the function signature.
 
 The quid-pro-quo of the OO clients having to know to call the `send` method is that we could package up a number of email-related operations into an `EmailSystem`, with methods like `send`, `list`, and `delete`, and pass all this functionality to clients in one go.
 Clients can then choose which they need in which context:
@@ -882,7 +883,7 @@ interface EmailSystem {
 ----
 // end-insert
 
-To achieve this in the functional context would require either passing individual functions around, or some sort of map of name to function, maybe an instance of a class itself:
+To achieve this functionally would require either passing individual functions around, or some sort of map of name to function, maybe an instance of a class itself:
 
 // begin-insert: src/main/java/encapsulation/fp-email-system.kt#foo
 [source,kotlin]
@@ -896,7 +897,7 @@ class EmailSystem(
 ----
 // end-insert
 
-Clients with such an object could treat it very much like an implementation of the interface:
+Given such an object, clients could treat it very much like an implementation of the interface:
 
 // begin-insert: src/main/java/encapsulation/fp-email-system.kt#bar
 [source,kotlin]
@@ -937,25 +938,26 @@ The code may read the same, but it generates very different, and fundamentally i
 
 === Coupling
 
-An easy to overlook difference between expressing a dependency as an implementation of `ISendEmail` and an implementation of the function type `(Email) -> Unit` is the coupling between the client and the implementation, in particular when they are in different code bases.
+An easy to overlook difference between expressing a dependency as an implementation of `ISendEmail`, and an implementation of the function type `(Email) -> Unit`, is the coupling between the client and the implementation, in particular when they are in different code modules.
 
 `ISendEmail` has to be defined somewhere.
 The client can't define it, because the implementor will depend on the interface, and the client on the implementation, leading to a circular dependency.
-So the interface has to be defined either with the implemention, or in a separate place (package, JAR file) depended on by both implemention and its clients.
+So the interface has to be defined either with the implementation, or in a separate place (package or JAR file) depended on by both implementation and its clients.
 The later (an application of the https://en.wikipedia.org/wiki/Dependency_inversion_principle[Dependency Inversion Principle]) is in theory preferable but in practice more work and so often neglected.
 
 With or without Dependency Inversion, the result is the client and implementation being coupled by the interface in ways which can make systems hard to reason with and refactor.
 Any change to methods on `EmailSystem` might affect all code that depends on the interface.
 
-In contrast, in the functional (`(Email) -> Unit`) case, the runtime defines all the function types, so they don't introduce a compile-time dependency between the client and an implementation.
-Of course there will be a run-time dependency - the client has to be able to invoke the implementation code, and the constructor code needs to be visible where the dependency is created, but these tend to cause less coupling.
-For example, when a dependency is expressed as a function type, we can rename `EmailSystem.send`, and the only change in our client code will be to use a different method reference - the internals of `sendThanks` are unaffected.
+In contrast, in the functional world, the runtime defines all the function types, so they don't introduce a compile-time dependency between the client and an implementation.
+Unlike `ISendEmail`, which we have to define somewhere, `(Email) -> Unit` (or in Java, `Consumer<Email>`) are part of the language.
+Of course there will be a run-time dependency -- the constructor code needs to be visible where the dependency is created, and the client has to be able to invoke the implementation code, but these cause less coupling.
+For example, when a dependency is expressed as a function type, we can rename `EmailSystem.send`, and the only change in our client code will be to use a different method reference -- the internals of `sendThanks` are unaffected.
 
 [TIP]
-.Only Pass Types That You Own (and the Runtime)
+.Only Pass Types That You Own, or That The Runtime Defines
 ====
 An early rule of thumb for OO systems was that, on the inside of our systems, we should program in terms of types that we own, rather than those supplied by libraries.
-That way we are insulated from changes that we don't control, and are more likely to write code that can be reused with different implementations..
+That way we are insulated from changes that we don't control, and are more likely to write code that can be reused with different implementations.
 
 An exception to this rule is taking a dependency on types provided by the runtime - these are very unlikely to change.
 Function types allow us to easily convert from unstable to stable interfaces, allowing parts of our systems to evolve at different rates.
@@ -968,14 +970,14 @@ Which should we choose?
 
 Let's consider this from the context of the client code.
 If our client only needs to list email, it should have a dependency on a single `(Folder) -> List<Email>` function.
-This way it is not coupled to an implementation, and the dependency can be satisfied by anything of the function type, including:
+This way it is not coupled to an implementation, and the dependency can be satisfied by anything implementing the function type, including:
 
 * a plain function
 * an object implementing the function type
 * method reference selecting a method with the desired signature
 * a lambda with the desired signature.
 
-Even if we already happen to have an interface, lets say `EmailSystem`, which defines the desired method along with send, move and delete, we shouldn't needlessly couple our client to this interface when the function type will do.
+Even if we already happen to have an interface, lets say `EmailSystem`, which defines the desired method along with `send`, `move` and `delete`:
 
 // begin-insert: src/main/java/encapsulation/EmailSystem.kt
 [source,kotlin]
@@ -988,6 +990,8 @@ interface EmailSystem {
 }
 ----
 // end-insert
+
+We shouldn't needlessly couple our client to this interface when the function type will do:
 
 // begin-insert: src/main/java/encapsulation/narrowing.kt#one_method
 [source,kotlin]
@@ -1005,8 +1009,8 @@ val organiser = Organiser(emailSystem::list)
 ----
 // end-insert
 
-Taking a wider interface misses the opportunity to communicate precisely which operations we require, and forces clients to provide an implementation of the whole interface.
-This is particularly irritating in tests, where we have to introduce fake objects just to get our test code to compile.
+Depending on the wider interface misses the opportunity to communicate precisely which operations we require, and forces clients to provide an implementation of the whole interface.
+This is particularly irritating in tests, where we will have to introduce fake objects just to get our test code to compile.
 
 The drives of communication and reduced coupling are so strong that even if our client needs to send and delete email, and in practice these are going to be supplied by a single `EmailSystem`, it should probably depend on two functions rather than the interface:
 
@@ -1140,53 +1144,25 @@ Our implementation then can be just a function, or something implementing the fu
 
 While we said earlier that "our runtime defines all the functions types", that wasn't true of Java until Java 8 introduced `Supplier`, `Consumer`, `Predicate` etc, and the ability to implement them with method references or lambdas.
 
-Because of this, legacy Java expresses dependencies with the same multi-method interfaces that we would use to group them by sub-system (like `EmailSystem` above), even when only one of those methods is required to implement the functionality.
+Because of this, legacy Java code usually expresses dependencies with the same multi-method interfaces that we would use to group them by sub-system (like `EmailSystem` above), even when only one of those methods is required to implement the functionality.
 This leads to the coupling problems described earlier.
 It also leads to a need for mocking (or more pedantically faking) frameworks to create test implementations of broad interfaces where in practice only one method will be called.
 These fakes then sprout the functionality to fail early if you call a method that you didn't mean to call, a problem that would be solved at compile-time if a single function expressed the dependency.
 
-Once we have introduced a mocking framework into our codebase (or, more usually, two or three), they allow us to solve problems, like generating implementations for unused methods and stubbing out interactions with external systems.
+Once we have introduced a mocking framework into our codebase (or, more usually, two or three mocking frameworks to cater for different tastes), they allow us to solve problems, like generating implementations for unused methods and stubbing out interactions with external systems.
 Usually though, our code would be improved by restructuring to avoid the need for mocks.
-Expressing dependencies as function types is one example, another is moving the interaction with external systems out of our code, as we will see in <<performing-io-to-passing-data>>.
-
-ifdef::optional-content[]
-[TIP]
-.Faking in Kotlin
-====
-There will be times, even in Kotlin, where we want to implement just some of an interface's methods for testing.
-On the JVM we can combine dynamic proxies with anonymous objects, delegation and selective overriding to write the following:
-
-// begin-insert: src/main/java/encapsulation/faking.kt
-[source,kotlin]
-----
-inline fun <reified T> fake(): T =
-    Proxy.newProxyInstance(
-        T::class.java.classLoader,
-        arrayOf(T::class.java)
-    ) { _, _, _ ->
-        TODO("not implemented")
-    } as T
-
-
-val sentEmails = mutableListOf<Email>()
-val testCollaborator: EmailSystem = object: EmailSystem by fake() {
-    override fun send(email: Email) {
-        sentEmails.add(email)
-    }
-}
-----
-// end-insert
-====
-endif::[]
+Expressing dependencies as function types is one example, another is moving the interaction with external systems to the outer layers of our code, as we will see in <<performing-io-to-passing-data>>.
+<<mocks-to-maps>> looks at how to reduce mock use by refactoring our tests to a more functional form.
 
 === Traceability
 
 There is a downside to expressing dependencies with function types, and it is a common issue with adding a layer of indirection.
 If we use IntelliJ to find the callers of `EmailSystem.send`, the trail goes cold at the point where `EmailSystem::send` is converted to `(Email) -> Unit`.
-It's like our hero enters a river, and the posse have to scour both banks upstream and downstream to find where she gets out.
+The IDE doesn't know that invocations of the function are actually calling the method.
+It's like our hero enters a river, and the posse tracking her have to scour both banks upstream and downstream to find where she gets out.
 
 This is a price we pay for indirection with method calls too, but our tooling is wise to these, and can at least find all places where a particular method is implemented, and where an implementation is called through an interface.
-No doubt tool support will improve its functional analysis, and in the meantime we can help by not passing function types too far from where they are defined to where they are used.
+No doubt IDE support will improve its functional analysis, and in the meantime we can help by not passing function types too far from where they are initialized to where they are used.
 
 === Refactoring from Interfaces to Functions
 
@@ -1228,7 +1204,8 @@ public interface FeaturedDestinations {
 ----
 // end-insert
 
-It looks like we've already converted the `DistanceCalculator` interface to Kotlin - it too has more than one method, and hides another service:
+It looks like we've already converted the `DistanceCalculator` interface to Kotlin.
+It too has more than one method, and hides another external service:
 
 // begin-insert: tags/interfaces-to-functions.0:src/main/java/travelator/domain/DistanceCalculator.kt
 [source,kotlin]
@@ -1288,10 +1265,7 @@ public List<FeaturedDestinationSuggestion> recommendationsFor(
 <1> Method on `FeaturedDestinations`
 <2> Method on `DistanceCalculator`
 
-`RecommendationsTests` uses mocks to provide implementations of its dependencies.
-As we'll see, this isn't necessary, but is the Java way of providing test doubles for interfaces.
-The details of which mocking framework are hidden behind some test methods as we'll see in a minute.
-The key is that the dependencies are mocked, and the mocks passed to the instance of `Recommendations` that we will be testing:
+`RecommendationsTests` uses mocks to provide implementations of its `DistanceCalculator` and `FeaturedDestinations`, which are passed to the instance of `Recommendations` under test:
 
 // begin-insert: tags/interfaces-to-functions-2.1:src/test/java/travelator/recommendations/RecommendationsTests.java#setup
 [source,java]
@@ -1311,7 +1285,7 @@ public class RecommendationsTests {
 ----
 // end-insert
 
-The expected interactions with the mocks are hidden two methods, `givenFeaturedDestinationsFor` and `givenADistanceBetween`:
+The tests specify the expected interactions with the mocks are using two methods: `givenFeaturedDestinationsFor` and `givenADistanceBetween`, which we won't bore you with:
 
 // begin-insert: tags/interfaces-to-functions-2.1:src/test/java/travelator/recommendations/RecommendationsTests.java#test1
 [source,java]
@@ -1397,7 +1371,7 @@ private fun List<FeaturedDestinationSuggestion>.closestToJourneyLocation() =
 ----
 // end-insert
 
-In order to see how the internals of `Recommendations` would use a function rather than the interface, without having to change its interface (yet), we can add a property initialised from an interface method.
+In order to see how the internals of `Recommendations` would use a function rather than the interface, without having to change its interface yet, we can add a property initialised from an interface method.
 Let's add a property for `featuredDestinations::findCloseTo`, calling it `destinationFinder`:
 
 // begin-insert: tags/interfaces-to-functions-2.8:src/main/java/travelator/recommendations/Recommendations.kt#excerpt
@@ -1434,7 +1408,7 @@ class Recommendations(
 <1> Extract a function from the interface.
 <2> Use it in place of the method.
 
-This passes the tests, so we may be on to something.
+This passes the tests, so we are on to something.
 It feels like there should be a refactoring to move `destinationFinder` into the constructor, but we haven't found anything better than cutting the definition and pasting where we want it:
 
 // begin-insert: tags/interfaces-to-functions-2.9:src/main/java/travelator/recommendations/Recommendations.kt#excerpt
@@ -1450,7 +1424,8 @@ class Recommendations(
 ----
 // end-insert
 
-Unfortunately Java doesn't understand the defaulted parameter, so we have to fix up the call sites to add the function parameter.
+This is, once again, the _expand_ in <<expand-contract>>.
+Unfortunately Java doesn't understand the defaulted parameter, so we have to fix up the call sites to add the function argument.
 It doesn't really matter, as this is what we want really anyway:
 
 // begin-insert: tags/interfaces-to-functions-2.9:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt
@@ -1464,7 +1439,7 @@ private final Recommendations recommendations = new Recommendations(
 ----
 // end-insert
 
-Now nothing in `Recommendations` uses the `featuredDestinations` property, so we can remove it:
+Now nothing in `Recommendations` uses the `featuredDestinations` property, so we can remove it (contract):
 
 // begin-insert: tags/interfaces-to-functions-2.10:src/main/java/travelator/recommendations/Recommendations.kt#excerpt
 [source,kotlin]
@@ -1489,7 +1464,7 @@ private final Recommendations recommendations = new Recommendations(
 // end-insert
 
 If you're used to refactoring tests with mocks, it may surprise you that the tests have continued to pass through this refactoring.
-We can reason that they _should_ pass - the effect of calling the function bound to `featuredDestinations::findCloseTo` is still to invoke the method on the mocked interface - but our reasoning is so often proved wrong by tests that we don't count our chickens.
+We can reason that they _should_ pass -- the effect of calling the function bound to `featuredDestinations::findCloseTo` is still to invoke the method on the mocked interface -- but our reasoning is so often proved wrong by running the tests that we don't count our chickens.
 
 We do like a single basket though, so let's do the same thing with the `distanceCalculator`, this time in a fell-swoop, whatever that is:
 
@@ -1536,14 +1511,18 @@ private final Recommendations recommendations = new Recommendations(
 Note that a little thought around what to call functional variables can go a long way to making them seem natural in use, although that does sometimes make them a little cryptic where they are defined.
 
 Again the tests still pass, giving us confidence that our production code will see the transformation the same way.
-It's particularly nice that we have shown that we can simultaneously cross a method/function boundary, and a Java/Kotlin boundary - maybe this interop will work out OK after all!
+It's particularly nice that we have shown that we can simultaneously cross a method/function boundary, and a Java/Kotlin boundary.
+Maybe this interop will work out OK after all!
 
 === Conclusion
 
-Decoupling our code by depending on abstract specifications rather than concrete implementations is an essential technique.
-In OO we decouple with classes, in particular interfaces.
-In functional programming, the function is the basic unit of specification, and is in some ways more fundamental, but we can view an object as a collection of functions, and a function as an object with a single method.
+We want our code to be simple and flexible.
+To this end, libraries need to hide implementation details from client code, and we want to be able to substitute one implementation of some functionality with another.
+
+In OO we hide configuration and implementation inside classes, and express substitutable functionality with interfaces.
+In functional programming functions take both roles
+We might see the function as more fundamental, but we can view an object as a collection of functions, and a function as an object with a single method.
 Both Kotlin and Java allow us to move between realms at the boundaries between implementations and clients, but Kotlin's native function type syntax encourages the use of function types rather than interfaces.
 This allows even more decoupling than defining our own interfaces, and should be our default approach.
 
-We continue refactoring this example, and examining this relationship in <<mocks-to-maps>>.
+We continue refactoring this example, and examining this relationship, in <<mocks-to-maps>>.
