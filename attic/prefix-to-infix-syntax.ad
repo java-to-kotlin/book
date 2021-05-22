@@ -322,7 +322,7 @@ However, with a bit of refactoring-fu we can perform the transformation as a ser
 First, we Alt-Enter on the "Entry" in `Map.Entry`, and select "add import for 'kotlin.collections.Map.Entry'".
 Now all references in the file to the Map.Entry type are via the unqualified name "Entry".
 
-Secondly, we add a typealias below the imports, aliasing Entry and SimpleImmutableEntry to Pair:
+Secondly, we add a type alias below the imports, aliasing Entry and SimpleImmutableEntry to Pair:
 
 // begin-insert: tags/jsondsl_mixed.7:src/test/java/colloquiumatic/json/Json.kt#type_aliases
 [source,kotlin]
@@ -332,7 +332,7 @@ private typealias SimpleImmutableEntry<K,V> = Pair<K,V>
 ----
 // end-insert
 
-IntelliJ will highlight them as unused, because the imports of Entry and SimpleImmutableEntry take precedence over the typealiases in the file.
+IntelliJ will highlight them as unused, because the imports of Entry and SimpleImmutableEntry take precedence over the type aliases in the file.
 But hold on: those imports are going to disappear shortly.
 
 Next we define two extension properties on Pair to match the properties of Map.Entry:
@@ -349,9 +349,9 @@ Again, IntelliJ will highlight them as unused, but they will become used as soon
 
 Now we delete the imports of kotlin.collections.Map.Entry and java.util.AbstractMap.SimpleImmutableEntry.
 All uses of Entry in the file are now referring to kotlin.Pair.
-IntelliJ no longer highlights the typealiases and extension properties as unused.
+IntelliJ no longer highlights the type aliases and extension properties as unused.
 
-Finally, we clean up by inlining the typealiases and the temporary extension properties, so that the code refers to the Pair class directly, and removing unnecessary type parameters that the inline refactoring left in call to the Pair constructor.
+Finally, we clean up by inlining the type aliases and the temporary extension properties, so that the code refers to the Pair class directly, and removing unnecessary type parameters that the inline refactoring left in call to the Pair constructor.
 
 That leaves the code looking like:
 

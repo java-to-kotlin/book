@@ -419,7 +419,7 @@ To get there, we are going to have to remove all the calls to the `Route` constr
 There is a trick to do this automagically, but it relies on having converted all clients of `Route` to Kotlin.
 So does using a type alias though, so if we have any remaining Java clients we are going to have to resign ourselves to some manual editing.
 
-What we're going to do is to replace the class with a typealias, and at the same time add temporary definitions that emulate the API of the class:
+What we're going to do is to replace the class with a type alias, and at the same time add temporary definitions that emulate the API of the class:
 That API is currently:
 
 // begin-insert: tags/encapsulated-collections.6:src/main/java/travelator/itinerary/Route.kt#route
@@ -753,9 +753,9 @@ fun Itinerary.withoutLastJourney() =
 We started this chapter with a Java class that encapsulated a mutable collection to guarantee value semantics.
 As we translated more of our code to Kotlin, we could rely on Kotlin's type system to prevent the collection being modified, and no longer needed to encapsulate it within the class.
 That allowed us to convert operations from methods to extensions, and move their definitions close to where they are used.
-Because our class encapsulated a single collection, we were able to eliminate the class altogether, and replace it with a typealias.
+Because our class encapsulated a single collection, we were able to eliminate the class altogether, and replace it with a type alias.
 
-Immutable collections and extensions allow us to organise our code in ways that are not available to us in Java.
+Immutable collections and extensions allow us to organise our code in ways that are not available in Java.
 We can group all the logic required by a particular feature of the application in the same module, regardless of the domain classes the logic applies to.
 However, if we wanted methods of those domain classes to be polymorphic methods, we would have to define them on those classes and not in our feature module.
 In <<open-to-sealed-classes>> we look at sealed classes, an alternative to object-oriented polymorphism that is more convenient when we define class hierarchies in one part of the code and operations on those classes in another.
