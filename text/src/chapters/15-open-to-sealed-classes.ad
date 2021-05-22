@@ -138,7 +138,38 @@ We must define the sealed class and its subclasses in the same compilation unit 
 Thanks to this restriction, runtime type checks on sealed class hierarchies do not have the same problem as runtime type checks in Java.
 The static type checker can guarantee that `when` expressions that perform runtime type checks for a subtype of a sealed class cover all possible cases and only the possible cases.
 
-// TODO insert example of safe kotlin when expression here?
+[WARNING]
+.When Statements are not checked for exhaustiveness
+====
+The compiler checks `when` expressions for exhaustiveness but does not check `when` _statements_.
+`when` becomes is a statement if the value of the entire `when` expression is not used.
+You can force the compiler to check for exhaustiveness by using the result of the `when`, even though it is of type `Unit`.
+
+If the `when` is the only statement in the body of a function, you can refactor the function to single-expression form.
+If `when` is the last statement in a multi-statement function, you can explicitly use its value with the `return` keyword.
+When the `when` is in the middle of the function body extracting it to its own function might make sense.
+
+When none of those options apply, you can use the following utility function to force an exhaustiveness check:
+
+// begin-insert: src/main/java/exhaustive_when/ExhaustiveWhen.kt#exhaustive_val_definition
+[source,kotlin]
+----
+val <T> T.exhaustive get() = this
+----
+// end-insert
+
+When used like this, it will prevent compilation when `when` is not exhaustive:
+
+// begin-insert: src/main/java/exhaustive_when/ExhaustiveWhen.kt#exhaustive_val_usage
+[source,kotlin]
+----
+when (instanceOfSealedClass) {
+    is SubclassA -> println("A")
+    is SubclassB -> println("B")
+}.exhaustive
+----
+// end-insert
+====
 
 Compared to polymorphic methods, sealed classes and `when` expressions make it easy to add new operations that apply to a fixed type hierarchy, although we still have to change all those operations if we add a new type to that hierarchy.
 At this point the compiler will help us by checking that all those operations cover all possible types in the hierarchy.
@@ -158,9 +189,9 @@ We're about to add another feature that involves itineraries and itinerary items
 We don't want to add more methods to the already bloated `ItineraryItem` interface and couple the core classes of our application's domain to the needs of another peripheral module.
 It's time to bite the bullet and convert `ItineraryItem` from an interface of polymorphic methods to a sealed class hierarchy and free-standing functions, and move those free-standing functions into the modules that use them.
 
-In the version of Kotlin we're using, a sealed class and all its direct subclasses must be defined in the same file.
-Therefore, we must first use the IDE's Move Class refactoring to move the implementations of `ItineraryItem` into the same file as the interface.
-Once we've done that, we can turn the interface and its implementations into a sealed class hieararchy.
+We're still using Kotlin 1.4, so a sealed class and all its direct subclasses must be defined in the same file.
+Our first step, then, is to use the IDE's "Move Class" refactoring to move the implementations of `ItineraryItem` into the same file as the interface.
+Once we've done that, we can turn the interface and its implementations into a sealed class hierarchy.
 IntelliJ does not have an automated refactoring for this, so we have to do it by manually editing the class definitions.
 At least moving all the classes into the same file has made the task easier.
 
@@ -206,27 +237,24 @@ data class Accommodation(
 
 <1> We declare `ItineraryItem` as a `sealed class` instead of an `interface`.
 
-<2> Because it is now a class, we have to explicitly mark its methods as `abstract`.  If the interface had any methods with a default implementation, we'd have had to declare them as `open` so that subclasses could still override them.
+<2> Because it is now a class, we have to explicitly mark its methods as `abstract`.
+If the interface had any methods with a default implementation, we would have have had to declare them as `open` so that subclasses could still override them.
 
-<3> We change the declaration of the interface in the concrete item classes with a call to the superclass constructor.
+<3> We replace the declaration of the interface in the concrete item classes with a call to the superclass constructor.
 
-NOTE: Kotlin 1.5 will support sealed _interfaces_, which will make this refactoring easier -- these manual editing steps will not be necessary.
+NOTE: Kotlin 1.5 (released as we completed this book) supports sealed _interfaces_, which make this refactoring easier.
+It's unnecessary to move the subclasses into the same file, or to call the constructor.
 
 `ItineraryItem` is now a sealed class.
-Its operations are still polymorphic methods, but we can write _new_ operations  without changing the `ItineraryItem` classes, by writing extension functions that use a `when` expression to safely dispatch on the concrete item type`.
+Its operations are still polymorphic methods, but we can add _new_ operations that without changing the `ItineraryItem` classes, by writing extension functions that use a `when` expression to safely dispatch on the concrete item type.
 
-We'll write the function we need to translate an itinerary to calendar events.
+First we'll write the extension functions that we need to translate an `Itinerary` to a calendar.
 When we're done, we'll continue refactoring to make the other operations on `ItineraryItem` work the same way.
 
-// begin-insert: tags/open-to-sealed-2.3:src/main/java/travelator/calendar/ItineraryToCalendar.kt
+// begin-insert: tags/open-to-sealed-2.3:src/main/java/travelator/calendar/ItineraryToCalendar.kt#toCalendarEvent
 [source,kotlin]
 ----
-fun Itinerary.toCalendar() = Calendar(
-    id = Id.derivedFrom(this.id),
-    events = mapNotNull { it.toCalendarEvent() }
-)
-
-private fun ItineraryItem.toCalendarEvent(): CalendarEvent? = when (this) {
+fun ItineraryItem.toCalendarEvent(): CalendarEvent? = when (this) {
     is Accommodation -> CalendarEvent(
         start = checkInFrom,
         end = checkOutBefore,
@@ -256,18 +284,23 @@ private fun ItineraryItem.toCalendarEvent(): CalendarEvent? = when (this) {
 ----
 // end-insert
 
+ifdef::todos[]
+I’m having some trouble making this work. The argument that types may violate LSP and break if we downcast can also apply to sealed classes. It being safe to downcast because we have an exhaustive when is true, but said a lot in the chapter.
+
 [TIP]
 .Only typecast down a sealed class hierarchy
 ====
 Only use typecasts to cast from the root of a sealed class hierarchy to one of the children in an exhaustive `when` expression.
 Otherwise, it is risky to cast away from the static type.
 The actual class used to implement a value may have operations that violate the constraints expressed by the static type.
+
 For example, as we saw in <<java-to-kotlin-collections>>, the static type `List` prevents mutation, but Kotlin's higher-order functions return an object of a class that can be mutated if you downcast from `List` to `MutableList`.
 Doing so will likely introduce bugs in code that does not expect a value of type `List` returned from a higher-order function to ever change.
 ====
+endif::[]
 
-Now, let's refactor the rest of the `ItineraryItem` methods from being polymorphic methods defined on the sealed class to extension functions that use `when` expressions to switch on the type of item.
-We'll walk through the process with the `mapOverlay` property getter, which returns a representation of the Itinerary item to be drawn onto a map.
+Now, let's refactor the rest of the `ItineraryItem` methods from being polymorphic methods defined on the (now sealed) class, to extension functions that use `when` expressions to switch on the type of item.
+We'll walk through the process with the `mapOverlay` property.
 
 When we Alt-Enter on the definition of `mapOverlay` in `ItineraryItem`, the context menu includes the action "Convert member to extension".
 Can it really be that easy?
@@ -333,90 +366,122 @@ val ItineraryItem.mapOverlay: MapOverlay get() = when (this) {
 ----
 // end-insert
 
-While we are writing the `when` expression, IntelliJ marks it as a type error until it covers all subclasses of `ItineraryItem`.
-IntelliJ also highlights each monomorphic call to `mapOverlay` to show that the compiler's flow-sensitive typing is "smart casting" the `this` reference from `ItineraryItem` to the correct subclass.
+The `when` expression will not compile until we have covered all the subclasses of `ItineraryItem`.
+IntelliJ also highlights each read of the subclass `mapOverlay` properties to show that the compiler's flow-sensitive typing is smart casting the implicit `this` reference from `ItineraryItem` to the correct subclass.
 
-[WARNING]
-.When statements are not checked for exhaustiveness
-====
-The compiler checks `when` expressions for exhaustiveness but does not check `when` _statements_.
-It considers a `when` to be a statement if the value of the entire `when` expression is never used.
+Now the point of this refactor was to prevent every implementation of `ItineraryItem` from having to know about map overlays.
+At present each still does, because each has its own `mapOverlay` property -- the one that was originally overriding the property in the interface:
 
-You can force the compiler to check for exhaustiveness by using the value of the when statement, even though it is of type `Unit`.
-If the `when` is the only statement in the body of a function, you can refactor the function to single-expression form.
-If the body of the function has multiple statements and the `when` is the last statement, you can explicitly use its value with the `return` keyword.
-If the `when` statement is in the middle of the function body you can extract it to its own function if that makes sense.
-When none of those options apply, you can use the following utility function to use value of the `when` statement and force an exhaustiveness check:
-
-// begin-insert: src/main/java/exhaustive_when/ExhaustiveWhen.kt#exhaustive_val_definition
+// begin-insert: tags/open-to-sealed-2.5:src/main/java/travelator/itinerary/ItineraryItem.kt#accommodation
 [source,kotlin]
 ----
-val <T> T.exhaustive get() = this
+data class Accommodation(
+...
+) : ItineraryItem() {
+    ...
+    val mapOverlay
+        get() = PointOverlay(
+            id = id,
+            position = location.position,
+            text = location.userReadableName,
+            icon = StandardIcons.HOTEL
+        )
+    ...
 ----
 // end-insert
 
-It can be used like this to make the compiler check a `when` statement for exhaustiveness:
+We can solve this problem by converting the `mapOverlay` properties with "Convert member to extension":
 
-// begin-insert: src/main/java/exhaustive_when/ExhaustiveWhen.kt#exhaustive_val_usage
+// begin-insert: tags/open-to-sealed-2.6:src/main/java/travelator/itinerary/ItineraryItem.kt#accommodation
 [source,kotlin]
 ----
-when (instanceOfSealedClass) {
-    is SubclassA -> println("A")
-    is SubclassB -> println("B")
-}.exhaustive
-----
-// end-insert
-====
+data class Accommodation(
+...
+) : ItineraryItem() {
+    ...
+}
 
-
-We can inline those `mapOverlay` methods into the extension function, removing them from the concrete classes.
-
-// begin-insert: tags/open-to-sealed-2.6:src/main/java/travelator/itinerary/ItineraryItem.kt#mapOverlay
-[source,kotlin]
-----
-val ItineraryItem.mapOverlay: MapOverlay get() = when (this) {
-    is Accommodation -> PointOverlay(
+val Accommodation.mapOverlay
+    get() = PointOverlay(
         id = id,
         position = location.position,
         text = location.userReadableName,
         icon = StandardIcons.HOTEL
     )
-    is Attraction -> PointOverlay(
-        position = location.position,
-        text = description,
-        icon = StandardIcons.ATTRACTION,
-        id = id
-    )
-    is Journey -> OverlayGroup(
-        id = id,
-        elements = listOf(
-            PathOverlay(path, travelMethod.userReadableName),
-            PointOverlay(departsFrom.position, departsFrom.userReadableName, StandardIcons.START),
-            PointOverlay(arrivesAt.position, arrivesAt.userReadableName, StandardIcons.END)
-        )
-    )
-    is RestaurantBooking -> PointOverlay(
-        id = id,
-        position = location.position,
-        text = location.userReadableName,
-        icon = StandardIcons.RESTAURANT
-    )
+----
+// end-insert
+
+Now `ItineraryItem.mapOverlay` doesn't appear to have changed at all:
+
+// begin-insert: tags/open-to-sealed-2.6:src/main/java/travelator/itinerary/ItineraryItem.kt#mapOverlay
+[source,kotlin]
+----
+val ItineraryItem.mapOverlay: MapOverlay get() = when (this) {
+    is Accommodation -> mapOverlay
+    is Attraction -> mapOverlay
+    is Journey -> mapOverlay
+    is RestaurantBooking -> mapOverlay
 }
 ----
 // end-insert
 
-Now that it is an extension property, `ItineraryItem.mapOverlay` does not need to be defined in the same file as the ItineraryItem class hierarchy.
-We can move it and the `Itinerary.mapOverlay` properties to the module or package where we use it.
+Look closer though (well, hover in IntelliJ), and we can see that those property accesses are now extension properties, not method calls -- `Accommodation` etc no longer depend on `MapOverlay`.
+And now that `ItineraryItem.mapOverlay`, and all the subclass properties are extensions, they don't need to be defined in the same file as the sealed classes.
+We can move them to the module or package where they are used, and they won't clutter our core domain abstraction.
+
+// begin-insert: tags/open-to-sealed-2.7:src/main/java/travelator/geo/ItineraryToMapOverlay.kt#mapOverlay
+[source,kotlin]
+----
+package travelator.geo
+
+import travelator.itinerary.*
+
+val ItineraryItem.mapOverlay: MapOverlay get() = when (this) {
+    is Accommodation -> mapOverlay
+    is Attraction -> mapOverlay
+    is Journey -> mapOverlay
+    is RestaurantBooking -> mapOverlay
+}
+
+private val Accommodation.mapOverlay
+    get() = PointOverlay(
+        id = id,
+        position = location.position,
+        text = location.userReadableName,
+        icon = StandardIcons.HOTEL
+    )
+
+ ... Attraction.mapOverlay etc
+----
+// end-insert
 
 We can do the same with the other members of `ItineraryItem`, until the sealed class declares only the fundamental properties of the type.
-For `ItineraryItem`, only the `id` property is truly fundamental.
-It's useful to declare the `id` property as an abstract property on the sealed class to force every subclass to have an identifier.
+For `ItineraryItem` at the moment, only the `id` property is truly fundamental -- declaring `id` as an abstract property on the sealed class to forces every subclass to have an identifier.
 
 Of the other properties, some are clearly there just to support specific features of the application, like `mapOverlay` and `toCalendar`.
 Others, like `description`, are in a grey area: they support many features of the application, but are not a fundamental property of an `ItineraryItem`.
-For example, each subclass derives its description from its fundamental properties.
+For example, each subtype derives its description from its fundamental properties.
 Nat prefers to define properties like these as extensions, while Duncan prefers to define them as members of the class.
-Nat is writing this example, so we'll make `description` an extension.
+Nat is writing this example, so we'll make `description` an extension:
+
+// begin-insert: tags/open-to-sealed-2.8:src/main/java/travelator/itinerary/ItineraryDescription.kt
+[source,kotlin]
+----
+val ItineraryItem.description: String
+    get() = when (this) {
+        is Accommodation ->
+            "$nights nights at ${location.userReadableName}"
+        is Attraction ->
+            location.userReadableName
+        is Journey ->
+            "${departsFrom.userReadableName} " +
+                "to ${arrivesAt.userReadableName} " +
+                "by ${travelMethod.userReadableName}"
+        is RestaurantBooking -> location.userReadableName
+    }
+----
+// end-insert
+
 You'll have to make your own judgement call in your own code.
 That leaves the sealed `ItineraryItem` class declaring only the `id` property, and its subclasses declaring their fundamental properties.
 The whole hierarchy looks like this:
@@ -466,7 +531,7 @@ data class RestaurantBooking(
 // end-insert
 
 Our `ItineraryItem` model is now a sealed class hierarchy of pure data classes.
-We have implemented the operations needed by the features of our application as extension functions in the modules for those features.
+The operations needed by the features of our application are all extension functions in the modules for those features.
 Only the `id` property remains as a polymorphic `val`, because it is a fundamental property of the type that is not specific to any one feature of the application.
 
 === Conclusion
@@ -479,5 +544,5 @@ Managing variability in Kotlin involves mastering when to apply these two mechan
 
 If our bet turns out to have been wrong, we must refactor from one to the other.
 When all the code is in a single codebase, Kotlin and IntelliJ make refactoring between the two forms straightforward.
-This chapter described going from the kind of object-oriented polymorphism we'd write in Java to Kotlin;s sealed classes.
+This chapter described going from the kind of object-oriented polymorphism we'd write in Java to Kotlin's sealed classes.
 Going the other way involves refactoring steps described in <<F_RITDOEC_1999,_Refactoring: Improving the Design of Existing Code_>>, such as _Replace Conditional with Polymorphism_, so we won't cover it in this book.
