@@ -284,20 +284,21 @@ fun ItineraryItem.toCalendarEvent(): CalendarEvent? = when (this) {
 ----
 // end-insert
 
-ifdef::todos[]
-I’m having some trouble making this work. The argument that types may violate LSP and break if we downcast can also apply to sealed classes. It being safe to downcast because we have an exhaustive when is true, but said a lot in the chapter.
-
 [TIP]
 .Only typecast down a sealed class hierarchy
 ====
 Only use typecasts to cast from the root of a sealed class hierarchy to one of the children in an exhaustive `when` expression.
 Otherwise, it is risky to cast away from the static type.
-The actual class used to implement a value may have operations that violate the constraints expressed by the static type.
+The actual class used to implement a value may have operations that violate the constraints expressed by its static type.
 
-For example, as we saw in <<java-to-kotlin-collections>>, the static type `List` prevents mutation, but Kotlin's higher-order functions return an object of a class that can be mutated if you downcast from `List` to `MutableList`.
-Doing so will likely introduce bugs in code that does not expect a value of type `List` returned from a higher-order function to ever change.
+For example, as we saw in <<java-to-kotlin-collections>>, the static type `List` prevents mutation, but Kotlin's higher-order functions return lists that can be mutated if you downcast from `List` to `MutableList`.
+A function that downcasts an list argument from List to MutableList and mutates it is likely to introduce bugs in code, because it violates the expectations of its callers.
+It could introduce aliasing errors that are very hard to find, because the possibility of "spooky action at a distance" is not explicit in the type declarations of the function's signature.
+If a future version of the Kotlin standard library returned immutable lists from its higher-order functions, the function will continue to compile successfully but crash at runtime.
+
+Just because you _can_ cast from a super type to a subtype doesn’t mean you are intended to. The possibility is likely to be a mere implementation detail.
+A sealed class hierarchy signals that downcasting is intended, supported, and made safe by the compiler's exhaustiveness checks.
 ====
-endif::[]
 
 Now, let's refactor the rest of the `ItineraryItem` methods from being polymorphic methods defined on the (now sealed) class, to extension functions that use `when` expressions to switch on the type of item.
 We'll walk through the process with the `mapOverlay` property.
