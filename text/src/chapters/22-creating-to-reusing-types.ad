@@ -1794,7 +1794,7 @@ The developers probably felt these were necessary because Java provides so littl
 The `CSVParser` returned by the `parse` static method has a lot of code to manage resources.
 Our API delegates these to the workings of `Sequence` and Kotlin lifecycle functions like `use` and `useLines`.
 
-On the subject of lines, you have to read between them in the code example to see it, but `CSVParser` implements `<Iterable<CSVRecord>>`.
+On the subject of lines, you have to read between them in the code example to see it, but `CSVParser` implements `Iterable<CSVRecord>`.
 This is a clever design choice, as it allows Java developers to use a `for` statement to loop over the records, and Kotlin developers to convert to a `Sequence` with `.asSequence`.
 In fact the Kotlin usability is due to the design of the Kotlin standard library, which builds on the same `Iterable` abstraction that the Apache developers also leverage.
 
@@ -1815,7 +1815,7 @@ Moving on, the code to create an individual `Measurement` looks identical in bot
 ----
 // end-insert
 
-While with our parser the type of `record` is `<Map<String, String>>`; in the Commons case it is `CSVRecord`.
+While with our parser the type of `record` is `Map<String, String>`; in the Commons case it is `CSVRecord`.
 `CSVRecord` has a `get(String)` method, which is how `record["time"]` etc are resolved.
 It also has methods: `get(int)` to retrieve a field by index, where we could use `Map.values[Int]`;
 `size()` rather than `Map.size()`; and `isSet(String)` to substitute for `Map.hasKey(String)`.
