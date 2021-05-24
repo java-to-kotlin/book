@@ -846,7 +846,7 @@ public class CustomerData {
 This isn't trying to represent everything about a customer, just the data we care about for this report, which is why whoever wrote it just used fields.
 (<<methods-to-properties>> discusses this trade-off.)
 I doubt we (erm, whoever wrote it) would even have bothered with `equals` and `hashCode` had it not been for the `emptySpendIs0` test.
-That `double` for spend looks suspicious too, but it hasn't caused us any problems yet, so we'll suspend our disbelief and just convert the whole thing to a Kotlin data class (see <<beans-to-values>> before we go on.
+That `double` for spend looks suspicious too, but it hasn't caused us any problems yet, so we'll suspend our disbelief and just convert the whole thing to a Kotlin data class (see <<beans-to-values>>) before we go on.
 
 Normally that would be a really simple job because of the excellent interop, but it turns out that (at the time of writing) the converter cannot believe that anyone would stoop to raw field access. So it doesn't update Java that accesses, for example `customerData.score`, to call `customerData.getScore()` (the Kotlin property), resulting in a slew of compile failures.
 Rather than fixing those, we revert, and use the "Encapsulate Fields" refactor to convert all the fields and field accesses in `Customer` to getters.
@@ -957,7 +957,7 @@ object HighValueCustomersReport {
 // end-insert
 
 As we discussed in <<static-methods-to-top-level-functions>>, the conversion has placed the functions into an `object HighValueCustomersReport`, so that Java code can still find them.
-If we try to convert them to top level functions using the techniques in that chapter, we find that dependencies between the methods means that the code doesn't compile at times.
+If we try to convert them to top level functions using the techniques in that chapter, we find that dependencies between the methods mean that the code doesn't compile at times.
 We can solve the problem either by moving the private methods first, or by just ignoring the compiler until the `HighValueCustomersReport` is emptied and removed.
 
 // begin-insert: tags/functions-to-extension-methods.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#all
