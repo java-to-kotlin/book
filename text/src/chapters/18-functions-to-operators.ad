@@ -2,6 +2,10 @@
 == Functions to Operators
 
 ****
+If we have a large Java codebase, our Java and Kotlin are going to have to coexist for some time.
+What can we do to support the conventions of both languages as we gradually translate the system to Kotlin?
+****
+
 So far we have shown the translation of code from Java to Kotlin happening all in one go.
 We have used automatic refactorings to perform the translation safely, but by the end all the affected code has been converted to idiomatic Kotlin.
 
@@ -10,15 +14,12 @@ We must continue to evolve features in Java while we are introducing Kotlin.
 Where there is a boundary between the two, we want to use conventional Java on one side and conventional Kotlin on the other.
 This is especially true when we convert foundational classes that support a lot of our system's functionality.
 
-What can we do to support the conventions of both languages as we gradually translate the system to Kotlin?
-****
-
 === A Foundational Class: Money
 
 Every system contains some foundational classes that are used by many parts of the codebase.
-An example in Travelator is the `Money` class, which we saw in <<java-to-kotlin-classes>>.
+An example in Travelator is the `Money` class, which we first saw in <<java-to-kotlin-classes>>.
 Travellers need to budget for their trips.
-They want to compare costs of different travel options, see those costs converted to the their preferred currency, book things, pay for things, ...
+They want to compare costs of different travel options, see those costs converted to the their preferred currency, book things, pay for things ...
 The `Money` class is so widely used that we cannot convert it and all the code that depends on it to idiomatic Kotlin in one fell swoop.
 We have to continue working on features that use `Money` in both Java and Kotlin while the conversion is ongoing.
 
@@ -29,14 +30,14 @@ Or do we convert the `Money` class to Kotlin while we still have Java code using
 The fact we even have these options is a testament to how well Kotlin/Java interop works in both directions.
 In practice, we don't have to choose.
 With some cunning refactoring tactics and a few annotations to control how the Kotlin compiler generates code for the JVM we can get the best of both worlds.
-We can convert Money to Kotlin, allowing us to take advantage of Kotlin's features, and provide an idiomatic API for Java code that we are still maintaining.
+We can define `Money` in Kotlin, allowing us to take advantage of Kotlin's features, and still provide an idiomatic API for Java code that we are maintaining.
 
 We converted the `Money` class to Kotlin in <<java-to-kotlin-classes>>.
-Since we left it at the end of that chapter, we have been able to make the code more concise without affecting Java code that depends on it.
-We refactored all the methods to single-expression form (as we learned in <<single-expresssion-functions-for-calculations>>).
-We took advantage of Kotlin's flow-sensitive type inference to greatly simplify the `equals` method.
+Since we left it at the end of that chapter, we have (without you, sorry) been able to make the code more concise without affecting Java code that depends on it.
+We refactored most of the methods to single-expression form (<<multi-to-single-expression-functions>>), and we took advantage of Kotlin's flow-sensitive type inference to greatly simplify the `equals` method.
 
-The class is now as follows, not significantly different, but a lot less syntactic noise:
+Here is `Money` now.
+It isn't significantly different, but has a lot less syntactic noise:
 
 // begin-insert: tags/value_types.7:src/main/java/travelator/money/Money.kt#money
 [source,kotlin]
@@ -61,7 +62,6 @@ class Money private constructor(
         require(currency == that.currency) {
             "cannot add Money values of different currencies"
         }
-
         return Money(amount.add(that.amount), currency)
     }
 
@@ -79,9 +79,8 @@ class Money private constructor(
 // end-insert
 
 However, it still looks sort of "Java-ish", as does the Kotlin code that uses it.
-The `Money` class follows conventions for value types that are common in <<modern-java-style,Modern Java>>, but are not the way things are usually done in Kotlin:
-it uses methods of a companion object to create values,
-and it uses methods, rather than operators, for arithmetic.
+The `Money` class follows conventions for value types that are common in <<modern-java-style,Modern Java>>, but are not the way things are usually done in Kotlin.
+In particular, it uses methods of a companion object to create values, and it uses methods, rather than operators, for arithmetic.
 
 In a monolingual codebase, it would be pretty straightforward to address those issues.
 However, we still have plenty of Java code that uses the `Money` class.
@@ -91,7 +90,7 @@ In the meantime, we want to ensure that code that uses `Money` in either languag
 
 === Adding A User-Defined Operator
 
-Kotlin code that calculates with Money values is still rather clumsy:
+Kotlin code that calculates with `Money` values is still rather clumsy:
 
 [source,kotlin]
 ----
@@ -110,13 +109,13 @@ It's the best we can do in Java, but in Kotlin we can define arithmetic operator
 
 [source,kotlin]
 ----
-val grossPrice = netPrice + netPrice*taxRate
+val grossPrice = netPrice + netPrice * taxRate
 ----
 
 Using addition as an example, let's take a look at how we can give our `Money` class arithmetic operators.
 
 We give a class the `+` operator by writing an operator method or extension function called `plus`.
-For our Money class we can rename the existing `add` method to `plus` and add the `operator` modifier:
+For our `Money` class we can rename the existing `add` method to `plus` and add the `operator` modifier:
 
 // begin-insert: tags/value_types.9:src/main/java/travelator/money/Money.kt#money
 [source,kotlin]
@@ -131,7 +130,6 @@ class Money private constructor(
         require(currency == that.currency) {
             "cannot add Money values of different currencies"
         }
-
         return Money(amount.add(that.amount), currency)
     }
 
@@ -140,18 +138,13 @@ class Money private constructor(
 ----
 // end-insert
 
-With this change, our Kotlin code can add Money values with the + operator, while the Java code calls `plus` as a method.
+With this change, our Kotlin code can add `Money` values with the + operator, while the Java code calls `plus` as a method.
 
-====
-As a shorthand, we use the term "the operator plus method" to mean the `plus` method declared with the operator modifier.  Similarly for extensions -- we'll say "the operator plus extension" as a shorthand.
-====
+When we go to check in though, we find that our rename has rippled across hundreds of files of Java code, introducing a name that doesn't follow Java conventions.
+Java classes in the standard library with arithmetic operations, such as `BigDecimal` and `BigInteger`, all use the name `add`, not `plus`.
 
-One small fly in the ointment is that although we've converted our `Money` class to Kotlin, its still used by a lot of Java code that is under active development.
-Our rename has rippled across a lot of Java code, and introduced a name that doesn't follow Java conventions.
-Java classes in the standard library that have arithmetic operations, such as BigDecimal and BigInteger, all use the name "add", not "plus".
-
-We can make the method appear to have different names in Java and Kotlin by annotating it's definition with the `@JvmName` annotation.
-Let's revert the change we just made and take another run at it, starting by annotating the method with `@JvmName("add")`.
+We can make a function appear to have different names in Java and Kotlin by annotating its definition with the `@JvmName` annotation.
+Let's revert the change we just made and take another run at it, starting by annotating the method with `@JvmName("add")`:
 
 // begin-insert: tags/value_types.10:src/main/java/travelator/money/Money.kt#add_method
 [source,kotlin]
@@ -161,14 +154,12 @@ fun add(that: Money): Money {
     require(currency == that.currency) {
         "cannot add Money values of different currencies"
     }
-
     return Money(amount.add(that.amount), currency)
 }
 ----
 // end-insert
 
-Now when we rename the method to "plus", our Java code is unchanged, and
-marking it as an operator allows both Java and Kotlin code to call the method according to their respective language conventions:
+Now when we rename the method to `plus`, our Java code is unchanged, and marking it as an operator allows both Java and Kotlin code to call the method according to their respective language conventions:
 
 // begin-insert: tags/value_types.11:src/main/java/travelator/money/Money.kt#plus_method
 [source,kotlin]
@@ -178,33 +169,28 @@ operator fun plus(that: Money): Money {
     require(currency == that.currency) {
         "cannot add Money values of different currencies"
     }
-
     return Money(amount.add(that.amount), currency)
 }
 ----
 // end-insert
 
-It's a matter of opinion whether this is desirable.
+Is this desirable?
 It can be quite confusing to have the same method appear under different names in different parts of the same codebase.
-On the other hand, because it's an operator method, the name "plus" should only appear in the definition of the method, and all uses of the method from Kotlin be via the `+` operator. The phrase `operator fun plus` is more like a language keyword than a method name.
-The IDE navigates seamlessly between calls to `add` in Java and the definition of `operator plus` in Kotlin.
+On the other hand, because it's an operator method, the name `plus` should only appear in the definition of the method, and all uses of the method from Kotlin be via the `+` operator. The phrase `operator fun plus` is more like a language keyword than a method name.
+IntelliJ navigates seamlessly between calls to `add` in Java and the definition of `operator plus` in Kotlin.
 On balance, your authors think it's worth using the @JvmName annotation in this case,
 but in general you will need to come to an agreement within your team about how you use the `@JvmName` annotation to adjust Kotlin classes to Java clients.
 
 
 === Calling Our Operator from Existing Kotlin Code
 
-This still leaves us with a problem.
+Looking at our Kotlin client code, we find we still have a problem.
 At the time of writing, IntelliJ does not have an automated refactoring to replace all direct calls to an operator method with use of the respective operator.
 Any of our Kotlin code that had been calling the `Money.add` method before we turned it into an operator will be left calling `Money.plus` as a method instead of using the `+` operator.
+IntelliJ can automatically refactor each of those call sites from a method call to an operator, but we would have to go through them one by one, invoking the refactoring individually.
 
-Even if we only called `Money.add` from Java code, we still have a problem:
-IntelliJ will convert Java that calls `Money.add` into Kotlin that calls 'Money.plus' as a method instead of using `+` operator.
-IntelliJ can automatically refactor each of those call sites from a method call to an operator, but we would have to go through them one by one, refactoring each one individually.
-
-To address these problems, we'll use a sequence of refactoring steps to switch _all_ our Kotlin code over to use the `+` operator, and leave in the code the capability to easily do those steps again as we convert more Java classes to Kotlin.
-
-Let's revert our change again, and take yet another run at the conversion.
+To address this problem, we can use a sequence of refactoring steps to switch _all_ our Kotlin code over to use the `+` operator at once, and leave in the code the capability to easily do those steps again as we convert more Java classes to Kotlin.
+So let's re-revert our change, and take yet another run at the conversion.
 
 This time, we'll extract the entire body of the `add` method as a method called `plus` and make it a public, operator method:
 
@@ -219,7 +205,6 @@ operator fun plus(that: Money): Money {
     require(currency == that.currency) {
         "cannot add Money values of different currencies"
     }
-
     return Money(amount.add(that.amount), currency)
 }
 ----
@@ -258,35 +243,31 @@ operator fun plus(that: Money): Money {
     require(currency == that.currency) {
         "cannot add Money values of different currencies"
     }
-
     return Money(amount.add(that.amount), currency)
 }
 ----
 // end-insert
 
 We now have two methods for addition.
-The `plus` operator method implements the addition logic and is what we'd like all our Kotlin code to use in the future, but nothing calls it directly yet.
+The `plus` operator implements the addition logic and is what we'd like all our Kotlin code to use in the future, but nothing calls it directly yet.
 The `add` method will remain for use by our Java code, while it exists, and its body contains the ideal syntax we would like to use in our Kotlin code.
 
-We can make all our Kotlin code that adds Money values use that ideal syntax by inlining the `Money.add` method.
-When we do so, IntelliJ reports that it was unable to inline all the uses of `add`.
+We can convet all our Kotlin code that adds `Money` values to use the operator syntax by inlining the `Money.add` method.
+When we do, IntelliJ reports that it was unable to inline all the uses of `add`.
 That's just what we want!
-We can't inline Kotlin code into Java, so IntelliJ has inlined the body of `add` method only into the Kotlin call sites, and has kept its definition in the `Money` class because it is still called by Java.
+We can't inline Kotlin code into Java, so IntelliJ has inlined the body of the `add` method only into the Kotlin call sites, and has kept its definition in the `Money` class because it is still called by Java.
 All our Kotlin code is now using the `+` operator, and our Java code is unchanged.
 
-In the future, when we translate more Java classes that add Money values to Kotlin, we can inline the `add` method again to make the converted Kotlin class use the `+` operator instead of method call syntax.
+In the future, when we translate more Java classes that add `Money` values to Kotlin, we can inline the `add` method again to make the converted Kotlin class use the `+` operator instead of method call syntax.
 As long as there is Java code in our codebase that calls it, IntelliJ will preserve the `add` method.
-After we've converted the last Java class that adds Money, IntelliJ will remove the now unused `add` method as part of the inline refactoring.
+After we've converted the last Java class that adds `Money`, IntelliJ will remove the now unused `add` method as part of the inline refactoring.
 Our codebase will then only use the `+` operator.
-
-// this refactoring combo is also used to introduce infix methods in the JSON DSL chapter -- ensure they are consistent and don't repeat themselves
-
 
 === Operators for Existing Java Classes
 
-While we're working on the `plus` method, we can also take the opportunity to use the `+` operator inside the method to add the amount values.
-The Money class represents its amount as a `BigDecimal`, a class from the Java standard library.
-We can replace the call to the BigDecimal's `add` method with the + operator:
+While we're working on the `plus` method, we can also take the opportunity to use the `+` operator _inside_ the method.
+The `Money` class represents its `amount` property as a `BigDecimal`, a class from the Java standard library.
+We can replace the call to the `BigDecimal.add` method with the + operator:
 
 // begin-insert: tags/value_types.18:src/main/java/travelator/money/Money.kt#plus_method
 [source,kotlin]
@@ -295,7 +276,6 @@ operator fun plus(that: Money): Money {
     require(currency == that.currency) {
         "cannot add Money values of different currencies"
     }
-
     return Money(this.amount + that.amount, currency)
 }
 ----
@@ -305,12 +285,12 @@ Our code continues to compile.
 How is that possible?
 
 The Kotlin standard library includes extension functions that define operators for classes in the Java standard library: mathematical classes, such as `BigInteger` and `BigDecimal` and collections, such as `List<T>` or `Set<T>`.
-Because these extension functions are defined in the `kotlin` package, they are available to any package automatically; we don't need to import them.
+Because these extension functions are defined in the `kotlin` package, they are available to any package automatically: we don't need to import them.
 
 
 === Conventions for Denoting Values
 
-The static `of` functions on the companion object, used to denote Money values, also break Kotlin conventions.
+The static `of` functions on the companion object, used to denote `Money` values, also break Kotlin conventions.
 
 Java syntax distinguishes between instantiating a class with the `new` operator and obtaining an object as the result of a method call.
 A <<modern-java-style,Modern Java>> convention is that stateful objects, for which identity is significant, are constructed with the new operator, and values are denoted by calls to static factory functions.
@@ -319,37 +299,51 @@ For example, the expression `new ArrayList<>()` constructs a new mutable list di
 Kotlin does not draw a distinction between constructing objects and calling functions: the syntax for instantiating a class is the same as that for calling a function.
 Nor are there coding conventions to distinguish between constructing a new stateful object that has a distinct identity, and denoting values that do not.
 
-WARNING: Although the Kotlin code for calling a function and instantiating a class look the same, they are implemented by different JVM bytecode.  A source-compatible change between a class and a function will not be binary-compatible.
+WARNING: Although the Kotlin code for calling a function and instantiating a class look the same, they are implemented by different JVM bytecode.  A source-compatible change between calling a constructor and a function will not be binary-compatible.
 
-Where a class needs multiple factory functions, as does our Money class, they are usually defined as top-level functions, not on the companion object of the class.
+Where a class needs multiple factory functions, as does our `Money` class, they are usually defined as top-level functions, not on the companion object of the class.
 IntelliJ does its bit to nudge one towards this style:
 it is much better at autosuggesting top-level functions than methods on a companion object.
 
-So, it would be more conventional if we created Money instances with expressions like `Money(...)` or, alternatively, `moneyOf(...)`, rather than `Money.of(...)`.
+So, it would be more conventional if we created `Money` instances with expressions like `Money(...)` or, alternatively, `moneyOf(...)`, rather than `Money.of(...)`.
 
-We've declared the Money constructor as private, so it looks like the easiest option would be to define top-level `moneyOf` functions in the same source file as the Money class.
-However, those `moneyOf` functions would have to call the Money class' constructor, making it invisible outside the class.
-We would have to declare it as `internal`, rather than `private`.
+As we saw in <<java-to-kotlin-classes>>, `Money` has a private constructor (and isn't a data class) in order to preserve the relationship between its currency and the precision of its `amount`.
+So it looks like the easiest option would be to define top-level `moneyOf` functions in the same source file as the `Money` class.
+However, those `moneyOf` functions would have to call the `Money` class' constructor.
+They can't call it if it is still declared as `private`, but could if we change the constructor to `internal`.
 
-Internal visibility would make the constructor visible to any Kotlin code in the same compilation unit (equivalent to a Gradle subproject or IntelliJ module), but prevent it being called by Kotlin code in other compilation units.
-The compilation unit, rather than the class, would be responsible for guaranteeing the invariants of the Money class by never calling its constructor inappropriately.
-That would be safe enough, if it wasn't for those parts of our system that we will continue to maintain in Java during our system's transition to Kotlin.
+Internal visibility would make the constructor visible to any Kotlin code in the same compilation unit (Gradle subproject or IntelliJ module), but prevent it being called by Kotlin code in other compilation units.
+The compilation unit, rather than the class, would be responsible for guaranteeing the invariants of the `Money` class by never calling its constructor inappropriately.
+That would be safe enough, if it wasn't for those Java parts of our system that we will continue to maintain during our system's transition to Kotlin.
 
 Java and the JVM do not have the concept of internal visibility.
 The Kotlin compiler translates internal features of a class to a public features in the JVM class files it generates, and records the internal visibility as additional metadata that is processed by the Kotlin compiler but ignored by the Java compiler.
-As a result, Kotlin features declared as internal appear to be public to the Java compiler and JVM, allowing us to accidentally create invalid Money values when we're working in the Java code of our project.
+As a result, Kotlin features declared as internal appear to be public to the Java compiler and JVM, allowing us to accidentally create invalid `Money` values when we're working in the Java code of our project.
 That makes top-level `moneyOf` functions an unattractive option.
 
 Instead, we can lean on Kotlin's operator overloading again.
-If we define the function call operator for the Money class' companion object, Kotlin code can create money values using the same syntax as if they were directly calling the constructor.
-We implement the function call operator by defining an operator function called `invoke`:
+If we define a function call operator for the `Money` class' companion object, Kotlin code can create `Money` values using the same syntax as if they were directly calling the constructor:
 
-Just as we found when renaming the `add` method to `plus`, merely renaming `of` to `invoke` will have a knock-on effect on our Java code.
-Java code that creates Money values changes from reading as `Money.of(100, EUR)` to `Money.invoke(100, EUR)`.
-The `of` methods had _two_ responsibilities: to enforce the class invariants when constructing money values, and to provide syntactic sugar in the caller that conforms to Modern Java conventions for denoting values.
+[source,kotlin]
+----
+val currently = Money.of(BigDecimal("9.99"), GBP))
+
+val proposal = Money(BigDecimal("9.99"), GBP))
+----
+
+It won't actually be a constructor call though, in longhand it is:
+
+[source,kotlin]
+----
+val proposal = Money.invoke(BigDecimal("9.99", GBP))
+----
+
+Just as we found when renaming the `add` method to `plus`, if we try to achieve this by merely renaming `of` to `invoke`, we will have a knock-on effect on our Java code.
+Java code that creates `Money` values changes from reading as `Money.of(BigDecimal(100), EUR)` to `Money.invoke(BigDecimal(100), EUR)`.
+The `of` methods had _two_ responsibilities: to enforce the class invariants when constructing `Money` values, and to provide syntactic sugar in the caller that conforms to Modern Java conventions for denoting values.
 Renaming from `of` to `invoke` doesn't affect the former, but messes up the latter.
 
-We can use the same combo of extract method, refactor the call to the extracted method, and inline method to avoid any negative effects on our Java code as we refactor our Kotlin code to follow Kotlin conventions.
+We can use the same combination of extract method, refactor the call to the extracted method, and inline method to avoid any negative effects on our Java code as we refactor our Kotlin code to follow Kotlin conventions.
 
 First, extract the `of` method's entire body as a method called `invoke`.
 
@@ -396,13 +390,13 @@ operator fun invoke(amount: BigDecimal, currency: Currency) =
 ----
 // end-insert:
 
-We can now call the Money companion object as a function.
+We can now call the `Money` companion object as a function that looks like a constructor.
 So how come the call to `Money(...)` in the body of the `invoke` method does not overflow the call stack?
 Inside the `invoke` method, the call to `Money(...)` is not a recursive call to `invoke` but actually calls the private `Money` constructor.
 Outside the class, a call to `Money(...)` calls the companion object's `invoke` method, because the private constructor is not visible.
-We have the best of both worlds: conventional syntax for instantiating the class, and an encapsulation boundary that guarantees the class' invariants.
+We have the best of both worlds: conventional syntax for creating instances of the class, and an encapsulation boundary that guarantees the class' invariants.
 
-To make existing Kotlin code use that conventional syntax, we need to first  make the companion object's `of` method call itself as a function:
+To make existing Kotlin code use the new syntax, we need to first make the companion object's `of` method call itself as a function:
 
 // begin-insert: tags/value_types.21:src/main/java/travelator/money/Money.kt#call_this
 [source,kotlin]
@@ -416,7 +410,7 @@ fun of(amount: BigDecimal, currency: Currency) =
 Then, we inline the `of` method into our Kotlin code.
 Again, Java code will not be affected, and when there is no Java code calling the `of` method, the IDE will remove it for us.
 
-Before the inline refactoring, Kotlin code that creates Money values looks like this:
+Before the inline refactoring, Kotlin code that creates `Money` values looks like this:
 
 // begin-insert: tags/value_types.23:src/main/java/travelator/money/ExchangeRates.kt
 [source,kotlin]
@@ -429,7 +423,6 @@ interface ExchangeRates {
         val rate = rate(fromMoney.currency, toCurrency)
         val toAmount = fromMoney.amount * rate
         val toMoney = Money.of(toAmount, toCurrency)
-
         return CurrencyConversion(fromMoney, toMoney)
     }
 }
@@ -449,7 +442,6 @@ interface ExchangeRates {
         val rate = rate(fromMoney.currency, toCurrency)
         val toAmount = fromMoney.amount * rate
         val toMoney = Money(toAmount, toCurrency)
-
         return CurrencyConversion(fromMoney, toMoney)
     }
 }
@@ -466,5 +458,4 @@ Java and Kotlin have different conventions that work with the different grains o
 We don't want our use of Kotlin to have a negative effect on our Java, or leave our Kotlin code as mere Java in Kotlin syntax.
 
 Using annotations and delegation we can ensure that both Kotlin and Java code follows their respective language conventions during the transition to Kotlin.
-The "extract-and-inline" refactoring combo makes this easy to add to our codebase, and to remove when no longer needed.
-
+The "extract-and-inline" refactoring combination makes this easy to add to our codebase, and to remove when no longer needed.
