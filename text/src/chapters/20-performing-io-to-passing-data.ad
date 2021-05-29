@@ -630,7 +630,7 @@ We can see this if we change the code in `generate` to convert the `lines` to a 
 [source,kotlin]
 ----
 fun generate(lines: List<String>): Sequence<String> {
-    val valuableCustomers = lines
+    val valuableCustomers: Sequence<CustomerData> = lines
         .asSequence()
         .withoutHeader()
         .map(String::toCustomerData)
@@ -666,7 +666,7 @@ We can show that we are abusing this `Sequence` by adding a `.constrainOnce()` c
 // begin-insert: tags/bonus.17:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
-    val valuableCustomers = lines
+    val valuableCustomers: Sequence<CustomerData> = lines
         .asSequence()
         .constrainOnce()
         .withoutHeader()
@@ -682,7 +682,7 @@ The simplest fix is to resolve the `Sequence` with a `.toList()` call.
 // begin-insert: tags/bonus.18:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
-    val valuableCustomers = lines
+    val valuableCustomers: Sequence<CustomerData> = lines
         .asSequence()
         .constrainOnce()
         .withoutHeader()
