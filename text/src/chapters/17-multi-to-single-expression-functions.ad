@@ -6,8 +6,8 @@ Nat and Duncan both love Kotlin's single-expression function definitions.
 When should we use this form, why might we prefer it, and what Kotlin features can we use to make more functions single-expressions?
 ****
 
-As with Java, the code in a Kotlin function is usually {defined inside braces} and use
-`return` to define the result of the function, (unless it is `void`/`Unit`).
+As with Java, the code in a Kotlin function is usually { defined inside braces } and uses
+`return` to define the result of the function, (unless it is `Unit`, Kotlin's alias for `void`):
 
 // begin-insert: src/main/java/singleExpressionFunctions/functions.kt#add
 [source,kotlin]
@@ -18,7 +18,7 @@ fun add(a: Int, b: Int): Int {
 ----
 // end-insert
 
-If the top-level of the code is a single expression though, we can optionally drop the result type, and define the code with an equals sign `=` and the expression.
+If the top level of the code is a single expression though, we can optionally drop the result type, and define the code with an equals sign `=` and the expression:
 
 // begin-insert: src/main/java/singleExpressionFunctions/functions.kt#addToo
 [source,kotlin]
@@ -27,8 +27,8 @@ fun addToo(a: Int, b: Int): Int = a + b
 ----
 // end-insert
 
-This is nice to read - it's saying the result of function `add` equals `a + b`.
-Which makes sense for a single-expression, but can also read nicely when that expresion is itself composed of sub-expressions.
+We can read this as, the result of function `add` equals `a + b`.
+Which makes sense for a single expression, but can also read nicely when that expresion is itself composed of sub-expressions:
 
 // begin-insert: src/main/java/singleExpressionFunctions/functions.kt#max
 [source,kotlin]
@@ -41,7 +41,8 @@ fun max(a: Int, b: Int): Int =
 ----
 // end-insert
 
-This form is less suitable for functions that have side effects, especially those that perform IO or write to mutable state.
+This interpretation makes less sense for functions that have side effects, especially those that perform IO or write to mutable state.
+For instance:
 
 // begin-insert: src/main/java/singleExpressionFunctions/functions.kt#printTwice
 [source,kotlin]
@@ -51,7 +52,7 @@ fun printTwice(s: String): Unit = println("$s\n$s")
 // end-insert
 
 We can't read this as the result of `printTwice` equals `println(..)` as `println` doesn't have a result, or at least it doesn't return one.
-Side effects are the difference between actions and calculations that we explore in <<actions-to-calculations>> - in short, we want as many of our functions to be calculations as we can.
+Its function is entirely side effects, as we explored in <<actions-to-calculations>>..
 
 [[single-expresssion-functions-for-calculations]]
 [TIP]
@@ -60,7 +61,7 @@ Side effects are the difference between actions and calculations that we explore
 If we adopt a convention of reserving single-expression functions for calculations (<<calculations>>), then we have a way of communicating our intent when we use them.
 When we see a single-expression function, we will know that it isn't an action (<<actions>>), and so is much safer to refactor.
 
-In practice this means that single-expression functions shouldn't return Unit, or read or write from mutable state, including IO.
+In practice this means that single-expression functions shouldn't return Unit, or read or write from mutable state, including performing IO.
 ====
 
 Your authors have found that attempting to make as many functions as possible into single expressions improves our software.
@@ -68,8 +69,8 @@ For one thing, if we reserve the single-expression form for calculations, then t
 Single-expressions will also tend to be shorter than the alternative, limiting the complexity of each function.
 When a function does get too large to be easily understood, single-expression style lets us more easily refactor for clarity, because there is less risk of breaking logic that depends on side effects and the order in which actions are performed.
 
-There is also value in expressions as opposed to statements.
-Expressions are _declarative_: we declare what we want the function to calculate and let the Kotlin compiler and runtime decide _how_ to compute that calculation.
+We also prefer expressions as opposed to statements.
+Expressions are _declarative_: we declare _what_ we want the function to calculate and let the Kotlin compiler and runtime decide _how_ to compute that calculation.
 We don't have to run the code in a simulated computer in our heads to figure out what the function does.
 
 For example, at the end of <<java-to-kotlin-classes>> we were left with this code for `EmailAddress`:
@@ -105,7 +106,7 @@ The `toString` method is already a nice simple single expression.
 As we said at the time though, the amount of code required in the `parse` method adds insult to the injury of having to declare static methods in a companion object.
 Maybe focusing on making the function into a simple single expression would help?
 
-Before we go on, we should say that lots of the refactoring sequences presented in this book are of the form _here's one I prepared earlier_.
+Before we go on, we should say that lots of the refactoring sequences presented in this book are of the form "here's one I prepared earlier".
 We show you the successful take.
 Real life refactorings, like writing code from scratch, aren't like that.
 We try things that don't work at all, or we take a much more circuitous route than we show in the final edit.
@@ -136,14 +137,11 @@ fun parse(value: String): EmailAddress {
 <2> `require` is a statement.
 <3> Creating the `EmailAddress` is a single expression, depending on `value` and `atIndex`.
 
-We have three statements in this function.
-If we can whittle it down to just the `return` statement we can convert it to the single expression form.
-
 The first statement is the assignment to `atIndex`.
 In Kotlin assignment is a statement, not an expression (unlike Java, where we can chain assignments).
-It also matters when we run it - it has to happen here in the code in order for the value of `atIndex` to be available to compile the rest of the function.
-The expression `value.lastIndexOf(Char)` is a calculation though - it will always return the same result for the same arguments (`this` is considered an argument when we call methods).
-So we could inline `atIndex` to remove the variable:
+Its position in the code also matters -- it has to happen here in the code in order for the value of `atIndex` to be available to compile the rest of the function.
+The expression bound to the variable, `value.lastIndexOf(Char)` is a calculation though, meaning that it will always return the same result for the same arguments (`this` is considered an argument when we call methods).
+As a result, we can inline the variable `atIndex` without changing the result of the function, giving:
 
 // begin-insert: tags/multi-to-single-expression-functions.2:src/main/java/travelator/EmailAddress.kt#parse
 [source,kotlin]
@@ -163,12 +161,12 @@ fun parse(value: String): EmailAddress {
 // end-insert
 
 This version won't produce the same bytecode, nor run as fast (probably, it's notoriously difficult to second guess HotSpot), but it will return the same result.
-It's hard to argue that it's better though, so let's revert the change and try another tack.
+We still have that `require` call to deal with though, and we seem to have made everything a bit less understandable already,  so let's revert the change and try another tack.
 
 === Take 2 - Introduce a Function
 
-The solution to the time-sensitivity of assignment is to have a scope where `atIndex` is always defined.
-A function could be such a scope, as a function binds a single evaluation of its arguments to its parameters.
+Another way to remove the assignment statement is to have a scope where `atIndex` is always defined.
+We could use a function as such a scope, as a function binds a single evaluation of its arguments to its parameters.
 We can see this by selecting all but the code before the assignment and extracting a function `emailAddress`:
 
 // begin-insert: tags/multi-to-single-expression-functions.3:src/main/java/travelator/EmailAddress.kt#parse
@@ -191,7 +189,7 @@ private fun emailAddress(value: String, atIndex: Int): EmailAddress {
 ----
 // end-insert
 
-Now we can inline the `atIndex` variable in `parse`, as the `atIndex` parameter has captured its value for us.
+Now we can inline the `atIndex` variable in `parse`, as the `atIndex` parameter has captured its value for us:
 
 // begin-insert: tags/multi-to-single-expression-functions.4:src/main/java/travelator/EmailAddress.kt#parse
 [source,kotlin]
@@ -212,13 +210,13 @@ private fun emailAddress(value: String, atIndex: Int): EmailAddress {
 ----
 // end-insert
 
-Now `parse` is a single expression, but `emailAddress(...)` isn't, so let's not declare victory just yet.
+Now `parse` is a single expression, but `emailAddress(...)` isn't, so we can't declare victory just yet.
 That `require` is always going to cause us some problems, because its job is to prevent evaluation proceeding.
 This is the opposite of an expression, which needs to evaluate to a value.
 
 Often when we reach this sort of impasse when refactoring, inlining the cause of the problem will let us see the way ahead.
-So we inline `require`.
-Suspend disbelief for now, things are going to get worse before they get better.
+So let's inline `require`.
+(Suspend disbelief for now: things are going to get worse before they get better):
 
 // begin-insert: tags/multi-to-single-expression-functions.6:src/main/java/travelator/EmailAddress.kt#emailAddress
 [source,kotlin]
@@ -236,7 +234,7 @@ private fun emailAddress(value: String, atIndex: Int): EmailAddress {
 ----
 // end-insert
 
-There's an awful lot of redundancy that we can remove there.
+There's an awful lot of redundancy that we can remove here.
 Alt-Enter on the `if` condition will remove the double-negation `!!`, then Alt-Enter on the redundant `toString` will remove it.
 This allows us to inline `message`, yielding:
 
@@ -278,7 +276,7 @@ private fun emailAddress(value: String, atIndex: Int): EmailAddress {
 // end-insert
 
 At this point we have a function with two statements chosen by an `if`.
-This is so tantalisingly close to a single expression that even IntelliJ can feel it - Alt-Enter on the `if`, and the IDE offers to "Lift return out of 'if'":
+This is so tantalisingly close to a single expression that even the IDE can feel it - Alt-Enter on the `if`, and IntelliJ offers to "Lift return out of 'if'": [TODO - This should be a single quoted 'if' in a double quoted string!]
 
 // begin-insert: tags/multi-to-single-expression-functions.9:src/main/java/travelator/EmailAddress.kt#emailAddress
 [source,kotlin]
@@ -298,7 +296,7 @@ private fun emailAddress(value: String, atIndex: Int): EmailAddress {
 ----
 // end-insert
 
-There it is - our single expression.
+There it is -- our single expression.
 Alt-Enter on the `return` offers "Convert to expression body":
 
 // begin-insert: tags/multi-to-single-expression-functions.10:src/main/java/travelator/EmailAddress.kt#emailAddress
@@ -320,7 +318,7 @@ private fun emailAddress(value: String, atIndex: Int): EmailAddress =
 
 When we're defining a function as a single expression, `when` is often clearer than `if`.
 IntelliJ will do this for us if we Alt-Enter on the `if`.
-Here we've also removed unnecessary braces, inlined `message`, and finally converted `parse` to a single expression:
+Here we've also removed unnecessary braces, inlined `message`, and finally converted `parse` to a single expression too:
 
 // begin-insert: tags/multi-to-single-expression-functions.11:src/main/java/travelator/EmailAddress.kt#parse
 [source,kotlin]
@@ -365,7 +363,7 @@ Are we happy with the result?
 Not really.
 We now have _more_ code, and that `emailAddress` function doesn't feel like it's adding any value except for capturing `atIndex`.
 
-Refactoring is sometimes a process of exploration.
+Refactoring is often a process of exploration.
 We have a goal in mind, but don't always know how it will turn out.
 It's our (your authors') experience that trying to find a single expression form of a function often improves our code, but we can't look you in the eye and say that has happened here.
 
@@ -484,7 +482,7 @@ Are we happy with the result?
 
 Duncan is writing this, and he _is_ pretty relieved to have got here after 15 refactoring steps.
 The example has certainly served its purpose of showing some tricks to allow us to get to single-expression functions.
-Nonetheless, he isn't convinced that it has demonstrated that seeking single expressions has a significant payoff.
+Nevertheless, he isn't convinced that it has demonstrated that seeking single expressions has a significant payoff.
 This still seems to be a lot of code, and none of it feels like it is earning its keep.
 
 Can we make this better by raising the level of abstraction?
@@ -496,7 +494,7 @@ Let's try a fourth tack.
 If we step out from the mechanical refactorings, we can see that what we are doing is creating an `EmailAddress` from two non-empty strings separated by a particular character, `@` in this case.
 Finding two non-empty strings separated by a character sounds like a higher-level concept that we could refactor towards.
 
-One last revert then:
+One last revert then, back to:
 
 // begin-insert: tags/multi-to-single-expression-functions.18:src/main/java/travelator/EmailAddress.kt#parse
 [source,kotlin]
@@ -643,7 +641,7 @@ We've spent enough time for today though, so we'll make a mental note that we ha
 
 .What Should Parse Return?
 ****
-Before we leave this example, we should observe that this refactoring would have been easier had `parse` not thrown an exception on error.
+Before we leave this example, note that this refactoring would have been easier had `parse` not thrown an exception on error.
 `throw` is an expression that returns `Nothing` - it doesn't complete, and so doesn't sit well when we are trying to decompose into expressions.
 <<exceptions-to-errors>> talks about this in detail, but had we written `EmailAddress` from scratch in Kotlin we would probably have returned `EmailAddress?` from `parse`, and null on failure.
 That doesn't sit well with Java clients, where the type system doesn't warn about nullability.
@@ -658,15 +656,12 @@ Trying to express functions as a simple single-expressions is a useful disciplin
 To achieve single-expression form we usually have to factor out subexpressions into their own functions.
 
 Single-expression form is declarative: the expression describes the function's result in terms of its parameters, rather than the actions that the computer must perform to compute the result.
-Our need to factor subexpressions into their own functions prompts us to think about what those subexpressions should be denoting, and so guides us to write code of greater clarity.
+Factoring subexpressions into their own functions prompts us to think about what those subexpressions should be denoting, and so guides us to write clearer code.
 For example, `String.splitAroundLast('@')` better described what we wanted to calculate than `emailAddress(value: String, atIndex: Int)`.
 
-At a deeper level, this chapter is not really about single expressions.
-It's about how thinking about how we can rearrange our code without changing its behaviour.
-Refactoring is the art of finding a better arrangement, and getting there safely.
+At a deeper level, this chapter is about more than single expressions; it's about how we can rearrange our code without changing its behaviour.
+Many different arrangements of statements and expressions will have the same behaviour: refactoring is the art of finding a better one, and getting there safely.
 The more arrangements we can visualise, and the more safe routes we can plan, the more options we have to make our code better.
 
-Many different arrangements will have the same resultSo while you can see that let straight away, I believe that looking at the different arrangements, and working our way painstakingly through different options, has value in showing readers how to invent and implement refactorings.
-
-Refactorings don't always succeed the first, or second, time we try them.
-As developers, we don't always have the luxury of repeated attempts, but the more we practice improving our communication in code, the more often we'll get there before we give up.
+Refactorings don't always succeed the first, second or even third time we try them.
+As developers, we don't always have the luxury of repeated attempts, but the more we practice improving our communication in code, the more often we'll get there before we have to give up and move on.
