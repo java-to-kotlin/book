@@ -298,6 +298,41 @@ object NullsAndNestedFunctionCalls {
         /// end: chained_extensions
     }
 
+    fun nullable_trip_extension() {
+        val customer: Customer? = SOME_CODE()
+        val currentTime: ZonedDateTime = SOME_CODE()
+
+        /// begin: nullable_trip_receiver
+        fun Trip?.reminderAt(currentTime: ZonedDateTime) =
+            this?.timeUntilDeparture(currentTime)
+                ?.toUserFriendlyText()
+                ?.plus(" until your next trip!")
+        /// end: nullable_trip_receiver
+
+        /// begin: nullable_trip_reminder_usage
+        val reminder: String? = customer
+            ?.nextTrip()
+            .reminderAt(currentTime)
+        /// end: nullable_trip_reminder_usage
+    }
+
+    fun non_nullable_trip_extension() {
+        val customer: Customer? = SOME_CODE()
+        val currentTime: ZonedDateTime = SOME_CODE()
+
+        fun Trip.reminderAt(currentTime: ZonedDateTime) =
+            this.timeUntilDeparture(currentTime)
+                ?.toUserFriendlyText()
+                ?.plus(" until your next trip!")
+
+        /// begin: non_nullable_trip_reminder_usage
+        val reminder: String? = customer
+            ?.nextTrip()
+            ?.reminderAt(currentTime)
+        /// end: non_nullable_trip_reminder_usage
+    }
+
+
     private fun loggedInCustomer(): Customer? = SOME_CODE()
 
     private fun greetingForCustomer(customer: Customer): String? = SOME_CODE()
