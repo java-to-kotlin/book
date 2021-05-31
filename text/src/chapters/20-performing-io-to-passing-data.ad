@@ -4,7 +4,7 @@
 ****
 Input and output are problematic in code.
 Our program is subject to errors talking to the outside world when files disappear or network sockets fail.
-IO is also an action (<<actions>>) and so limits our ability to reason with and refactor our code.
+IO is also an action and so limits our ability to reason with and refactor our code.
 How can we limit the scope of the problems that IO causes?
 ****
 
@@ -84,11 +84,11 @@ class HighValueCustomersReportTests {
 ----
 // end-insert
 
-We didn't really look at the tests in <<functions-to-extension-functions>>, but if we do now, what stands out in the light of our chapter (<<actions-to-calculations>>) discussing calculations and actions?
+We didn't really look at the tests in <<functions-to-extension-functions>>, but if we do now, what stands out in the light of your author's obsession with actions and calculations (<<actions-to-calculations>>)?
 In particular, look at that `check` function.
 
 `check` is evidently not a calculation (<<calculations>>), as it works entirely by throwing an exception instead of returning a value.
-But look at it this way:
+If we look at it this way though?
 
 // begin-insert: tags/bonus.0.6:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
 [source,kotlin]
@@ -110,13 +110,13 @@ private fun check(
 This is to all intents and purposes the same code, but now we can see that we have a calculation, taking `inputLines` and yielding `outputLines`, before we go on to the assertion.
 Even though `generate` is an action, relying on the side effects of reading and writing to and from its parameters, we can convert it to a calculation by limiting the scope of its side effects to local variables.
 
-If we stop for a moment and listen, we may hear the tests talking to us.
-They are saying, "Look, that report generation is fundamentally a calculation - it converts a `List<String>` to a `List<String>`.
+If we stop for a moment and listen, we can hear the tests talking to us.
+They are saying, "Look, that report generation is fundamentally a calculation: it converts a `List<String>` to a `List<String>`.
 We know it does, because that's what we are checking."
 
 So the tests are telling us that the fundamental signature of `generate` is `generate(lines: List<String>): List<String>`.
-If this was the signature, then it would not have to declare that it throws `IOException` either, because all the IO would happen outside the function.
-IO has to happen somewhere, but, in common with other actions, the further to the top of our system we we can move it, the more we can deal in nice easy calculations.
+If _this_ was the signature, then it would not have to declare that it throws `IOException` either, because all the IO would happen outside the function.
+IO has to happen somewhere, but, in common with other actions, the closer to the entry points of our system we can move it, the more we can deal in nice easy calculations.
 
 Shall we refactor towards this goal?
 You're right, that was a rhetorical question.
@@ -162,7 +162,7 @@ fun generate(writer: Writer, lines: List<String>) {
 ----
 // end-insert
 
-The refactoring has also moved the `readLines()` out into the callers - here is the result in test:
+The refactoring has moved the `readLines()` out into the callers -- here is the result in test:
 
 // begin-insert: tags/bonus.4:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
 [source,kotlin]
@@ -202,7 +202,7 @@ private fun check(
 // end-insert
 
 We are now reading from a `List`.
-Let's go back and look at how to return a `List` too rather than modifying the `Writer`.
+Let's go back and look at how to return a `List` too; rather than modifying the `Writer`.
 Here is the code:
 
 // begin-insert: tags/bonus.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#writer
@@ -227,7 +227,7 @@ val resultLines = listOf("ID\tName\tSpend") +
 ----
 // end-insert
 
-Then we write it in one lump to `writer`:
+Then we can write it in one lump to `writer`:
 
 // begin-insert: tags/bonus.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
@@ -245,7 +245,8 @@ fun generate(writer: Writer, lines: List<String>) {
 ----
 // end-insert
 
-If we now "Extract function" with all but the last line, making it public and calling it `generate` too, we get the following:
+This function is now two statements which make up a calculation, and a final action taking the result of the calculation.
+If we now "Extract function" with the calculation lines, making it public and calling it `generate` too, we get the following:
 
 // begin-insert: tags/bonus.7:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
@@ -268,7 +269,7 @@ fun generate(lines: List<String>): List<String> {
 ----
 // end-insert
 
-Inlining the two vestigial `resultLines` gives:
+Inlining both vestigial `resultLines` gives:
 
 // begin-insert: tags/bonus.8:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
@@ -290,7 +291,7 @@ fun generate(lines: List<String>): List<String> {
 // end-insert
 
 One more inline then, this time of the old `generate` function.
-That replaces its invocation in client code - this is the code in the test:
+That replaces its invocation in client code, leaving this in the test:
 
 // begin-insert: tags/bonus.9:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
 [source,kotlin]
@@ -308,7 +309,9 @@ private fun check(
 ----
 // end-insert
 
-Once again we have now-redundant IO in our tests, and can simplify everything to:
+This refactor has moved the action part of `generate` out a level, leaving the nice pure calculation bits in its place.
+Another way of looking at this is that our original `Writer` was an accumulating object, which we have replaced with a transformation as we saw in <<accumulating-objects-to-transformations>>.
+Our tests didn't really want to be testing an action anyway, so they again have redundant IO, which we can simplify to the form we were aiming for:
 
 // begin-insert: tags/bonus.10:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
 [source,kotlin]
@@ -321,9 +324,6 @@ private fun check(
 }
 ----
 // end-insert
-
-This was, after all, what we were aiming for.
-Another way of looking at this is that our original `Writer` was an accumulating object, we have replaced it with a transformation as we saw in <<accumulating-objects-to-transformations>>.
 
 Let's take stock of our new `generate`:
 
@@ -347,9 +347,9 @@ private fun List<String>.withoutHeader() = drop(1)
 ----
 // end-insert
 
-Now that `generate` is doing so much less, it isn't clear that `List<String>.toValuableCustomers()` is worthwhile.
+Now that `generate` is doing so much less, it isn't clear that the function `toValuableCustomers()` is worthwhile.
 Looking at it afresh we see that it is working at mixed levels, converting and filtering.
-Let's inline it:
+Let's try inlining it:
 
 // begin-insert: tags/bonus.12:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
@@ -367,56 +367,36 @@ fun generate(lines: List<String>): List<String> {
 ----
 // end-insert
 
-That's better, assigning to the local variable does a good job of telling us what the expression means, and the list operations spell out the implementation in place.
-This is a case where a single-expression function (<<multi-to-single-expression-functions>>) would probably make things worse, so we'll leave the local alone.
-We'll also resist the temptation to make it an extension function, `List<String>.toReport()`, at least for now.
+That's better.
+The local variable `valuableCustomers` does a good job of telling us what the expression means, and the list operations spell out the implementation in place.
+This function is a case where a single-expression function (<<multi-to-single-expression-functions>>) would probably make things worse, so we'll leave it in two parts.
+We'll also continue to resist the temptation to make it an extension function, `List<String>.toReport()`, at least for now.
 
 .Refactoring for Readability
 ****
 Refactoring for readability is often this way.
-We extract a function to make something more readable in context, but when the context changes the function makes things worse.
-Sometimes, something that we felt was quite expressive when we wrote it, turns out to be less so when we read it back later.
-Even in the best-gelled teams, individuals also differ in their preferences.
+We might extract a function to make something more readable in context, but when the context changes, the function we extracted makes things worse.
+Time is also a context.
+Sometimes something that we felt was quite expressive when we wrote it, turns out to be less so when we read it back later, or could now be improved because we have internalised new idioms.
 ****
 
 === Efficient Writing
 
 We're quite pleased with this refactor.
-It has simplified our tests, and the production code, and we have moved from imperative code that mixes IO and logic to a nice pure function with no side effects.
+It has simplified our tests, and the production code, and we have moved from mixing IO and logic to a simpler calculation with no side effects.
 
 For a while all is fine in production too, but with the easing of COVID-19 travel restrictions, Travelator becomes the roaring success that we all knew it would be.
 Eventually, though, marketing start complaining that the report generation is failing with an `OutOfMemoryError`.
 Could we look into it?
 
+(Apart from running out of memory, we have had two other issues with errors in this code in living memory.
+Both these times the input file turned out to have been malformed, but marketing sit next door and just call us over to help if these occur.
+They feed us cake in these cases, so we're hardly incentivized to do a better job of error handling for now (but see <<ignoring-to-handling-errors>>).
+If we can fix the `OutOfMemoryError` quickly we think we saw some crumpets...)
+
 We haven't bothered you with the details so far, but there is a `main` method that invokes our report.
 It is designed to be invoked with shell redirection, reading from a file piped as the standard input, and writing to a file collected from the standard output.
-This was its Java incarnation:
-
-// begin-insert: tags/functions-to-extension-methods.0:src/main/java/travelator/marketing/HighValueCustomersMain.java
-[source,java]
-----
-public class HighValueCustomersMain {
-
-    public static void main(String[] args) throws IOException {
-        try (
-            var reader = new InputStreamReader(System.in);
-            var writer = new OutputStreamWriter(System.out)
-        ) {
-            HighValueCustomersReport.generate(reader, writer);
-        }
-    }
-}
-----
-// end-insert
-
-You can see that by reading and writing this way we don't have to worry about reading filenames from the command-line.
-
-We have had two issues with errors in this code in living memory.
-Both these times the input file turned out to have been malformed, but marketing sit next door and just call us over to help if these occur.
-They give us cake in these cases, so we're hardly incentivized to do a better job of error handling for now (but see <<ignoring-to-handling-errors>>).
-If we can fix the `OutOfMemoryError` quickly we think we saw some crumpets...
-
-At some point we converted `main` to Kotlin:
+This way, our process doesn't have to read filenames from the command line:
 
 // begin-insert: tags/bonus.0:src/main/java/travelator/marketing/HighValueCustomersMain.kt
 [source,kotlin]
@@ -431,7 +411,7 @@ fun main() {
 ----
 // end-insert
 
-Then it was refactored with the change to the `generate` parameters:
+When we refactored `generate` to process ++List++s rather than a `Reader` and `Writer`, `main` was automatically updated along with the tests to yield:
 
 // begin-insert: tags/bonus.9:src/main/java/travelator/marketing/HighValueCustomersMain.kt
 [source,kotlin]
@@ -454,10 +434,10 @@ Ah, there's our problem.
 We're reading the whole of the input into memory (`readLines()`), processing it, and then creating the entire output in memory (`joinToString()`) before writing it back out.
 
 We sometimes run into problems like these with functional decomposition.
-Less often than we might anticipate, but in this case it's ironic that the original `Reader` and `Writer` code did not have this issue, so we have brought it on ourselves in the name of good style.
+In this case the original `Reader` and `Writer` code did not have this issue, so we have brought it on ourselves in the name of good style.
 We could quickly revert our changes and go and see if there are any crumpets left, or we could find a more functional solution.
 
-Let's go back to `generate` and see what leeway we have.
+Let's go back to `generate` and see what leeway we have:
 
 // begin-insert: tags/bonus.12:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
@@ -475,13 +455,13 @@ fun generate(lines: List<String>): List<String> {
 ----
 // end-insert
 
-Concentrating on the output for now, we can see that we are building a list of the lines of the output
- - each of those strings won't be sharing any memory with the data that we parsed from the input.
-This is then combined into one large string in `main`, that again doesn't share any memory with the lines that created it.
-In these situations we want to defer the creation of the intermediates, and, as we saw in <<streams-to-sequences>> `Sequences` are designed for just that.
-As we'll see, they aren't a panacea, but here they will do nicely.
+Concentrating on the output for now, we can see that we are building a `List` of the lines of the output.
+`main` then takes each `String` in the result, and creates one giant one with `joinToString()`.
+At this point both the individual output lines and their conglomerate will be taking up memory.
+To avoid running out of memory we'll need to defer the creation of the intermediate collections, and, as we saw in <<streams-to-sequences>>, ++Sequence++s are designed for just that.
 
-We can convert `generate` to return a sequence methodically or quickly - for once we'll choose quickly and just replace `listOf` with `sequenceOf` in our `return` expression:
+We can convert `generate` to return a `Sequence` methodically or quickly.
+For once we'll choose quickly, and just replace `listOf` with `sequenceOf` in our `return` expression:
 
 // begin-insert: tags/bonus.13:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
@@ -499,9 +479,9 @@ fun generate(lines: List<String>): Sequence<String> {
 ----
 // end-insert
 
-Now we will only be creating the output lines one at a time when the stream is iterated -- each line can be disposed of quickly rather than hanging around until we have written the whole file.
+Now we will only be creating the output lines one at a time when the `Sequence` is iterated -- each line can be disposed of quickly rather than hanging around until we have written the whole file.
 
-The tests have to change to convert the `Sequence` to a `List`:
+The tests have to change to convert the returned `Sequence` to a `List`:
 
 // begin-insert: tags/bonus.13:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
 [source,kotlin]
@@ -537,11 +517,11 @@ fun main() {
 ----
 // end-insert
 
-`main` needs to be _recompiled_ now that `generate` returns a `Sequence` rather than a `List`, but its source doesn't need to be changed.
-This is because there are extension functions `joinToString(...)` defined on both `Iterable` and `Sequence`, both returning `String`.
+`main` needs to be _recompiled_ now that `generate` returns a `Sequence` rather than a `List`, but its _source_ doesn't need to be changed.
+This is because there are extension functions `joinToString()` defined on both `Iterable` and `Sequence`, both returning `String`.
 
-It might not _need_ to change, but unless `main` _does_ change, we are still creating one large string of all the output.
-To avoid that we need to get imperative again:
+It might not _need_ to change, but unless `main` _does_ change, we are still creating one large string of all the output, before writing it in one operation.
+To avoid that we need to get imperative again, and write each output line individually, as our original `generate` had done:
 
 // begin-insert: tags/bonus.14:src/main/java/travelator/marketing/HighValueCustomersMain.kt
 [source,kotlin]
@@ -586,21 +566,16 @@ fun Writer.appendLines(lines: Sequence<CharSequence>): Writer {
 ----
 // end-insert
 
-Note that while the result of `Writer::appendLines` is a single expression, we agreed in <<multi-to-single-expression-functions>> to use long-form where functions are actions, and `appendLines` is defiantly that.
+Note that while the definition of `Writer::appendLines` is a single expression, we agreed in <<multi-to-single-expression-functions>> to use long-form where functions are actions, and `appendLines` is definitely that.
 
-Now each `CustomerData::outputLine` inside `generate` will only be called when its line is required to be written to the `Writer`.
-This saves memory, but has the interesting effect that the code inside `generate` can throw an `IOException` if the writing fails.
-For now, we're going to put that aside, but it will play on our minds until we find a resolution.
-The truth is that ++Sequence++s let us pretend that we are programming with values and calculations rather than actions, but they are a leaky abstraction.
-
-On the other hand, they have dug us out of a hole here, and writing to a `Sequence` has fewer leaks than reading from one.
-So we'll push this, having bought ourselves lots of memory headroom with few changes and earned our crumpets.
-Do marketing have any butter?
+Now we are here, we realise that we could have postponed our memory crisis by just iterating over the original result `List` in `main`, writing each line individually, as we are doing now with the `Sequence`.
+This solution will use even less memory though, so we'll commit it, having bought ourselves lots of  headroom with few changes and earned our crumpets.
+Do marketing have any jam?
 
 === Efficient Reading
 
 We would be remiss if we didn't finish the job and pretend that we also need to save memory on reading too.
-Let's try a `Sequence` again:
+Let's look at `generate` again:
 
 // begin-insert: tags/bonus.15:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
@@ -618,12 +593,10 @@ fun generate(lines: List<String>): Sequence<String> {
 ----
 // end-insert
 
-We aren't going to be able to stream data straight through `generate` because of that `sortedBy`.
-In order to sort, we have to have all the elements in memory at once.
-Where we can make savings is in the new instances of `List` that are being created for each of the stages of that pipeline - each one has a non-trivial overhead per item.
-In addition, we are keeping each line of the input in memory even after we've split it out into the fields of `CustomerData`.
-Reading from a `Sequence` will solve these problems, but bring a few of its own.
+The pipeline of operations that builds `valuableCustomers` is going to build intermediate ++List++s: one for each stage, and each taking up memory.
+Every line in the input is going to be in memory at once, along with a `CustomerData` object for every line.
 
+We can avoid the intermediate collections by reading from a `Sequence`, although that will bring a few problems of its own.
 We can see this if we change the code in `generate` to convert the `lines` to a `Sequence`, and fix up the methods that did take `List`.
 
 // begin-insert: tags/bonus.16:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
@@ -650,16 +623,17 @@ private fun Sequence<CustomerData>.summarised(): String =
 ----
 // end-insert
 
-This passes the tests.
+This passes the unit tests.
 Are we done?
 Is this another rhetorical question?
 
-Let's cut to the chase and say that the issue is that we end up iterating through the `Sequence` twice.
-Once before we return from `generate` in that `sumByDouble`, and again when we fetch the whole report.
-We will be doing twice as much work as we need to.
-Worse, when we finally get around to passing a `Sequence` reading from a file, we won't be able to iterate over that twice, giving an `IllegalStateException`.
-As we saw in <<streams-to-sequences>>, in the same way that there are differences in the runtime behaviour of ++Lists++s that are not expressed in the type system, instances of ++Sequence++s differ, and they also carry hidden state.
-Iterating over a `Sequence` looks like iterating over from a `List`, but will change the `Sequence` itself by consuming its contents.
+We'll cut to the chase and say that the issue is that we end up iterating over `valuableCustomers` twice.
+Once _before_ we return from `generate` in that `sumByDouble`, and again _after_ we return, when our callers iterate over the returned `Sequence` to print the report.
+If we iterate over a `Sequence` twice, we all the work of creating the `Sequence` twice.
+In this case: removing the header and mapping and filtering and sorting twice.
+Worse, when we try to use the code in production, passing a `Sequence` reading standard input, we won't be able to iterate over that twice, giving an `IllegalStateException`.
+As we saw in <<streams-to-sequences>>, instances of `Sequence` differ in ways that aren't expressed in the type system, and they also carry hidden state.
+Iterating over a `Sequence` looks like iterating over a `List`, but will change the `Sequence` itself by consuming its contents.
 
 We can show that we are abusing this `Sequence` by adding a `.constrainOnce()` call:
 
@@ -693,9 +667,12 @@ The simplest fix is to resolve the `Sequence` with a `.toList()` call.
 ----
 // end-insert
 
-This will lead to our terminating the whole sequence (and hence ultimately reading the whole file) in that statement, but at least it will only try once, and the memory for each line can be discarded as soon as it is parsed.
+This terminates the sequence (and hence ultimately reads the whole file) in that statement, but at least we run the pipeline only once, and the memory for each line can be discarded as soon as it is parsed `toCustomerData`.
+We are in fact going to have to read through the whole input in this function anyway, because `Sequence.sortedBy` needs to read every item to perform the sort -- its returning a `Sequence` is a lie.
 
-Now we can replay the "Introduce parameter" refactoring with the `lines.asSequence().constrainOnce()` expression to convert `generate` to take `Sequence<String>`:
+Now we can replay the "Introduce parameter" refactoring we used at the beginning of this chapter.
+There we converted a `Reader` parameter into a `List`, now we convert the `List` to a `Sequence`.
+The parameter we introduce is the expression `lines.asSequence().constrainOnce()`:
 
 // begin-insert: tags/bonus.19:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
@@ -719,7 +696,7 @@ private fun List<CustomerData>.summarised(): String =
 ----
 // end-insert
 
-Converting a `List` to a `Sequence` will have been pulled up into the tests:
+The refactoring pulls the conversion of the `List` to the `Sequence` up into the tests:
 
 // begin-insert: tags/bonus.19:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
 [source,kotlin]
@@ -738,7 +715,7 @@ private fun check(
 ----
 // end-insert
 
-It will also have been pulled up into `main`:
+It also pulls it up into `main`:
 
 // begin-insert: tags/bonus.19:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
 [source,kotlin]
@@ -757,6 +734,7 @@ fun main() {
 ----
 // end-insert
 
+This is where we are really able to save memory.
 Instead of reading all the lines as once and converting to a `Sequence`, we can get a `Sequence` from the `Reader` with `buffered().lineSequence()`:
 
 // begin-insert: tags/bonus.19.5:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
@@ -776,6 +754,7 @@ fun main() {
 ----
 // end-insert
 
+Now `generate` will be pulling the lines into memory one by one as it executes its pipeline.
 We're now really quite efficient in our use of memory, and run pleasingly quickly.
 Can we resist one last tinker?
 How much nicer would `main` read with more extension functions?
@@ -796,7 +775,8 @@ fun main() {
 ----
 // end-insert
 
-Which finally answers the question we posed back in <<functions-to-extension-functions>> - yes we do end up with report generation as an extension function:
+Which finally answers the question we posed back at the end of <<functions-to-extension-functions>>: yes, we do end up with report generation as an extension function.
+We love it when a plan comes together:
 
 // begin-insert: tags/bonus.20:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
@@ -817,15 +797,18 @@ fun Sequence<String>.toHighValueCustomerReport(): Sequence<String> {
 
 === Conclusion
 
-That completes our moving of the input and output from the inside of `generate` to the outside of our program.
-Actually, we technically refactored IO out, converting `generate` to a calculation on `List<String>`, only until that became too inefficient.
-Calculations take and return values, and forming a value of the entire contents of large files may be too much for even today's computers.
+This refactoring was motivated by a desire to simplify our code.
+By moving IO to the entry point of our program, the inner workings can be calculations rather than actions.
+They can also abdicate responsibility for IO errors.
+That was all well and good, but calculations take and return values, and forming a value of the entire contents of large files is sometimes too much for even today's computers.
 
-At this point we resorted to converting our ++List++s to ++Sequence++s.
-Sequences have state and are not values, but with a little care we can treat them like lazy values -- lazy in that we don't need all their contents up front, but can read or supply them on demand.
-They aren't as simple as values, but their compatible Kotlin API allows something of the best of both worlds.
+To solve this problem we resorted to converting our ++List++s to ++Sequence++s.
+Sequences have state and are not values, but with a little care we can treat them like lazy values.
+Lazy in that they don't require or return all their contents up front, but can read or supply them on demand.
+They aren't as simple as ++List+s, but their compatible Kotlin API allows something of the best of both worlds.
 
-Before we go, note that while the original version of `generate` had to worry about `IOExceptions`, the new version doesn't.
-Or at least, the new version doesn't worry about IO errors because they are hidden from it by the `Sequence` abstractions wrapping the `Reader` and `Writer`.
-That doesn't mean that they can't happen, just that `generate` isn't warned that they can.
+Our original `Reader` to `Writer` version of `generate` had to worry about IO errors, whereas the `List` to `List` version moved all IO to its callers.
+The `Sequence` version is in a middle ground.
+It doesn't worry about IO errors because they are hidden from it by the `Sequence` abstractions wrapping the `Reader` and `Writer`.
+That doesn't mean that they can't happen, just that `generate` isn't responsible for them.
 We'll take a break to see if marketing have any more batter-based rewards before addressing that topic in <<ignoring-to-handling-errors>>.
