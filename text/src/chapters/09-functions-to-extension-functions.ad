@@ -468,58 +468,112 @@ We may not know what to do with them, but they don't prevent the runtime from fi
 Because the receiver in an extension function is actually a parameter, it _can_ be `null`.
 So whilst `anObject.method()` and `anObject.extensionFunction()` look like equivalent calls, `method` can never be called if `anObject` is `null`, whereas `extensionFunction` can be called with `null` if the receiver is declared as nullable.
 
-Here's some code that converts an optional XML `Element` to an optional `Customer`:
+Let's factor out the steps in the pipeline above that generate the reminder into an extension on `Trip?`:
 
-// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#xml
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#nullable_trip_receiver
 [source,kotlin]
 ----
-fun Element?.toCustomer(): Customer? = this?.let { element ->
-    Customer(
-        element.attribute("id"),
-        element.attribute("first-name"),
-        element.attribute("last-name")
-    )
-}
+fun Trip?.reminderAt(currentTime: ZonedDateTime): String? =
+    this?.timeUntilDeparture(currentTime)
+        ?.toUserFriendlyText()
+        ?.plus(" until your next trip!")
 ----
 // end-insert
 
-Inside a _method_, `this` can never be `null`.
-Inside an extension function declared on a nullable type, it can be, so we use `this?.let` to create the customer only if the receiver isn't `null`.
+Note that we have to use the null-safe derefence operator to dereference `this`.
+While `this` is never null _inside_ a method it can be null inside an extension declared on a nullable type.
+A null `this` can be surprising if you're coming from Java, which guaratees that `this` is never null.
+However, because Kotlin tracks nullability in the type system, we cannot introduce a `NullPointerException` by dereferencing a null `this`: Kotlin will catch the error at compile time.
 
-Had we declared `toCustomer` on the non-nullable `Element`, we would have to write:
+The receiver
+Had we declared `remionderAt` on the non-nullable `Trip`, we would have to write:
 
-// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#xmlUsage
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#non_nullable_trip_reminder_usage
 [source,kotlin]
 ----
-val customerElement: Element? = SOME_CODE()
-val customer: Customer? = customerElement?.toCustomer()
+val reminder: String? = customer
+    ?.nextTrip()
+    ?.reminderAt(currentTime)
 ----
 // end-insert
 
 With this function, we can remove the noise of the `?.`:
 
-// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#xmlUsage2
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#nullable_trip_reminder_usage
 [source,kotlin]
 ----
-val customer: Customer? = customerElement.toCustomer()
+val reminder: String? = customer
+    ?.nextTrip()
+    .reminderAt(currentTime)
 ----
 // end-insert
 
-On the other hand, it makes the flow of nullability in the calling function harder to understand, because, although type-checked, it is not visible in the code.
+On the other hand, it makes the flow of nullability in the calling function harder to understand, because, although type-checked, it is not visible in the code of the pipelines that calls the extension.
 
-`Element?.toCustomer()` function has another, more obtrusive, drawback: the return type is always nullable.
-This makes it much less convenient when we want to apply it to a non-nullable `Element`.
-For example, if we map it over a collection of elements, we would expect to get a `List<Customer>` back, but we would actually get a `List<Customer?>`.
-None of the elements of that list would be null, but the static type would force us to deal with the non-existent null case, probably by ignoring the static type with the double-bang operator (`!!`) or throwing an exception with the plaintive message that "this should never happen".
+The `Trip?.reminderAt()` function has another, more obtrusive, drawback: the return type is always nullable.
+This makes it much less convenient when we want to apply it to a non-nullable `Trip`.
+For example, if we map it over a collection of trips, we would expect to get a `List<String>` back, but we would actually get a `List<String?>`.
+None of the elements of that list would be null, but the static type would force us to deal with the non-existent null case, probably by ignoring the static type with the "dammit" operator (`!!`) or throwing an exception with a plaintive message that "this should never happen".
 Either work-around is a bug waiting to happen when code around it changes, because we've made it impossible for the type checker to detect an incompatible change.
 
 TIP: Don't write extensions on nullable types that return `null` if the receiver is `null`.
-Write an extension on the non-nullable type and use the safe call operator in calling code.
+Write an extension on the non-nullable type and use the null safe dereference operator in calling code.
 
 We may occasionally break this rule for private functions, but only if their use is limited to a very small scope.
 
-It's fine though, and often useful, to write extensions on nullable types that return a non-nullable result.
-Here, for example, is an extension function to convert from a nullable Kotlin reference to a Java `Optional`:
+Extensions on nullable types can be useful when they return a non-nullable result.
+They act as an "escape" from the realm of nullable values back to the realm of non-nullable values, terminating a pipeline of null-safe dereference calls.
+
+For example, we can make the `reminderAt` extension return some meaningful text even when the customer does not have a next trip:
+
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#escaping_trip_extension
+[source,kotlin]
+----
+fun Trip?.reminderAt(currentTime: ZonedDateTime): String =
+    this?.timeUntilDeparture(currentTime)
+        ?.toUserFriendlyText()
+        ?.plus(" until your next trip!")
+        ?: "Start planning your next trip.  The world's your oyster!"
+----
+// end-insert
+
+Even then we have to be careful not to create subtle gotcha's at the interface between the nullable and non-nullable realms.
+
+For example, the standard library defines the extension function `Any?.toString`.
+This returns the `String` representation of any reference, including `null`.
+
+[source,kotlin]
+----
+fun Any?.toString(): String =
+    this?.toString() ?: "null"
+----
+
+This is called if you invoke `toString` on a nullable type.
+Because methods declared by a type take precedence over extension functions, if you call `toString` on a non-nullable type, it invokes the `toString` method of the object, declared by the `Any` class.
+
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#nullableToString
+[source,kotlin]
+----
+val customer: Customer = SOME_CODE()
+val customerString: String = customer.toString()
+// Calls Customer.toString()
+
+val nullableCustomer: Customer? = SOME_CODE()
+val nullableCustomerString: String = nullableCustomer.toString()
+// Calls Any?.toString()
+----
+// end-insert
+
+Here `nullableCustomerString` will be either the result of calling the `Customer.toString` method if customer is not `null`, or otherwise the `String` with value `"null"`.
+That's a reference pointing to not to `null`, but to the characters "null".
+
+Being able to call `toString()` on `null` is a neat trick.
+But the difference between `customer.toString()` and `customer?.toString()` is one small character and it's easy to write the former when you intended to write the latter.
+If you have initialised a `String` by calling `toString()` on a reference, when you print it and see "null", it may be a `String` with those characters, not a `null` reference.
+This can lead to hours of debugging - ask us how we know!
+
+Happily, Most extensions that translate nullable to non-nullable types are not that error prone.
+Here, for example, is an extension function to convert from a nullable Kotlin reference to a Java `Optional`, that your authors find very helpful at the interop boundary between Kotlin and Java:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#as_optional
 [source,kotlin]
@@ -603,51 +657,6 @@ This extension function is applicable to any `Collection<Customer>`, but not to 
 This allows us to use collections to represent domain concepts rather than defining our own types -- see <<encapsulated-collections-to-typealiases>>.
 We can also extract parts of collections pipelines into named operations -- see <<extracting-part-of-a-pipeline>>.
 
-=== Use in the Standard Library
-
-The Kotlin library authors faced the same issue extending types that they don't own as we do - in their case the types provided by the Java standard library.
-While they sometimes resorted to compiler trickery, a lot of the Kotlin standard library is extension functions.
-This includes fundamental functions like `map`, `filter` and `reduce` (defined as extensions on `Iterable`), and the scope functions `let`, `run`, `with`, `apply` and `also`.
-
-There is also an extension function `Any?.toString`.
-This returns the `String` representation of any reference, including `null`.
-
-[WARNING]
-.toString on Nullable Types
-====
-Where a method and extension function are both in scope and visible, the compiler will generate a call to the method, not the function.
-As we've discussed, a method can never be safely called on a nullable type, but an extension function can.
-So to aid debugging, Kotlin defines a `toString` extension function, the code for which is effectively:
-
-[source,kotlin]
-----
-fun Any?.toString(): String =
-    this?.let { it.toString() }
-    ?: "null"
-----
-
-This is called if you invoke `toString` on a nullable type:
-
-// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#nullableToString
-[source,kotlin]
-----
-val customer: Customer = SOME_CODE()
-val customerString: String = customer.toString()
-// Calls Customer.toString()
-
-val nullableCustomer: Customer? = SOME_CODE()
-val nullableCustomerString: String = nullableCustomer.toString()
-// Calls Any?.toString()
-----
-// end-insert
-
-Here `nullableCustomerString` will be either the result of calling the `Customer.toString` method if customer is not `null`, or otherwise the `String` with value `"null"`.
-That's a reference pointing to not to `null`, but to the characters "null".
-
-Being able to call `toString()` on `null` is a neat trick.
-But, beware that if you have initialised a `String` by calling `toString()` on a reference, when you print it and see "null", it may be a `String` with those characters, not a `null` reference.
-This can lead to hours of debugging - ask us how we know!
-====
 
 [[extension-functions-as-methods]]
 === Extension Functions as Methods
