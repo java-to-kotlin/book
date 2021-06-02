@@ -105,32 +105,6 @@ class Element {
     fun attribute(s: String): String = SOME_CODE()
 }
 
-/// begin: xml
-fun Element?.toCustomer(): Customer? = this?.let { element ->
-    Customer(
-        element.attribute("id"),
-        element.attribute("first-name"),
-        element.attribute("last-name")
-    )
-}
-/// end: xml
-
-fun xmlUsage() {
-    /// begin: xmlUsage
-    val customerElement: Element? = SOME_CODE()
-    val customer: Customer? = customerElement?.toCustomer()
-    /// end: xmlUsage
-}
-
-fun xmlUsage2() {
-    val customerElement: Element? = SOME_CODE()
-
-    /// begin: xmlUsage2
-    val customer: Customer? = customerElement.toCustomer()
-    /// end: xmlUsage2
-}
-
-
 /// begin: jsonWriter
 class JsonWriter(
     private val objectMapper: ObjectMapper,
