@@ -390,7 +390,7 @@ val greeting: String? = when (customer) {
 // end-insert
 
 Kotlin's _scoping functions_, such as `let`, `apply` and `also`, can help here.
-In particular, `let` converts its receiver into a lambda parameter:
+The `let` scoping function converts its receiver into a lambda parameter:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#single_let
 [source,kotlin]
@@ -400,8 +400,8 @@ val greeting: String? = customer?.let { greetingForCustomer(it) }
 ----
 // end-insert
 
-Here the `?.` ensures that `let` is only called when the customer is not `null`, allowing us to pass the non-null `it` to the function we want to call within the body of the lambda.
-`?.let` acts as a safe call operator for (single) arguments.
+Here the `?.` ensures that `let` is only called when the customer is not `null`, meaning that the lambda parameter, `it`, is never null, and can be passed to the function within the lambda body.
+You can think of `?.let` as a safe call operator for (single) arguments.
 
 If a function returns a nullable result, and we must pass that result to another function that expects a non-null parameter, the scoping functions start to get cumbersome:
 
