@@ -64,8 +64,10 @@ val sum = numbers.fold(0, Int::plus)
 
 Let's compare that to what was required in Java 1.0 to do the same.
 
-Java 1.0 did not have first-class functions, so we would have had to implement functions as objects and define our own interfaces for different types of function.
-For example, the addition function takes two arguments, so we would have had to define the type of two-argument functions.
+The mists of time will pass over you while transporting you to 1995...
+
+Java 1.0 does not have first-class functions, so we have to implement functions as objects and define our own interfaces for different types of function.
+For example, the addition function takes two arguments, so we have to define the type of two-argument functions.
 
 // begin-insert: src/main/java/grain/java1/Function2.java
 [source,java]
@@ -76,8 +78,8 @@ public interface Function2 {
 ----
 // end-insert
 
-Then we would have had to write the `fold` higher-order function, hiding the iteration and mutation required by the Vector class.
-(The Java standard library didn't include the collections framework yet).
+Then we have to write the `fold` higher-order function, hiding the iteration and mutation required by the Vector class.
+(The Java standard library doesn't include the collections framework yet).
 
 // begin-insert: src/main/java/grain/java1/Vectors.java#reduce
 [source,java]
@@ -96,9 +98,9 @@ public class Vectors {
 ----
 // end-insert
 
-We would have had to define a separate class for every function we wanted to pass to our `fold` function.
-The addition operator couldn't be passed around as a value, and the language had no method references, lambdas or closures back then, not even inner classes.
-Nor did Java 1.0 have generics or autoboxing -- we would have had to cast the arguments to the expected type and write the boxing between reference types and primitives.
+We have to define a separate class for every function we want to pass to our `fold` function.
+The addition operator can't be passed around as a value, and the language has no method references, lambdas or closures at this time, not even inner classes.
+Nor does Java 1.0 have generics or autoboxing -- we have to cast the arguments to the expected type and write the boxing between reference types and primitives.
 
 // begin-insert: src/main/java/grain/java1/AddIntegers.java
 [source,java]
@@ -113,7 +115,7 @@ public class AddIntegers implements Function2 {
 ----
 // end-insert
 
-And, finally, we could use all that to calculate the sum:
+And, finally, we can use all that to calculate the sum:
 
 // begin-insert: src/test/java/grain/java1/TheGrainOfJavaTest.java#reduce
 [source,java]
@@ -123,14 +125,14 @@ int sum = ((Integer) Vectors.fold(counts, new Integer(0), new AddIntegers()))
 ----
 // end-insert
 
-That's a lot of effort for what is a single expression in a modern language.
+That's a lot of effort for what is a single expression in a mainstream language in 2020.
 
 But that's not the end of it --
-because Java didn't have standard function types, we couldn't have easily combined different libraries written in a functional style.
-We would have had to write adapter classes to map between the function types defined in different libraries.
-And because the virtual machine had no JIT and a simple garbage collector, our functional code would have worse performance than the imperative alternative.
+because Java doesn't have standard function types, we can't easily combine different libraries written in a functional style.
+We have to write adapter classes to map between the function types defined in different libraries.
+And because the virtual machine has no JIT and a simple garbage collector, our functional code has worse performance than the imperative alternative.
 
-There was just not enough benefit to justify the effort of writing Java in a functional style.
+There is just not enough benefit to justify the effort of writing Java 1.0 in a functional style.
 Java programmers found it easier to write imperative code that iterated over collections and mutated state.
 
 // begin-insert: src/test/java/grain/java1/TheGrainOfJavaTest.java#reduce_iteratively
@@ -143,13 +145,13 @@ for (int i = 0; i < counts.size(); i++) {
 ----
 // end-insert
 
-Writing code in a functional style _went against the grain_ of Java.
+Writing code in a functional style _goes against the grain_ of Java 1.0.
 
 A language's grain forms over time as its designers and users build a common understanding of how language features interact, and encode their understanding and preferences in libraries that others build upon.
 The grain influences the way that programmers write code in the language, which influences the evolution of the language, its libraries and programming tools, changing the grain, altering the way that programmers write code in the language, on and on in a continual cycle of mutual feedback and evolution.
 
-For example, Java 1.1 added anonymous inner classes to the language, and Java 2 added the collections framework to the standard library.
-Anonymous inner classes meant that we wouldn't need to write a named class for each function we wanted to pass to our `fold` function, but the resulting code would arguably be harder to read.
+For example, Java 1.1 adds anonymous inner classes to the language, and Java 2 adds the collections framework to the standard library.
+Anonymous inner classes mean that we don't need to write a named class for each function we want to pass to our `fold` function, but the resulting code is arguably harder to read.
 
 // begin-insert: src/test/java/grain/java2/TheGrainOfJavaTest.java#reduce
 [source,java]
@@ -165,9 +167,9 @@ int sum = ((Integer) Lists.fold(counts, new Integer(0),
 ----
 // end-insert
 
-Functional idioms still went against the grain of Java 2.
+Functional idioms still go against the grain of Java 2.
 
-Java 5 was the next release that significantly changed the language.  It added generics and autoboxing, which improved type safety and reduced boilerplate code:
+Java 5 is the next release that significantly changes the language.  It adds generics and autoboxing, which improve type safety and reduce boilerplate code:
 
 // begin-insert: src/main/java/grain/java5/Function2.java
 [source,java]
@@ -191,14 +193,14 @@ int sum = Lists.fold(counts, 0,
 ----
 // end-insert
 
-https://github.com/google/guava[Google's Guava library] included some common higher-order functions over collections, although `fold` was not among them.
-Even the authors of Guava recommended writing imperative code where possible, because it had better performance and was usually easier to read.
+https://github.com/google/guava[Google's Guava library] includes some common higher-order functions over collections, although `fold` is not among them.
+Even the authors of Guava recommend writing imperative code where possible, because it has better performance and is usually easier to read.
 
-Functional programming still went largely against the grain of Java 5, but we could see the start of a trend.
+Functional programming still goes largely against the grain of Java 5, but we can see the start of a trend.
 
-Java 8 added anonymous functions (aka "lambda expressions") and method references to the language, and the Streams API to the standard library.
-The compiler and virtual machine optimised lambdas to avoid the performance overhead of anonymous inner classes.
-The Streams API fully embraced functional idioms.
+Java 8 adds anonymous functions (aka "lambda expressions") and method references to the language, and the Streams API to the standard library.
+The compiler and virtual machine optimise lambdas to avoid the performance overhead of anonymous inner classes.
+The Streams API fully embraces functional idioms.
 
 // begin-insert: src/test/java/grain/java8/TheGrainOfJavaTest.java#reduce
 [source,java]
@@ -207,13 +209,16 @@ int sum = counts.stream().reduce(0, Integer::sum);
 ----
 // end-insert
 
-Still, it wasn't entirely plain sailing.
-We still could not pass the addition operator as a parameter to the Streams `reduce` function, but we now had  the standard library function `Integer::sum` that did the same thing.
-Java's type system still created awkward edge cases because of its distinction between reference and primitive types.
-The Streams API was missing some common higher-order functions that we would expect to find if coming from a functional language (or even Ruby).
-Checked exceptions didn't play well with the Streams API and functional programming in general.
-And making immutable classes with value semantics still involved a lot of boilerplate code.
-But with Java 8, Java had fundamentally changed to make a functional style work, if not completely with the grain, at least not against it.
+However, it isn't entirely plain sailing.
+We still can't pass the addition operator as a parameter to the Streams `reduce` function, but we have the standard library function `Integer::sum` that does the same thing.
+Java's type system still creates awkward edge cases because of its distinction between reference and primitive types.
+The Streams API is missing some common higher-order functions that we would expect to find if coming from a functional language (or even Ruby).
+Checked exceptions don't play well with the Streams API and functional programming in general.
+And making immutable classes with value semantics still involves a lot of boilerplate code.
+But with Java 8, Java has fundamentally changed to make a functional style work, if not completely with the grain of the language, at least not against it.
+
+The releases after Java 8 add a variety of smaller language and library features that support more functional programming idioms, but nothing that changes our sum calculation.
+And that brings us back to the present day.
 
 In the case of Java, the grain of the language, and the way programmers adapted to it, evolved through several distinct programming styles.
 Kotlin has features designed specifically to simplify interoperability with code written in these styles.
@@ -445,9 +450,8 @@ Some of those features remove guarantees provided by the type checker, and shoul
 For example, `lateinit` opens a hole in the type system so that Java dependency injection frameworks that initialise objects by reflection can inject values through the encapsulation boundaries that are normally enforced by the compiler.
 If you declare a property as `lateinit var`, it's up to you to ensure the code initialises the property before reading it -- the compiler will not catch your mistakes.
 
-=== Adapting to Kotlin's Grain
-
-When we look back on the earliest code we wrote in Kotlin, it tends to look like Java dressed in Kotlin syntax. We came to Kotlin after years writing a lot of Java, and had ingrained habits that affected how we wrote Kotlin code.
+Revisiting the earliest code we wrote in Kotlin, it tends to look like Java dressed in Kotlin syntax.
+We came to Kotlin after years writing a lot of Java, and had ingrained habits that affected how we wrote Kotlin code.
 We wrote unnecessary boilerplate, didn't make good use of the standard library, and avoided using null because we weren't yet used to the type checker enforcing null safety.
 The Scala programmers on our team went too far the other way -- their code looked like Kotlin cosplaying as Scala cosplaying as Haskell.
 None of us had yet found the sweet spot that comes from working with the grain of Kotlin.
@@ -456,11 +460,12 @@ The path to idiomatic Kotlin is complicated by the Java code we have to keep wor
 In practice, it is not enough to just learn Kotlin.
 We have to work with the different grains of Java _and_ Kotlin, being sympathetic to both as we gradually transition from one to the other.
 
+
 [[intro-refactoring-to-kotlin]]
 === Refactoring to Kotlin
 
 When we started our journey to Kotlin we were responsible for maintaining and enhancing business-critical systems.
-So we were never able to focus _only_ on converting our Java codebase to Kotlin.
+We were never able to focus _only_ on converting our Java codebase to Kotlin.
 We always had to migrate code to Kotlin at the same time as changing the system to meet new business needs, maintaining a mixed Java/Kotlin codebase as we did so.
 We managed the risk by working in small changes, making each easy to understand, and cheap to discard if we found out it broke something.
 Our process was to first convert Java code to Kotlin, giving us a Java-esque design in Kotlin syntax.
@@ -547,13 +552,6 @@ For the same reason, we very rarely squash commits.
 ****
 We prefer to commit changes straight onto the mainline branch -- "trunk-based development" -- but changing code in a sequence of small, independent commits is just as beneficial when working in branches and merging less frequently.
 ****
-
-ifdef::todos[]
-=== About the Authors (TODO)
-
-// TODO Something about our histories, working apart and together, our different approaches to code. How we came to Java, then Kotlin, why we wrote this book.
-
-endif::todos[]
 
 === How This Book is Organised
 
