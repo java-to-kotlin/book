@@ -145,22 +145,24 @@ Java isn't quite so helpful - it just sees the extension function as a static fu
 // begin-insert: src/main/java/extensionFunctions/SomeJava.java#callingExt
 [source,java]
 ----
-var s = MarketingStuffKt.nameForMarketing(customer); // <1>
+var s = MarketingStuffKt.nameForMarketing(customer);
 ----
 // end-insert
 
-<1> `MarketingStuffKt` is the name of the class containing our top-level declarations as static methods - see <<static-methods-to-top-level-functions>>.
+`MarketingStuffKt` is the name of the class containing our top-level declarations as static methods - see <<static-methods-to-top-level-functions>>.
 
 Interestingly, we can't call the function in the same way from Kotlin:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#error
 [source,kotlin]
 ----
-nameForMarketing(customer) // doesn't compile <1>
+nameForMarketing(customer) // doesn't compile
 ----
 // end-insert
 
-<1> `Unresolved reference. None of the following candidates is applicable because of receiver type mismatch:
+This fails to compile, with the error:
+
+> `Unresolved reference. None of the following candidates is applicable because of receiver type mismatch:
 public fun Customer.nameForMarketing(): String ...`.
 
 _Receiver_, by the way, is the term that Kotlin uses for the object named `this` in an extension function (or normal method) -- the object that receives messages.

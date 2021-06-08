@@ -7,7 +7,7 @@ public class SomeJava {
 
     public static void callingExt(Customer customer) {
         /// begin: callingExt
-        var s = MarketingStuffKt.nameForMarketing(customer); // <1>
+        var s = MarketingStuffKt.nameForMarketing(customer);
         /// end: callingExt
     }
 
