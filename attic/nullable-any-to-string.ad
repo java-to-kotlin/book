@@ -1,0 +1,36 @@
+We have to be careful not to create subtle gotcha's when we define extension methods on nullable types.
+
+For example, the standard library defines the extension function `Any?.toString`.
+This returns the `String` representation of any reference, including `null`.
+
+[source,kotlin]
+----
+fun Any?.toString(): String =
+    this?.toString() ?: "null"
+----
+
+This is called if you invoke `toString` on a nullable type.
+Because methods declared by a type take precedence over extension functions, if you call `toString` on a non-nullable type, it invokes the `toString` method of the object, declared by the `Any` class.
+
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#nullableToString
+[source,kotlin]
+----
+val customer: Customer = SOME_CODE()
+val customerString: String = customer.toString()
+// Calls Customer.toString()
+
+val nullableCustomer: Customer? = SOME_CODE()
+val nullableCustomerString: String = nullableCustomer.toString()
+// Calls Any?.toString()
+----
+// end-insert
+
+Here `nullableCustomerString` will be either the result of calling the `Customer.toString` method if customer is not `null`, or otherwise the `String` with value `"null"`.
+That's a reference pointing to not to `null`, but to the characters "null".
+
+Being able to call `toString()` on `null` is a neat trick.
+But the difference between `customer.toString()` and `customer?.toString()` is one small character and it's easy to write the former when you intended to write the latter.
+If you have initialised a `String` by calling `toString()` on a reference, when you print it and see "null", it may be a `String` with those characters, not a `null` reference.
+This can lead to hours of debugging - ask us how we know!
+
+Happily, Most extensions that translate nullable to non-nullable types are not that error prone.

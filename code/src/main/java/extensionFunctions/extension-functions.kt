@@ -343,5 +343,6 @@ object NullsAndNestedFunctionCalls {
 object NullableAsOptional {
     /// begin: as_optional
     fun <T : Any> T?.asOptional(): Optional<T> = Optional.ofNullable(this)
+    fun <T : Any> Optional<T>.asNullable(): T? = this.orElse(null)
     /// end: as_optional
 }
