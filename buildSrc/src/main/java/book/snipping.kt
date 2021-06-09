@@ -156,7 +156,7 @@ fun Iterable<String>.snipped(tagName: String?, kotlinVersion: String): List<Stri
                 }
             is Ellipsis ->
                 if (currentRegionIsSelected && line.appliesToTag(tagName)) {
-                    if (line.ellipsis.isNotEmpty()) result.add(line.replacementLine.normaliseEllipsisComment())
+                    if (line.ellipsis.isNotEmpty()) result.add(line.replacementLine)
                     if (line.mute) currentRegionIsSelected = false
                 }
             is Resume ->
@@ -166,7 +166,10 @@ fun Iterable<String>.snipped(tagName: String?, kotlinVersion: String): List<Stri
         }
     }
 
-    return result.dropLastWhile { it.isBlank() }
+    return result
+        .dropLastWhile { it.isBlank() }
+        .map { it.normaliseEllipsisComment() }
+        .map { it.replace("SOME_CODE()", "...") }
 }
 
 private val ellipsisCommentPattern = Regex("""^(\s*)(//\s*)(\.\.\..*)$""")
