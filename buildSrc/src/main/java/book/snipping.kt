@@ -18,15 +18,18 @@ sealed class Line {
             override val appliesToTag: TagCriteria,
             val indent: String
         ) : Marker()
+
         data class End(
             override val appliesToTag: TagCriteria
         ) : Marker()
+
         data class Ellipsis(
             override val appliesToTag: TagCriteria,
             val mute: Boolean,
             val prefix: String,
             val ellipsis: String
         ) : Marker()
+
         data class Resume(
             override val appliesToTag: TagCriteria
         ) : Marker()
@@ -153,7 +156,7 @@ fun Iterable<String>.snipped(tagName: String?, kotlinVersion: String): List<Stri
                 }
             is Ellipsis ->
                 if (currentRegionIsSelected && line.appliesToTag(tagName)) {
-                    if (line.ellipsis.isNotEmpty()) result.add(line.replacementLine)
+                    if (line.ellipsis.isNotEmpty()) result.add(line.replacementLine.normaliseEllipsisComment())
                     if (line.mute) currentRegionIsSelected = false
                 }
             is Resume ->
@@ -165,6 +168,13 @@ fun Iterable<String>.snipped(tagName: String?, kotlinVersion: String): List<Stri
 
     return result.dropLastWhile { it.isBlank() }
 }
+
+private val ellipsisCommentPattern = Regex("""^(\s*)(//\s*)(\.\.\..*)$""")
+
+private fun String.normaliseEllipsisComment() =
+    ellipsisCommentPattern.matchEntire(this)?.groupValues
+        ?.let { it[1] + it[3] }
+        ?: this
 
 val kotlinVersion by lazy {
     File(".kotlin-version").readText().trim()
@@ -178,7 +188,7 @@ private fun Text.highlightedText(tagName: String?) =
 
         if (appliesToTag(tagName)) {
             when (directive) {
-                "note" -> replacement
+                "note" -> replacement.normaliseEllipsisComment() // Hack to avoid lots of code changes
                 "change" -> "/// |"
                 "insert" -> "/// +"
                 "delete" -> "/// -"
