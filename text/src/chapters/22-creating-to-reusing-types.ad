@@ -146,7 +146,7 @@ fun readTable(input: List<String>): List<Map<String, String>> {
 // end-insert
 
 This compiles, although obviously the `TODO` fails the test.
-(You might ask why we are taking such a cavalier attitude to errors compared to our forensic <<ignoring-to-handling-errors>>
+(You might ask why we are taking such a cavalier attitude to errors compared to our forensic <<exceptions-to-values>>
 The answer is that this is just test code: the API of `Map.get` is forcing us to consider what to do in the case of errors, and our test is choosing to throw.)
 
 We put our client hats on to write the acceptance tests, and these tests have shown that we can at least use a function with the signature of `readTable` to convert lines to a list of `Measurement`.
@@ -1783,7 +1783,7 @@ fun example() {
 ----
 // end-insert
 
-Real-world code would probably need more error handling (we see how in <<ignoring-to-handling-errors>>), but this shows the basic use case.
+Real-world code would probably need more error handling (we see how in <<exceptions-to-values>>), but this shows the basic use case.
 We use the Kotlin `Reader.useLines` extension function to produce a `Sequence<String>`, which our parser transforms into a `Sequence<Map<String, String>>`.
 We can `map` over the ++Map++s, indexing by field name to extract the data we need and transform it to the type (`Measurement`) that we actually want.
 This design didn't happen by accident - it was the decisions that we made at the very start, albeit with `List` rather than `Sequence` at the time.
