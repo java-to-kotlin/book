@@ -2,7 +2,7 @@
 == Ignoring Errors to Handling Them
 
 ****
-In <<exceptions-to-errors>> we looked at error-handling strategies for Kotlin, and how to refactor from exceptions in Java to more functional techniques.
+In <<throwing-to-returning>> we looked at error-handling strategies for Kotlin, and how to refactor from exceptions in Java to more functional techniques.
 The truth is that most code ignores errors in the hope that they won't happen -- can we do better?
 ****
 
@@ -63,7 +63,7 @@ private val CustomerData.marketingName: String
 // end-insert
 
 If we're to do a thorough job of error handling, the first thing we have to do is to establish what might go wrong.
-As we saw in <<exceptions-to-errors>>, in Kotlin we don't have checked exceptions to give us clues, but these were so badly used in most Java code that in this respect there isn't much of a difference between the languages.
+As we saw in <<throwing-to-returning>>, in Kotlin we don't have checked exceptions to give us clues, but these were so badly used in most Java code that in this respect there isn't much of a difference between the languages.
 Unless code has been written to communicate the ways that it can fail, we are going to have to rely on examination, intuition, and experience to work it out.
 In this case, experience tells us that the failures we actually get are due to missing fields, so we can concentrate there, but we should still do due-diligence on all aspects of the code.
 Let's work our way up the functions from the bottom of the listing, looking for potential errors.
@@ -142,7 +142,7 @@ Having established that `toCustomerData` can fail if passed a `String` that does
 At the moment, all the ways that it can fail result in an exception being thrown, the program being aborted with an unfriendly error message, and marketing calling us over.
 Which leads to two follow-on questions: "Should we abort?" and "How can we improve the error message so that marketing can interpret it?"
 
-As we saw in <<exceptions-to-errors>>, we shouldn't use exceptions to abort on predictable errors.
+As we saw in <<throwing-to-returning>>, we shouldn't use exceptions to abort on predictable errors.
 The lack of checked exceptions in Kotlin (and their lack of use in Java) means that if we do, we lose the opportunity to communicate that the code is susceptible to failure.
 The callers of our code then have to do what we are currently doing - reason with every line of code in an implementation.
 Even after then, the implementation might change, silently invalidating the findings.
@@ -386,7 +386,7 @@ internal fun String.toCustomerData(): Result<CustomerData, ParseFailure> =
 ----
 // end-insert
 
-As we did in <<exceptions-to-errors>>, we create a sealed class to represent why parsing failed:
+As we did in <<throwing-to-returning>>, we create a sealed class to represent why parsing failed:
 
 // begin-insert: tags/bonus-errors.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#ParseFailure
 [source,kotlin]
@@ -736,7 +736,7 @@ fun main() {
 // end-insert
 
 This is perhaps overkill for this application, but it shows the pattern of catching and dealing with the exceptions that we _expect_ (printing a relatively friendly message for `IOException`) but allowing all others to leak and quit the application.
-If we follow the strategy from <<exceptions-to-errors>>, _unexpected_ exceptions are either unrecoverable environment errors or programmer errors -- in both cases the default JVM behaviour of  quitting the process after printing a stack trace gives us a fighting chance of diagnosing the issue.
+If we follow the strategy from <<throwing-to-returning>>, _unexpected_ exceptions are either unrecoverable environment errors or programmer errors -- in both cases the default JVM behaviour of  quitting the process after printing a stack trace gives us a fighting chance of diagnosing the issue.
 When we convert this to an unattended server job, we will similarly process expected errors in our top-level handler function.
 We might abort on `IOException`, or retry the whole interaction if we think the problem may be transient.
 We know that retrying won't help with parse errors, so we will have to log these, and/or send notifications somewhere.
