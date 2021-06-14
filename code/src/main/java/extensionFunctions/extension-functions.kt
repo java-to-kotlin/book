@@ -273,7 +273,7 @@ object NullsAndNestedFunctionCalls {
     }
 
     fun nullable_trip_extension() {
-        val customer: Customer? = SOME_CODE()
+        val customer: Customer = SOME_CODE()
         val currentTime: ZonedDateTime = SOME_CODE()
 
         /// begin: nullable_trip_receiver
@@ -284,10 +284,15 @@ object NullsAndNestedFunctionCalls {
         /// end: nullable_trip_receiver
 
         /// begin: nullable_trip_reminder_usage
-        val reminder: String? = customer
-            ?.nextTrip()
-            .reminderAt(currentTime)
+        val reminder: String? = customer.nextTrip().reminderAt(currentTime)
         /// end: nullable_trip_reminder_usage
+
+        run {
+            /// begin: should_never_happen
+            val trip: Trip = SOME_CODE()
+            val reminder: String = trip.reminderAt(currentTime) ?: error("Should never happen")
+            /// end: should_never_happen
+        }
     }
 
     fun non_nullable_trip_extension() {

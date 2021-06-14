@@ -467,9 +467,9 @@ In contrast, we are able to have `null` _parameters_.
 We may not know what to do with them, but they don't prevent the runtime from finding code to invoke.
 
 Because the receiver in an extension function is actually a parameter, it _can_ be `null`.
-So whilst `anObject.method()` and `anObject.extensionFunction()` look like equivalent calls, `method` can never be called if `anObject` is `null`, whereas `extensionFunction` can be called with `null` if the receiver is declared as nullable.
+So whilst `anObject.method()` and `anObject.extensionFunction()` look like equivalent calls, `method` can never be called if `anObject` is `null`, whereas `extensionFunction` can be called with `null`, if the receiver is nullable.
 
-Let's factor out the steps in the pipeline above that generate the reminder into an extension on `Trip?`:
+We could use this to extract out the steps that generate the reminder in the pipeline above, into an extension on `Trip?`:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#nullable_trip_receiver
 [source,kotlin]
@@ -481,49 +481,40 @@ fun Trip?.reminderAt(currentTime: ZonedDateTime): String? =
 ----
 // end-insert
 
-Note that we have to use the null-safe derefence operator to dereference `this` inside the extension.
-While `this` is never null inside a method, it can be null inside an extension of a nullable type.
-A null `this` can be surprising if you're coming from Java, which guaratees that `this` is never null.
-However, because Kotlin tracks nullability in the type system, we cannot introduce a `NullPointerException` by dereferencing a null `this`: Kotlin will catch the error at compile time.
+Note that we have to use the safe call operator to dereference `this` inside the extension.
+While `this` is never `null` inside a method, it can be inside an extension of a nullable type.
+A `null` `this` can be surprising if you're coming from Java, where it can never happen, but for extensions, Kotlin treats `this` as just another nullable parameter.
 
-Had we declared `reminderAt` on the non-nullable `Trip`, we would have to write:
-
-// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#non_nullable_trip_reminder_usage
-[source,kotlin]
-----
-val reminder: String? = customer
-    ?.nextTrip()
-    ?.reminderAt(currentTime)
-----
-// end-insert
-
-With this function, we can remove the noise of the `?.`:
+We can call this function on a nullable `Trip` without the noise of the `?.`:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#nullable_trip_reminder_usage
 [source,kotlin]
 ----
-val reminder: String? = customer
-    ?.nextTrip()
-    .reminderAt(currentTime)
+val reminder: String? = customer.nextTrip().reminderAt(currentTime)
 ----
 // end-insert
 
-Is it worth it?
-On the one hand, we have removed the need for a null-safe dereference operator (and we could apply the same technique to remove the rest).
 On the other hand, we've made the flow of nullability in the calling function harder to understand, because, although type-checked, it is not visible in the code of the pipelines that calls the extension.
 
-The `Trip?.reminderAt` function has another, more obtrusive, drawback: the return type is always nullable even if called on a non-nullable Trip.
-The static type would force us to deal with the non-existent null case, probably by ignoring the static type with the "dammit" operator (`!!`) or throwing an exception with a plaintive message that "this should never happen".
-Either work-around is a bug waiting to happen when code around it changes, because we've made it impossible for the type checker to detect an incompatible change.
+`Trip?.reminderAt` has another, more obtrusive, drawback: the return type is always the nullable `String?` even if called on a non-nullable `Trip`.
+In that case we will find ourselves writing code like:
 
-So on balance, we come down on the side of it not being worth it in cases like this:
+// begin-insert: src/main/java/extensionFunctions/extension-functions.kt#should_never_happen
+[source,kotlin]
+----
+val trip: Trip = ...
+val reminder: String = trip.reminderAt(currentTime) ?: error("Should never happen")
+----
+// end-insert
+
+This a bug waiting to happen when code around it changes, because we've made it impossible for the type checker to detect an incompatible change.
 
 TIP: Don't write extensions on nullable types that return `null` if the receiver is `null`.
-Write an extension on the non-nullable type and use the null safe dereference operator in calling code.
+Write an extension on the non-nullable type and use the safe call operator to invoke it.
 
-Extensions on nullable types can be useful when they return a non-nullable result.
-They act as an "escape" from the realm of nullable values back to the realm of non-nullable values, terminating a pipeline of null-safe dereference calls.
-For example, we can make the `reminderAt` extension return some meaningful text even when the customer does not have a next trip:
+Extensions on nullable types can be useful though, when they return a non-nullable result.
+They act as an "escape" from the realm of nullable values back to the realm of non-nullable values, terminating a pipeline of safe calls.
+For example, we can make the `reminderAt` extension return some meaningful text even when the customer doesn't have a next trip:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#escaping_trip_extension
 [source,kotlin]
@@ -536,7 +527,8 @@ fun Trip?.reminderAt(currentTime: ZonedDateTime): String =
 ----
 // end-insert
 
-Your authors find the following pair of extension functions very helpful to convert betweem nullable Kotlin references and the Java `Optional` type at the interop boundary between Kotlin and Java:
+Similarly, here are two extension functions that we probably should have introduced in <<optional-to-nullable>>.
+The first is defined on any nullable type, but always returns a non-null result:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#as_optional
 [source,kotlin]
