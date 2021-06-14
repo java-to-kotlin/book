@@ -232,9 +232,9 @@ object NullsAndNestedFunctionCalls {
     }
 
     fun nested_lets() {
+        val currentTime: ZonedDateTime = SOME_CODE()
         /// begin: nested_lets
         val customer: Customer? = loggedInCustomer()
-        val currentTime: ZonedDateTime = SOME_CODE()
 
         val reminder: String? = customer?.let {
             nextTripForCustomer(it)?.let {
