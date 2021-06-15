@@ -8,25 +8,24 @@ import javax.servlet.ServletContextListener;
 import java.net.http.HttpClient;
 
 /// begin: listener
-public class ExampleServletContextListener implements ServletContextListener {
-    public void contextInitialized(ServletContextEvent servletContextEvent) {
-        ServletContext context = servletContextEvent.getServletContext();
+public class ExampleServletContextListener
+    implements ServletContextListener {
+
+    public void contextInitialized(ServletContextEvent contextEvent) {
+        ServletContext context = contextEvent.getServletContext();
         context.setAttribute("example.httpClient", createHttpClient());
-        context.setAttribute("example.serviceUriTemplate", new URITemplate(
-            context.getInitParameter("example.serviceUriTemplate")));
+        context.setAttribute("example.template", new URITemplate(
+            context.getInitParameter("example.template")));
         /// note: listener [...]
     }
 
-    public void contextDestroyed(ServletContextEvent servletContextEvent) {
-        /// note: listener [...]
+    /// mute: listener [...]
+    public void contextDestroyed(ServletContextEvent contextEvent) {
     }
 
     private HttpClient createHttpClient() {
-        /// mute: listener [...]
         return HttpClient.newHttpClient();
-        /// resume: listener
     }
-
-    /// note: listener [...]
+    /// resume: listener
 }
 /// end: listener

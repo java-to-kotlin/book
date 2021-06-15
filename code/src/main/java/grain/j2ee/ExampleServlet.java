@@ -17,13 +17,13 @@ public class ExampleServlet extends HttpServlet {
     private URITemplate routeServiceTemplate;
     /// note: servlet [...]
 
-    public void init(ServletConfig servletConfig) throws ServletException {
-        super.init(servletConfig);
-        ServletContext context = servletConfig.getServletContext();
+    public void init(ServletConfig config) throws ServletException {
+        super.init(config);
+        ServletContext context = config.getServletContext();
         this.httpClient =
             (HttpClient) context.getAttribute("example.httpClient");
         this.routeServiceTemplate =
-            (URITemplate) context.getAttribute("example.serviceUriTemplate");
+            (URITemplate) context.getAttribute("example.template");
         /// note: servlet [...]
     }
 
