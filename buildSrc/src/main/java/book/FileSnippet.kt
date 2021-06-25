@@ -12,8 +12,9 @@ data class FileSnippet(
             "[source,$sourceType]",
             "----",
             codeLines().joinToString("\n"),
-            "----"
-        ).joinToString("\n")
+            "----",
+            codeFile.toTag(fragment)
+        ).filterNotNull().joinToString("\n")
 
     private fun codeLines() =
         codeFile.lines
@@ -33,3 +34,10 @@ data class FileSnippet(
         else -> "text"
     }
 }
+
+private fun CodeFile.toTag(fragment: String?): String? =
+    when (this) {
+        is GitFile -> """.pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/$version/$relativePath">/$version/$relativePath</a>]"""
+        else -> null
+    }
+
