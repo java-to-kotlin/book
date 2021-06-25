@@ -743,7 +743,7 @@ override fun register(data: RegistrationData): Customer {
 We have a `Result`, so we need to unpack it.
 When it is `Success`, we want to return the wrapped value; when `Failure`, throw the wrapped `DuplicateException` (in order to keep the current behaviour of `register`):
 
-// begin-insert: tags/errors.8.5:src/main/java/travelator/CustomerRegistration.kt#foo
+// begin-insert: tags/errors.9:src/main/java/travelator/CustomerRegistration.kt#foo
 [source,kotlin]
 ----
 @Throws(ExcludedException::class, DuplicateException::class)
@@ -766,7 +766,7 @@ override fun register(data: RegistrationData): Customer {
 
 As it happens, where the error type is an `Exception`, Result4k has a function to shortcut this case: `Result::orThrow`:
 
-// begin-insert: tags/errors.9:src/main/java/travelator/CustomerRegistration.kt#foo
+// begin-insert: tags/errors.10:src/main/java/travelator/CustomerRegistration.kt#foo
 [source,kotlin]
 ----
 @Throws(ExcludedException::class, DuplicateException::class)
@@ -784,7 +784,7 @@ override fun register(data: RegistrationData): Customer {
 
 Now we can inline to get back to a shorter form:
 
-// begin-insert: tags/errors.10:src/main/java/travelator/CustomerRegistration.kt#foo
+// begin-insert: tags/errors.11:src/main/java/travelator/CustomerRegistration.kt#foo
 [source,kotlin]
 ----
 @Throws(ExcludedException::class, DuplicateException::class)
@@ -801,7 +801,7 @@ override fun register(data: RegistrationData): Customer {
 Finally, that nesting is too confusing for comfort, so let's simplify it using "Replace 'if' with 'when'", "Replace return with 'when' expression", and "Remove braces from all 'when' entries".
 Alt-Enter all the things!
 
-// begin-insert: tags/errors.11:src/main/java/travelator/CustomerRegistration.kt#foo
+// begin-insert: tags/errors.12:src/main/java/travelator/CustomerRegistration.kt#foo
 [source,kotlin]
 ----
 @Throws(ExcludedException::class, DuplicateException::class)
@@ -831,7 +831,7 @@ Our code now calls them via the default implementation of `Customers::addToo` th
 We want to delete the `add` implementations, so we need to implement `addToo` directly.
 Let's look at the (not thread-safe) test version.
 
-// begin-insert: tags/errors.11:src/test/java/travelator/InMemoryCustomers.java
+// begin-insert: tags/errors.12:src/test/java/travelator/InMemoryCustomers.java
 [source,java]
 ----
 public class InMemoryCustomers implements Customers {
@@ -872,7 +872,7 @@ public class InMemoryCustomers implements Customers {
 
 The easiest way to implement `addToo` here is probably just to duplicate `add` and fix it up, returning `Failure` where we had thrown, and `Success` for the happy path:
 
-// begin-insert: tags/errors.12:src/test/java/travelator/InMemoryCustomers.java#foo
+// begin-insert: tags/errors.13:src/test/java/travelator/InMemoryCustomers.java#foo
 [source,java]
 ----
 @SuppressWarnings("unchecked")
@@ -897,7 +897,7 @@ public Result<Customer, DuplicateException> addToo(
 We can also use this strategy to add `addToo` to our production implementations of `Customers`, we'll skip the details.
 Once we are done, we can delete the unused `add` from the implementations and the interface, and then rename `addToo` to `add`, leaving us with:
 
-// begin-insert: tags/errors.13:src/main/java/travelator/Customers.kt
+// begin-insert: tags/errors.14:src/main/java/travelator/Customers.kt
 [source,kotlin]
 ----
 interface Customers {
@@ -911,7 +911,7 @@ interface Customers {
 
 The clients of `Customers` are now back to calling `add`, albeit the version returning a `Result` rather than declaring checked exceptions:
 
-// begin-insert: tags/errors.13:src/main/java/travelator/CustomerRegistration.kt
+// begin-insert: tags/errors.14:src/main/java/travelator/CustomerRegistration.kt
 [source,kotlin]
 ----
 class CustomerRegistration(
@@ -934,7 +934,7 @@ We left `InMemoryCustomers` as Java really just to demonstrate that we could ret
 
 After conversion, including moving from streams to Kotlin collection operations (<<streams-to-sequences>>), we have:
 
-// begin-insert: tags/errors.14:src/test/java/travelator/InMemoryCustomers.kt
+// begin-insert: tags/errors.15:src/test/java/travelator/InMemoryCustomers.kt
 [source,kotlin]
 ----
 class InMemoryCustomers : Customers {
@@ -973,7 +973,7 @@ class InMemoryCustomers : Customers {
 Let's recap where we are now.
 `Customers` is now Kotlin, and `add` returns a `Result` instead of throwing `DuplicateException`:
 
-// begin-insert: tags/errors.14:src/main/java/travelator/Customers.kt
+// begin-insert: tags/errors.15:src/main/java/travelator/Customers.kt
 [source,kotlin]
 ----
 interface Customers {
@@ -987,7 +987,7 @@ interface Customers {
 
 `IRegisterCustomers` is still Java, and still throws two types of exception:
 
-// begin-insert: tags/errors.14:src/main/java/travelator/IRegisterCustomers.java
+// begin-insert: tags/errors.15:src/main/java/travelator/IRegisterCustomers.java
 [source,java]
 ----
 public interface IRegisterCustomers {
@@ -999,7 +999,7 @@ public interface IRegisterCustomers {
 
 `CustomerRegistration` is now Kotlin, and is the place where we now thunk between `Result.Error` and `DuplicateException`, using `orThrow`:
 
-// begin-insert: tags/errors.14:src/main/java/travelator/CustomerRegistration.kt
+// begin-insert: tags/errors.15:src/main/java/travelator/CustomerRegistration.kt
 [source,kotlin]
 ----
 class CustomerRegistration(
@@ -1037,7 +1037,7 @@ Instead, our best strategy here is not to try to express the error in terms of e
 
 As _exception_ and _error_ are all overloaded terms, we've chosen `RegistrationProblem`, with subtypes of `Excluded`,(which carries no additional information and so can be an `object`), and `Duplicate`(which carries any message from the original `DuplicateException`):
 
-// begin-insert: tags/errors.15:src/main/java/travelator/IRegisterCustomers.kt#RegistrationProblem
+// begin-insert: tags/errors.16:src/main/java/travelator/IRegisterCustomers.kt#RegistrationProblem
 [source,kotlin]
 ----
 sealed class RegistrationProblem
@@ -1054,7 +1054,7 @@ By making `RegistrationProblem` a sealed class, we know at compile time what sub
 
 We can use this `RegistrationProblem` when we follow the pattern from earlier, adding a default implementation of `registerToo` to the interface that returns `Result<Customer, RegistrationProblem>`:
 
-// begin-insert: tags/errors.15:src/main/java/travelator/IRegisterCustomers.kt#IRegisterCustomers
+// begin-insert: tags/errors.16:src/main/java/travelator/IRegisterCustomers.kt#IRegisterCustomers
 [source,kotlin]
 ----
 interface IRegisterCustomers {
@@ -1078,7 +1078,7 @@ interface IRegisterCustomers {
 Now we can migrate callers of `register` to `registerToo`.
 We'll start with `CustomerRegistrationHandler`, converting it to Kotlin first:
 
-// begin-insert: tags/errors.16:src/main/java/travelator/handlers/CustomerRegistrationHandler.kt
+// begin-insert: tags/errors.17:src/main/java/travelator/handlers/CustomerRegistrationHandler.kt
 [source,kotlin]
 ----
 class CustomerRegistrationHandler(
@@ -1113,7 +1113,7 @@ class CustomerRegistrationHandler(
 
 Now, as we did before, we swap to calling the new method (`registerToo`) instead of the old one (`register`), and interpret the return type with `when` expression:
 
-// begin-insert: tags/errors.17:src/main/java/travelator/handlers/CustomerRegistrationHandler.kt
+// begin-insert: tags/errors.18:src/main/java/travelator/handlers/CustomerRegistrationHandler.kt
 [source,kotlin]
 ----
 class CustomerRegistrationHandler(
@@ -1158,7 +1158,7 @@ private fun RegistrationProblem.toResponse() = when (this) {
 Finally we can remove the unnecessary exception cases and simplify the error case with `map` and `recover`.
 `Result::recover` is a Result4k extension function that unwraps the result if it is `Success`, otherwise returning the result of mapping the failure's `reason`:
 
-// begin-insert: tags/errors.18:src/main/java/travelator/handlers/CustomerRegistrationHandler.kt#foo
+// begin-insert: tags/errors.19:src/main/java/travelator/handlers/CustomerRegistrationHandler.kt#foo
 [source,kotlin]
 ----
 fun handle(request: Request): Response =
@@ -1198,7 +1198,7 @@ Ordinarily we would have fixed them straight away, but that would have interrupt
 The problem is that the tests are mock tests which expect calls to `IRegister.register`, but we are now calling `registerToo`.
 For example:
 
-// begin-insert: tags/errors.19:src/test/java/travelator/handlers/CustomerRegistrationHandlerTests.java#foo
+// begin-insert: tags/errors.20:src/test/java/travelator/handlers/CustomerRegistrationHandlerTests.java#foo
 [source,java]
 ----
 public class CustomerRegistrationHandlerTests {
@@ -1256,7 +1256,7 @@ public class CustomerRegistrationHandlerTests {
 
 To fix the tests, we need to change the call from `register`, returning `Customer` or throwing, to `registerToo`, returning `Result<Customer, RegistrationProblem>`:
 
-// begin-insert: tags/errors.20:src/test/java/travelator/handlers/CustomerRegistrationHandlerTests.java#foo
+// begin-insert: tags/errors.21:src/test/java/travelator/handlers/CustomerRegistrationHandlerTests.java#foo
 [source,java]
 ----
 @Test
@@ -1299,7 +1299,7 @@ Now our tests are passing again, we can return to production code, and implement
 In lieu of any cleverer idea, we do this by duplicating the `register` method and fettling the error handling.
 We do this using `Result::mapFailure` (part of Result4k), to convert `DuplicateException` to `Duplicate`.
 
-// begin-insert: tags/errors.21:src/main/java/travelator/CustomerRegistration.kt
+// begin-insert: tags/errors.22:src/main/java/travelator/CustomerRegistration.kt
 [source,kotlin]
 ----
 class CustomerRegistration(
@@ -1337,7 +1337,7 @@ There are two problems with this.
 Firstly, `registerToo` has no test code, and secondly, we have the duplicate logic caused by our duplicating `register` to create `registerToo`.
 We can fix both by implementing `register` in terms of `registerToo` - the opposite of what we did in `Customers`.
 
-// begin-insert: tags/errors.22:src/main/java/travelator/CustomerRegistration.kt
+// begin-insert: tags/errors.23:src/main/java/travelator/CustomerRegistration.kt
 [source,kotlin]
 ----
 class CustomerRegistration(
@@ -1373,7 +1373,7 @@ class CustomerRegistration(
 
 Now our `CustomerRegistrationTests`, which work in terms of `register`, will be testing `registerToo` for us:
 
-// begin-insert: tags/errors.22:src/test/java/travelator/CustomerRegistrationTests.java#excerpt
+// begin-insert: tags/errors.23:src/test/java/travelator/CustomerRegistrationTests.java#excerpt
 [source,java]
 ----
 public class CustomerRegistrationTests {
@@ -1423,7 +1423,7 @@ This would be a good way to keep both `register` and `registerToo` while we migr
 In this case though the tests are actually the last callers of `register`, so let's convert them to call `registerToo`.
 We could take the time to show how to use Result4k in Java, but we're all pretty tired of this example now, so we'll convert the tests to Kotlin and then have them call `register` with the immortal words, "Here's one I made earlier":
 
-// begin-insert: tags/errors.23:src/test/java/travelator/CustomerRegistrationTests.kt#excerpt
+// begin-insert: tags/errors.24:src/test/java/travelator/CustomerRegistrationTests.kt#excerpt
 [source,kotlin]
 ----
 @Test
@@ -1459,7 +1459,7 @@ fun `returns Duplicate when email address exists`() {
 
 Now we have no callers of `register`, we can finally remove it and rename `registerToo` to `register`, ending up with exception-free Kotlin.
 
-// begin-insert: tags/errors.24:src/main/java/travelator/IRegisterCustomers.kt
+// begin-insert: tags/errors.25:src/main/java/travelator/IRegisterCustomers.kt
 [source,kotlin]
 ----
 interface IRegisterCustomers {
@@ -1477,7 +1477,7 @@ data class Duplicate(
 ----
 // end-insert
 
-// begin-insert: tags/errors.24:src/main/java/travelator/Customers.kt
+// begin-insert: tags/errors.25:src/main/java/travelator/Customers.kt
 [source,kotlin]
 ----
 interface Customers {
@@ -1507,7 +1507,7 @@ So we will be back to the problem of expressing more than one error type in a si
 Let's chase that through.
 If `Customers::add` needs to declare more than one way that it can fail - our previous `DuplicateCustomerProblem` and our new `DatabaseCustomerProblem` - we introduce a sealed `CustomersProblem` as the error type, and make the two known problems its only subclasses:
 
-// begin-insert: tags/errors.26:src/main/java/travelator/Customers.kt
+// begin-insert: tags/errors.27:src/main/java/travelator/Customers.kt
 [source,kotlin]
 ----
 interface Customers {
@@ -1527,7 +1527,7 @@ data class DatabaseCustomerProblem(val message: String): CustomersProblem()
 
 `CustomerRegistration` was calling `Customers::add` and handling just `DuplicateCustomerProblem` in `mapFailure`:
 
-// begin-insert: tags/errors.25:src/main/java/travelator/CustomerRegistration.kt
+// begin-insert: tags/errors.26:src/main/java/travelator/CustomerRegistration.kt
 [source,kotlin]
 ----
 class CustomerRegistration(
@@ -1556,7 +1556,7 @@ You can see that we are getting the advantages of checked exceptions -- code is 
 Now that `Customers::add` admits that it can fail in a new and interesting way, `register` is also forced to handle the truth.
 It decides to pass the knowledge on to its callers (well OK, we decide for it) by adding a new `DatabaseProblem` subtype of the existing `RegistrationProblem` sealed class:
 
-// begin-insert: tags/errors.26:src/main/java/travelator/IRegisterCustomers.kt#RegistrationProblem
+// begin-insert: tags/errors.27:src/main/java/travelator/IRegisterCustomers.kt#RegistrationProblem
 [source,kotlin]
 ----
 sealed class RegistrationProblem
@@ -1572,7 +1572,7 @@ data class DatabaseProblem(val message: String) : RegistrationProblem()
 Now we can fix `register` by converting between the ways that `add` can fail (`DuplicateCustomerProblem` and `DatabaseCustomerProblem`) and the ways that `register` can fail (`Duplicate` and `DatabaseProblem` respectively).
 This now makes the choice of `mapFailure` clear:
 
-// begin-insert: tags/errors.26:src/main/java/travelator/CustomerRegistration.kt#register
+// begin-insert: tags/errors.27:src/main/java/travelator/CustomerRegistration.kt#register
 [source,kotlin]
 ----
 override fun register(
@@ -1596,7 +1596,7 @@ override fun register(
 
 Finally, because we've added to the `RegistrationProblem` sealed hierarchy, the compiler now forces us to consider the `DatabaseProblem` in the next layer up by failing to compile `CustomerRegistrationHandler`:
 
-// begin-insert: tags/errors.26:src/main/java/travelator/handlers/CustomerRegistrationHandler.kt#toResponse
+// begin-insert: tags/errors.27:src/main/java/travelator/handlers/CustomerRegistrationHandler.kt#toResponse
 [source,kotlin]
 ----
 private fun RegistrationProblem.toResponse() = when (this) {

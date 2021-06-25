@@ -272,7 +272,7 @@ We can start from here and refactor away the mutability.
 We'll work from the inside, making `CostSummary` an immutable value type, and gradually push immutability outwards through the `CostSummaryCalculator`.
 Before we do though, we've been stung by Java's obsession with sorting collections in place before now, so we fix that first:
 
-// begin-insert: tags/accumulator.1.5:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise
+// begin-insert: tags/accumulator.2:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise
 [source,kotlin]
 ----
 fun summarise(): CostSummary {
@@ -291,7 +291,7 @@ fun summarise(): CostSummary {
 Now we see a pattern that is common in mutating code: create an object (`CostSummary` in this case), call some initialisation steps and then return it.
 Whenever we see initialisation steps like this we should reach for `apply`:
 
-// begin-insert: tags/accumulator.1.6:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise
+// begin-insert: tags/accumulator.3:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise
 [source,kotlin]
 ----
 fun summarise(): CostSummary {
@@ -314,7 +314,7 @@ It's like a mini builder -- the `summarise` function never sees a reference to a
 This is small-scale functional thinking - trying to limit the scope of mutation even within a function.
 Functional thinking also helps us to see that looping over `totals`, creating a `CurrencyConversion` for each, and calling `addLine` with it, is the same as creating a `conversions` list and looping over that:
 
-// begin-insert: tags/accumulator.1.7:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise
+// begin-insert: tags/accumulator.4:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise
 [source,kotlin]
 ----
 fun summarise(): CostSummary {
@@ -335,7 +335,7 @@ If `CostSummary` was immutable, client code would have to pass the list of lines
 `CostSummary` shouldn't be responsible for currency conversion, so we're making the `apply` block look like we want its constructor to look.
 From here we add a secondary constructor that duplicates this initialisation logic:
 
-// begin-insert: tags/accumulator.2:src/main/java/travelator/itinerary/CostSummary.kt
+// begin-insert: tags/accumulator.5:src/main/java/travelator/itinerary/CostSummary.kt
 [source,kotlin]
 ----
 class CostSummary(userCurrency: Currency) {
@@ -364,7 +364,7 @@ class CostSummary(userCurrency: Currency) {
 
 Now we can change the `CostSummaryCalculator.summarise` method to call the new constructor: treating the `CostSummary` class as if it was an immutable value type:
 
-// begin-insert: tags/accumulator.2:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise
+// begin-insert: tags/accumulator.5:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise
 [source,kotlin]
 ----
 fun summarise(): CostSummary {
@@ -379,7 +379,7 @@ fun summarise(): CostSummary {
 
 This in turn allows us to make the `CostSummary` class actually immutable, at least from outside:
 
-// begin-insert: tags/accumulator.2.1:src/main/java/travelator/itinerary/CostSummary.kt
+// begin-insert: tags/accumulator.6:src/main/java/travelator/itinerary/CostSummary.kt
 [source,kotlin]
 ----
 class CostSummary(
@@ -404,7 +404,7 @@ As we can see from that nasty `var` and `init`, it's sometimes hard to get away 
 We had a series of actions (<<actions>>) acting on the mutable variable `total`.
 `fold` converts the actions to a single calculation (<<calculations>>) that we can use to initialise an immutable variable:
 
-// begin-insert: tags/accumulator.3:src/main/java/travelator/itinerary/CostSummary.kt
+// begin-insert: tags/accumulator.7:src/main/java/travelator/itinerary/CostSummary.kt
 [source,kotlin]
 ----
 class CostSummary(
@@ -423,7 +423,7 @@ We could do this by converting the current constructor to a secondary constructo
 
 To do this, we first select the expression to the right of the equals sign in the definition of the `total` property, and use the IDE's "Introduce Parameter" refactoring to push the expression out as a constructor parameter:
 
-// begin-insert: tags/accumulator.4:src/main/java/travelator/itinerary/CostSummary.kt
+// begin-insert: tags/accumulator.8:src/main/java/travelator/itinerary/CostSummary.kt
 [source,kotlin]
 ----
 class CostSummary(
@@ -438,7 +438,7 @@ class CostSummary(
 The `total` property is now highlighted as a style warning - the IDE detected that the property can be declared in the constructor parameter.
 A quick Alt-Enter on the warning leaves the class declaration as:
 
-// begin-insert: tags/accumulator.5:src/main/java/travelator/itinerary/CostSummary.kt
+// begin-insert: tags/accumulator.9:src/main/java/travelator/itinerary/CostSummary.kt
 [source,kotlin]
 ----
 class CostSummary(
@@ -450,7 +450,7 @@ class CostSummary(
 
 Meanwhile, back at the `CostSummaryCalculator`, IntelliJ has pulled the calculation into `summarise`, leaving it looking like this:
 
-// begin-insert: tags/accumulator.5:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise
+// begin-insert: tags/accumulator.9:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise
 [source,kotlin]
 ----
 fun summarise(): CostSummary {
@@ -470,7 +470,7 @@ fun summarise(): CostSummary {
 _Now_ we can make `CostSummary` a data class.
 Its sole responsibility is to hold the results of the calculation for filtering, sorting and display.
 
-// begin-insert: tags/accumulator.6:src/main/java/travelator/itinerary/CostSummary.kt
+// begin-insert: tags/accumulator.10:src/main/java/travelator/itinerary/CostSummary.kt
 [source,kotlin]
 ----
 data class CostSummary(
@@ -506,7 +506,7 @@ class CostSummary(userCurrency: Currency) {
 
 Now the calculation is a single expression in `summarise`:
 
-// begin-insert: tags/accumulator.5:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#total
+// begin-insert: tags/accumulator.9:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#total
 [source,kotlin]
 ----
 val total = lines
@@ -519,7 +519,7 @@ val total = lines
 
 Similarly, whatever is happening with currencies is still hidden in the remaining mutations in `CostSummaryCalculator`:
 
-// begin-insert: tags/accumulator.5:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
+// begin-insert: tags/accumulator.9:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
 [source,kotlin]
 ----
 class CostSummaryCalculator(
@@ -554,7 +554,7 @@ class CostSummaryCalculator(
 We can apply a similar process to eliminate these, but this time we won't add a secondary constructor.
 Instead, we will apply <<expand-contract>>, by adding an overload of the `summarise` method that takes the costs:
 
-// begin-insert: tags/accumulator.7:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise_overload
+// begin-insert: tags/accumulator.11:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise_overload
 [source,kotlin]
 ----
 fun summarise(costs: Iterable<Money>): CostSummary {
@@ -579,7 +579,7 @@ Instead of asking children to add their costs to the `CostSummaryCalculator`, pa
 
 We'll end up using the calculator like this:
 
-// begin-insert: tags/accumulator.8:src/test/java/travelator/itinerary/Itinerary_CostTest.kt#calculation
+// begin-insert: tags/accumulator.12:src/test/java/travelator/itinerary/Itinerary_CostTest.kt#calculation
 [source,kotlin]
 ----
 val fx: ExchangeRates = ...
@@ -593,7 +593,7 @@ fun costSummary(i: Itinerary) =
 
 And we'll report the costs from our domain models like this:
 
-// begin-insert: tags/accumulator.8:src/main/java/travelator/itinerary/Itinerary.kt#costs
+// begin-insert: tags/accumulator.12:src/main/java/travelator/itinerary/Itinerary.kt#costs
 [source,kotlin]
 ----
 data class Itinerary(
@@ -613,7 +613,7 @@ fun Iterable<Accommodation>.costs(): List<Money> = flatMap { it.costs() }
 
 When all uses of `CostSummaryCalculator` in the application are using our new `summarise` method, we can flatten the calculation of the `currencyTotals` and `CostSummary` into that method, the one that currently uses a local to do the job:
 
-// begin-insert: tags/accumulator.7:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise_overload
+// begin-insert: tags/accumulator.11:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise_overload
 [source,kotlin]
 ----
 fun summarise(costs: Iterable<Money>): CostSummary {
@@ -626,7 +626,7 @@ fun summarise(costs: Iterable<Money>): CostSummary {
 
 We can effectively inline the entire class into this method using local variables instead:
 
-// begin-insert: tags/accumulator.8.5:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise_overload
+// begin-insert: tags/accumulator.13:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise_overload
 [source,kotlin]
 ----
 fun summarise(costs: Iterable<Money>): CostSummary {
@@ -654,7 +654,7 @@ What is that form?
 We have to think about that, but come to the conclusion that the `MutableMap.merge` is accumulating a total per currency.
 When we have all the data at once, as we do now, we can perform the same calculation by grouping by currency and summing the lists:
 
-// begin-insert: tags/accumulator.9:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
+// begin-insert: tags/accumulator.14:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
 [source,kotlin]
 ----
 class CostSummaryCalculator(
@@ -710,7 +710,7 @@ At that point, the class is no longer a calculator of cost summaries -- it holds
 So let's rename it to reflect its new-found responsibility.
 At the moment, we can't think of a better name than `PricingContext`, which leaves our class looking like this:
 
-// begin-insert: tags/accumulator.11:src/main/java/travelator/itinerary/PricingContext.kt
+// begin-insert: tags/accumulator.16:src/main/java/travelator/itinerary/PricingContext.kt
 [source,kotlin]
 ----
 class PricingContext(
@@ -748,7 +748,7 @@ Renames are cheap, even in a mixed Java/Kotlin codebase, so a small incremental 
 
 This leaves the code that used to use the `CostSummaryCalculator` looking like this:
 
-// begin-insert: tags/accumulator.11:src/test/java/travelator/itinerary/Itinerary_CostTest.kt#calculation
+// begin-insert: tags/accumulator.16:src/test/java/travelator/itinerary/Itinerary_CostTest.kt#calculation
 [source,kotlin]
 ----
 val fx: ExchangeRates = ...

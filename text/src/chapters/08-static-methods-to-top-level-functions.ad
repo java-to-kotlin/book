@@ -110,7 +110,7 @@ The user can rank items in a shortlist by different criteria and discard items t
 Following the guidance in <<dont-mutate-shared-collections>>, a shortlist is stored as an immutable list.
 The functions for manipulating a shortlist (returning a modified copy rather than mutating the list) are implemented as static methods of the `Shortlists` class.
 
-// begin-insert: tags/static-to-object-to-functions.0:src/main/java/travelator/Shortlists.java#functions
+// begin-insert: tags/static-to-top-level.0:src/main/java/travelator/Shortlists.java#functions
 [source,java]
 ----
 public class Shortlists {
@@ -156,7 +156,7 @@ In contrast, the Kotlin standard library seems to go out of its way to provide f
 The functions in `Shortlists` are static methods, and have to be referenced as such.
 Spelled out longhand, this looks like:
 
-// begin-insert: tags/static-to-object-to-functions.5:src/test/java/travelator/ShortlistsTest.java#example_usage
+// begin-insert: tags/static-to-top-level.5:src/test/java/travelator/ShortlistsTest.java#example_usage
 [source,java]
 ----
 var reordered = Shortlists.sorted(items, Shortlists.byValue());
@@ -165,7 +165,7 @@ var reordered = Shortlists.sorted(items, Shortlists.byValue());
 
 We usually `static import` the methods though, and they are named to read better that way:
 
-// begin-insert: tags/static-to-object-to-functions.5:src/test/java/travelator/ShortlistsTest.java#example_usage_imported
+// begin-insert: tags/static-to-top-level.5:src/test/java/travelator/ShortlistsTest.java#example_usage_imported
 [source,java]
 ----
 var reordered = sorted(items, byPriceLowToHigh());
@@ -174,7 +174,7 @@ var reordered = sorted(items, byPriceLowToHigh());
 
 Converting the Java to Kotlin with IntelliJ we get:
 
-// begin-insert: tags/static-to-object-to-functions.5:src/main/java/travelator/Shortlists.kt#functions
+// begin-insert: tags/static-to-top-level.5:src/main/java/travelator/Shortlists.kt#functions
 [source,kotlin]
 ----
 object Shortlists {
@@ -223,7 +223,7 @@ We want to convert the methods to be top-level functions, but we can't just move
 If these functions were compiled to methods on a class called `Shortlists` Java would be happy - and that is the job of the `@file:JvmName` annotation we mentioned earlier.
 We can manually add the annotation at the top of the file, and remove the `object` scope and `@JvmStatic` annotations to get:
 
-// begin-insert: tags/static-to-object-to-functions.51:src/main/java/travelator/Shortlists.kt#excerpt
+// begin-insert: tags/static-to-top-level.6:src/main/java/travelator/Shortlists.kt#excerpt
 [source,kotlin]
 ----
 @file:JvmName("Shortlists")
@@ -250,7 +250,7 @@ fun <T> removeItemAt(shortlist: List<T>, index: Int): List<T> {
 This keeps our Java happy, but irritatingly, it breaks some Kotlin code that was calling the methods.
 Here for example are the imports for a test:
 
-// begin-insert: tags/static-to-object-to-functions.51:src/test/java/travelator/hotels/ShortlistScenarioTest.kt#imports
+// begin-insert: tags/static-to-top-level.6:src/test/java/travelator/hotels/ShortlistScenarioTest.kt#imports
 [source,kotlin]
 ----
 import org.junit.jupiter.api.Test
@@ -280,7 +280,7 @@ As we write this, the refactoring is so new that it isn't available on the refac
 We'll do `sorted` first.
 IntelliJ moves the method out of the object scope to the file level:
 
-// begin-insert: tags/static-to-object-to-functions.56:src/main/java/travelator/Shortlists.kt#sorted
+// begin-insert: tags/static-to-top-level.7:src/main/java/travelator/Shortlists.kt#sorted
 [source,kotlin]
 ----
 @JvmStatic
@@ -295,7 +295,7 @@ Unfortunately it failed to remove the `@JvmStatic` annotation, so we have to del
 Once we do, we find that it has at least fixed up the callers, which was the problem we had when we just moved the method ourselves.
 Where we explicitly referenced the method in Java as `ShortLists.sorted` we now have:
 
-// begin-insert: tags/static-to-object-to-functions.57:src/test/java/travelator/ShortlistsTest.java#example_usage
+// begin-insert: tags/static-to-top-level.8:src/test/java/travelator/ShortlistsTest.java#example_usage
 [source,java]
 ----
 var reordered = ShortlistsKt.sorted(items, Shortlists.byValue());
@@ -304,7 +304,7 @@ var reordered = ShortlistsKt.sorted(items, Shortlists.byValue());
 
 For some reason where we had a static import things have got worse:
 
-// begin-insert: tags/static-to-object-to-functions.57:src/test/java/travelator/ShortlistsTest.java#example_usage_imported
+// begin-insert: tags/static-to-top-level.8:src/test/java/travelator/ShortlistsTest.java#example_usage_imported
 [source,java]
 ----
 var reordered = travelator.ShortlistsKt.sorted(items, byPriceLowToHigh());
@@ -314,7 +314,7 @@ var reordered = travelator.ShortlistsKt.sorted(items, byPriceLowToHigh());
 We can fix that with Alt-Enter and "Add on demand static import...".
 We have to do that once in each affected file -- we should have checked in before the refactor so that we could easily see which files it changed.
 
-// begin-insert: tags/static-to-object-to-functions.58:src/test/java/travelator/ShortlistsTest.java#example_usage_imported
+// begin-insert: tags/static-to-top-level.9:src/test/java/travelator/ShortlistsTest.java#example_usage_imported
 [source,java]
 ----
 var reordered = sorted(items, byPriceLowToHigh());
@@ -329,7 +329,7 @@ It is now referenced in Kotlin as `travelator.sorted` rather than `travalator.Sh
 We can now move the rest of the methods on `Shortlists` in the same way.
 It's a little tedious, but at least when it moves the last method, IntelliJ deletes the empty object, leaving us:
 
-// begin-insert: tags/static-to-object-to-functions.59:src/main/java/travelator/Shortlists.kt#functions
+// begin-insert: tags/static-to-top-level.10:src/main/java/travelator/Shortlists.kt#functions
 [source,kotlin]
 ----
 fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>): List<T> {
@@ -367,7 +367,7 @@ Now our functions are in the idiomatic Kotlin place, let's finish the idiomatic 
 
 <<streams-to-sequences>> gives guidance on converting Java streams to Kotlin - in the case of `sorted` we can just use the Kotlin `sortedWith` extension function:
 
-// begin-insert: tags/static-to-object-to-functions.60:src/main/java/travelator/Shortlists.kt#sorted
+// begin-insert: tags/static-to-top-level.11:src/main/java/travelator/Shortlists.kt#sorted
 [source,kotlin]
 ----
 fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>): List<T> {
@@ -378,7 +378,7 @@ fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>): List<T> {
 
 This makes a very logical extension function (<<functions-to-extension-functions>>):
 
-// begin-insert: tags/static-to-object-to-functions.61:src/main/java/travelator/Shortlists.kt#sorted
+// begin-insert: tags/static-to-top-level.12:src/main/java/travelator/Shortlists.kt#sorted
 [source,kotlin]
 ----
 fun <T> List<T>.sorted(ordering: Comparator<in T>): List<T> {
@@ -389,7 +389,7 @@ fun <T> List<T>.sorted(ordering: Comparator<in T>): List<T> {
 
 Java still calls this as a static method:
 
-// begin-insert: tags/static-to-object-to-functions.61:src/test/java/travelator/ShortlistsTest.java#example_usage_imported
+// begin-insert: tags/static-to-top-level.12:src/test/java/travelator/ShortlistsTest.java#example_usage_imported
 [source,java]
 ----
 var reordered = sorted(items, byPriceLowToHigh());
@@ -398,7 +398,7 @@ var reordered = sorted(items, byPriceLowToHigh());
 
 Calling from Kotlin reads nicely too:
 
-// begin-insert: tags/static-to-object-to-functions.61:src/test/java/travelator/hotels/ShortlistScenarioTest.kt#usage
+// begin-insert: tags/static-to-top-level.12:src/test/java/travelator/hotels/ShortlistScenarioTest.kt#usage
 [source,kotlin]
 ----
 val hotelsByPrice = hotels.sorted(byPriceLowToHigh())
@@ -407,7 +407,7 @@ val hotelsByPrice = hotels.sorted(byPriceLowToHigh())
 
 These Kotlin usages really aren't gaining us anything over the raw Kotlin API, so we can just inline them:
 
-// begin-insert: tags/static-to-object-to-functions.62:src/test/java/travelator/hotels/ShortlistScenarioTest.kt#usage
+// begin-insert: tags/static-to-top-level.13:src/test/java/travelator/hotels/ShortlistScenarioTest.kt#usage
 [source,kotlin]
 ----
 val hotelsByPrice = hotels.sortedWith(byPriceLowToHigh())
@@ -419,7 +419,7 @@ Looking at it, it really has nothing to do with shortlists anymore.
 Should we move it to a more generic namespace?
 Maybe later; for now we'll just follow through on the rest of the file to give:
 
-// begin-insert: tags/static-to-object-to-functions.63:src/main/java/travelator/Shortlists.kt#functions
+// begin-insert: tags/static-to-top-level.14:src/main/java/travelator/Shortlists.kt#functions
 [source,kotlin]
 ----
 fun <T> Iterable<T>.sorted(ordering: Comparator<in T>): List<T> = 

@@ -30,7 +30,7 @@ It helps to imagine that the last code sample shown is in the active editor pane
 Let's jump into the deep end of the codebase and convert some of our existing Java to Kotlin, starting with `EmailAddress`.
 This is a value type that holds the two parts of, you guessed it, an email address:
 
-// begin-insert: tags/java-to-kotlin-classes.0:src/main/java/travelator/EmailAddress.java
+// begin-insert: tags/classes.0:src/main/java/travelator/EmailAddress.java
 [source,java]
 ----
 public class EmailAddress {
@@ -110,7 +110,7 @@ TIP: Make sure you have no uncommitted changes before converting Java source to 
 In this case IntelliJ, doesn't have to change any other files.
 It has though replaced our `EmailAddress.java` file with `EmailAddress.kt` in the same directory:
 
-// begin-insert: tags/java-to-kotlin-classes.2:src/main/java/travelator/EmailAddress.kt
+// begin-insert: tags/classes.2:src/main/java/travelator/EmailAddress.kt
 [source,kotlin]
 ----
 class EmailAddress(val localPart: String, val domain: String) {
@@ -149,7 +149,7 @@ class EmailAddress(val localPart: String, val domain: String) {
 The Kotlin class is noticeably more succinct because it declares its properties in the primary constructor - the parameters after the class name.
 Parameters marked `val` are considered properties, and so stand in for all this Java:
 
-// begin-insert: tags/java-to-kotlin-classes.1:src/main/java/travelator/EmailAddress.java#replaced_by_primary_constructor
+// begin-insert: tags/classes.1:src/main/java/travelator/EmailAddress.java#replaced_by_primary_constructor
 [source,java]
 ----
 private final String localPart;
@@ -183,7 +183,7 @@ One easy fix is to lay out the constructor parameter list line by line.
 With the cursor inside the parameter list, we can do that with Alt-Enter and "Put parameters on separate lines".
 Sometimes a blank line after the header part helps too.
 
-// begin-insert: tags/java-to-kotlin-classes.3:src/main/java/travelator/EmailAddress.kt
+// begin-insert: tags/classes.3:src/main/java/travelator/EmailAddress.kt
 [source,kotlin]
 ----
 class EmailAddress(
@@ -229,7 +229,7 @@ In Kotlin, we often prefer top-level state and functions to these class-scoped m
 
 We currently have Java code that uses the static method, for example the tests:
 
-// begin-insert: tags/java-to-kotlin-classes.0:src/test/java/travelator/EmailAddressTests.java#foo
+// begin-insert: tags/classes.0:src/test/java/travelator/EmailAddressTests.java#foo
 [source,java]
 ----
 public class EmailAddressTests {
@@ -263,7 +263,7 @@ If you're new to Kotlin you may wonder what happened to the `getLocalPart()` and
 Declaring the `domain` property causes the compiler to generate a private `domain` field and a `getDomain()` method, so that Java code can still call it.
 Here is a little throw-away code to support a marketing plan:
 
-// begin-insert: tags/java-to-kotlin-classes.3:src/main/java/travelator/Marketing.java
+// begin-insert: tags/classes.3:src/main/java/travelator/Marketing.java
 [source,java]
 ----
 public class Marketing {
@@ -284,7 +284,7 @@ Value types like this are so useful, but so tedious to get right and keep right,
 If we mark the class with the `data` modifier the compiler generates any undefined `equals`, `hashCode` and `toString` methods for us.
 That reduces the `EmailAddress` class to:
 
-// begin-insert: tags/java-to-kotlin-classes.4:src/main/java/travelator/EmailAddress.kt
+// begin-insert: tags/classes.4:src/main/java/travelator/EmailAddress.kt
 [source,kotlin]
 ----
 data class EmailAddress(
@@ -335,7 +335,7 @@ However, when a class abstracts its internal representation or maintains invaria
 
 Let's look at an abstract data type in the Travelator application: the `Money` class:
 
-// begin-insert: tags/value_types.4:src/main/java/travelator/money/Money.java#money
+// begin-insert: tags/values.4:src/main/java/travelator/money/Money.java#money
 [source,java]
 ----
 public class Money {
@@ -348,6 +348,7 @@ public class Money {
     }
 
     public static Money of(BigDecimal amount, Currency currency) { // <1>
+        return new Money(
         return new Money(
             amount.setScale(currency.getDefaultFractionDigits()),
             currency);
@@ -442,7 +443,7 @@ inline fun BigDecimal.withScale(int scale, RoundingMode mode) =
 
 Converting Money to Kotlin produces the following code:
 
-// begin-insert: tags/value_types.5:src/main/java/travelator/money/Money.kt#money
+// begin-insert: tags/values.5:src/main/java/travelator/money/Money.kt#money
 [source,kotlin]
 ----
 class Money

@@ -500,7 +500,7 @@ public static Set<CampSite> sitesInRegion(
 
 If we now convert `sitesInRegion` to Kotlin, we get the following:
 
-// begin-insert: tags/methods-to-properties.3.5:src/main/java/travelator/CampSites.kt
+// begin-insert: tags/methods-to-properties.4:src/main/java/travelator/CampSites.kt
 [source,kotlin]
 ----
 object CampSites {
@@ -524,7 +524,7 @@ object CampSites {
 
 We saw how to move `sitesInRegion` to the top level in <<static-methods-to-top-level-functions>>, and to an extension function in <<functions-to-extension-functions>>:
 
-// begin-insert: tags/methods-to-properties.3.6:src/main/java/travelator/CampSites.kt
+// begin-insert: tags/methods-to-properties.5:src/main/java/travelator/CampSites.kt
 [source,kotlin]
 ----
 fun Set<CampSite>.sitesInRegion(
@@ -543,7 +543,7 @@ fun Set<CampSite>.sitesInRegion(
 
 Streams to Iterables to Sequences (<<streams-to-sequences>>) and Multi to Single-Expression Functions (<<multi-to-single-expression-functions>>) will show how to finish the job to:
 
-// begin-insert: tags/methods-to-properties.4:src/main/java/travelator/CampSites.kt
+// begin-insert: tags/methods-to-properties.6:src/main/java/travelator/CampSites.kt
 [source,kotlin]
 ----
 fun Iterable<CampSite>.sitesInRegion(
@@ -564,7 +564,7 @@ It is making up for a deficiency in our modelling, which is that regions are jus
 Without the country code, if we filter just on region name "Hampshire", we risk returning a set of sites most of which are in an English county, but where one (Moonlight Camping, it sounds lovely) is on a Canadian island.
 Until we can fix that, what if we pull the filter predicate out into its own method?
 
-// begin-insert: tags/methods-to-properties.5:src/main/java/travelator/CampSites.kt
+// begin-insert: tags/methods-to-properties.7:src/main/java/travelator/CampSites.kt
 [source,kotlin]
 ----
 fun Iterable<CampSite>.sitesInRegion(
@@ -585,7 +585,7 @@ Now we have `Campsite.isIn(...)`, maybe `sitesInRegion` could be inlined into th
 We prefer to find and publish the fundamental operations that clients can build on, rather hiding them inside functions.
 Pulling on this thread, we might expand the functionality of `isIn` by making `region` optional:
 
-// begin-insert: tags/methods-to-properties.6:src/main/java/travelator/CampSites.kt#excerpt
+// begin-insert: tags/methods-to-properties.8:src/main/java/travelator/CampSites.kt#excerpt
 [source,kotlin]
 ----
 fun CampSite.isIn(countryISO: String, region: String? = null) =
@@ -599,7 +599,7 @@ fun CampSite.isIn(countryISO: String, region: String? = null) =
 
 Nat prefers the same, but with an Elvis operator:
 
-// begin-insert: tags/methods-to-properties.7:src/main/java/travelator/CampSites.kt#excerpt
+// begin-insert: tags/methods-to-properties.9:src/main/java/travelator/CampSites.kt#excerpt
 [source,kotlin]
 ----
 fun CampSite.isIn(countryISO: String, region: String? = null) =

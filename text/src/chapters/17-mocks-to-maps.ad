@@ -11,7 +11,7 @@ In that chapter we saw that our tests used mocks because they had to implement t
 We left the refactoring having replaced dependencies on multi-method interfaces with a dependency on just the two operations that were actually required to perform the task.
 The tests though, still mock the whole interface, and then pass a reference to the required methods to the subject under test (`Recommendations`):
 
-// begin-insert: tags/interfaces-to-functions-2.11:src/test/java/travelator/recommendations/RecommendationsTests.java#setup
+// begin-insert: tags/interfaces-to-funs.7:src/test/java/travelator/recommendations/RecommendationsTests.java#setup
 [source,java]
 ----
 public class RecommendationsTests {
@@ -31,7 +31,7 @@ public class RecommendationsTests {
 
 The tests abstract the mocking behind methods `givenFeaturedDestinationsFor` and `givenADistanceBetween`:
 
-// begin-insert: tags/interfaces-to-functions-2.11:src/test/java/travelator/recommendations/RecommendationsTests.java#returns_recommendations_for_single_location
+// begin-insert: tags/interfaces-to-funs.7:src/test/java/travelator/recommendations/RecommendationsTests.java#returns_recommendations_for_single_location
 [source,java]
 ----
 @Test
@@ -57,7 +57,7 @@ public void returns_recommendations_for_single_location() {
 
 Here is the implementation of `givenADistanceBetween`:
 
-// begin-insert: tags/interfaces-to-functions-2.11:src/test/java/travelator/recommendations/RecommendationsTests.java#givenADistanceBetween
+// begin-insert: tags/interfaces-to-funs.7:src/test/java/travelator/recommendations/RecommendationsTests.java#givenADistanceBetween
 [source,java]
 ----
 private void givenADistanceBetween(
@@ -84,7 +84,7 @@ This despite the fact that these circles spawned the technique, and wrote the bo
 The problem seems to be that, as well as implementing interfaces, mock frameworks allow us to specify the expected invocations of their methods, and what should be returned in those cases.
 Often though, expected calls and their results don't make for a human-readable description, as we'll see if we look at the inlined version of the last expectations:
 
-// begin-insert: tags/interfaces-to-functions-2.2:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt
+// begin-insert: tags/interfaces-to-funs.1:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt
 [source,java]
 ----
 when(featuredDestinations.findCloseTo(paris))
@@ -133,7 +133,7 @@ And we'd still have Java.
 
 The automated conversion is quite smooth, although for some reason the converter created lambdas rather than using method references in the `Recommendations` constructor call that we have to replace by hand, leaving the setup as:
 
-// begin-insert: tags/interfaces-to-functions-2.12:src/test/java/travelator/recommendations/RecommendationsTests.kt#setup
+// begin-insert: tags/mocks-to-maps.0:src/test/java/travelator/recommendations/RecommendationsTests.kt#setup
 [source,kotlin]
 ----
 class RecommendationsTests {
@@ -152,7 +152,7 @@ We could use Kotlin reified types to avoid those `::class.java` arguments, but w
 
 `when` is a keyword in Kotlin, but the converter is smart enough to quote it where required:
 
-// begin-insert: tags/interfaces-to-functions-2.12:src/test/java/travelator/recommendations/RecommendationsTests.kt#when
+// begin-insert: tags/mocks-to-maps.0:src/test/java/travelator/recommendations/RecommendationsTests.kt#when
 [source,kotlin]
 ----
 private fun givenFeaturedDestinationsFor(
@@ -175,7 +175,7 @@ Here, we won't cache, but seed the `Map` with the parameters and result that we 
 
 Taking the `destinationFinder` case first, we'll create a property to hold the `Map` - `featuredDestinations`:
 
-// begin-insert: tags/interfaces-to-functions-2.14:src/test/java/travelator/recommendations/RecommendationsTests.kt#featuredDestinations
+// begin-insert: tags/mocks-to-maps.1:src/test/java/travelator/recommendations/RecommendationsTests.kt#featuredDestinations
 [source,kotlin]
 ----
 private val featuredDestinations =
@@ -186,7 +186,7 @@ private val featuredDestinations =
 
 `givenFeaturedDestinationsFor` can populate the `destinationLookup` `Map` rather than setting expectations on a mock:
 
-// begin-insert: tags/interfaces-to-functions-2.14:src/test/java/travelator/recommendations/RecommendationsTests.kt#givenFeaturedDestinationsFor
+// begin-insert: tags/mocks-to-maps.1:src/test/java/travelator/recommendations/RecommendationsTests.kt#givenFeaturedDestinationsFor
 [source,kotlin]
 ----
 private fun givenFeaturedDestinationsFor(
@@ -200,7 +200,7 @@ private fun givenFeaturedDestinationsFor(
 
 If we make `Recommendations` read out of the `featuredDestinations` `Map` we have passing tests:
 
-// begin-insert: tags/interfaces-to-functions-2.14:src/test/java/travelator/recommendations/RecommendationsTests.kt#recommendations
+// begin-insert: tags/mocks-to-maps.1:src/test/java/travelator/recommendations/RecommendationsTests.kt#recommendations
 [source,kotlin]
 ----
 private val recommendations =
@@ -216,7 +216,7 @@ It acts like `get`, but respects the defaults set up by the `Map.withDefault` (i
 
 It won't surprise you when we do the same for `distanceInMetersBetween`, removing all our dependency on  Mockito:
 
-// begin-insert: tags/interfaces-to-functions-2.15:src/test/java/travelator/recommendations/RecommendationsTests.kt#setup
+// begin-insert: tags/mocks-to-maps.2:src/test/java/travelator/recommendations/RecommendationsTests.kt#setup
 [source,kotlin]
 ----
 class RecommendationsTests {
@@ -238,7 +238,7 @@ class RecommendationsTests {
 ----
 // end-insert
 
-// begin-insert: tags/interfaces-to-functions-2.15:src/test/java/travelator/recommendations/RecommendationsTests.kt#givenADistanceFrom
+// begin-insert: tags/mocks-to-maps.2:src/test/java/travelator/recommendations/RecommendationsTests.kt#givenADistanceFrom
 [source,kotlin]
 ----
 private fun givenADistanceFrom(
@@ -259,7 +259,7 @@ Having to use a lambda rather than a method reference in the `Recommendations` c
 We can tidy that up with a local `getValue` extension function.
 Did we mention how much we like extension functions?
 
-// begin-insert: tags/interfaces-to-functions-2.16:src/test/java/travelator/recommendations/RecommendationsTests.kt#getValue
+// begin-insert: tags/mocks-to-maps.3:src/test/java/travelator/recommendations/RecommendationsTests.kt#getValue
 [source,kotlin]
 ----
 private fun <K1, K2, V> Map<Pair<K1, K2>, V>.getValue(k1: K1, k2: K2) =
@@ -269,7 +269,7 @@ private fun <K1, K2, V> Map<Pair<K1, K2>, V>.getValue(k1: K1, k2: K2) =
 
 This lets us say:
 
-// begin-insert: tags/interfaces-to-functions-2.16:src/test/java/travelator/recommendations/RecommendationsTests.kt#recommendations
+// begin-insert: tags/mocks-to-maps.3:src/test/java/travelator/recommendations/RecommendationsTests.kt#recommendations
 [source,kotlin]
 ----
 private val recommendations =
@@ -283,7 +283,7 @@ private val recommendations =
 Oh, and we can improve the readability of the test methods with some judicious parameter naming and helper methods.
 Previously we had plain function calls:
 
-// begin-insert: tags/interfaces-to-functions-2.16:src/test/java/travelator/recommendations/RecommendationsTests.kt#test2
+// begin-insert: tags/mocks-to-maps.3:src/test/java/travelator/recommendations/RecommendationsTests.kt#test2
 [source,kotlin]
 ----
 @Test
@@ -313,7 +313,7 @@ fun deduplicates_using_smallest_distance() {
 
 A little effort yields:
 
-// begin-insert: tags/interfaces-to-functions-2.17:src/test/java/travelator/recommendations/RecommendationsTests.kt#sugar
+// begin-insert: tags/mocks-to-maps.4:src/test/java/travelator/recommendations/RecommendationsTests.kt#sugar
 [source,kotlin]
 ----
 @Test
@@ -339,7 +339,7 @@ fun deduplicates_using_smallest_distance() {
 
 Sometimes defining a tiny local function like `of` can go a long way to letting our brains just read code rather than spending effort interpreting it:
 
-// begin-insert: tags/interfaces-to-functions-2.17:src/test/java/travelator/recommendations/RecommendationsTests.kt#of
+// begin-insert: tags/mocks-to-maps.4:src/test/java/travelator/recommendations/RecommendationsTests.kt#of
 [source,kotlin]
 ----
 private fun of(vararg destination: FeaturedDestination)
@@ -398,7 +398,7 @@ In tests, we can reverse this process.
 We can write a function that creates the object from its dependencies, once for each invocation.
 If we call the populated object the _subject_ of the tests, we can create it from the test state like this:
 
-// begin-insert: tags/interfaces-to-functions-2.18:src/test/java/travelator/recommendations/RecommendationsTests.kt#subjectFor
+// begin-insert: tags/mocks-to-maps.5:src/test/java/travelator/recommendations/RecommendationsTests.kt#subjectFor
 [source,kotlin]
 ----
 private fun subjectFor(
@@ -416,7 +416,7 @@ Here we create a new instance of `Recommendations` every call, so that it can ca
 
 Now we can write a `resultFor` function that uses `subjectFor`:
 
-// begin-insert: tags/interfaces-to-functions-2.18:src/test/java/travelator/recommendations/RecommendationsTests.kt#resultFor
+// begin-insert: tags/mocks-to-maps.5:src/test/java/travelator/recommendations/RecommendationsTests.kt#resultFor
 [source,kotlin]
 ----
 private fun resultFor(
@@ -437,7 +437,7 @@ Each test can just specify the input parameters and check the result is as expec
 
 Every test can then be of the form:
 
-// begin-insert: tags/interfaces-to-functions-2.18:src/test/java/travelator/recommendations/RecommendationsTests.kt#check
+// begin-insert: tags/mocks-to-maps.5:src/test/java/travelator/recommendations/RecommendationsTests.kt#check
 [source,kotlin]
 ----
 private fun check(
@@ -456,7 +456,7 @@ private fun check(
 
 This gives a pleasing simplicity to the previously confusing tests:
 
-// begin-insert: tags/interfaces-to-functions-2.18:src/test/java/travelator/recommendations/RecommendationsTests.kt#excerpt
+// begin-insert: tags/mocks-to-maps.5:src/test/java/travelator/recommendations/RecommendationsTests.kt#excerpt
 [source,kotlin]
 ----
 class RecommendationsTests {
@@ -509,7 +509,7 @@ class RecommendationsTests {
 
 It's instructive to compare this with an original test:
 
-// begin-insert: tags/interfaces-to-functions-2.0:src/test/java/travelator/recommendations/RecommendationsTests.java#test1
+// begin-insert: tags/interfaces-to-funs.0:src/test/java/travelator/recommendations/RecommendationsTests.java#test1
 [source,java]
 ----
 @Test

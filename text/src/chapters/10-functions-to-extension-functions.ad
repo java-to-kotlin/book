@@ -657,7 +657,7 @@ They're constantly tweaking the algorithm, so they don't want to us to automate 
 Instead, they export a tab-separated file of customer data, score and spend, and we produce a summary report from that file.
 Here are our tests:
 
-// begin-insert: tags/functions-to-extension-methods.0:src/test/java/travelator/marketing/HighValueCustomersReportTests.java
+// begin-insert: tags/extensions.0:src/test/java/travelator/marketing/HighValueCustomersReportTests.java
 [source,java]
 ----
 class HighValueCustomersReportTests {
@@ -719,7 +719,7 @@ You can see that we haven't gone to town on these, as marketing do have habit of
 
 Here is the code:
 
-// begin-insert: tags/functions-to-extension-methods.0:src/main/java/travelator/marketing/HighValueCustomersReport.java
+// begin-insert: tags/extensions.0:src/main/java/travelator/marketing/HighValueCustomersReport.java
 [source,java]
 ----
 public class HighValueCustomersReport {
@@ -780,7 +780,7 @@ This will make it easy to convert to top-level functions, and top-level function
 
 But first, here is `CustomerData`:
 
-// begin-insert: tags/functions-to-extension-methods.0:src/main/java/travelator/marketing/CustomerData.java#foo
+// begin-insert: tags/extensions.0:src/main/java/travelator/marketing/CustomerData.java#foo
 [source,java]
 ----
 public class CustomerData {
@@ -817,7 +817,7 @@ That `double` for spend looks suspicious too, but it hasn't caused us any proble
 Normally that would be a really simple job because of the excellent interop, but it turns out that (at the time of writing) the converter cannot believe that anyone would stoop to raw field access. So it doesn't update Java that accesses, for example `customerData.score`, to call `customerData.getScore()` (the Kotlin property), resulting in a slew of compile failures.
 Rather than fixing those, we revert, and use the "Encapsulate Fields" refactor to convert all the fields and field accesses in `Customer` to getters.
 
-// begin-insert: tags/functions-to-extension-methods.1:src/main/java/travelator/marketing/CustomerData.java#foo
+// begin-insert: tags/extensions.1:src/main/java/travelator/marketing/CustomerData.java#foo
 [source,java]
 ----
 public class CustomerData {
@@ -843,7 +843,7 @@ public class CustomerData {
 
 The refactoring has also updated the client code to call the getters:
 
-// begin-insert: tags/functions-to-extension-methods.1:src/main/java/travelator/marketing/HighValueCustomersReport.java#foo
+// begin-insert: tags/extensions.1:src/main/java/travelator/marketing/HighValueCustomersReport.java#foo
 [source,java]
 ----
 private static String lineFor(CustomerData customer) {
@@ -856,7 +856,7 @@ private static String lineFor(CustomerData customer) {
 The getters allow us to convert `CustomerData` to a Kotlin data class without breaking the Java.
 "Convert Java file to Kotlin File", followed by adding the `data` modifier and deleting the `equals` and `hashCode` overrides gives us:
 
-// begin-insert: tags/functions-to-extension-methods.2:src/main/java/travelator/marketing/CustomerData.kt
+// begin-insert: tags/extensions.2:src/main/java/travelator/marketing/CustomerData.kt
 [source,kotlin]
 ----
 data class CustomerData(
@@ -872,7 +872,7 @@ data class CustomerData(
 Now we can go ahead and convert `HighValueCustomerReport` to Kotlin too -- it's entirely self-contained.
 That doesn't go brilliantly, because `customerDataFrom` doesn't compile after the conversion:
 
-// begin-insert: tags/functions-to-extension-methods.3:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFrom
+// begin-insert: tags/extensions.3:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFrom
 [source,kotlin]
 ----
 object HighValueCustomersReport {
@@ -900,7 +900,7 @@ The converter hasn't been smart enough to know that Kotlin doesn't coerce the in
 Let's help IntelliJ out by clicking on the error and Alt-Entering to fix it, in the hope that it will return the favour when the machines rule the world.
 After a reformat, this gives us:
 
-// begin-insert: tags/functions-to-extension-methods.4:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFrom
+// begin-insert: tags/extensions.4:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFrom
 [source,kotlin]
 ----
 object HighValueCustomersReport {
@@ -926,7 +926,7 @@ As we discussed in <<static-methods-to-top-level-functions>>, the conversion has
 If we try to convert them to top level functions using the techniques in that chapter, we find that dependencies between the methods mean that the code doesn't compile at times.
 We can solve the problem either by moving the private methods first, or by just ignoring the compiler until the `HighValueCustomersReport` is emptied and removed.
 
-// begin-insert: tags/functions-to-extension-methods.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#all
+// begin-insert: tags/extensions.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#all
 [source,kotlin]
 ----
 package travelator.marketing
@@ -987,7 +987,7 @@ At the end is the `marketingNameFor` that we saw (a slightly different version o
 If we Alt-Enter on the `customer` parameter IntelliJ will offer to "Convert parameter to receiver".
 This gives:
 
-// begin-insert: tags/functions-to-extension-methods.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#marketingNameFor
+// begin-insert: tags/extensions.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#marketingNameFor
 [source,kotlin]
 ----
 private fun lineFor(customer: CustomerData): String {
@@ -1007,7 +1007,7 @@ Let's "Convert function to property" named `marketingName` (<<methods-to-propert
 Oh, and "Convert concatenation to template" on both strings!
 Phew, that flurry of Alt-Entering gives:
 
-// begin-insert: tags/functions-to-extension-methods.7:src/main/java/travelator/marketing/HighValueCustomersReport.kt#marketingNameFor
+// begin-insert: tags/extensions.7:src/main/java/travelator/marketing/HighValueCustomersReport.kt#marketingNameFor
 [source,kotlin]
 ----
 private fun lineFor(customer: CustomerData): String =
@@ -1024,7 +1024,7 @@ private val CustomerData.marketingName: String
 
 Now `formatMoney` is letting us down, so again we can "Convert parameter to receiver", rename to `toMoneyString`, and "Convert to expression body":
 
-// begin-insert: tags/functions-to-extension-methods.8:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toMoneyString
+// begin-insert: tags/extensions.8:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toMoneyString
 [source,kotlin]
 ----
 private fun lineFor(customer: CustomerData): String =
@@ -1037,7 +1037,7 @@ private fun Double.toMoneyString() = String.format("%#.2f", this)
 The `String.format` rankles a bit.
 Kotlin would allow us to write `"%#.2f".format(this)`, but we prefer swapping the parameter and receiver to give:
 
-// begin-insert: tags/functions-to-extension-methods.9:src/main/java/travelator/marketing/HighValueCustomersReport.kt#formattedAs
+// begin-insert: tags/extensions.9:src/main/java/travelator/marketing/HighValueCustomersReport.kt#formattedAs
 [source,kotlin]
 ----
 private fun Double.toMoneyString() = this.formattedAs("%#.2f")
@@ -1050,7 +1050,7 @@ private fun Double.formattedAs(format: String) = String.format(format, this)
 That's because the others have been very specific conversions, but this one is more general.
 While we're thinking general, `formattedAs` can equally well apply to any type, including `null`, so we can upgrade it to:
 
-// begin-insert: tags/functions-to-extension-methods.9.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#formattedAs
+// begin-insert: tags/extensions.10:src/main/java/travelator/marketing/HighValueCustomersReport.kt#formattedAs
 [source,kotlin]
 ----
 private fun Any?.formattedAs(format: String) = String.format(format, this)
@@ -1062,7 +1062,7 @@ It now feels like a good candidate for moving into our library of generally-usef
 Next `customerDataFrom` is in our sights.
 It is currently:
 
-// begin-insert: tags/functions-to-extension-methods.10:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor
+// begin-insert: tags/extensions.11:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor
 [source,kotlin]
 ----
 fun customerDataFrom(line: String): CustomerData {
@@ -1085,7 +1085,7 @@ There's a lot we can tidy up before we address the signature of `customerDataFro
 Kotlin has a `CharSequence.split(delimiters)` that we can use in place of the regex.
 Then we can inline `spend`, followed by Alt-Enter and "Add names to call arguments" to help make sense of the constructor call:
 
-// begin-insert: tags/functions-to-extension-methods.10.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor
+// begin-insert: tags/extensions.12:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor
 [source,kotlin]
 ----
 fun customerDataFrom(line: String): CustomerData {
@@ -1104,7 +1104,7 @@ fun customerDataFrom(line: String): CustomerData {
 <<multi-to-single-expression-functions>> argues in favour of single-expression functions.
 This certainly doesn't _need_ to be a single-expression, but let's practice anyway:
 
-// begin-insert: tags/functions-to-extension-methods.11:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor
+// begin-insert: tags/extensions.13:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor
 [source,kotlin]
 ----
 fun customerDataFrom(line: String): CustomerData =
@@ -1123,7 +1123,7 @@ fun customerDataFrom(line: String): CustomerData =
 At last, we can get around to converting to an extension function.
 Again we change the name (to `toCustomerData`) to make sense at the call-site:
 
-// begin-insert: tags/functions-to-extension-methods.12:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor
+// begin-insert: tags/extensions.14:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor
 [source,kotlin]
 ----
 fun String.toCustomerData(): CustomerData =
@@ -1141,7 +1141,7 @@ fun String.toCustomerData(): CustomerData =
 
 Note that the Java in our tests can still call this as a static method:
 
-// begin-insert: tags/functions-to-extension-methods.12:src/test/java/travelator/marketing/HighValueCustomersReportTests.java#customerDataFor
+// begin-insert: tags/extensions.14:src/test/java/travelator/marketing/HighValueCustomersReportTests.java#customerDataFor
 [source,java]
 ----
 @Test
@@ -1156,7 +1156,7 @@ public void emptySpendIs0() {
 
 Now let's address `summaryFor`:
 
-// begin-insert: tags/functions-to-extension-methods.13:src/main/java/travelator/marketing/HighValueCustomersReport.kt#summaryFor
+// begin-insert: tags/extensions.15:src/main/java/travelator/marketing/HighValueCustomersReport.kt#summaryFor
 [source,kotlin]
 ----
 private fun summaryFor(valuableCustomers: List<CustomerData>): String {
@@ -1171,7 +1171,7 @@ private fun summaryFor(valuableCustomers: List<CustomerData>): String {
 That destructuring is odd, but we can get rid of it by hand-converting the stream to Kotlin - this isn't a thing that IntelliJ can do when we wrote this, but we give guidance in <<streams-to-sequences>>.
 We'll remove the string concatenation while we're there:
 
-// begin-insert: tags/functions-to-extension-methods.14:src/main/java/travelator/marketing/HighValueCustomersReport.kt#summaryFor
+// begin-insert: tags/extensions.16:src/main/java/travelator/marketing/HighValueCustomersReport.kt#summaryFor
 [source,kotlin]
 ----
 private fun summaryFor(valuableCustomers: List<CustomerData>): String {
@@ -1183,7 +1183,7 @@ private fun summaryFor(valuableCustomers: List<CustomerData>): String {
 
 Now the familiar combination of converting to an appropriately-named single-expression extension function:
 
-// begin-insert: tags/functions-to-extension-methods.15:src/main/java/travelator/marketing/HighValueCustomersReport.kt#summaryFor
+// begin-insert: tags/extensions.17:src/main/java/travelator/marketing/HighValueCustomersReport.kt#summaryFor
 [source,kotlin]
 ----
 private fun List<CustomerData>.summarised(): String =
@@ -1195,7 +1195,7 @@ private fun List<CustomerData>.summarised(): String =
 
 At this stage only `generate` is left unimproved:
 
-// begin-insert: tags/functions-to-extension-methods.16:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: tags/extensions.18:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 @Throws(IOException::class)
@@ -1217,7 +1217,7 @@ fun generate(reader: Reader?, writer: Writer) {
 
 Again, we currently have to convert Java streams to Kotlin list operations by hand:
 
-// begin-insert: tags/functions-to-extension-methods.17:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: tags/extensions.19:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 @Throws(IOException::class)
@@ -1240,7 +1240,7 @@ Note here that every link in that transformation chain is an extension function 
 
 `Appendable.appendLine()` is another extension function that allows us to simplify the output stage:
 
-// begin-insert: tags/functions-to-extension-methods.18:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: tags/extensions.20:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 @Throws(IOException::class)
@@ -1262,7 +1262,7 @@ fun generate(reader: Reader, writer: Writer) {
 It feels like we should be able to remove that `// header` comment by extracting a function.
 <<extracting-part-of-a-pipeline>> details how to extract a function from a chain, but look at what happens when we try that technique but don't convert `withoutHeader` to an extension function:
 
-// begin-insert: tags/functions-to-extension-methods.19:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: tags/extensions.21:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 @Throws(IOException::class)
@@ -1285,7 +1285,7 @@ private fun withoutHeader(list: List<String>) = list.drop(1)
 We've lost the nice pipeline flow from left to right, top to bottom - `withoutHeader` comes before the `readLines` in the text but after it in execution order.
 Alt-Enter on the `list` parameter in `withoutHeader` and "Convert Parameter to Receiver" restores the flow:
 
-// begin-insert: tags/functions-to-extension-methods.20:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: tags/extensions.22:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 @Throws(IOException::class)
@@ -1308,7 +1308,7 @@ private fun List<String>.withoutHeader() = drop(1)
 
 We can make this even more expressive with two more extensions, `List<String>.toValuableCustomers()` and `CustomerData.outputLine`.
 
-// begin-insert: tags/functions-to-extension-methods.21:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: tags/extensions.23:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 @Throws(IOException::class)
@@ -1338,7 +1338,7 @@ This still isn't quite as sweet as we might like, but we've proved the point of 
 <<performing-io-to-passing-data>> and <<exceptions-to-values>> will finish off this refactoring, looking at the use of the reader and writer.
 In the meantime, here's the whole file:
 
-// begin-insert: tags/functions-to-extension-methods.21:src/main/java/travelator/marketing/HighValueCustomersReport.kt#all
+// begin-insert: tags/extensions.23:src/main/java/travelator/marketing/HighValueCustomersReport.kt#all
 [source,kotlin]
 ----
 @Throws(IOException::class)

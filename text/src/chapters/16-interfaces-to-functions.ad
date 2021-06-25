@@ -1170,7 +1170,7 @@ We trust that IDE support will improve its functional analysis, and in the meant
 Travelator is quite well-designed in the Java fashion, with interfaces expressing the relations between components.
 For example the `Recommendations` engine depends on `FeaturedDestinations` and a `DistanceCalculator`:
 
-// begin-insert: tags/interfaces-to-functions-2.0:src/main/java/travelator/recommendations/Recommendations.java#setup
+// begin-insert: tags/interfaces-to-funs.0:src/main/java/travelator/recommendations/Recommendations.java#setup
 [source,java]
 ----
 public class Recommendations {
@@ -1191,7 +1191,7 @@ public class Recommendations {
 
 The `FeaturedDestinations` interface has a few methods, grouping functionality that accesses a remote service:
 
-// begin-insert: tags/interfaces-to-functions-2.0:src/main/java/travelator/destinations/FeaturedDestinations.java
+// begin-insert: tags/interfaces-to-funs.0:src/main/java/travelator/destinations/FeaturedDestinations.java
 [source,java]
 ----
 public interface FeaturedDestinations {
@@ -1208,7 +1208,7 @@ public interface FeaturedDestinations {
 It looks like we've already converted the `DistanceCalculator` interface to Kotlin.
 It too has more than one method, and hides another external service:
 
-// begin-insert: tags/interfaces-to-functions-2.0:src/main/java/travelator/domain/DistanceCalculator.kt
+// begin-insert: tags/interfaces-to-funs.0:src/main/java/travelator/domain/DistanceCalculator.kt
 [source,kotlin]
 ----
 interface DistanceCalculator {
@@ -1227,7 +1227,7 @@ interface DistanceCalculator {
 
 Despite taking a dependency on a total of seven methods, `Recommendations` only actually uses two of them in its implementation:
 
-// begin-insert: tags/interfaces-to-functions-2.0:src/main/java/travelator/recommendations/Recommendations.java#recommendationsFor
+// begin-insert: tags/interfaces-to-funs.0:src/main/java/travelator/recommendations/Recommendations.java#recommendationsFor
 [source,java]
 ----
 public List<FeaturedDestinationSuggestion> recommendationsFor(
@@ -1268,7 +1268,7 @@ public List<FeaturedDestinationSuggestion> recommendationsFor(
 
 `RecommendationsTests` uses mocks to provide implementations of its `DistanceCalculator` and `FeaturedDestinations`, which are passed to the instance of `Recommendations` under test:
 
-// begin-insert: tags/interfaces-to-functions-2.0:src/test/java/travelator/recommendations/RecommendationsTests.java#setup
+// begin-insert: tags/interfaces-to-funs.0:src/test/java/travelator/recommendations/RecommendationsTests.java#setup
 [source,java]
 ----
 public class RecommendationsTests {
@@ -1288,7 +1288,7 @@ public class RecommendationsTests {
 
 The tests specify the expected interactions with the mocks are using two methods: `givenFeaturedDestinationsFor` and `givenADistanceBetween`, which we won't bore you with:
 
-// begin-insert: tags/interfaces-to-functions-2.0:src/test/java/travelator/recommendations/RecommendationsTests.java#test1
+// begin-insert: tags/interfaces-to-funs.0:src/test/java/travelator/recommendations/RecommendationsTests.java#test1
 [source,java]
 ----
 @Test
@@ -1329,7 +1329,7 @@ This is the class that currently expresses its dependencies with interfaces, and
 
 Converting to Kotlin and applying the refactorings introduced in <<streams-to-sequences>> and <<functions-to-extension-functions>> gives:
 
-// begin-insert: tags/interfaces-to-functions-2.4:src/main/java/travelator/recommendations/Recommendations.kt
+// begin-insert: tags/interfaces-to-funs.3:src/main/java/travelator/recommendations/Recommendations.kt
 [source,kotlin]
 ----
 class Recommendations(
@@ -1375,7 +1375,7 @@ private fun List<FeaturedDestinationSuggestion>.closestToJourneyLocation() =
 In order to see how the internals of `Recommendations` would use a function rather than the interface, without having to change its interface yet, we can add a property initialised from an interface method.
 Let's add a property for `featuredDestinations::findCloseTo`, calling it `destinationFinder`:
 
-// begin-insert: tags/interfaces-to-functions-2.8:src/main/java/travelator/recommendations/Recommendations.kt#excerpt
+// begin-insert: tags/interfaces-to-funs.4:src/main/java/travelator/recommendations/Recommendations.kt#excerpt
 [source,kotlin]
 ----
 class Recommendations(
@@ -1412,7 +1412,7 @@ class Recommendations(
 This passes the tests, so we are on to something.
 It feels like there should be a refactoring to move `destinationFinder` into the constructor, but we haven't found anything better than cutting the definition and pasting where we want it:
 
-// begin-insert: tags/interfaces-to-functions-2.9:src/main/java/travelator/recommendations/Recommendations.kt#excerpt
+// begin-insert: tags/interfaces-to-funs.5:src/main/java/travelator/recommendations/Recommendations.kt#excerpt
 [source,kotlin]
 ----
 class Recommendations(
@@ -1429,7 +1429,7 @@ This is, once again, the _expand_ in <<expand-contract>>.
 Unfortunately Java doesn't understand the defaulted parameter, so we have to fix up the call sites to add the function argument.
 It doesn't really matter, as this is what we want really anyway:
 
-// begin-insert: tags/interfaces-to-functions-2.9:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt
+// begin-insert: tags/interfaces-to-funs.5:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt
 [source,java]
 ----
 private final Recommendations recommendations = new Recommendations(
@@ -1442,7 +1442,7 @@ private final Recommendations recommendations = new Recommendations(
 
 Now nothing in `Recommendations` uses the `featuredDestinations` property, so we can remove it (contract):
 
-// begin-insert: tags/interfaces-to-functions-2.10:src/main/java/travelator/recommendations/Recommendations.kt#excerpt
+// begin-insert: tags/interfaces-to-funs.6:src/main/java/travelator/recommendations/Recommendations.kt#excerpt
 [source,kotlin]
 ----
 class Recommendations(
@@ -1454,7 +1454,7 @@ class Recommendations(
 
 The places in our code that create `Recommendations` now look like this:
 
-// begin-insert: tags/interfaces-to-functions-2.10:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt
+// begin-insert: tags/interfaces-to-funs.6:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt
 [source,java]
 ----
 private final Recommendations recommendations = new Recommendations(
@@ -1469,7 +1469,7 @@ We can reason that they _should_ pass -- the effect of calling the function boun
 
 We do like a single basket though, so let's do the same thing with the `distanceCalculator`, this time in a fell-swoop, whatever that is:
 
-// begin-insert: tags/interfaces-to-functions-2.11:src/main/java/travelator/recommendations/Recommendations.kt#excerpt
+// begin-insert: tags/interfaces-to-funs.7:src/main/java/travelator/recommendations/Recommendations.kt#excerpt
 [source,kotlin]
 ----
 class Recommendations(
@@ -1499,7 +1499,7 @@ class Recommendations(
 
 The constructor invocations are now:
 
-// begin-insert: tags/interfaces-to-functions-2.11:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt
+// begin-insert: tags/interfaces-to-funs.7:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt
 [source,java]
 ----
 private final Recommendations recommendations = new Recommendations(

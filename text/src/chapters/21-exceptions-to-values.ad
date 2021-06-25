@@ -19,7 +19,7 @@ Without a person in the loop to interpret those stack traces, it looks like we'r
 
 Here's the code as we left it:
 
-// begin-insert: tags/bonus-errors.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt
+// begin-insert: tags/exceptions-to-values.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt
 [source,kotlin]
 ----
 fun Sequence<String>.toHighValueCustomerReport(): Sequence<String> {
@@ -72,7 +72,7 @@ Let's work our way up the functions from the bottom of the listing, looking for 
 
 `CustomerData.marketingName` looks benign:
 
-// begin-insert: tags/bonus-errors.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt#marketingName
+// begin-insert: tags/exceptions-to-values.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt#marketingName
 [source,kotlin]
 ----
 private val CustomerData.marketingName: String
@@ -86,7 +86,7 @@ From here on we'll count throwing `Error` as extraordinary and not consider it i
 
 Now `formattedAs`:
 
-// begin-insert: tags/bonus-errors.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt#formattedAs
+// begin-insert: tags/exceptions-to-values.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt#formattedAs
 [source,kotlin]
 ----
 private fun Any?.formattedAs(format: String) = String.format(format, this)
@@ -101,7 +101,7 @@ If they do fail, it's because our analysis is incorrect (or its assumptions are 
 
 Next we have:
 
-// begin-insert: tags/bonus-errors.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt#outputLine
+// begin-insert: tags/exceptions-to-values.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt#outputLine
 [source,kotlin]
 ----
 private val CustomerData.outputLine: String
@@ -116,7 +116,7 @@ They don't depend on any external state, so we can reason about them just by loo
 
 So far so good, now `String.toCustomerData()`:
 
-// begin-insert: tags/bonus-errors.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
+// begin-insert: tags/exceptions-to-values.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
 [source,kotlin]
 ----
 internal fun String.toCustomerData(): CustomerData =
@@ -153,7 +153,7 @@ If we aren't to throw an exception, then the cheapest change (provided our calle
 Client code will then be forced to consider the `null` case and act accordingly.
 For example:
 
-// begin-insert: tags/bonus-errors.1:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
+// begin-insert: tags/exceptions-to-values.1:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
 [source,kotlin]
 ----
 internal fun String.toCustomerData(): CustomerData? =
@@ -177,7 +177,7 @@ This means that the code will still throw if the relevant fields cannot be conve
 
 This change breaks `toHighValueCustomerReport`, which is now forced to consider the possibility of failure:
 
-// begin-insert: tags/bonus-errors.1:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: tags/exceptions-to-values.1:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 fun Sequence<String>.toHighValueCustomerReport(): Sequence<String> {
@@ -198,7 +198,7 @@ fun Sequence<String>.toHighValueCustomerReport(): Sequence<String> {
 
 Now if we want to just ignore badly formed input lines, we can get everything running again with `filterNotNull`:
 
-// begin-insert: tags/bonus-errors.2:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: tags/exceptions-to-values.2:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 fun Sequence<String>.toHighValueCustomerReport(): Sequence<String> {
@@ -219,7 +219,7 @@ fun Sequence<String>.toHighValueCustomerReport(): Sequence<String> {
 We don't have any tests to support this, and we really should write some, but for now we'll proceed without a safety net because this is an exploratory spike solution.
 From here, we can use `null` to represent the other ways that we know `toCustomerData` can fail:
 
-// begin-insert: tags/bonus-errors.3:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
+// begin-insert: tags/exceptions-to-values.3:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
 [source,kotlin]
 ----
 internal fun String.toCustomerData(): CustomerData? =
@@ -249,7 +249,7 @@ _Somehow_ is a bit vague, but funnily enough it has a type: `(String) -> Unit` i
 Which is to say, we can delegate the what-to-do to a function that accepts the errant line and doesn't affect the result.
 We allude to this technique in <<errors-invoking-a-function>>. In order to illustrate this, let's add a test:
 
-// begin-insert: tags/bonus-errors.4:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#error
+// begin-insert: tags/exceptions-to-values.4:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#error
 [source,kotlin]
 ----
 @Test
@@ -289,7 +289,7 @@ fun `calls back on parsing error`() {
 
 Let's implement that with the simplest thing that could possibly work:
 
-// begin-insert: tags/bonus-errors.4:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: tags/exceptions-to-values.4:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 fun Sequence<String>.toHighValueCustomerReport(
@@ -317,7 +317,7 @@ fun Sequence<String>.toHighValueCustomerReport(
 This is still filtering out error lines, but only after passing them off to `onErrorLine`, which can decide what to do.
 In `main`, we'll use it to print errors to `System.err` and then abort:
 
-// begin-insert: tags/bonus-errors.4:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
+// begin-insert: tags/exceptions-to-values.4:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
 [source,kotlin]
 ----
 fun main() {
@@ -363,7 +363,7 @@ Now that we are communicating _that_ our parsing can fail (by returning a nullab
 Returning a result type rather than a nullable type allows us to specify what failure modes there are, and provide details when they happen.
 Let's change `String.toCustomerData()` to return a `Result` rather than nullable:
 
-// begin-insert: tags/bonus-errors.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
+// begin-insert: tags/exceptions-to-values.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
 [source,kotlin]
 ----
 internal fun String.toCustomerData(): Result<CustomerData, ParseFailure> =
@@ -389,7 +389,7 @@ internal fun String.toCustomerData(): Result<CustomerData, ParseFailure> =
 
 As we did in <<throwing-to-returning>>, we create a sealed class to represent why parsing failed:
 
-// begin-insert: tags/bonus-errors.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#ParseFailure
+// begin-insert: tags/exceptions-to-values.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#ParseFailure
 [source,kotlin]
 ----
 sealed class ParseFailure(open val line: String)
@@ -402,7 +402,7 @@ data class SpendIsNotADoubleFailure(override val line: String) : ParseFailure(li
 To be honest this is overkill in this situation (a single data class carrying the failing line and a string reason would do here), but we are exemplifying excellence in error engineering.
 We can fix up the callers of `toCustomerData` by invoking `onErrorLine` with the data held in the `ParseFailure` and then yielding `null` when we have an `Error` - this passes the current tests:
 
-// begin-insert: tags/bonus-errors.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: tags/exceptions-to-values.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 fun Sequence<String>.toHighValueCustomerReport(
@@ -430,7 +430,7 @@ fun Sequence<String>.toHighValueCustomerReport(
 What we really want though, is to expose the `ParseFailure`.
 Let change the test first to collect the ++ParseFailure++'s instead of lines with errors:
 
-// begin-insert: tags/bonus-errors.6:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#excerpt
+// begin-insert: tags/exceptions-to-values.6:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#excerpt
 [source,kotlin]
 ----
 val errorCollector = mutableListOf<ParseFailure>()
@@ -450,7 +450,7 @@ assertEquals(
 
 Now we can change `onErrorLine` to take the failure:
 
-// begin-insert: tags/bonus-errors.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: tags/exceptions-to-values.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 fun Sequence<String>.toHighValueCustomerReport(
@@ -477,7 +477,7 @@ fun Sequence<String>.toHighValueCustomerReport(
 
 This lets `main` report the reason and the line:
 
-// begin-insert: tags/bonus-errors.6:src/main/java/travelator/marketing/HighValueCustomersMain.kt#excerpt
+// begin-insert: tags/exceptions-to-values.6:src/main/java/travelator/marketing/HighValueCustomersMain.kt#excerpt
 [source,kotlin]
 ----
 if (errorLines.isNotEmpty()) {
@@ -505,7 +505,7 @@ If we do find out that we have bitten off more than we can chew, it's easy to re
 Now the tests are passing we should go back and make sure everything is as tidy and expressive as it can be.
 In particular, we did the quickest thing we could to get everything to work again in `toHighValueCustomerReport`:
 
-// begin-insert: tags/bonus-errors.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: tags/exceptions-to-values.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 fun Sequence<String>.toHighValueCustomerReport(
@@ -536,7 +536,7 @@ If you do find a nice simple way then please let us know.
 
 Similarly, the early returns in `toCustomerData` look a bit ugly:
 
-// begin-insert: tags/bonus-errors.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
+// begin-insert: tags/exceptions-to-values.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
 [source,kotlin]
 ----
 internal fun String.toCustomerData(): Result<CustomerData, ParseFailure> =
@@ -563,7 +563,7 @@ internal fun String.toCustomerData(): Result<CustomerData, ParseFailure> =
 "Proper" functional error handling would not return early, but use a `flatMap` chain.
 Readers of a nervous disposition may wish to look away:
 
-// begin-insert: tags/bonus-errors.7:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
+// begin-insert: tags/exceptions-to-values.7:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
 [source,kotlin]
 ----
 internal fun String.toCustomerData(): Result<CustomerData, ParseFailure> =
@@ -603,7 +603,7 @@ For us then, the early returns will do.
 
 Finally, returning to `main` on our final check before checkin:
 
-// begin-insert: tags/bonus-errors.6:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
+// begin-insert: tags/exceptions-to-values.6:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
 [source,kotlin]
 ----
 fun main() {
@@ -636,7 +636,7 @@ Those three levels of nested `use` obfuscate the actual structure, and that `exi
 We can define our own `using` overload to address the former, and pass out an exit code to solve the latter (an example of using data rather than control flow to address errors.)
 We can extract an extension function to print the errors too:
 
-// begin-insert: tags/bonus-errors.8:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
+// begin-insert: tags/exceptions-to-values.8:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
 [source,kotlin]
 ----
 fun main() {
@@ -705,7 +705,7 @@ Helpfully now the onus is entirely on the caller - `main` here.
 It is `main` that is passing an IO-backed `Sequence` into `toHighValueCustomerReport`, so `main` should be aware that `toHighValueCustomerReport` can therefore fail with an `IOException` and deal with it accordingly.
 Let's add that code:
 
-// begin-insert: tags/bonus-errors.9:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
+// begin-insert: tags/exceptions-to-values.9:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
 [source,kotlin]
 ----
 fun main() {

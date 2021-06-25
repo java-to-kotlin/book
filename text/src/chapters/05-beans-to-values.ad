@@ -245,7 +245,7 @@ Well this reduces both the number and visibility of the potentially moving parts
 
 We'll work our way there gradually, starting by converting `PreferencesView` to Kotlin:
 
-// begin-insert: tags/beans-to-values.2.5:src/main/java/travelator/mobile/PreferencesView.kt#foo
+// begin-insert: tags/beans-to-values.3:src/main/java/travelator/mobile/PreferencesView.kt#foo
 [source,kotlin]
 ----
 class PreferencesView(
@@ -275,7 +275,7 @@ class PreferencesView(
 To avoid mutation, we would like a version that returns a copy of the `UserPreferences` with any changes applied, but we can't add a return type to the `View` method.
 So instead we'll rename `show` to `showModal`, returning the existing mutable `preferences` property once `super.show()` has returned:
 
-// begin-insert: tags/beans-to-values.3:src/main/java/travelator/mobile/PreferencesView.kt#foo
+// begin-insert: tags/beans-to-values.4:src/main/java/travelator/mobile/PreferencesView.kt#foo
 [source,kotlin]
 ----
 fun showModal(): UserPreferences {
@@ -291,7 +291,7 @@ fun showModal(): UserPreferences {
 `Application.editPreferences()` was calling its `preferencesView.show()`, and relying on the fact that it and `PreferencesView` shared a reference to a mutable object to see any edits.
 We'll now make `Application.preferences` a mutable property, set from the result of `showModal`:
 
-// begin-insert: tags/beans-to-values.3:src/main/java/travelator/mobile/Application.kt#foo
+// begin-insert: tags/beans-to-values.4:src/main/java/travelator/mobile/Application.kt#foo
 [source,kotlin]
 ----
 class Application(
@@ -314,7 +314,7 @@ In fact, we have the worst of both worlds: a mutable reference to mutable data.
 
 We haven't finished though -- we can make things even worse by making the `preferences` property in `PreferencesView` mutable too, so that we can set it to a new `UserPreferences` object when any UI elements are updated:
 
-// begin-insert: tags/beans-to-values.4:src/main/java/travelator/mobile/PreferencesView.kt#foo
+// begin-insert: tags/beans-to-values.5:src/main/java/travelator/mobile/PreferencesView.kt#foo
 [source,kotlin]
 ----
 class PreferencesView(
@@ -350,7 +350,7 @@ Without setters, we can make it a proper value - initialising its properties in 
 In Kotlin this means changing the `var` properties to `val` and inlining any use of the default constructor.
 This allows us to reduce `UserPreferences` to:
 
-// begin-insert: tags/beans-to-values.5:src/main/java/travelator/mobile/UserPreferences.kt
+// begin-insert: tags/beans-to-values.6:src/main/java/travelator/mobile/UserPreferences.kt
 [source,kotlin]
 ----
 data class UserPreferences(
@@ -387,7 +387,7 @@ Having a mutable reference in `PreferencesView` is a bit irritating though.
 We can fix that by not holding a reference at all, but instead passing the preferences into `showModal`.
 `PreferencesView` doesn't need a `UserPreferences` property, it can just distribute its values into the UI before it shows itself, and gather them back in when it is done:
 
-// begin-insert: tags/beans-to-values.6:src/main/java/travelator/mobile/PreferencesView.kt#foo
+// begin-insert: tags/beans-to-values.7:src/main/java/travelator/mobile/PreferencesView.kt#foo
 [source,kotlin]
 ----
 class PreferencesView : View() {
@@ -413,7 +413,7 @@ class PreferencesView : View() {
 There is still mutation here, because we are setting values into the pickers, but these are UI components and only have default constructors, so this has to happen somewhere.
 To finish the job, we also have to update `Application` to move the `preferences` argument from the `PreferencesView` constructor to `showModal`:
 
-// begin-insert: tags/beans-to-values.6:src/main/java/travelator/mobile/Application.kt#foo
+// begin-insert: tags/beans-to-values.7:src/main/java/travelator/mobile/Application.kt#foo
 [source,kotlin]
 ----
 class Application(

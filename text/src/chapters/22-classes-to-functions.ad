@@ -24,7 +24,7 @@ As you might have been able to tell from the preceding chapters, the Travelator 
 We write code test-first, starting with a high-level acceptance test.
 We're working on a table reader, so we create a class `TableReaderAcceptanceTests` with a stub method and check that it runs:
 
-// begin-insert: tags/table-reader.0.05:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt
+// begin-insert: tags/table-reader.1:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt
 [source,kotlin]
 ----
 class TableReaderAcceptanceTests {
@@ -41,7 +41,7 @@ Part of the acceptance test's job is to help us decide what our interface should
 Having parsed a few files in our time, we know that what we almost always want to do is to read a file and return a list of values of some domain type, one for each (non-header) row.
 Let's sketch that as our test, with `Measurement` as our domain type:
 
-// begin-insert: tags/table-reader.0.1:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt
+// begin-insert: tags/table-reader.2:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt
 [source,kotlin]
 ----
 class TableReaderAcceptanceTests {
@@ -89,7 +89,7 @@ Maybe _map_ holds the key?
 (An accidental pun that one.)
 What if `someFunction` looked like this?
 
-// begin-insert: tags/table-reader.0.2:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#someFunction
+// begin-insert: tags/table-reader.3:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#someFunction
 [source,kotlin]
 ----
 private fun someFunction(input: List<String>): List<Measurement> =
@@ -111,7 +111,7 @@ private fun someFunction(input: List<String>): List<Measurement> =
 
 This doesn't compile, because we don't have `readTable` yet, but if we Alt-Enter on the error then IntelliJ will create the function for us:
 
-// begin-insert: tags/table-reader.0.2:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#readTable
+// begin-insert: tags/table-reader.3:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#readTable
 [source,kotlin]
 ----
 private fun readTable(input: List<String>): Any {
@@ -127,7 +127,7 @@ And if that `List` contained `Map<String, String>` then our `record` variable wo
 The only issue is that `Map.get` returns a nullable value.
 That's close enough - let's take account of it in `someFunction` by raising errors if `get` returns `null`:
 
-// begin-insert: tags/table-reader.0.3:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt
+// begin-insert: tags/table-reader.4:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt
 [source,kotlin]
 ----
 private fun someFunction(input: List<String>): List<Measurement> =
@@ -152,7 +152,7 @@ The answer is that this is just test code: the API of `Map.get` is forcing us to
 We put our client hats on to write the acceptance tests, and these tests have shown that we can at least use a function with the signature of `readTable` to convert lines to a list of `Measurement`.
 Now that we have a plausible API, we can move the definition of `readTable` into `src/main/travelator/tablereader/table-reading.kt`:
 
-// begin-insert: tags/table-reader.0.4:src/main/java/travelator/tablereader/table-reading.kt
+// begin-insert: tags/table-reader.5:src/main/java/travelator/tablereader/table-reading.kt
 [source,kotlin]
 ----
 fun readTable(input: List<String>): List<Map<String, String>> {
@@ -163,7 +163,7 @@ fun readTable(input: List<String>): List<Map<String, String>> {
 
 Finally in this first stage, we can inline `someFunction` to give our acceptance test:
 
-// begin-insert: tags/table-reader.0.4:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt
+// begin-insert: tags/table-reader.5:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt
 [source,kotlin]
 ----
 @Disabled
@@ -208,7 +208,7 @@ Now that we have an interface to implement, we can park the acceptance test and 
 What is minimal?
 We like to start with empty - what should happen if we read an empty file?
 
-// begin-insert: tags/table-reader.0.5:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
+// begin-insert: tags/table-reader.6:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
 [source,kotlin]
 ----
 class TableReaderTests {
@@ -227,7 +227,7 @@ class TableReaderTests {
 
 The simplest way to get this to pass is to hard-code the result in `readTable`:
 
-// begin-insert: tags/table-reader.1:src/main/java/travelator/tablereader/table-reading.kt
+// begin-insert: tags/table-reader.7:src/main/java/travelator/tablereader/table-reading.kt
 [source,kotlin]
 ----
 fun readTable(input: List<String>): List<Map<String, String>> {
@@ -246,7 +246,7 @@ Why this rather than a header and one line of data?
 To be honest, this is just the first thing that came to mind -- maybe if we were actually pairing at this point you would have suggested using a header row.
 Our choice leaves us having to decide how to name the columns, and we decide to use the `String` representation of their index, `"0"` for the first column, `"1"` for the second and so on -- this feels like the simplest way that we can generate a `String` key:
 
-// begin-insert: tags/table-reader.2:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
+// begin-insert: tags/table-reader.8:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
 [source,kotlin]
 ----
 @Test
@@ -277,7 +277,7 @@ If you have some spare time, that might be a path worth following to see where i
 Back in our current predicament, we have a failing test, and we can be clever, or we can be quick.
 We choose quick, to get the test passing straight away by hard-coding the result again:
 
-// begin-insert: tags/table-reader.2:src/main/java/travelator/tablereader/table-reading.kt
+// begin-insert: tags/table-reader.8:src/main/java/travelator/tablereader/table-reading.kt
 [source,kotlin]
 ----
 fun readTable(lines: List<String>): List<Map<String, String>> {
@@ -293,7 +293,7 @@ fun readTable(lines: List<String>): List<Map<String, String>> {
 Now our tests are passing we can simplify the implementation by noticing that we want a line in the output for every line in the input.
 `Iterable::map` will do this, allowing us to remove the `if` expression:
 
-// begin-insert: tags/table-reader.3:src/main/java/travelator/tablereader/table-reading.kt
+// begin-insert: tags/table-reader.9:src/main/java/travelator/tablereader/table-reading.kt
 [source,kotlin]
 ----
 fun readTable(lines: List<String>): List<Map<String, String>> {
@@ -307,7 +307,7 @@ fun readTable(lines: List<String>): List<Map<String, String>> {
 This continues to pass the tests, and would now work for more lines (of identical data)!
 It's only a stepping stone though, allowing us to extract the lambda as a function:
 
-// begin-insert: tags/table-reader.4:src/main/java/travelator/tablereader/table-reading.kt
+// begin-insert: tags/table-reader.10:src/main/java/travelator/tablereader/table-reading.kt
 [source,kotlin]
 ----
 fun readTable(lines: List<String>): List<Map<String, String>> {
@@ -320,7 +320,7 @@ private fun parseLine(line: String) = mapOf("0" to "field0", "1" to "field1")
 
 Now we'll start removing the hard-coded values by splitting the pairs into `keys` and `values`:
 
-// begin-insert: tags/table-reader.5:src/main/java/travelator/tablereader/table-reading.kt#parseLine
+// begin-insert: tags/table-reader.11:src/main/java/travelator/tablereader/table-reading.kt#parseLine
 [source,kotlin]
 ----
 private fun parseLine(line: String): Map<String, String> {
@@ -333,7 +333,7 @@ private fun parseLine(line: String): Map<String, String> {
 
 We're still resolutely cheating, but we can now see the pattern in the `keys` and generate these from the `values`:
 
-// begin-insert: tags/table-reader.6:src/main/java/travelator/tablereader/table-reading.kt#parseLine
+// begin-insert: tags/table-reader.12:src/main/java/travelator/tablereader/table-reading.kt#parseLine
 [source,kotlin]
 ----
 private fun parseLine(line: String): Map<String, String> {
@@ -346,7 +346,7 @@ private fun parseLine(line: String): Map<String, String> {
 
 For the `values`, we can split the line around the commas:
 
-// begin-insert: tags/table-reader.7:src/main/java/travelator/tablereader/table-reading.kt#parseLine
+// begin-insert: tags/table-reader.13:src/main/java/travelator/tablereader/table-reading.kt#parseLine
 [source,kotlin]
 ----
 private fun parseLine(line: String): Map<String, String> {
@@ -368,7 +368,7 @@ For that matter, what should `readTable` return when fed an empty line?
 Discussing it, we come to the conclusion that an empty line should yield an empty `Map`.
 That feels clean, so we write a test to both document our decision and check that it works:
 
-// begin-insert: tags/table-reader.8:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
+// begin-insert: tags/table-reader.14:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
 [source,kotlin]
 ----
 @Test
@@ -397,7 +397,7 @@ After a little investigation, we discover that calling `split` on an empty `Stri
 Maybe that makes sense in other circumstances.
 Maybe, but it messes up our algorithm, so we have to work around it with a special case in `parseLine`:
 
-// begin-insert: tags/table-reader.8:src/main/java/travelator/tablereader/table-reading.kt#parseLine
+// begin-insert: tags/table-reader.14:src/main/java/travelator/tablereader/table-reading.kt#parseLine
 [source,kotlin]
 ----
 private fun parseLine(line: String): Map<String, String> {
@@ -411,7 +411,7 @@ private fun parseLine(line: String): Map<String, String> {
 That gets the tests passing, but muddies the waters of the `parseLine` function.
 So we extract the muddy line to a function called `splitFields`:
 
-// begin-insert: tags/table-reader.10:src/main/java/travelator/tablereader/table-reading.kt#parseLine
+// begin-insert: tags/table-reader.15:src/main/java/travelator/tablereader/table-reading.kt#parseLine
 [source,kotlin]
 ----
 private fun parseLine(line: String): Map<String, String> {
@@ -427,7 +427,7 @@ private fun splitFields(line: String): List<String> =
 
 If we make `splitFields` an extension function and introduce a `separators` parameter we get the function we always really wanted `split` to be:
 
-// begin-insert: tags/table-reader.11:src/main/java/travelator/tablereader/table-reading.kt#parseLine
+// begin-insert: tags/table-reader.16:src/main/java/travelator/tablereader/table-reading.kt#parseLine
 [source,kotlin]
 ----
 private fun parseLine(line: String): Map<String, String> {
@@ -447,7 +447,7 @@ We believe that `readTable` should work for all the numbers known to programmers
 
 "Trust but verify" they say though, so we add a test:
 
-// begin-insert: tags/table-reader.12:src/test/java/travelator/tablereader/TableReaderTests.kt#twoLines
+// begin-insert: tags/table-reader.17:src/test/java/travelator/tablereader/TableReaderTests.kt#twoLines
 [source,kotlin]
 ----
 @Test
@@ -480,7 +480,7 @@ Generally we prefer a different function for different functionality, so let's a
 
 As with `readTable`, we first add a test that calls the function that we wish we had:
 
-// begin-insert: tags/table-reader.13:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
+// begin-insert: tags/table-reader.18:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
 [source,kotlin]
 ----
 @Test
@@ -503,7 +503,7 @@ fun `takes headers from header line`() {
 Alt-Enter on the compilation error at `readTableWithHeader` and IntelliJ will create it for us.
 Then we can name the parameters, and delegate to our original function for now:
 
-// begin-insert: tags/table-reader.13:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: tags/table-reader.18:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTableWithHeader(lines: List<String>): List<Map<String, String>> {
@@ -530,7 +530,7 @@ The new feature will then be an addition _rather_ than a modification (the https
 
 Currently, the field name information is buried in `parseLine`:
 
-// begin-insert: tags/table-reader.13:src/main/java/travelator/tablereader/table-reading.kt#parseLine
+// begin-insert: tags/table-reader.18:src/main/java/travelator/tablereader/table-reading.kt#parseLine
 [source,kotlin]
 ----
 private fun parseLine(line: String): Map<String, String> {
@@ -546,7 +546,7 @@ We're going to pull it out from here to a place where we can use the header line
 `Int::toString` is our current mapping from index to key.
 Let's prepare to make this configurable by introducing a variable named `headerProvider`:
 
-// begin-insert: tags/table-reader.14:src/main/java/travelator/tablereader/table-reading.kt#parseLine
+// begin-insert: tags/table-reader.19:src/main/java/travelator/tablereader/table-reading.kt#parseLine
 [source,kotlin]
 ----
 private fun parseLine(line: String): Map<String, String> {
@@ -564,7 +564,7 @@ So we `@Disabled` it for now, in order to only run tests for completed features 
 
 "Introduce Parameter" on the `headerProvider` line and naming it `headerProvider` will allow us to support different behaviours:
 
-// begin-insert: tags/table-reader.15:src/main/java/travelator/tablereader/table-reading.kt#parseLine
+// begin-insert: tags/table-reader.20:src/main/java/travelator/tablereader/table-reading.kt#parseLine
 [source,kotlin]
 ----
 private fun parseLine(
@@ -580,7 +580,7 @@ private fun parseLine(
 
 Unfortunately IntelliJ currently fails to make this refactor work, breaking `readTable`:
 
-// begin-insert: tags/table-reader.15:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: tags/table-reader.20:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTableWithHeader(lines: List<String>): List<Map<String, String>> {
@@ -597,7 +597,7 @@ fun readTable(lines: List<String>): List<Map<String, String>> {
 
 "Replace function reference with lambda" _before_ the refactor would have made everything work now, but we'll fail forward by expanding the lambda now and adding `Int::toString` as the `headerProvider` to get things compiling again:
 
-// begin-insert: tags/table-reader.16:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: tags/table-reader.21:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTableWithHeader(lines: List<String>): List<Map<String, String>> {
@@ -617,7 +617,7 @@ Our plan is to have the new `readTableWithHeader` read the header line to create
 Sitting between `readTableWithHeader` and `parseLine` is the call to our old `readTable`, so it needs a `headerProvider` parameter too in order relay the value.
 So its "Introduce Parameter" (with "Introduce Default Value") again, this time on `Int::toString` in `readTable`:
 
-// begin-insert: tags/table-reader.17:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: tags/table-reader.22:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTableWithHeader(lines: List<String>): List<Map<String, String>> {
@@ -639,7 +639,7 @@ It's hard to say why IntelliJ (at the time of writing) sometimes uses function t
 It would be nice if it was consistent, or at least generated code that compiled.
 We'll fix this one by translating the `KFunction1` to an `(Int) -> String` by hand and hold just a little grudge for this second failed refactor in a row:
 
-// begin-insert: tags/table-reader.18:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: tags/table-reader.23:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTableWithHeader(lines: List<String>): List<Map<String, String>> {
@@ -663,7 +663,7 @@ It needs to split the lines into the header (`first()`) and the rest (`drop(1)`)
 `Iterable.first` will fail if there are no lines, so we make a note to add a test for this case.
 As for converting the header line into a `headerProvider`, we'll pretend that we have a function to do that called `headerProviderFrom(String)`:
 
-// begin-insert: tags/table-reader.19:src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader
+// begin-insert: tags/table-reader.24:src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader
 [source,kotlin]
 ----
 fun readTableWithHeader(lines: List<String>): List<Map<String, String>> {
@@ -677,7 +677,7 @@ fun readTableWithHeader(lines: List<String>): List<Map<String, String>> {
 
 Alt-Enter on the new function's invocation allows us to create it, giving:
 
-// begin-insert: tags/table-reader.19:src/main/java/travelator/tablereader/table-reading.kt#headerProviderFrom
+// begin-insert: tags/table-reader.24:src/main/java/travelator/tablereader/table-reading.kt#headerProviderFrom
 [source,kotlin]
 ----
 fun headerProviderFrom(header: String): (Int) -> String {
@@ -690,7 +690,7 @@ This is a function that needs to return a function type.
 We can implement the return value with a lambda that takes an `Int` index and returns a `String`.
 The `String` we need to return is the header field at that index -- we can use our `splitFields` again here:
 
-// begin-insert: tags/table-reader.20:src/main/java/travelator/tablereader/table-reading.kt#headerProviderFrom
+// begin-insert: tags/table-reader.25:src/main/java/travelator/tablereader/table-reading.kt#headerProviderFrom
 [source,kotlin]
 ----
 private fun headerProviderFrom(header: String): (Int) -> String {
@@ -704,7 +704,7 @@ We've taken care to split the `header` outside the lambda, otherwise it will hap
 Our tests still pass, and if we're right, so will the test for `readTableWithHeader` that we disabled previously.
 Let's un-`@Disabled` it:
 
-// begin-insert: tags/table-reader.23:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
+// begin-insert: tags/table-reader.26:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
 [source,kotlin]
 ----
 @Test
@@ -728,7 +728,7 @@ This passes, hooray!
 We are about to say that we're done for now, until we look down at our TODO list and remember that we predicted `readTableWithHeader` should fail given an empty input.
 So we write a test, asserting the desired behaviour, which is to return an empty `List`:
 
-// begin-insert: tags/table-reader.23:src/test/java/travelator/tablereader/TableReaderTests.kt#empty
+// begin-insert: tags/table-reader.26:src/test/java/travelator/tablereader/TableReaderTests.kt#empty
 [source,kotlin]
 ----
 @Test
@@ -745,7 +745,7 @@ fun `readTableWithHeader on empty list returns empty list`() {
 
 As we thought, this fails with `java.util.NoSuchElementException: List is empty.`, because `readTableWithHeader` is trying to call `lines.first()` on a empty `List`:
 
-// begin-insert: tags/table-reader.20:src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader
+// begin-insert: tags/table-reader.25:src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader
 [source,kotlin]
 ----
 fun readTableWithHeader(lines: List<String>): List<Map<String, String>> {
@@ -762,7 +762,7 @@ The simplest fix is to split our function into two definitions, with a `when` to
 This passes all the tests, and empties our TODO list.
 Here then is our public API:
 
-// begin-insert: tags/table-reader.23:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: tags/table-reader.26:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTableWithHeader(
@@ -789,7 +789,7 @@ But wait!
 Looking at the code we realise that, if they want to specify their own field names for `readTable`, they can do this by overriding the default `headerProvider` in `readTable` - we have a feature for free!
 Let's write a test to demonstrate it:
 
-// begin-insert: tags/table-reader.24:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
+// begin-insert: tags/table-reader.27:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
 [source,kotlin]
 ----
 @Test
@@ -831,7 +831,7 @@ If we are able to express a dependency as one of these function types, then our 
 Now that we have implemented reading a table with a header, we are in a position to try running our acceptance test.
 This was:
 
-// begin-insert: tags/table-reader.23:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt
+// begin-insert: tags/table-reader.26:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt
 [source,kotlin]
 ----
 @Disabled
@@ -864,7 +864,7 @@ fun `acceptance test`() {
 
 The function that we thought we would call `readTable` when we wrote the test turns out to be `readTableWithHeader`, so we make the change and run the test:
 
-// begin-insert: tags/table-reader.24:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt
+// begin-insert: tags/table-reader.27:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt
 [source,kotlin]
 ----
 assertEquals(
@@ -892,7 +892,7 @@ What is the abstraction here?
 
 Looking at the code we see that the header and body parsing both call `splitFields`:
 
-// begin-insert: tags/table-reader.25:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: tags/table-reader.28:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 private fun headerProviderFrom(header: String): (Int) -> String {
@@ -928,7 +928,7 @@ As soon as we need to parameterize an aspect of our code, it is natural to ask w
 Let's start in `parseLine`.
 To extract the current splitting implementation, we can select `line.splitFields(",")` and "Introduce Functional Parameter", choosing the parameter name `splitter`:
 
-// begin-insert: tags/table-reader.26:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: tags/table-reader.29:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTable(
@@ -961,7 +961,7 @@ private fun parseLine(
 We could continue this process, extracting the splitter lambda to the top level.
 Our lives will be made a bit easier though if have a global value for the splitter, so we select the lambda in `readTable` and "Introduce Variable" named `splitOnComma`:
 
-// begin-insert: tags/table-reader.27:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: tags/table-reader.30:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTable(
@@ -980,7 +980,7 @@ fun readTable(
 Now we can cut the `val` from the function and move it to the top level.
 It feels like there should be an automated refactor for this, but nothing works at the time of writing:
 
-// begin-insert: tags/table-reader.28:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: tags/table-reader.31:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTable(
@@ -1001,7 +1001,7 @@ Now that `splitOnComma` is a global property, we can conveniently use it as a de
 We select the reference to it in `readTable`, then "Introduce Parameter", with "Introduce default value", calling the new parameter `splitter`.
 This yields;
 
-// begin-insert: tags/table-reader.29:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: tags/table-reader.32:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTable(
@@ -1022,7 +1022,7 @@ val splitOnComma: (String) -> List<String> = { line ->
 Because of the default value, we haven't had to change any of the clients, and the tests continue to pass.
 As it stands, `readTable` is now using the supplied `splitter`, but `headerProviderFrom` is not:
 
-// begin-insert: tags/table-reader.29:src/main/java/travelator/tablereader/table-reading.kt#headerProviderFrom
+// begin-insert: tags/table-reader.32:src/main/java/travelator/tablereader/table-reading.kt#headerProviderFrom
 [source,kotlin]
 ----
 private fun headerProviderFrom(header: String): (Int) -> String {
@@ -1034,7 +1034,7 @@ private fun headerProviderFrom(header: String): (Int) -> String {
 
 Introducing a functional parameter for `header.splitFields(...) yields:
 
-// begin-insert: tags/table-reader.32:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: tags/table-reader.33:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTableWithHeader(
@@ -1071,7 +1071,7 @@ private fun headerProviderFrom(
 
 Now the lambda in `readTableWithHeader` is the same code as `splitOnComma`, so we use that instead:
 
-// begin-insert: tags/table-reader.33:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: tags/table-reader.34:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTableWithHeader(
@@ -1095,7 +1095,7 @@ val splitOnComma: (String) -> List<String> = { line ->
 
 You can see the pattern here -- now we make a parameter from the `splitOnComma` reference, again with a default to avoid breaking existing clients:
 
-// begin-insert: tags/table-reader.34:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: tags/table-reader.35:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTableWithHeader(
@@ -1115,7 +1115,7 @@ fun readTableWithHeader(
 Finally, in `readTableWithHeader` we are calling `readTable` without providing a `splitter`, so it will use its default (`splitOnComma`).
 We don't want this, so we pass the parameter down: the header and body should be using the same splitter, so we pass it from `readTableWithHeader` to the inner `readTable`:
 
-// begin-insert: tags/table-reader.35:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: tags/table-reader.36:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTableWithHeader(
@@ -1148,7 +1148,7 @@ Some test-driven developers might insist on a failing test to show the need for 
 We certainly should write a test to demonstrate the use of the splitter, but before we do, let's make it more convenient to make one.
 Here is `splitOnComma`:
 
-// begin-insert: tags/table-reader.35:src/main/java/travelator/tablereader/table-reading.kt#splitOnComma
+// begin-insert: tags/table-reader.36:src/main/java/travelator/tablereader/table-reading.kt#splitOnComma
 [source,kotlin]
 ----
 val splitOnComma: (String) -> List<String> = { line ->
@@ -1162,7 +1162,7 @@ That way our French clients could call `readTable` with, for example, `splitter 
 The `splitOn` function would take the separators and return a value of function type `(String) -> List<String>`.
 We could try to extract this function from our current `splitOnComma` lambda, but the refactoring is tedious, so instead let's just define the function and call it:
 
-// begin-insert: tags/table-reader.36:src/main/java/travelator/tablereader/table-reading.kt#splitOnComma
+// begin-insert: tags/table-reader.37:src/main/java/travelator/tablereader/table-reading.kt#splitOnComma
 [source,kotlin]
 ----
 fun splitOn(

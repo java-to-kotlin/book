@@ -213,7 +213,7 @@ Let's have a look at recognising and refactoring actions in existing code.
 
 There is an HTTP endpoint in Travelator that allows the client app to fetch information about the customers current trip:
 
-// begin-insert: tags/effects.0:src/main/java/travelator/handlers/CurrentTripsHandler.java
+// begin-insert: tags/actions.0:src/main/java/travelator/handlers/CurrentTripsHandler.java
 [source,java]
 ----
 public class CurrentTripsHandler {
@@ -249,7 +249,7 @@ The `handle` method is an action, and that's OK: things on the edge of our syste
 
 The handler delegates to some business logic, implemented in `Tracking`.
 
-// begin-insert: tags/effects.0:src/main/java/travelator/Tracking.java
+// begin-insert: tags/actions.0:src/main/java/travelator/Tracking.java
 [source,java]
 ----
 class Tracking implements ITrackTrips {
@@ -281,7 +281,7 @@ class Tracking implements ITrackTrips {
 Using the _current_ rule `Tracking.currentTripFor` is evidently an action too, as is `Trips.currentTripsFor`.
 Here is its implementation in `InMemoryTrips`, which is used for testing in place of a version implemented with database queries.
 
-// begin-insert: tags/effects.0:src/test/java/travelator/InMemoryTrips.java#foo
+// begin-insert: tags/actions.0:src/test/java/travelator/InMemoryTrips.java#foo
 [source,java]
 ----
 public class InMemoryTrips implements Trips {
@@ -313,7 +313,7 @@ We have discussed calculations and actions as applying to named blocks of code, 
 Once you start to differentiate actions from calculations, it makes sense not to throw a random action into an otherwise pure calculation.
 Let's pull the action out so that the remainder of the expression is pure - select `clock.instant()` and "Introduce Variable", calling it `now`:
 
-// begin-insert: tags/effects.0.5:src/test/java/travelator/InMemoryTrips.java#foo
+// begin-insert: tags/actions.1:src/test/java/travelator/InMemoryTrips.java#foo
 [source,java]
 ----
 @Override
@@ -330,7 +330,7 @@ public Set<Trip> currentTripsFor(String customerId) {
 
 That's still in the middle of the expression, let's move it up (and convert to a `var` on the way):
 
-// begin-insert: tags/effects.1:src/test/java/travelator/InMemoryTrips.java#foo
+// begin-insert: tags/actions.2:src/test/java/travelator/InMemoryTrips.java#foo
 [source,java]
 ----
 @Override
@@ -351,7 +351,7 @@ Duncan for one has recently finished diagnosing an issue where half of a banking
 As well as making it harder to refactor our code, actions make it harder to test too.
 Let's see how that is manifested:
 
-// begin-insert: tags/effects.0:src/test/java/travelator/TrackingTests.java#foo
+// begin-insert: tags/actions.0:src/test/java/travelator/TrackingTests.java#foo
 [source,java]
 ----
 public class TrackingTests {
@@ -418,7 +418,7 @@ This is a special case of the way that we refactor to avoid dependencies on othe
 The function we want to pass the time into overrides `Trips.currentTripsFor`, so we start by adding an `Instant` parameter to that.
 Before this was:
 
-// begin-insert: tags/effects.0:src/main/java/travelator/Trips.java#foo
+// begin-insert: tags/actions.0:src/main/java/travelator/Trips.java#foo
 [source,java]
 ----
 public interface Trips {
@@ -435,7 +435,7 @@ Running the tests shows that we are right -- they still pass.
 
 `Trips` now looks like this:
 
-// begin-insert: tags/effects.2:src/main/java/travelator/Trips.java#foo
+// begin-insert: tags/actions.3:src/main/java/travelator/Trips.java#foo
 [source,java]
 ----
 public interface Trips {
@@ -447,7 +447,7 @@ public interface Trips {
 
 Here is the method being called:
 
-// begin-insert: tags/effects.2:src/main/java/travelator/Tracking.java#foo
+// begin-insert: tags/actions.3:src/main/java/travelator/Tracking.java#foo
 [source,java]
 ----
 class Tracking implements ITrackTrips {
@@ -477,7 +477,7 @@ class Tracking implements ITrackTrips {
 Remember that we aren't using the value of the time in our implementations of `Trips` yet, just trying to supply it on the outside of our system in order to convert as much code as possible to calculations.
 `Tracking` isn't the outside of our interaction, so we take select the `null` `Instant`, and "Introduce Parameter" to add it to the signature of `Tracking.currentTripFor`:
 
-// begin-insert: tags/effects.3:src/main/java/travelator/Tracking.java#foo
+// begin-insert: tags/actions.4:src/main/java/travelator/Tracking.java#foo
 [source,java]
 ----
 @Override
@@ -495,7 +495,7 @@ public Optional<Trip> currentTripFor(String customerId, Instant at) { // <1>
 
 When we "Introduce Parameter", IntelliJ moves the expression (`null` in this case) from the body of the method to the callers, so `CurrentTripsHandler` still compiles:
 
-// begin-insert: tags/effects.3:src/main/java/travelator/handlers/CurrentTripsHandler.java#foo
+// begin-insert: tags/actions.4:src/main/java/travelator/handlers/CurrentTripsHandler.java#foo
 [source,java]
 ----
 public Response handle(Request request) {
@@ -520,7 +520,7 @@ public Response handle(Request request) {
 
 `TrackingTests` is similarly fixed up:
 
-// begin-insert: tags/effects.3:src/test/java/travelator/TrackingTests.java#foo
+// begin-insert: tags/actions.4:src/test/java/travelator/TrackingTests.java#foo
 [source,java]
 ----
 @Test
@@ -554,7 +554,7 @@ At this point everything compiles and passes the tests, but we aren't actually u
 Let's fix that in `InMemoryTrips`, where we started.
 We did have:
 
-// begin-insert: tags/effects.3:src/test/java/travelator/InMemoryTrips.java#foo
+// begin-insert: tags/actions.4:src/test/java/travelator/InMemoryTrips.java#foo
 [source,java]
 ----
 public class InMemoryTrips implements Trips {
@@ -573,7 +573,7 @@ public class InMemoryTrips implements Trips {
 
 Now we have the time as a parameter, we can use that rather than asking the `clock`:
 
-// begin-insert: tags/effects.4:src/test/java/travelator/InMemoryTrips.java#foo
+// begin-insert: tags/actions.5:src/test/java/travelator/InMemoryTrips.java#foo
 [source,java]
 ----
 public class InMemoryTrips implements Trips {
@@ -591,7 +591,7 @@ public class InMemoryTrips implements Trips {
 
 This causes the tests that use `InMemoryTrips` to fail with a `NullPointerException`, because the method is now using the value of the parameter, and the tests are passing in `null`:
 
-// begin-insert: tags/effects.4:src/test/java/travelator/TrackingTests.java#foo
+// begin-insert: tags/actions.5:src/test/java/travelator/TrackingTests.java#foo
 [source,java]
 ----
 @Test
@@ -624,7 +624,7 @@ public void returns_single_active_booked_trip() {
 Instead of `null`, we need to pass the value that the tests were setting into the `clock`.
 A cunning refactor is to replace the ++null++s with `clock.now`:
 
-// begin-insert: tags/effects.5:src/test/java/travelator/TrackingTests.java#foo
+// begin-insert: tags/actions.6:src/test/java/travelator/TrackingTests.java#foo
 [source,java]
 ----
 @Test
@@ -656,7 +656,7 @@ This gets our tests to pass, because we are now passing the correct time as the 
 To fix that, we replace the `clock.now` reads with the values from the `clock.now` writes.
 Then the `clock` is unused and we can delete it:
 
-// begin-insert: tags/effects.7:src/test/java/travelator/TrackingTests.java#foo
+// begin-insert: tags/actions.8:src/test/java/travelator/TrackingTests.java#foo
 [source,java]
 ----
 public class TrackingTests {
@@ -701,7 +701,7 @@ We're almost done now. (Refactoring is never completely done.)
 
 With all this focus on the tests, we were about to check in before we realised that we haven't completed our refactor in `CurrentTripsHandler`.
 
-// begin-insert: tags/effects.7:src/main/java/travelator/handlers/CurrentTripsHandler.java#foo
+// begin-insert: tags/actions.8:src/main/java/travelator/handlers/CurrentTripsHandler.java#foo
 [source,java]
 ----
 public Response handle(Request request) {
@@ -727,7 +727,7 @@ public Response handle(Request request) {
 Now that neither of our `currentTripFor` methods fetch the time, `CurrentTripHandler` is the only action - the place that we need to call `Instant.now()`.
 We can fix things by inserting the call, leaving us with:
 
-// begin-insert: tags/effects.7.5:src/main/java/travelator/handlers/CurrentTripsHandler.java
+// begin-insert: tags/actions.9:src/main/java/travelator/handlers/CurrentTripsHandler.java
 [source,java]
 ----
 public class CurrentTripsHandler {
@@ -782,7 +782,7 @@ Note also that a lot of the refactoring steps taken in this chapter (and others)
 Before we finish this chapter, what about the other action we hinted at?
 Here is the implementation of `InMemoryTrips`, now converted to Kotlin:
 
-// begin-insert: tags/effects.8:src/test/java/travelator/InMemoryTrips.kt
+// begin-insert: tags/actions.10:src/test/java/travelator/InMemoryTrips.kt
 [source,kotlin]
 ----
 class InMemoryTrips : Trips {

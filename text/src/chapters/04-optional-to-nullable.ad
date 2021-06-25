@@ -147,7 +147,7 @@ public class LongestLegOverTests {
 Let's see what we can do to make things better in Kotlin.
 Converting `Legs.java` to Kotlin gives us this (after a little reformatting):
 
-// begin-insert: tags/nullability.2:src/main/java/travelator/Legs.kt
+// begin-insert: tags/nullability.3:src/main/java/travelator/Legs.kt
 [source,kotlin]
 ----
 object Legs {
@@ -200,7 +200,7 @@ Instead of a `for` loop we should look for something more intention-revealing, b
 We'll illustrate that by converting our tests one by one, so that we have a mix, as we would in a codebase that we were migrating.
 In order for us to make use of nullability in our clients they have to be Kotlin, so let's convert the tests:
 
-// begin-insert: tags/nullability.3:src/test/java/travelator/LongestLegOverTests.kt#foo
+// begin-insert: tags/nullability.4:src/test/java/travelator/LongestLegOverTests.kt#foo
 [source,kotlin]
 ----
 class LongestLegOverTests {
@@ -248,7 +248,7 @@ Now to migrate gradually, we're going to need two versions of `findLongestLegOve
 We can do that by extracting the guts of the current implementation.
 This is currently:
 
-// begin-insert: tags/nullability.3:src/main/java/travelator/Legs.kt#foo
+// begin-insert: tags/nullability.4:src/main/java/travelator/Legs.kt#foo
 [source,kotlin]
 ----
 @JvmStatic
@@ -271,7 +271,7 @@ fun findLongestLegOver(
 We "Extract Function" on all but the return statement of this `findLongestLegOver`.
 We can't give it the same name, so we use `longestLegOver` - we make it public because this is our new interface:
 
-// begin-insert: tags/nullability.4:src/main/java/travelator/Legs.kt#foo
+// begin-insert: tags/nullability.5:src/main/java/travelator/Legs.kt#foo
 [source,kotlin]
 ----
 @JvmStatic
@@ -299,7 +299,7 @@ fun longestLegOver(legs: List<Leg>, duration: Duration): Leg? {
 The refactoring has left a vestigial `result` variable in `findLongestLegOver`.
 We can select it and "Inline" to give:
 
-// begin-insert: tags/nullability.4.5:src/main/java/travelator/Legs.kt#foo
+// begin-insert: tags/nullability.6:src/main/java/travelator/Legs.kt#foo
 [source,kotlin]
 ----
 @JvmStatic
@@ -319,7 +319,7 @@ Let's show the conversion with our tests:
 We'll do the absent ones first.
 They currently call `assertEquals(Optional.empty<Any>(), findLongestLegOver...)`:
 
-// begin-insert: tags/nullability.4.5:src/test/java/travelator/LongestLegOverTests.kt#absent
+// begin-insert: tags/nullability.6:src/test/java/travelator/LongestLegOverTests.kt#absent
 [source,kotlin]
 ----
 @Test
@@ -342,7 +342,7 @@ fun is_absent_when_no_legs_long_enough() {
 
 So we change them to `assertNull(longestLegOver(...)`:
 
-// begin-insert: tags/nullability.5:src/test/java/travelator/LongestLegOverTests.kt#absent
+// begin-insert: tags/nullability.7:src/test/java/travelator/LongestLegOverTests.kt#absent
 [source,kotlin]
 ----
 @Test
@@ -362,7 +362,7 @@ IntelliJ will do this for us if we Alt-Enter on function_names with_underscores_
 
 Now for the calls that don't return empty:
 
-// begin-insert: tags/nullability.4.5:src/test/java/travelator/LongestLegOverTests.kt#present
+// begin-insert: tags/nullability.6:src/test/java/travelator/LongestLegOverTests.kt#present
 [source,kotlin]
 ----
 @Test
@@ -390,7 +390,7 @@ Both the Java `orElseThrow` and the Kotlin `!!` return the value, or throw an ex
 Kotlin logically throws a `NullPointerException`, Java equally logically throws a `NoSuchElementExecption`, they just think of absence in different ways!
 Provided we haven't relied on the type of the exception, we can replace `findLongestLegOver(...).orElseThrow()` with `longestLegOver(...)!!`:
 
-// begin-insert: tags/nullability.6:src/test/java/travelator/LongestLegOverTests.kt#present
+// begin-insert: tags/nullability.8:src/test/java/travelator/LongestLegOverTests.kt#present
 [source,kotlin]
 ----
 @Test
@@ -458,7 +458,7 @@ We could stop there, but consistent with our policy of going the extra refactori
 
 Here is the current version of Legs:
 
-// begin-insert: tags/nullability.7:src/main/java/travelator/Legs.kt
+// begin-insert: tags/nullability.9:src/main/java/travelator/Legs.kt
 [source,kotlin]
 ----
 object Legs {
@@ -488,7 +488,7 @@ As we'll see in <<static-methods-to-top-level-functions>>, Kotlin doesn't need t
 At the time of writing, this doesn't work very well, as IntelliJ fails to bring `isLongerThan` with its calling function, leaving it in `Legs`.
 The breakage is easy to fix though, leaving us with a top-level function and fixed-up references in existing code:
 
-// begin-insert: tags/nullability.7.5:src/main/java/travelator/Legs.kt
+// begin-insert: tags/nullability.10:src/main/java/travelator/Legs.kt
 [source,kotlin]
 ----
 fun longestLegOver(
@@ -516,7 +516,7 @@ We'll talk though the pros and cons of single expression functions in <<multi-to
 While we're here, there's something odd about the phrase `isLongerThan(leg, ...)` - it just doesn't read right in English.
 You'll no doubt get bored of our infatuation with extension functions (certainly by the end of <<functions-to-extension-functions>>), but while we still have your goodwill lets Alt-Enter on the `leg` parameter and "Convert parameter to receiver", so that we can write `leg.isLongerThan(...)`:
 
-// begin-insert: tags/nullability.7.6:src/main/java/travelator/Legs.kt
+// begin-insert: tags/nullability.11:src/main/java/travelator/Legs.kt
 [source,kotlin]
 ----
 fun longestLegOver(
@@ -557,7 +557,7 @@ Our longest leg is going to be `legs.maxByOrNull(Leg::plannedDuration)`.
 This API helpfully returns `Leg?` (and includes the phrase `orNull`) to remind us that it can't give a result if `legs` is empty.
 Converting our algorithm "find the longest leg, and if it is longer than duration, return it, otherwise null" to code directly, we get:
 
-// begin-insert: tags/nullability.8:src/main/java/travelator/Legs.kt
+// begin-insert: tags/nullability.12:src/main/java/travelator/Legs.kt
 [source,kotlin]
 ----
 fun longestLegOver(
@@ -576,7 +576,7 @@ fun longestLegOver(
 That passes the tests, but those multiple returns are ugly.
 IntelliJ will helpfully offer to lift the `return` out of the `if`.
 
-// begin-insert: tags/nullability.9:src/main/java/travelator/Legs.kt
+// begin-insert: tags/nullability.13:src/main/java/travelator/Legs.kt
 [source,kotlin]
 ----
 fun longestLegOver(
@@ -597,7 +597,7 @@ Now, Kotlin's nullability support allows several ways to refactor this, dependin
 We can use the Elvis operator `?:`, which evaluates to its left-hand side unless that is `null`, in which case it evaluates its right-hand side.
 This lets us return early if we have no longest leg:
 
-// begin-insert: tags/nullability.10:src/main/java/travelator/Legs.kt
+// begin-insert: tags/nullability.14:src/main/java/travelator/Legs.kt
 [source,kotlin]
 ----
 fun longestLegOver(
@@ -617,7 +617,7 @@ fun longestLegOver(
 We could go with a single `?.let` expression.
 The `?.` evaluates to `null` if fed a `null`, otherwise it pipes the longest leg into the `let` block for us:
 
-// begin-insert: tags/nullability.11:src/main/java/travelator/Legs.kt
+// begin-insert: tags/nullability.15:src/main/java/travelator/Legs.kt
 [source,kotlin]
 ----
 fun longestLegOver(
@@ -637,7 +637,7 @@ So inside the `let`, `longestLeg` cannot be `null`.
 That is succinct, and it is a pleasing single expression, but it may be hard to comprehend in a single glance.
 Spelling out the options with a `when` is clearer:
 
-// begin-insert: tags/nullability.13:src/main/java/travelator/Legs.kt
+// begin-insert: tags/nullability.17:src/main/java/travelator/Legs.kt
 [source,kotlin]
 ----
 fun longestLegOver(
@@ -659,7 +659,7 @@ In order to simplify further, we need a trick that Duncan (who is writing this) 
 This is exactly the logic of our previous `let` block.
 So we can write:
 
-// begin-insert: tags/nullability.12:src/main/java/travelator/Legs.kt
+// begin-insert: tags/nullability.16:src/main/java/travelator/Legs.kt
 [source,kotlin]
 ----
 fun longestLegOver(
@@ -678,7 +678,7 @@ Nat thinks it's fine, but we're going to err on the side of explicitness, so the
 Finally, let's convert the `legs` parameter to the receiver in an extension function.
 This allows us to rename the function to something less dubious:
 
-// begin-insert: tags/nullability.14:src/main/java/travelator/Legs.kt
+// begin-insert: tags/nullability.18:src/main/java/travelator/Legs.kt
 [source,kotlin]
 ----
 fun List<Leg>.longestOver(duration: Duration): Leg? {
@@ -759,7 +759,7 @@ Actually, that isn't bad, but compared with the Kotlin version you can see how `
 Because of this, a version using `Optional.filter` is probably preferable, even though it suffers from the same comprehension problems as the Kotlin `takeIf`.
 Which is to say, Duncan can't tell that it works without running the tests, but Nat prefers it.
 
-// begin-insert: tags/nullability.1.5:src/main/java/travelator/Legs.java#foo
+// begin-insert: tags/nullability.2:src/main/java/travelator/Legs.java#foo
 [source,java]
 ----
 public static Optional<Leg> findLongestLegOver(
