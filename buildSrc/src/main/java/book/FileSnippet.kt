@@ -13,6 +13,7 @@ data class FileSnippet(
             "----",
             codeLines().joinToString("\n"),
             "----",
+            "",
             codeFile.toTag(fragment)
         ).filterNotNull().joinToString("\n")
 
