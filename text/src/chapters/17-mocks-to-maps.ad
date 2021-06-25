@@ -11,7 +11,7 @@ In that chapter we saw that our tests used mocks because they had to implement t
 We left the refactoring having replaced dependencies on multi-method interfaces with a dependency on just the two operations that were actually required to perform the task.
 The tests though, still mock the whole interface, and then pass a reference to the required methods to the subject under test (`Recommendations`):
 
-// begin-insert: tags/interfaces-to-funs.7:src/test/java/travelator/recommendations/RecommendationsTests.java#setup
+// begin-insert: interfaces-to-funs.7:src/test/java/travelator/recommendations/RecommendationsTests.java#setup
 [source,java]
 ----
 public class RecommendationsTests {
@@ -27,11 +27,13 @@ public class RecommendationsTests {
     ...
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.7/src/test/java/travelator/recommendations/RecommendationsTests.java#setup">interfaces-to-funs.7:src/test/java/travelator/recommendations/RecommendationsTests.java#setup</a>]
 // end-insert
 
 The tests abstract the mocking behind methods `givenFeaturedDestinationsFor` and `givenADistanceBetween`:
 
-// begin-insert: tags/interfaces-to-funs.7:src/test/java/travelator/recommendations/RecommendationsTests.java#returns_recommendations_for_single_location
+// begin-insert: interfaces-to-funs.7:src/test/java/travelator/recommendations/RecommendationsTests.java#returns_recommendations_for_single_location
 [source,java]
 ----
 @Test
@@ -53,11 +55,13 @@ public void returns_recommendations_for_single_location() {
     );
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.7/src/test/java/travelator/recommendations/RecommendationsTests.java#returns_recommendations_for_single_location">interfaces-to-funs.7:src/test/java/travelator/recommendations/RecommendationsTests.java#returns_recommendations_for_single_location</a>]
 // end-insert
 
 Here is the implementation of `givenADistanceBetween`:
 
-// begin-insert: tags/interfaces-to-funs.7:src/test/java/travelator/recommendations/RecommendationsTests.java#givenADistanceBetween
+// begin-insert: interfaces-to-funs.7:src/test/java/travelator/recommendations/RecommendationsTests.java#givenADistanceBetween
 [source,java]
 ----
 private void givenADistanceBetween(
@@ -72,6 +76,8 @@ private void givenADistanceBetween(
     ).thenReturn(result);
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.7/src/test/java/travelator/recommendations/RecommendationsTests.java#givenADistanceBetween">interfaces-to-funs.7:src/test/java/travelator/recommendations/RecommendationsTests.java#givenADistanceBetween</a>]
 // end-insert
 
 .Mock-Induced Test Damage
@@ -84,7 +90,7 @@ This despite the fact that these circles spawned the technique, and wrote the bo
 The problem seems to be that, as well as implementing interfaces, mock frameworks allow us to specify the expected invocations of their methods, and what should be returned in those cases.
 Often though, expected calls and their results don't make for a human-readable description, as we'll see if we look at the inlined version of the last expectations:
 
-// begin-insert: tags/interfaces-to-funs.1:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt
+// begin-insert: interfaces-to-funs.1:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt
 [source,java]
 ----
 when(featuredDestinations.findCloseTo(paris))
@@ -111,6 +117,8 @@ when(distanceCalculator.distanceInMetersBetween(
     alton, watercressLine.getLocation())
 ).thenReturn(320);
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.1/src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt">interfaces-to-funs.1:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt</a>]
 // end-insert
 
 Defining methods like `givenADistanceBetween` allows us to express the relationship between the mock expectations and our test - they can hide the _how_ to expose the _why_.
@@ -133,7 +141,7 @@ And we'd still have Java.
 
 The automated conversion is quite smooth, although for some reason the converter created lambdas rather than using method references in the `Recommendations` constructor call that we have to replace by hand, leaving the setup as:
 
-// begin-insert: tags/mocks-to-maps.0:src/test/java/travelator/recommendations/RecommendationsTests.kt#setup
+// begin-insert: mocks-to-maps.0:src/test/java/travelator/recommendations/RecommendationsTests.kt#setup
 [source,kotlin]
 ----
 class RecommendationsTests {
@@ -146,13 +154,15 @@ class RecommendationsTests {
     )
     ...
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/mocks-to-maps.0/src/test/java/travelator/recommendations/RecommendationsTests.kt#setup">mocks-to-maps.0:src/test/java/travelator/recommendations/RecommendationsTests.kt#setup</a>]
 // end-insert
 
 We could use Kotlin reified types to avoid those `::class.java` arguments, but we're moving away from mocks, not towards them, so we resist.
 
 `when` is a keyword in Kotlin, but the converter is smart enough to quote it where required:
 
-// begin-insert: tags/mocks-to-maps.0:src/test/java/travelator/recommendations/RecommendationsTests.kt#when
+// begin-insert: mocks-to-maps.0:src/test/java/travelator/recommendations/RecommendationsTests.kt#when
 [source,kotlin]
 ----
 private fun givenFeaturedDestinationsFor(
@@ -163,6 +173,8 @@ private fun givenFeaturedDestinationsFor(
         .thenReturn(result)
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/mocks-to-maps.0/src/test/java/travelator/recommendations/RecommendationsTests.kt#when">mocks-to-maps.0:src/test/java/travelator/recommendations/RecommendationsTests.kt#when</a>]
 // end-insert
 
 To see how to remove the mocking, it helps to view a function type as a mapping between its input parameters (as a tuple) and its result.
@@ -175,18 +187,20 @@ Here, we won't cache, but seed the `Map` with the parameters and result that we 
 
 Taking the `destinationFinder` case first, we'll create a property to hold the `Map` - `featuredDestinations`:
 
-// begin-insert: tags/mocks-to-maps.1:src/test/java/travelator/recommendations/RecommendationsTests.kt#featuredDestinations
+// begin-insert: mocks-to-maps.1:src/test/java/travelator/recommendations/RecommendationsTests.kt#featuredDestinations
 [source,kotlin]
 ----
 private val featuredDestinations =
     mutableMapOf<Location, List<FeaturedDestination>>()
         .withDefault { emptyList() }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/mocks-to-maps.1/src/test/java/travelator/recommendations/RecommendationsTests.kt#featuredDestinations">mocks-to-maps.1:src/test/java/travelator/recommendations/RecommendationsTests.kt#featuredDestinations</a>]
 // end-insert
 
 `givenFeaturedDestinationsFor` can populate the `destinationLookup` `Map` rather than setting expectations on a mock:
 
-// begin-insert: tags/mocks-to-maps.1:src/test/java/travelator/recommendations/RecommendationsTests.kt#givenFeaturedDestinationsFor
+// begin-insert: mocks-to-maps.1:src/test/java/travelator/recommendations/RecommendationsTests.kt#givenFeaturedDestinationsFor
 [source,kotlin]
 ----
 private fun givenFeaturedDestinationsFor(
@@ -196,11 +210,13 @@ private fun givenFeaturedDestinationsFor(
     featuredDestinations[location] = destinations.toList()
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/mocks-to-maps.1/src/test/java/travelator/recommendations/RecommendationsTests.kt#givenFeaturedDestinationsFor">mocks-to-maps.1:src/test/java/travelator/recommendations/RecommendationsTests.kt#givenFeaturedDestinationsFor</a>]
 // end-insert
 
 If we make `Recommendations` read out of the `featuredDestinations` `Map` we have passing tests:
 
-// begin-insert: tags/mocks-to-maps.1:src/test/java/travelator/recommendations/RecommendationsTests.kt#recommendations
+// begin-insert: mocks-to-maps.1:src/test/java/travelator/recommendations/RecommendationsTests.kt#recommendations
 [source,kotlin]
 ----
 private val recommendations =
@@ -209,6 +225,8 @@ private val recommendations =
         distanceCalculator::distanceInMetersBetween
     )
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/mocks-to-maps.1/src/test/java/travelator/recommendations/RecommendationsTests.kt#recommendations">mocks-to-maps.1:src/test/java/travelator/recommendations/RecommendationsTests.kt#recommendations</a>]
 // end-insert
 
 `getValue` is an extension on `Map`.
@@ -216,7 +234,7 @@ It acts like `get`, but respects the defaults set up by the `Map.withDefault` (i
 
 It won't surprise you when we do the same for `distanceInMetersBetween`, removing all our dependency on  Mockito:
 
-// begin-insert: tags/mocks-to-maps.2:src/test/java/travelator/recommendations/RecommendationsTests.kt#setup
+// begin-insert: mocks-to-maps.2:src/test/java/travelator/recommendations/RecommendationsTests.kt#setup
 [source,kotlin]
 ----
 class RecommendationsTests {
@@ -236,9 +254,11 @@ class RecommendationsTests {
     ...
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/mocks-to-maps.2/src/test/java/travelator/recommendations/RecommendationsTests.kt#setup">mocks-to-maps.2:src/test/java/travelator/recommendations/RecommendationsTests.kt#setup</a>]
 // end-insert
 
-// begin-insert: tags/mocks-to-maps.2:src/test/java/travelator/recommendations/RecommendationsTests.kt#givenADistanceFrom
+// begin-insert: mocks-to-maps.2:src/test/java/travelator/recommendations/RecommendationsTests.kt#givenADistanceFrom
 [source,kotlin]
 ----
 private fun givenADistanceFrom(
@@ -250,6 +270,8 @@ private fun givenADistanceFrom(
         distanceInMeters
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/mocks-to-maps.2/src/test/java/travelator/recommendations/RecommendationsTests.kt#givenADistanceFrom">mocks-to-maps.2:src/test/java/travelator/recommendations/RecommendationsTests.kt#givenADistanceFrom</a>]
 // end-insert
 
 It might take a couple of passes to see how that works -- these are the details that mocking frameworks hide for us.
@@ -259,17 +281,19 @@ Having to use a lambda rather than a method reference in the `Recommendations` c
 We can tidy that up with a local `getValue` extension function.
 Did we mention how much we like extension functions?
 
-// begin-insert: tags/mocks-to-maps.3:src/test/java/travelator/recommendations/RecommendationsTests.kt#getValue
+// begin-insert: mocks-to-maps.3:src/test/java/travelator/recommendations/RecommendationsTests.kt#getValue
 [source,kotlin]
 ----
 private fun <K1, K2, V> Map<Pair<K1, K2>, V>.getValue(k1: K1, k2: K2) =
     getValue(k1 to k2)
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/mocks-to-maps.3/src/test/java/travelator/recommendations/RecommendationsTests.kt#getValue">mocks-to-maps.3:src/test/java/travelator/recommendations/RecommendationsTests.kt#getValue</a>]
 // end-insert
 
 This lets us say:
 
-// begin-insert: tags/mocks-to-maps.3:src/test/java/travelator/recommendations/RecommendationsTests.kt#recommendations
+// begin-insert: mocks-to-maps.3:src/test/java/travelator/recommendations/RecommendationsTests.kt#recommendations
 [source,kotlin]
 ----
 private val recommendations =
@@ -278,12 +302,14 @@ private val recommendations =
         distanceInMetersBetween::getValue
     )
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/mocks-to-maps.3/src/test/java/travelator/recommendations/RecommendationsTests.kt#recommendations">mocks-to-maps.3:src/test/java/travelator/recommendations/RecommendationsTests.kt#recommendations</a>]
 // end-insert
 
 Oh, and we can improve the readability of the test methods with some judicious parameter naming and helper methods.
 Previously we had plain function calls:
 
-// begin-insert: tags/mocks-to-maps.3:src/test/java/travelator/recommendations/RecommendationsTests.kt#test2
+// begin-insert: mocks-to-maps.3:src/test/java/travelator/recommendations/RecommendationsTests.kt#test2
 [source,kotlin]
 ----
 @Test
@@ -309,11 +335,13 @@ fun deduplicates_using_smallest_distance() {
     )
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/mocks-to-maps.3/src/test/java/travelator/recommendations/RecommendationsTests.kt#test2">mocks-to-maps.3:src/test/java/travelator/recommendations/RecommendationsTests.kt#test2</a>]
 // end-insert
 
 A little effort yields:
 
-// begin-insert: tags/mocks-to-maps.4:src/test/java/travelator/recommendations/RecommendationsTests.kt#sugar
+// begin-insert: mocks-to-maps.4:src/test/java/travelator/recommendations/RecommendationsTests.kt#sugar
 [source,kotlin]
 ----
 @Test
@@ -335,16 +363,20 @@ fun deduplicates_using_smallest_distance() {
     )
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/mocks-to-maps.4/src/test/java/travelator/recommendations/RecommendationsTests.kt#sugar">mocks-to-maps.4:src/test/java/travelator/recommendations/RecommendationsTests.kt#sugar</a>]
 // end-insert
 
 Sometimes defining a tiny local function like `of` can go a long way to letting our brains just read code rather than spending effort interpreting it:
 
-// begin-insert: tags/mocks-to-maps.4:src/test/java/travelator/recommendations/RecommendationsTests.kt#of
+// begin-insert: mocks-to-maps.4:src/test/java/travelator/recommendations/RecommendationsTests.kt#of
 [source,kotlin]
 ----
 private fun of(vararg destination: FeaturedDestination)
     = destination.toList()
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/mocks-to-maps.4/src/test/java/travelator/recommendations/RecommendationsTests.kt#of">mocks-to-maps.4:src/test/java/travelator/recommendations/RecommendationsTests.kt#of</a>]
 // end-insert
 
 [TIP]
@@ -372,6 +404,7 @@ val testCollaborator: EmailSystem = object: EmailSystem by fake() {
     }
 }
 ----
+
 // end-insert
 ====
 
@@ -398,7 +431,7 @@ In tests, we can reverse this process.
 We can write a function that creates the object from its dependencies, once for each invocation.
 If we call the populated object the _subject_ of the tests, we can create it from the test state like this:
 
-// begin-insert: tags/mocks-to-maps.5:src/test/java/travelator/recommendations/RecommendationsTests.kt#subjectFor
+// begin-insert: mocks-to-maps.5:src/test/java/travelator/recommendations/RecommendationsTests.kt#subjectFor
 [source,kotlin]
 ----
 private fun subjectFor(
@@ -410,13 +443,15 @@ private fun subjectFor(
     return Recommendations(destinationsLookup::getValue, distanceLookup::getValue)
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/mocks-to-maps.5/src/test/java/travelator/recommendations/RecommendationsTests.kt#subjectFor">mocks-to-maps.5:src/test/java/travelator/recommendations/RecommendationsTests.kt#subjectFor</a>]
 // end-insert
 
 Here we create a new instance of `Recommendations` every call, so that it can capture immutable maps representing the state of the system.
 
 Now we can write a `resultFor` function that uses `subjectFor`:
 
-// begin-insert: tags/mocks-to-maps.5:src/test/java/travelator/recommendations/RecommendationsTests.kt#resultFor
+// begin-insert: mocks-to-maps.5:src/test/java/travelator/recommendations/RecommendationsTests.kt#resultFor
 [source,kotlin]
 ----
 private fun resultFor(
@@ -428,6 +463,8 @@ private fun resultFor(
     return subject.recommendationsFor(locations)
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/mocks-to-maps.5/src/test/java/travelator/recommendations/RecommendationsTests.kt#resultFor">mocks-to-maps.5:src/test/java/travelator/recommendations/RecommendationsTests.kt#resultFor</a>]
 // end-insert
 
 Outside of the scope of the `resultFor` function there is no time-sensitivity, so it is effectively a calculation.
@@ -437,7 +474,7 @@ Each test can just specify the input parameters and check the result is as expec
 
 Every test can then be of the form:
 
-// begin-insert: tags/mocks-to-maps.5:src/test/java/travelator/recommendations/RecommendationsTests.kt#check
+// begin-insert: mocks-to-maps.5:src/test/java/travelator/recommendations/RecommendationsTests.kt#check
 [source,kotlin]
 ----
 private fun check(
@@ -452,11 +489,13 @@ private fun check(
     )
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/mocks-to-maps.5/src/test/java/travelator/recommendations/RecommendationsTests.kt#check">mocks-to-maps.5:src/test/java/travelator/recommendations/RecommendationsTests.kt#check</a>]
 // end-insert
 
 This gives a pleasing simplicity to the previously confusing tests:
 
-// begin-insert: tags/mocks-to-maps.5:src/test/java/travelator/recommendations/RecommendationsTests.kt#excerpt
+// begin-insert: mocks-to-maps.5:src/test/java/travelator/recommendations/RecommendationsTests.kt#excerpt
 [source,kotlin]
 ----
 class RecommendationsTests {
@@ -505,11 +544,13 @@ class RecommendationsTests {
     ...
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/mocks-to-maps.5/src/test/java/travelator/recommendations/RecommendationsTests.kt#excerpt">mocks-to-maps.5:src/test/java/travelator/recommendations/RecommendationsTests.kt#excerpt</a>]
 // end-insert
 
 It's instructive to compare this with an original test:
 
-// begin-insert: tags/interfaces-to-funs.0:src/test/java/travelator/recommendations/RecommendationsTests.java#test1
+// begin-insert: interfaces-to-funs.0:src/test/java/travelator/recommendations/RecommendationsTests.java#test1
 [source,java]
 ----
 @Test
@@ -541,6 +582,8 @@ public void returns_recommendations_for_multi_location() {
     );
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.0/src/test/java/travelator/recommendations/RecommendationsTests.java#test1">interfaces-to-funs.0:src/test/java/travelator/recommendations/RecommendationsTests.java#test1</a>]
 // end-insert
 
 Admittedly this is Java, and broken up a bit by the `givenADistanceBetween` calls, but you can see how this refactoring has migrated our tests from woolly functions that may or may not have a common structure, to a clear testing of inputs against outputs.

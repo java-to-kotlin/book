@@ -65,6 +65,7 @@ Here's Kotlin code that calculates the sum of a list of numbers by folding the l
 ----
 val sum = numbers.fold(0, Int::plus)
 ----
+
 // end-insert
 
 Let's compare that to what was required in Java 1.0 to do the same.
@@ -81,6 +82,7 @@ public interface Function2 {
     Object apply(Object arg1, Object arg2);
 }
 ----
+
 // end-insert
 
 Then we have to write the `fold` higher-order function, hiding the iteration and mutation required by the `Vector` class.
@@ -101,6 +103,7 @@ public class Vectors {
     ... and other operations on vectors
 }
 ----
+
 // end-insert
 
 We have to define a separate class for every function we want to pass to our `fold` function.
@@ -118,6 +121,7 @@ public class AddIntegers implements Function2 {
     }
 }
 ----
+
 // end-insert
 
 And, finally, we can use all that to calculate the sum:
@@ -128,6 +132,7 @@ And, finally, we can use all that to calculate the sum:
 int sum = ((Integer) Vectors.fold(counts, new Integer(0), new AddIntegers()))
     .intValue();
 ----
+
 // end-insert
 
 That's a lot of effort for what is a single expression in a mainstream language in 2020.
@@ -145,6 +150,7 @@ for (int i = 0; i < counts.size(); i++) {
     sum += ((Integer)counts.get(i)).intValue();
 }
 ----
+
 // end-insert
 
 In 1995 there is just not enough benefit to justify the effort of writing Java in a functional style.
@@ -170,6 +176,7 @@ int sum = ((Integer) Lists.fold(counts, new Integer(0),
         }
     })).intValue();
 ----
+
 // end-insert
 
 Functional idioms still go against the grain of Java 2.
@@ -183,6 +190,7 @@ public interface Function2<A, B, R> {
     R apply(A arg1, B arg2);
 }
 ----
+
 // end-insert
 
 // begin-insert: src/test/java/grain/java5/TheGrainOfJavaTest.java#reduce
@@ -196,6 +204,7 @@ int sum = Lists.fold(counts, 0,
         }
     });
 ----
+
 // end-insert
 
 Java developers often use https://github.com/google/guava[Google's Guava library] to add some common higher-order functions over collections (although `fold` is not among them), but even the authors of Guava recommend writing imperative code by default, because it has better performance and is usually easier to read.
@@ -211,6 +220,7 @@ The Streams API fully embraces functional idioms, finally allowing:
 ----
 int sum = counts.stream().reduce(0, Integer::sum);
 ----
+
 // end-insert
 
 However, it isn't entirely plain sailing.
@@ -337,6 +347,7 @@ public class ExampleServletContextListener
     ...
 }
 ----
+
 // end-insert
 
 Servlets initialised themselves by looking for the objects they needed in the context, and casting them to the expected type.
@@ -362,6 +373,7 @@ public class ExampleServlet extends HttpServlet {
     ...
 }
 ----
+
 // end-insert
 
 That's a lot of effort to achieve what you could do with a constructor call if the Servlet API didn't prevent you from doing so.

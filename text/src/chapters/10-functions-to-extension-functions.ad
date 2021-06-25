@@ -38,6 +38,7 @@ data class Customer(
     ...
 }
 ----
+
 // end-insert
 
 This is a class, so straight away we know that we can send messages to ask for the `id`, `givenName` and `familyName`.
@@ -55,6 +56,7 @@ data class Customer(
     val fullName get() = "$givenName $familyName"
 }
 ----
+
 // end-insert
 
 Often we don't even get as far as looking at the definition.
@@ -86,6 +88,7 @@ data class Customer(
     fun nameForMarketing() = "${familyName.toUpperCase()}, $givenName}"
 }
 ----
+
 // end-insert
 
 If we don't own the code, then we can't add a method, and so we have to fall back on a function.
@@ -98,6 +101,7 @@ In Kotlin we can make them top-level functions (see <<static-methods-to-top-leve
 fun nameForMarketing(customer: Customer) =
     "${customer.familyName.toUpperCase()}, $customer.givenName}"
 ----
+
 // end-insert
 
 What of the functional solution?
@@ -127,6 +131,7 @@ So, we can define an extension function:
 ----
 fun Customer.nameForMarketing() = "${familyName.toUpperCase()}, $givenName}"
 ----
+
 // end-insert
 
 Then we can call it as if it is a method:
@@ -136,6 +141,7 @@ Then we can call it as if it is a method:
 ----
 val s = customer.nameForMarketing()
 ----
+
 // end-insert
 
 IntelliJ will auto-suggest extension functions along with the actual methods, even if they need to be imported to bring them into scope.
@@ -147,6 +153,7 @@ Java isn't quite so helpful - it just sees the extension function as a static fu
 ----
 var s = MarketingStuffKt.nameForMarketing(customer);
 ----
+
 // end-insert
 
 `MarketingStuffKt` is the name of the class containing our top-level declarations as static methods - see <<static-methods-to-top-level-functions>>.
@@ -158,6 +165,7 @@ Interestingly, we can't call the function in the same way from Kotlin:
 ----
 nameForMarketing(customer) // doesn't compile
 ----
+
 // end-insert
 
 This fails to compile, with the error:
@@ -187,6 +195,7 @@ val methodAsFunctionReference: (Customer) -> String =
 val extensionAsFunctionReference: (Customer) -> String =
     extensionFunctionReference
 ----
+
 // end-insert
 
 We can invoke these as expected:
@@ -200,6 +209,7 @@ customer.extensionFunctionReference()
 methodAsFunctionReference(customer)
 extensionAsFunctionReference(customer)
 ----
+
 // end-insert
 
 We can also use the _with-receiver_ references as if they took the receiver as the first argument:
@@ -210,6 +220,7 @@ We can also use the _with-receiver_ references as if they took the receiver as t
 methodReference(customer)
 extensionFunctionReference(customer)
 ----
+
 // end-insert
 
 We cannot, however, call the plain references as if they had a receiver.
@@ -221,6 +232,7 @@ Both of these lines fail to compile, with an `Unresolved reference` error:
 customer.methodAsFunctionReference()
 customer.extensionAsFunctionReference()
 ----
+
 // end-insert
 
 
@@ -238,6 +250,7 @@ Extension properties can't store any data because they don't really add fields t
 ----
 val Customer.nameForMarketing get() = "${familyName.toUpperCase()}, $givenName}"
 ----
+
 // end-insert
 
 In fact, it probably _should_ be a property, as it is a simple calculation ( <<calculations>>) and so always returns the same result.
@@ -274,6 +287,7 @@ static Customer toCustomer(JsonNode node) {
         ...
 }
 ----
+
 // end-insert
 
 Or with Nat and Duncan's preferred naming convention:
@@ -285,6 +299,7 @@ static Customer customerFrom(JsonNode node) {
         ...
 }
 ----
+
 // end-insert
 
 .Naming Conversions
@@ -347,6 +362,7 @@ Calling the conversions individually isn't too horrible:
 var customer = customerFrom(node);
 var marketingName = nameForMarketing(customer);
 ----
+
 // end-insert
 
 If we need to combine functions though, things start to go awry:
@@ -356,6 +372,7 @@ If we need to combine functions though, things start to go awry:
 ----
 var marketingLength = nameForMarketing(customerFrom(node)).length();
 ----
+
 // end-insert
 
 We're all developers here, and used to reading function invocations.
@@ -370,6 +387,7 @@ fun JsonNode.toCustomer(): Customer = ...
 
 val marketingLength = jsonNode.toCustomer().nameForMarketing().length
 ----
+
 // end-insert
 
 Ahh ... that's much more readable.
@@ -389,6 +407,7 @@ val greeting: String? = when (customer) {
     else -> greetingForCustomer(customer)
 }
 ----
+
 // end-insert
 
 Kotlin's _scoping functions_, such as `let`, `apply` and `also`, can help here.
@@ -400,6 +419,7 @@ In particular, `let` converts its receiver into a lambda parameter:
 val customer: Customer? = loggedInCustomer()
 val greeting: String? = customer?.let { greetingForCustomer(it) }
 ----
+
 // end-insert
 
 Here the `?.` ensures that `let` is only called when the customer is not `null`, meaning that the lambda parameter, `it`, is never null, and can be passed to the function within the lambda body.
@@ -420,6 +440,7 @@ val reminder: String? = customer?.let {
     }
 }
 ----
+
 // end-insert
 
 Even when we can flatten nested null checks into a pipeline of calls to `let`, all this additional mechanism adds syntactic noise and obscures the _intent_ of the code:
@@ -433,6 +454,7 @@ val reminder: String? = customer
     ?.let { durationToUserFriendlyText(it) }
     ?.let { it + " until your next trip!" }
 ----
+
 // end-insert
 
 If we convert the problematic parameters to extension function receivers, we can chain calls directly, bringing the application logic to the fore:
@@ -446,6 +468,7 @@ val reminder: String? = customer
     ?.toUserFriendlyText()
     ?.plus(" until your next trip!")
 ----
+
 // end-insert
 
 When Nat and Duncan first adopted Kotlin, they soon found that extensions and nullability form a virtuous circle.
@@ -478,6 +501,7 @@ fun Trip?.reminderAt(currentTime: ZonedDateTime): String? =
         ?.toUserFriendlyText()
         ?.plus(" until your next trip!")
 ----
+
 // end-insert
 
 Note that we have to use the safe call operator to dereference `this` inside the extension.
@@ -491,6 +515,7 @@ We can call this function on a nullable `Trip` without the noise of the `?.`:
 ----
 val reminder: String? = customer.nextTrip().reminderAt(currentTime)
 ----
+
 // end-insert
 
 On the other hand, we've made the flow of nullability in the calling function harder to understand, because, although type-checked, it is not visible in the code of the pipelines that calls the extension.
@@ -504,6 +529,7 @@ In that case we will find ourselves writing code like:
 val trip: Trip = ...
 val reminder: String = trip.reminderAt(currentTime) ?: error("Should never happen")
 ----
+
 // end-insert
 
 This a bug waiting to happen when code around it changes, because we've made it impossible for the type checker to detect an incompatible change.
@@ -524,6 +550,7 @@ fun Trip?.reminderAt(currentTime: ZonedDateTime): String =
         ?.plus(" until your next trip!")
         ?: "Start planning your next trip.  The world's your oyster!"
 ----
+
 // end-insert
 
 Similarly, here are two extension functions that we probably should have introduced in <<optional-to-nullable>>.
@@ -535,6 +562,7 @@ The first is defined on any nullable type, but always returns a non-null result:
 fun <T : Any> T?.asOptional(): Optional<T> = Optional.ofNullable(this)
 fun <T : Any> Optional<T>.asNullable(): T? = this.orElse(null)
 ----
+
 // end-insert
 
 This neatly brings up the subject of generic extensions.
@@ -551,6 +579,7 @@ It is defined as an extension on any type, including `null` references:
 ----
 fun <T> T.printed(): T = this.also(::println)
 ----
+
 // end-insert
 
 We can use this when we want to debug the value of an expression in place.
@@ -561,6 +590,7 @@ For example, remember this:
 ----
 val marketingLength = jsonNode.toCustomer().nameForMarketing().length
 ----
+
 // end-insert
 
 If we need to see the value of the customer for debugging we would normally need to pull out a variable:
@@ -572,6 +602,7 @@ val customer = jsonNode.toCustomer()
 println(customer)
 val marketingLength = customer.nameForMarketing().length
 ----
+
 // end-insert
 
 With `printed` we have a function that prints the value of the receiver and returns it unchanged, so that we can write:
@@ -581,6 +612,7 @@ With `printed` we have a function that prints the value of the receiver and retu
 ----
 val marketingLength = jsonNode.toCustomer().printed().nameForMarketing().length
 ----
+
 // end-insert
 
 which is much less disruption, and easy to search for before we check in.
@@ -606,6 +638,7 @@ We can also define extension functions for specialised generic types, for exampl
 fun Iterable<Customer>.familyNames(): Set<String> =
     this.map(Customer::familyName).toSet()
 ----
+
 // end-insert
 
 This extension function is applicable to any `Collection<Customer>`, but not to collections of other types.
@@ -629,6 +662,7 @@ class JsonWriter(
     fun Customer.toJson(): JsonNode = objectMapper.valueToTree(this)
 }
 ----
+
 // end-insert
 
 Here `Customer.toJson` has access to two values of `this`.
@@ -641,6 +675,7 @@ In longhand, the function is:
 fun Customer.toJson(): JsonNode =
     this@JsonWriter.objectMapper.valueToTree(this@toJson)
 ----
+
 // end-insert
 
 This isn't a technique that we should use too often (it can be hard to interpret which receiver applies without IDE assistance), but it can simplify code by allowing the simple left-to-right reading of extension functions while hiding details that would complicate things.
@@ -657,7 +692,7 @@ They're constantly tweaking the algorithm, so they don't want to us to automate 
 Instead, they export a tab-separated file of customer data, score and spend, and we produce a summary report from that file.
 Here are our tests:
 
-// begin-insert: tags/extensions.0:src/test/java/travelator/marketing/HighValueCustomersReportTests.java
+// begin-insert: extensions.0:src/test/java/travelator/marketing/HighValueCustomersReportTests.java
 [source,java]
 ----
 class HighValueCustomersReportTests {
@@ -713,13 +748,15 @@ class HighValueCustomersReportTests {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/extensions.0/src/test/java/travelator/marketing/HighValueCustomersReportTests.java">extensions.0:src/test/java/travelator/marketing/HighValueCustomersReportTests.java</a>]
 // end-insert
 
 You can see that we haven't gone to town on these, as marketing do have habit of changing their minds, but in essence the report needs to list the customers who have a score of ten or more, sorted by spend, with a final total line.
 
 Here is the code:
 
-// begin-insert: tags/extensions.0:src/main/java/travelator/marketing/HighValueCustomersReport.java
+// begin-insert: extensions.0:src/main/java/travelator/marketing/HighValueCustomersReport.java
 [source,java]
 ----
 public class HighValueCustomersReport {
@@ -773,6 +810,8 @@ public class HighValueCustomersReport {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/extensions.0/src/main/java/travelator/marketing/HighValueCustomersReport.java">extensions.0:src/main/java/travelator/marketing/HighValueCustomersReport.java</a>]
 // end-insert
 
 You can see that this is already quite a functional (as opposed to object-oriented) expression of the solution.
@@ -780,7 +819,7 @@ This will make it easy to convert to top-level functions, and top-level function
 
 But first, here is `CustomerData`:
 
-// begin-insert: tags/extensions.0:src/main/java/travelator/marketing/CustomerData.java#foo
+// begin-insert: extensions.0:src/main/java/travelator/marketing/CustomerData.java#foo
 [source,java]
 ----
 public class CustomerData {
@@ -807,6 +846,8 @@ public class CustomerData {
     ... and equals and hashcode
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/extensions.0/src/main/java/travelator/marketing/CustomerData.java#foo">extensions.0:src/main/java/travelator/marketing/CustomerData.java#foo</a>]
 // end-insert
 
 This isn't trying to represent everything about a customer, just the data we care about for this report, which is why whoever wrote it just used fields.
@@ -817,7 +858,7 @@ That `double` for spend looks suspicious too, but it hasn't caused us any proble
 Normally that would be a really simple job because of the excellent interop, but it turns out that (at the time of writing) the converter cannot believe that anyone would stoop to raw field access. So it doesn't update Java that accesses, for example `customerData.score`, to call `customerData.getScore()` (the Kotlin property), resulting in a slew of compile failures.
 Rather than fixing those, we revert, and use the "Encapsulate Fields" refactor to convert all the fields and field accesses in `Customer` to getters.
 
-// begin-insert: tags/extensions.1:src/main/java/travelator/marketing/CustomerData.java#foo
+// begin-insert: extensions.1:src/main/java/travelator/marketing/CustomerData.java#foo
 [source,java]
 ----
 public class CustomerData {
@@ -839,11 +880,13 @@ public class CustomerData {
     ...
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/extensions.1/src/main/java/travelator/marketing/CustomerData.java#foo">extensions.1:src/main/java/travelator/marketing/CustomerData.java#foo</a>]
 // end-insert
 
 The refactoring has also updated the client code to call the getters:
 
-// begin-insert: tags/extensions.1:src/main/java/travelator/marketing/HighValueCustomersReport.java#foo
+// begin-insert: extensions.1:src/main/java/travelator/marketing/HighValueCustomersReport.java#foo
 [source,java]
 ----
 private static String lineFor(CustomerData customer) {
@@ -851,12 +894,14 @@ private static String lineFor(CustomerData customer) {
         formatMoney(customer.getSpend());
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/extensions.1/src/main/java/travelator/marketing/HighValueCustomersReport.java#foo">extensions.1:src/main/java/travelator/marketing/HighValueCustomersReport.java#foo</a>]
 // end-insert
 
 The getters allow us to convert `CustomerData` to a Kotlin data class without breaking the Java.
 "Convert Java file to Kotlin File", followed by adding the `data` modifier and deleting the `equals` and `hashCode` overrides gives us:
 
-// begin-insert: tags/extensions.2:src/main/java/travelator/marketing/CustomerData.kt
+// begin-insert: extensions.2:src/main/java/travelator/marketing/CustomerData.kt
 [source,kotlin]
 ----
 data class CustomerData(
@@ -867,12 +912,14 @@ data class CustomerData(
     val spend: Double
 )
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/extensions.2/src/main/java/travelator/marketing/CustomerData.kt">extensions.2:src/main/java/travelator/marketing/CustomerData.kt</a>]
 // end-insert
 
 Now we can go ahead and convert `HighValueCustomerReport` to Kotlin too -- it's entirely self-contained.
 That doesn't go brilliantly, because `customerDataFrom` doesn't compile after the conversion:
 
-// begin-insert: tags/extensions.3:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFrom
+// begin-insert: extensions.3:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFrom
 [source,kotlin]
 ----
 object HighValueCustomersReport {
@@ -891,6 +938,8 @@ object HighValueCustomersReport {
     ...
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/extensions.3/src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFrom">extensions.3:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFrom</a>]
 // end-insert
 
 <1> `The integer literal does not conform to the expected type Double`.
@@ -900,7 +949,7 @@ The converter hasn't been smart enough to know that Kotlin doesn't coerce the in
 Let's help IntelliJ out by clicking on the error and Alt-Entering to fix it, in the hope that it will return the favour when the machines rule the world.
 After a reformat, this gives us:
 
-// begin-insert: tags/extensions.4:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFrom
+// begin-insert: extensions.4:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFrom
 [source,kotlin]
 ----
 object HighValueCustomersReport {
@@ -920,13 +969,15 @@ object HighValueCustomersReport {
     ...
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/extensions.4/src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFrom">extensions.4:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFrom</a>]
 // end-insert
 
 As we discussed in <<static-methods-to-top-level-functions>>, the conversion has placed the functions into an `object HighValueCustomersReport`, so that Java code can still find them.
 If we try to convert them to top level functions using the techniques in that chapter, we find that dependencies between the methods mean that the code doesn't compile at times.
 We can solve the problem either by moving the private methods first, or by just ignoring the compiler until the `HighValueCustomersReport` is emptied and removed.
 
-// begin-insert: tags/extensions.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#all
+// begin-insert: extensions.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#all
 [source,kotlin]
 ----
 package travelator.marketing
@@ -980,6 +1031,8 @@ private fun marketingNameFor(customer: CustomerData): String {
     return customer.familyName.toUpperCase() + ", " + customer.givenName
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/extensions.5/src/main/java/travelator/marketing/HighValueCustomersReport.kt#all">extensions.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#all</a>]
 // end-insert
 
 OK, it's time to look for places where extension functions can improve the code.
@@ -987,7 +1040,7 @@ At the end is the `marketingNameFor` that we saw (a slightly different version o
 If we Alt-Enter on the `customer` parameter IntelliJ will offer to "Convert parameter to receiver".
 This gives:
 
-// begin-insert: tags/extensions.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#marketingNameFor
+// begin-insert: extensions.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#marketingNameFor
 [source,kotlin]
 ----
 private fun lineFor(customer: CustomerData): String {
@@ -1000,6 +1053,8 @@ private fun CustomerData.marketingNameFor(): String {
     return familyName.toUpperCase() + ", " + givenName
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/extensions.6/src/main/java/travelator/marketing/HighValueCustomersReport.kt#marketingNameFor">extensions.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#marketingNameFor</a>]
 // end-insert
 
 That `For` in `marketingNameFor` is confusing now we've moved the parameter to be the receiver, because the `For` doesn't have a subject.
@@ -1007,7 +1062,7 @@ Let's "Convert function to property" named `marketingName` (<<methods-to-propert
 Oh, and "Convert concatenation to template" on both strings!
 Phew, that flurry of Alt-Entering gives:
 
-// begin-insert: tags/extensions.7:src/main/java/travelator/marketing/HighValueCustomersReport.kt#marketingNameFor
+// begin-insert: extensions.7:src/main/java/travelator/marketing/HighValueCustomersReport.kt#marketingNameFor
 [source,kotlin]
 ----
 private fun lineFor(customer: CustomerData): String =
@@ -1020,11 +1075,13 @@ private fun formatMoney(money: Double): String {
 private val CustomerData.marketingName: String
     get() = "${familyName.toUpperCase()}, $givenName"
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/extensions.7/src/main/java/travelator/marketing/HighValueCustomersReport.kt#marketingNameFor">extensions.7:src/main/java/travelator/marketing/HighValueCustomersReport.kt#marketingNameFor</a>]
 // end-insert
 
 Now `formatMoney` is letting us down, so again we can "Convert parameter to receiver", rename to `toMoneyString`, and "Convert to expression body":
 
-// begin-insert: tags/extensions.8:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toMoneyString
+// begin-insert: extensions.8:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toMoneyString
 [source,kotlin]
 ----
 private fun lineFor(customer: CustomerData): String =
@@ -1032,29 +1089,35 @@ private fun lineFor(customer: CustomerData): String =
 
 private fun Double.toMoneyString() = String.format("%#.2f", this)
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/extensions.8/src/main/java/travelator/marketing/HighValueCustomersReport.kt#toMoneyString">extensions.8:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toMoneyString</a>]
 // end-insert
 
 The `String.format` rankles a bit.
 Kotlin would allow us to write `"%#.2f".format(this)`, but we prefer swapping the parameter and receiver to give:
 
-// begin-insert: tags/extensions.9:src/main/java/travelator/marketing/HighValueCustomersReport.kt#formattedAs
+// begin-insert: extensions.9:src/main/java/travelator/marketing/HighValueCustomersReport.kt#formattedAs
 [source,kotlin]
 ----
 private fun Double.toMoneyString() = this.formattedAs("%#.2f")
 
 private fun Double.formattedAs(format: String) = String.format(format, this)
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/extensions.9/src/main/java/travelator/marketing/HighValueCustomersReport.kt#formattedAs">extensions.9:src/main/java/travelator/marketing/HighValueCustomersReport.kt#formattedAs</a>]
 // end-insert
 
 `Double.formattedAs` is the first extension function we've written that had a parameter as well as its receiver.
 That's because the others have been very specific conversions, but this one is more general.
 While we're thinking general, `formattedAs` can equally well apply to any type, including `null`, so we can upgrade it to:
 
-// begin-insert: tags/extensions.10:src/main/java/travelator/marketing/HighValueCustomersReport.kt#formattedAs
+// begin-insert: extensions.10:src/main/java/travelator/marketing/HighValueCustomersReport.kt#formattedAs
 [source,kotlin]
 ----
 private fun Any?.formattedAs(format: String) = String.format(format, this)
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/extensions.10/src/main/java/travelator/marketing/HighValueCustomersReport.kt#formattedAs">extensions.10:src/main/java/travelator/marketing/HighValueCustomersReport.kt#formattedAs</a>]
 // end-insert
 
 It now feels like a good candidate for moving into our library of generally-useful Kotlin functions.
@@ -1062,7 +1125,7 @@ It now feels like a good candidate for moving into our library of generally-usef
 Next `customerDataFrom` is in our sights.
 It is currently:
 
-// begin-insert: tags/extensions.11:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor
+// begin-insert: extensions.11:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor
 [source,kotlin]
 ----
 fun customerDataFrom(line: String): CustomerData {
@@ -1077,6 +1140,8 @@ fun customerDataFrom(line: String): CustomerData {
     )
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/extensions.11/src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor">extensions.11:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor</a>]
 // end-insert
 
 Before we go on, let's observe that `CharSequence.split()`, `String.toRegex()`, `Collection<T>.toTypedArray()`, `String.toDouble()` and `String.toInt()` are all extension functions provided by the Kotlin standard library.
@@ -1085,7 +1150,7 @@ There's a lot we can tidy up before we address the signature of `customerDataFro
 Kotlin has a `CharSequence.split(delimiters)` that we can use in place of the regex.
 Then we can inline `spend`, followed by Alt-Enter and "Add names to call arguments" to help make sense of the constructor call:
 
-// begin-insert: tags/extensions.12:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor
+// begin-insert: extensions.12:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor
 [source,kotlin]
 ----
 fun customerDataFrom(line: String): CustomerData {
@@ -1099,12 +1164,14 @@ fun customerDataFrom(line: String): CustomerData {
     )
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/extensions.12/src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor">extensions.12:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor</a>]
 // end-insert
 
 <<multi-to-single-expression-functions>> argues in favour of single-expression functions.
 This certainly doesn't _need_ to be a single-expression, but let's practice anyway:
 
-// begin-insert: tags/extensions.13:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor
+// begin-insert: extensions.13:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor
 [source,kotlin]
 ----
 fun customerDataFrom(line: String): CustomerData =
@@ -1118,12 +1185,14 @@ fun customerDataFrom(line: String): CustomerData =
         )
     }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/extensions.13/src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor">extensions.13:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor</a>]
 // end-insert
 
 At last, we can get around to converting to an extension function.
 Again we change the name (to `toCustomerData`) to make sense at the call-site:
 
-// begin-insert: tags/extensions.14:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor
+// begin-insert: extensions.14:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor
 [source,kotlin]
 ----
 fun String.toCustomerData(): CustomerData =
@@ -1137,11 +1206,13 @@ fun String.toCustomerData(): CustomerData =
         )
     }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/extensions.14/src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor">extensions.14:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor</a>]
 // end-insert
 
 Note that the Java in our tests can still call this as a static method:
 
-// begin-insert: tags/extensions.14:src/test/java/travelator/marketing/HighValueCustomersReportTests.java#customerDataFor
+// begin-insert: extensions.14:src/test/java/travelator/marketing/HighValueCustomersReportTests.java#customerDataFor
 [source,java]
 ----
 @Test
@@ -1152,11 +1223,13 @@ public void emptySpendIs0() {
     );
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/extensions.14/src/test/java/travelator/marketing/HighValueCustomersReportTests.java#customerDataFor">extensions.14:src/test/java/travelator/marketing/HighValueCustomersReportTests.java#customerDataFor</a>]
 // end-insert
 
 Now let's address `summaryFor`:
 
-// begin-insert: tags/extensions.15:src/main/java/travelator/marketing/HighValueCustomersReport.kt#summaryFor
+// begin-insert: extensions.15:src/main/java/travelator/marketing/HighValueCustomersReport.kt#summaryFor
 [source,kotlin]
 ----
 private fun summaryFor(valuableCustomers: List<CustomerData>): String {
@@ -1166,12 +1239,14 @@ private fun summaryFor(valuableCustomers: List<CustomerData>): String {
     return "\tTOTAL\t" + total.toMoneyString()
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/extensions.15/src/main/java/travelator/marketing/HighValueCustomersReport.kt#summaryFor">extensions.15:src/main/java/travelator/marketing/HighValueCustomersReport.kt#summaryFor</a>]
 // end-insert
 
 That destructuring is odd, but we can get rid of it by hand-converting the stream to Kotlin - this isn't a thing that IntelliJ can do when we wrote this, but we give guidance in <<streams-to-sequences>>.
 We'll remove the string concatenation while we're there:
 
-// begin-insert: tags/extensions.16:src/main/java/travelator/marketing/HighValueCustomersReport.kt#summaryFor
+// begin-insert: extensions.16:src/main/java/travelator/marketing/HighValueCustomersReport.kt#summaryFor
 [source,kotlin]
 ----
 private fun summaryFor(valuableCustomers: List<CustomerData>): String {
@@ -1179,11 +1254,13 @@ private fun summaryFor(valuableCustomers: List<CustomerData>): String {
     return "\tTOTAL\t${total.toMoneyString()}"
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/extensions.16/src/main/java/travelator/marketing/HighValueCustomersReport.kt#summaryFor">extensions.16:src/main/java/travelator/marketing/HighValueCustomersReport.kt#summaryFor</a>]
 // end-insert
 
 Now the familiar combination of converting to an appropriately-named single-expression extension function:
 
-// begin-insert: tags/extensions.17:src/main/java/travelator/marketing/HighValueCustomersReport.kt#summaryFor
+// begin-insert: extensions.17:src/main/java/travelator/marketing/HighValueCustomersReport.kt#summaryFor
 [source,kotlin]
 ----
 private fun List<CustomerData>.summarised(): String =
@@ -1191,11 +1268,13 @@ private fun List<CustomerData>.summarised(): String =
         "\tTOTAL\t${total.toMoneyString()}"
     }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/extensions.17/src/main/java/travelator/marketing/HighValueCustomersReport.kt#summaryFor">extensions.17:src/main/java/travelator/marketing/HighValueCustomersReport.kt#summaryFor</a>]
 // end-insert
 
 At this stage only `generate` is left unimproved:
 
-// begin-insert: tags/extensions.18:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: extensions.18:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 @Throws(IOException::class)
@@ -1213,11 +1292,13 @@ fun generate(reader: Reader?, writer: Writer) {
     writer.append(valuableCustomers.summarised())
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/extensions.18/src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate">extensions.18:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate</a>]
 // end-insert
 
 Again, we currently have to convert Java streams to Kotlin list operations by hand:
 
-// begin-insert: tags/extensions.19:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: extensions.19:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 @Throws(IOException::class)
@@ -1234,13 +1315,15 @@ fun generate(reader: Reader, writer: Writer) {
     writer.append(valuableCustomers.summarised())
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/extensions.19/src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate">extensions.19:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate</a>]
 // end-insert
 
 Note here that every link in that transformation chain is an extension function not a method, which is why it reads so easily.
 
 `Appendable.appendLine()` is another extension function that allows us to simplify the output stage:
 
-// begin-insert: tags/extensions.20:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: extensions.20:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 @Throws(IOException::class)
@@ -1257,12 +1340,14 @@ fun generate(reader: Reader, writer: Writer) {
     writer.append(valuableCustomers.summarised())
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/extensions.20/src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate">extensions.20:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate</a>]
 // end-insert
 
 It feels like we should be able to remove that `// header` comment by extracting a function.
 <<extracting-part-of-a-pipeline>> details how to extract a function from a chain, but look at what happens when we try that technique but don't convert `withoutHeader` to an extension function:
 
-// begin-insert: tags/extensions.21:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: extensions.21:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 @Throws(IOException::class)
@@ -1280,12 +1365,14 @@ fun generate(reader: Reader, writer: Writer) {
 
 private fun withoutHeader(list: List<String>) = list.drop(1)
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/extensions.21/src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate">extensions.21:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate</a>]
 // end-insert
 
 We've lost the nice pipeline flow from left to right, top to bottom - `withoutHeader` comes before the `readLines` in the text but after it in execution order.
 Alt-Enter on the `list` parameter in `withoutHeader` and "Convert Parameter to Receiver" restores the flow:
 
-// begin-insert: tags/extensions.22:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: extensions.22:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 @Throws(IOException::class)
@@ -1304,11 +1391,13 @@ fun generate(reader: Reader, writer: Writer) {
 
 private fun List<String>.withoutHeader() = drop(1)
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/extensions.22/src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate">extensions.22:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate</a>]
 // end-insert
 
 We can make this even more expressive with two more extensions, `List<String>.toValuableCustomers()` and `CustomerData.outputLine`.
 
-// begin-insert: tags/extensions.23:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: extensions.23:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 @Throws(IOException::class)
@@ -1332,13 +1421,15 @@ private fun List<String>.toValuableCustomers() = withoutHeader()
 private val CustomerData.outputLine: String
     get() = "$id\t$marketingName\t${spend.toMoneyString()}"
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/extensions.23/src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate">extensions.23:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate</a>]
 // end-insert
 
 This still isn't quite as sweet as we might like, but we've proved the point of extension functions.
 <<performing-io-to-passing-data>> and <<exceptions-to-values>> will finish off this refactoring, looking at the use of the reader and writer.
 In the meantime, here's the whole file:
 
-// begin-insert: tags/extensions.23:src/main/java/travelator/marketing/HighValueCustomersReport.kt#all
+// begin-insert: extensions.23:src/main/java/travelator/marketing/HighValueCustomersReport.kt#all
 [source,kotlin]
 ----
 @Throws(IOException::class)
@@ -1387,6 +1478,8 @@ private fun Any?.formattedAs(format: String) = String.format(format, this)
 private val CustomerData.marketingName: String
     get() = "${familyName.toUpperCase()}, $givenName"
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/extensions.23/src/main/java/travelator/marketing/HighValueCustomersReport.kt#all">extensions.23:src/main/java/travelator/marketing/HighValueCustomersReport.kt#all</a>]
 // end-insert
 
 Note that every function except the entry point is a single-expression extension function.

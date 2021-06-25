@@ -16,7 +16,7 @@ Instead, collections are hidden inside another object.
 
 Here, for example, is a `Route` in Travelator:
 
-// begin-insert: tags/encapsulated-collections.0:src/main/java/travelator/itinerary/Route.java#route
+// begin-insert: encapsulated-collections.0:src/main/java/travelator/itinerary/Route.java#route
 [source,java]
 ----
 public class Route {
@@ -51,6 +51,8 @@ public class Route {
     ...
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.0/src/main/java/travelator/itinerary/Route.java#route">encapsulated-collections.0:src/main/java/travelator/itinerary/Route.java#route</a>]
 // end-insert
 
 <1> A `Route` encapsulates a `List` of `Journey`.
@@ -78,7 +80,7 @@ And in an all Kotlin codebase, that `List` would be effectively immutable anyway
 In fact, `Route` is doing worse than adding no value to `List<Journey>`, it is removing value.
 If we had a `List<Journey>`, our front end code could use its `Iterator` when rendering:
 
-// begin-insert: tags/encapsulated-collections.0:src/main/java/travelator/UI.java#iterable
+// begin-insert: encapsulated-collections.0:src/main/java/travelator/UI.java#iterable
 [source,java]
 ----
 public void render(Iterable<Journey> route) {
@@ -87,11 +89,13 @@ public void render(Iterable<Journey> route) {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.0/src/main/java/travelator/UI.java#iterable">encapsulated-collections.0:src/main/java/travelator/UI.java#iterable</a>]
 // end-insert
 
 With a `Route`, we're back to programming in the 1980s:
 
-// begin-insert: tags/encapsulated-collections.0:src/main/java/travelator/UI.java#route
+// begin-insert: encapsulated-collections.0:src/main/java/travelator/UI.java#route
 [source,java]
 ----
 public void render(Route route) {
@@ -101,6 +105,8 @@ public void render(Route route) {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.0/src/main/java/travelator/UI.java#route">encapsulated-collections.0:src/main/java/travelator/UI.java#route</a>]
 // end-insert
 
 If we encapsulate a collection, we _reduce_ the operations available for us to work with its contents to only those defined by the encapsulating class.
@@ -141,7 +147,7 @@ Encapsulating immutable collections should be the exception rather than the rule
 Of course, we can't always just substitute type aliases for classes.
 Take our `Itinerary` class for example:
 
-// begin-insert: tags/encapsulated-collections.0:src/main/java/travelator/itinerary/Itinerary.kt#excerpt
+// begin-insert: encapsulated-collections.0:src/main/java/travelator/itinerary/Itinerary.kt#excerpt
 [source,kotlin]
 ----
 class Itinerary(
@@ -151,6 +157,8 @@ class Itinerary(
     ...
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.0/src/main/java/travelator/itinerary/Itinerary.kt#excerpt">encapsulated-collections.0:src/main/java/travelator/itinerary/Itinerary.kt#excerpt</a>]
 // end-insert
 
 In addition to the ++Journey++s currently hidden in its `route`, `Itinerary` has an `Id` that allows us to address it as an entity.
@@ -170,7 +178,7 @@ Let's see if we can refactor `Route` to make some room before we start work on t
 
 Here again is the Java Route class:
 
-// begin-insert: tags/encapsulated-collections.1:src/main/java/travelator/itinerary/Route.java#route
+// begin-insert: encapsulated-collections.1:src/main/java/travelator/itinerary/Route.java#route
 [source,java]
 ----
 public class Route {
@@ -195,6 +203,8 @@ public class Route {
     ... many methods
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.1/src/main/java/travelator/itinerary/Route.java#route">encapsulated-collections.1:src/main/java/travelator/itinerary/Route.java#route</a>]
 // end-insert
 
 ==== Convert Operations to Extensions
@@ -208,7 +218,7 @@ Ultimately we want to unencapsulate the collection, so that our clients work in 
 
 We'll start by converting to `Route` to Kotlin - which after some tidying yields:
 
-// begin-insert: tags/encapsulated-collections.2:src/main/java/travelator/itinerary/Route.kt#route
+// begin-insert: encapsulated-collections.2:src/main/java/travelator/itinerary/Route.kt#route
 [source,kotlin]
 ----
 class Route(
@@ -224,6 +234,8 @@ class Route(
     ... many methods
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.2/src/main/java/travelator/itinerary/Route.kt#route">encapsulated-collections.2:src/main/java/travelator/itinerary/Route.kt#route</a>]
 // end-insert
 
 As usual, you should assume that we are running our tests between refactors to make sure that we haven't broken anything -- all is fine at the moment.
@@ -232,18 +244,20 @@ Once a class is in Kotlin, IntelliJ can convert methods into extension methods.
 Let's try out this refactoring on the `departsFrom` property - select it, Alt-Enter and "Convert member to extension".
 The method disappears, and reappears at the top-level of the file:
 
-// begin-insert: tags/encapsulated-collections.3:src/main/java/travelator/itinerary/Route.kt#departsFrom
+// begin-insert: encapsulated-collections.3:src/main/java/travelator/itinerary/Route.kt#departsFrom
 [source,kotlin]
 ----
 val Route.departsFrom: Location
     get() = get(0).departsFrom
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.3/src/main/java/travelator/itinerary/Route.kt#departsFrom">encapsulated-collections.3:src/main/java/travelator/itinerary/Route.kt#departsFrom</a>]
 // end-insert
 
 Kotlin code will continue to be able to access `route.departsFrom` as a property, but Java code can't.
 IntelliJ has helpfully fixed up the one Java usage to see the property as a static method:
 
-// begin-insert: tags/encapsulated-collections.3:src/main/java/travelator/UI.java#header
+// begin-insert: encapsulated-collections.3:src/main/java/travelator/UI.java#header
 [source,java]
 ----
 public void renderWithHeader(Route route) {
@@ -258,6 +272,8 @@ public void renderWithHeader(Route route) {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.3/src/main/java/travelator/UI.java#header">encapsulated-collections.3:src/main/java/travelator/UI.java#header</a>]
 // end-insert
 
 <1> Call of static method in `Route.kt`.
@@ -265,7 +281,7 @@ public void renderWithHeader(Route route) {
 "Convert member to extension" works well for methods that only call `Route`'s public API.
 It will fail if we try it on, for example, `withJourneyAt`:
 
-// begin-insert: tags/encapsulated-collections.3:src/main/java/travelator/itinerary/Route.kt#withJourneyAt
+// begin-insert: encapsulated-collections.3:src/main/java/travelator/itinerary/Route.kt#withJourneyAt
 [source,kotlin]
 ----
 fun withJourneyAt(index: Int, replacedBy: Journey): Route {
@@ -274,13 +290,15 @@ fun withJourneyAt(index: Int, replacedBy: Journey): Route {
     return Route(newJourneys)
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.3/src/main/java/travelator/itinerary/Route.kt#withJourneyAt">encapsulated-collections.3:src/main/java/travelator/itinerary/Route.kt#withJourneyAt</a>]
 // end-insert
 
 This references the `journeys` property, which is currently private and so not visible to an extension function.
 At this point we can make the property public (provided that we don't abuse it by mutating the `List` from Java code).
 This fixes the extension function:
 
-// begin-insert: tags/encapsulated-collections.4:src/main/java/travelator/itinerary/Route.kt#withJourneyAt
+// begin-insert: encapsulated-collections.4:src/main/java/travelator/itinerary/Route.kt#withJourneyAt
 [source,kotlin]
 ----
 fun Route.withJourneyAt(index: Int, replacedBy: Journey): Route {
@@ -289,12 +307,14 @@ fun Route.withJourneyAt(index: Int, replacedBy: Journey): Route {
     return Route(newJourneys)
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.4/src/main/java/travelator/itinerary/Route.kt#withJourneyAt">encapsulated-collections.4:src/main/java/travelator/itinerary/Route.kt#withJourneyAt</a>]
 // end-insert
 
 We can continue the process of converting members to extensions until there are no members left - even `size` and `get` can be moved out
 provided we are happy to use them statically in any remaining Java clients:
 
-// begin-insert: tags/encapsulated-collections.5:src/main/java/travelator/UI.java#route
+// begin-insert: encapsulated-collections.5:src/main/java/travelator/UI.java#route
 [source,java]
 ----
 public void render(Route route) {
@@ -304,13 +324,15 @@ public void render(Route route) {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.5/src/main/java/travelator/UI.java#route">encapsulated-collections.5:src/main/java/travelator/UI.java#route</a>]
 // end-insert
 
 (Note that as we have converted the `size` method to a `size` extension property, Java sees a `getSize` function.)
 
 Here then is all that is left of the once-bloated `Route` class:
 
-// begin-insert: tags/encapsulated-collections.5:src/main/java/travelator/itinerary/Route.kt#route
+// begin-insert: encapsulated-collections.5:src/main/java/travelator/itinerary/Route.kt#route
 [source,kotlin]
 ----
 class Route(
@@ -324,6 +346,8 @@ operator fun Route.get(index: Int) = journeys[index]
 
 ...
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.5/src/main/java/travelator/itinerary/Route.kt#route">encapsulated-collections.5:src/main/java/travelator/itinerary/Route.kt#route</a>]
 // end-insert
 
 All its operations (bar accessing the `journeys`) are now extensions, albeit in the same file.
@@ -338,13 +362,15 @@ To quote one of Alan Perlis' https://www.cs.yale.edu/homes/perlis-alan/quotes.ht
 We don't want a `Route` to _have_ a `List` of `Journey`, we want it to _be_ a `List` of `Journey`.
 This is very easy to achieve in Kotlin with delegation:
 
-// begin-insert: tags/encapsulated-collections.6:src/main/java/travelator/itinerary/Route.kt#route
+// begin-insert: encapsulated-collections.6:src/main/java/travelator/itinerary/Route.kt#route
 [source,kotlin]
 ----
 class Route(
     val journeys: List<Journey>
 ) : List<Journey> by journeys
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.6/src/main/java/travelator/itinerary/Route.kt#route">encapsulated-collections.6:src/main/java/travelator/itinerary/Route.kt#route</a>]
 // end-insert
 
 In fact though, we may want more than for a `Route` to be a `List` of `Journey`; we may want a `List` of `Journey` to be a `Route`.
@@ -353,7 +379,7 @@ To see why, lets look at that `withJourneyAt` function that we glossed over earl
 When a traveller decides that she would rather not travel by camel, we can't just replace a `Journey`, because `Route` is immutable.
 Instead, we return a new `Route` where `journeys` is a copy with the relevant `Journey` replaced:
 
-// begin-insert: tags/encapsulated-collections.5:src/test/java/travelator/itinerary/RouteTests.kt#replaceJourney
+// begin-insert: encapsulated-collections.5:src/test/java/travelator/itinerary/RouteTests.kt#replaceJourney
 [source,kotlin]
 ----
 @Test
@@ -371,6 +397,8 @@ fun replaceJourney() {
     assertEquals(journey3, replaced.get(2))
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.5/src/test/java/travelator/itinerary/RouteTests.kt#replaceJourney">encapsulated-collections.5:src/test/java/travelator/itinerary/RouteTests.kt#replaceJourney</a>]
 // end-insert
 
 (In passing, note that this test was made more complicated by only having `get` to access the components of a `route`.
@@ -378,7 +406,7 @@ We can fix that now we can access the `journeys` property directly.)
 
 Here's the implementation again:
 
-// begin-insert: tags/encapsulated-collections.4:src/main/java/travelator/itinerary/Route.kt#withJourneyAt
+// begin-insert: encapsulated-collections.4:src/main/java/travelator/itinerary/Route.kt#withJourneyAt
 [source,kotlin]
 ----
 fun Route.withJourneyAt(index: Int, replacedBy: Journey): Route {
@@ -387,12 +415,14 @@ fun Route.withJourneyAt(index: Int, replacedBy: Journey): Route {
     return Route(newJourneys)
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.4/src/main/java/travelator/itinerary/Route.kt#withJourneyAt">encapsulated-collections.4:src/main/java/travelator/itinerary/Route.kt#withJourneyAt</a>]
 // end-insert
 
 Because `Route` wraps `journeys`, we can't just operate on `journeys`, we have to unwrap, operate and then wrap back up again.
 If a `List<Journey>` was a `Route`, then we could use a nice generic function like:
 
-// begin-insert: tags/encapsulated-collections.7:src/main/java/travelator/itinerary/Route.kt#withItemAt
+// begin-insert: encapsulated-collections.7:src/main/java/travelator/itinerary/Route.kt#withItemAt
 [source,kotlin]
 ----
 fun <T> Iterable<T>.withItemAt(index: Int, replacedBy: T): List<T> =
@@ -400,16 +430,20 @@ fun <T> Iterable<T>.withItemAt(index: Int, replacedBy: T): List<T> =
         this[index] = replacedBy
     }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.7/src/main/java/travelator/itinerary/Route.kt#withItemAt">encapsulated-collections.7:src/main/java/travelator/itinerary/Route.kt#withItemAt</a>]
 // end-insert
 
 As it is, even using `withItemAt`, we still have to deal with the wrapper:
 
-// begin-insert: tags/encapsulated-collections.7:src/main/java/travelator/itinerary/Route.kt#withJourneyAt
+// begin-insert: encapsulated-collections.7:src/main/java/travelator/itinerary/Route.kt#withJourneyAt
 [source,kotlin]
 ----
 fun Route.withJourneyAt(index: Int, replacedBy: Journey): Route =
     Route(journeys.withItemAt(index, replacedBy))
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.7/src/main/java/travelator/itinerary/Route.kt#withJourneyAt">encapsulated-collections.7:src/main/java/travelator/itinerary/Route.kt#withJourneyAt</a>]
 // end-insert
 
 Any operation that transforms ++Route++s will have this problem: a problem that wouldn't exist if we just used a type alias to say that a `Route` and `List<Journey>` are the same type.
@@ -421,18 +455,20 @@ So does using a type alias though, so if we have any remaining Java clients we a
 What we're going to do is to replace the class with a type alias, and at the same time add temporary definitions that emulate the API of the class.
 That API is currently:
 
-// begin-insert: tags/encapsulated-collections.6:src/main/java/travelator/itinerary/Route.kt#route
+// begin-insert: encapsulated-collections.6:src/main/java/travelator/itinerary/Route.kt#route
 [source,kotlin]
 ----
 class Route(
     val journeys: List<Journey>
 ) : List<Journey> by journeys
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.6/src/main/java/travelator/itinerary/Route.kt#route">encapsulated-collections.6:src/main/java/travelator/itinerary/Route.kt#route</a>]
 // end-insert
 
 We emulate it with:
 
-// begin-insert: tags/encapsulated-collections.8:src/main/java/travelator/itinerary/Route.kt#route
+// begin-insert: encapsulated-collections.8:src/main/java/travelator/itinerary/Route.kt#route
 [source,kotlin]
 ----
 typealias Route = List<Journey>
@@ -441,13 +477,15 @@ fun Route(journeys: List<Journey>) = journeys
 
 val Route.journeys get() = this
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.8/src/main/java/travelator/itinerary/Route.kt#route">encapsulated-collections.8:src/main/java/travelator/itinerary/Route.kt#route</a>]
 // end-insert
 
 Because there is no `new` keyword in Kotlin, we can emulate the constructor call `Route(...)` with a function of the same name.
 Similarly, we replace the `journeys` property with an extension property that returns the receiver itself.
 The net result is that our Kotlin clients continue to compile against this new API.
 
-// begin-insert: tags/encapsulated-collections.8:src/test/java/travelator/itinerary/RouteTests.kt#replaceJourney
+// begin-insert: encapsulated-collections.8:src/test/java/travelator/itinerary/RouteTests.kt#replaceJourney
 [source,kotlin]
 ----
 val route = Route(listOf(journey1, journey2, journey3)) // <1>
@@ -459,6 +497,8 @@ assertEquals(
     route.withJourneyAt(1, replacement).journeys // <2>
 )
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.8/src/test/java/travelator/itinerary/RouteTests.kt#replaceJourney">encapsulated-collections.8:src/test/java/travelator/itinerary/RouteTests.kt#replaceJourney</a>]
 // end-insert
 
 <1> Our new function, not the constructor
@@ -466,7 +506,7 @@ assertEquals(
 
 Inlining both function and property completes the refactor -- the encapsulated collection is now just a collection:
 
-// begin-insert: tags/encapsulated-collections.9:src/test/java/travelator/itinerary/RouteTests.kt#replaceJourney
+// begin-insert: encapsulated-collections.9:src/test/java/travelator/itinerary/RouteTests.kt#replaceJourney
 [source,kotlin]
 ----
 val route = listOf(journey1, journey2, journey3) // <1>
@@ -478,6 +518,8 @@ assertEquals(
     route.withJourneyAt(1, replacement) // <2>
 )
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.9/src/test/java/travelator/itinerary/RouteTests.kt#replaceJourney">encapsulated-collections.9:src/test/java/travelator/itinerary/RouteTests.kt#replaceJourney</a>]
 // end-insert
 
 <1> `Route` was a no-op
@@ -486,7 +528,7 @@ assertEquals(
 Any remaining Java clients will have been broken when we replaced the `Route` class with a type alias, as Java doesn't understand type aliases.
 We fixed those by hand, replacing `Route` with `List<Journey>`:
 
-// begin-insert: tags/encapsulated-collections.8:src/main/java/travelator/UI.java#route
+// begin-insert: encapsulated-collections.8:src/main/java/travelator/UI.java#route
 [source,java]
 ----
 public void render(List<Journey> route) {
@@ -496,12 +538,14 @@ public void render(List<Journey> route) {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.8/src/main/java/travelator/UI.java#route">encapsulated-collections.8:src/main/java/travelator/UI.java#route</a>]
 // end-insert
 
 Our transformation is almost complete.
 We still have `size` and `get` functions:
 
-// begin-insert: tags/encapsulated-collections.9:src/main/java/travelator/itinerary/Route.kt#excerpt
+// begin-insert: encapsulated-collections.9:src/main/java/travelator/itinerary/Route.kt#excerpt
 [source,kotlin]
 ----
 val Route.size: Int
@@ -509,6 +553,8 @@ val Route.size: Int
 
 operator fun Route.get(index: Int) = this[index]
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.9/src/main/java/travelator/itinerary/Route.kt#excerpt">encapsulated-collections.9:src/main/java/travelator/itinerary/Route.kt#excerpt</a>]
 // end-insert
 
 As these have the same signature as their method counterparts on `List`, the compiler warns us that they are shadowed -- our Kotlin will be calling the methods not the extensions.
@@ -518,7 +564,7 @@ We do have a Java client though -- that pesky rendering code, which is still cal
 Those extensions are calling the methods that we want to use, but we can't inline code from Kotlin to Java, so we'll just delete the extensions anyway.
 Now the compiler will tell us where we need to fix the Java, and we can do that by hand:
 
-// begin-insert: tags/encapsulated-collections.10:src/main/java/travelator/UI.java#route
+// begin-insert: encapsulated-collections.10:src/main/java/travelator/UI.java#route
 [source,java]
 ----
 public void render(List<Journey> route) {
@@ -528,11 +574,13 @@ public void render(List<Journey> route) {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.10/src/main/java/travelator/UI.java#route">encapsulated-collections.10:src/main/java/travelator/UI.java#route</a>]
 // end-insert
 
 In reality of course, we would replace this with:
 
-// begin-insert: tags/encapsulated-collections.10:src/main/java/travelator/UI.java#iterable
+// begin-insert: encapsulated-collections.10:src/main/java/travelator/UI.java#iterable
 [source,java]
 ----
 public void render(Iterable<Journey> route) {
@@ -541,13 +589,15 @@ public void render(Iterable<Journey> route) {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.10/src/main/java/travelator/UI.java#iterable">encapsulated-collections.10:src/main/java/travelator/UI.java#iterable</a>]
 // end-insert
 
 The Kotlin clients are unphased by deleting the extensions, as they were always calling the methods on `List`, so the transformation is almost complete.
 We can also now inline `withJourneyAt`, as it too is a no-op.
 This leaves us with `Route` like this:
 
-// begin-insert: tags/encapsulated-collections.10:src/main/java/travelator/itinerary/Route.kt#route
+// begin-insert: encapsulated-collections.10:src/main/java/travelator/itinerary/Route.kt#route
 [source,kotlin]
 ----
 typealias Route = List<Journey>
@@ -565,11 +615,13 @@ val Route.duration: Duration
     )
 ... other operations moved
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.10/src/main/java/travelator/itinerary/Route.kt#route">encapsulated-collections.10:src/main/java/travelator/itinerary/Route.kt#route</a>]
 // end-insert
 
 Our Kotlin usages are just `List` operations:
 
-// begin-insert: tags/encapsulated-collections.10:src/test/java/travelator/itinerary/RouteTests.kt#replaceJourney
+// begin-insert: encapsulated-collections.10:src/test/java/travelator/itinerary/RouteTests.kt#replaceJourney
 [source,kotlin]
 ----
 val route = listOf(journey1, journey2, journey3)
@@ -578,11 +630,13 @@ assertEquals(
     route.withItemAt(1, replacement)
 )
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.10/src/test/java/travelator/itinerary/RouteTests.kt#replaceJourney">encapsulated-collections.10:src/test/java/travelator/itinerary/RouteTests.kt#replaceJourney</a>]
 // end-insert
 
 Any residual Java is readable, if a little ugly:
 
-// begin-insert: tags/encapsulated-collections.10:src/main/java/travelator/UI.java#header
+// begin-insert: encapsulated-collections.10:src/main/java/travelator/UI.java#header
 [source,java]
 ----
 public void renderWithHeader(List<Journey> route) {
@@ -596,6 +650,8 @@ public void renderWithHeader(List<Journey> route) {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.10/src/main/java/travelator/UI.java#header">encapsulated-collections.10:src/main/java/travelator/UI.java#header</a>]
 // end-insert
 
 [[collections-with-properties]]
@@ -604,7 +660,7 @@ public void renderWithHeader(List<Journey> route) {
 As we saw previously, we can't use type aliases when our types have a collections with other attributes.
 We looked at `Itinerary`, which combines an `id` with a `Route`:
 
-// begin-insert: tags/encapsulated-collections.11:src/main/java/travelator/itinerary/Itinerary.kt#excerpt
+// begin-insert: encapsulated-collections.11:src/main/java/travelator/itinerary/Itinerary.kt#excerpt
 [source,kotlin]
 ----
 class Itinerary(
@@ -618,11 +674,13 @@ class Itinerary(
     ...
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.11/src/main/java/travelator/itinerary/Itinerary.kt#excerpt">encapsulated-collections.11:src/main/java/travelator/itinerary/Itinerary.kt#excerpt</a>]
 // end-insert
 
 We can get the advantages of being able to query ++Journey++s directly by implementing `Route` with delegation:
 
-// begin-insert: tags/encapsulated-collections.12:src/main/java/travelator/itinerary/Itinerary.kt#excerpt
+// begin-insert: encapsulated-collections.12:src/main/java/travelator/itinerary/Itinerary.kt#excerpt
 [source,kotlin]
 ----
 class Itinerary(
@@ -636,6 +694,8 @@ class Itinerary(
     ...
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.12/src/main/java/travelator/itinerary/Itinerary.kt#excerpt">encapsulated-collections.12:src/main/java/travelator/itinerary/Itinerary.kt#excerpt</a>]
 // end-insert
 
 <1> The `by route` clause declares that the an `Itinerary` object will delegate all methods of `Route` interface to the `route` parameter passed to its constructor.
@@ -643,17 +703,19 @@ class Itinerary(
 
 Now that we can treat `Itinerary` as a `Route`, we can move `hasJourneyLongerThan` out as an extension, and have it available to any `Route`, not just `Itinerary`:
 
-// begin-insert: tags/encapsulated-collections.13:src/main/java/travelator/itinerary/Itinerary.kt#hasJourneyLongerThan
+// begin-insert: encapsulated-collections.13:src/main/java/travelator/itinerary/Itinerary.kt#hasJourneyLongerThan
 [source,kotlin]
 ----
 fun Route.hasJourneyLongerThan(duration: Duration) =
     any { it.duration > duration }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.13/src/main/java/travelator/itinerary/Itinerary.kt#hasJourneyLongerThan">encapsulated-collections.13:src/main/java/travelator/itinerary/Itinerary.kt#hasJourneyLongerThan</a>]
 // end-insert
 
 All those extensions to `Route` (aka `List<Journey>`) that we moved from methods to extensions are also now applicable to `Itinerary` as well:
 
-// begin-insert: tags/encapsulated-collections.13:src/main/java/travelator/itinerary/itineraries.kt#shortest
+// begin-insert: encapsulated-collections.13:src/main/java/travelator/itinerary/itineraries.kt#shortest
 [source,kotlin]
 ----
 fun Iterable<Itinerary>.shortest() =
@@ -661,6 +723,8 @@ fun Iterable<Itinerary>.shortest() =
         it.duration // <1>
     }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.13/src/main/java/travelator/itinerary/itineraries.kt#shortest">encapsulated-collections.13:src/main/java/travelator/itinerary/itineraries.kt#shortest</a>]
 // end-insert
 
 <1> This is `Route.duration` aka `List<Journey>.duration`
@@ -668,17 +732,19 @@ fun Iterable<Itinerary>.shortest() =
 What we can't do as easily is to create a new `Itinerary` from an existing one.
 This is now easy for `Route`, as standard API operations on `List<Journey>` (actually, usually `Iterable<Journey>` as we saw in <<java-to-kotlin-collections>>) return `List<Journey>`, which is the other name for `Route`:
 
-// begin-insert: tags/encapsulated-collections.13:src/main/java/travelator/itinerary/itineraries.kt#withoutJourneysBy
+// begin-insert: encapsulated-collections.13:src/main/java/travelator/itinerary/itineraries.kt#withoutJourneysBy
 [source,kotlin]
 ----
 fun Route.withoutJourneysBy(travelMethod: TravelMethod) =
     this.filterNot { it.method == travelMethod }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.13/src/main/java/travelator/itinerary/itineraries.kt#withoutJourneysBy">encapsulated-collections.13:src/main/java/travelator/itinerary/itineraries.kt#withoutJourneysBy</a>]
 // end-insert
 
 For `Itinerary`, we have to create a new `Itinerary` to re-wrap the result:
 
-// begin-insert: tags/encapsulated-collections.13:src/main/java/travelator/itinerary/itineraries.kt#withoutJourneysBy2
+// begin-insert: encapsulated-collections.13:src/main/java/travelator/itinerary/itineraries.kt#withoutJourneysBy2
 [source,kotlin]
 ----
 fun Itinerary.withoutJourneysBy(travelMethod: TravelMethod) =
@@ -687,11 +753,13 @@ fun Itinerary.withoutJourneysBy(travelMethod: TravelMethod) =
         this.filterNot { it.method == travelMethod }
     )
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.13/src/main/java/travelator/itinerary/itineraries.kt#withoutJourneysBy2">encapsulated-collections.13:src/main/java/travelator/itinerary/itineraries.kt#withoutJourneysBy2</a>]
 // end-insert
 
 This is yet another place where data classes come to the rescue:
 
-// begin-insert: tags/encapsulated-collections.14:src/main/java/travelator/itinerary/Itinerary.kt#excerpt
+// begin-insert: encapsulated-collections.14:src/main/java/travelator/itinerary/Itinerary.kt#excerpt
 [source,kotlin]
 ----
 data class Itinerary(
@@ -702,21 +770,25 @@ data class Itinerary(
     ...
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.14/src/main/java/travelator/itinerary/Itinerary.kt#excerpt">encapsulated-collections.14:src/main/java/travelator/itinerary/Itinerary.kt#excerpt</a>]
 // end-insert
 
 Making `Itinerary` a data class means that we can make a copy with just a revised route, no matter how many other properties it has:
 
-// begin-insert: tags/encapsulated-collections.14:src/main/java/travelator/itinerary/itineraries.kt#withoutJourneysBy2
+// begin-insert: encapsulated-collections.14:src/main/java/travelator/itinerary/itineraries.kt#withoutJourneysBy2
 [source,kotlin]
 ----
 fun Itinerary.withoutJourneysBy(travelMethod: TravelMethod) =
     copy(route = filterNot { it.method == travelMethod } )
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.14/src/main/java/travelator/itinerary/itineraries.kt#withoutJourneysBy2">encapsulated-collections.14:src/main/java/travelator/itinerary/itineraries.kt#withoutJourneysBy2</a>]
 // end-insert
 
 Better still, we can add a method `withTransformedRoute`:
 
-// begin-insert: tags/encapsulated-collections.15:src/main/java/travelator/itinerary/Itinerary.kt#excerpt
+// begin-insert: encapsulated-collections.15:src/main/java/travelator/itinerary/Itinerary.kt#excerpt
 [source,kotlin]
 ----
 data class Itinerary(
@@ -730,11 +802,13 @@ data class Itinerary(
     ...
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.15/src/main/java/travelator/itinerary/Itinerary.kt#excerpt">encapsulated-collections.15:src/main/java/travelator/itinerary/Itinerary.kt#excerpt</a>]
 // end-insert
 
 This allows us to create a transformed `Itinerary` almost as easily as we could create a transformed `Route`:
 
-// begin-insert: tags/encapsulated-collections.15:src/main/java/travelator/itinerary/itineraries.kt#excerpt
+// begin-insert: encapsulated-collections.15:src/main/java/travelator/itinerary/itineraries.kt#excerpt
 [source,kotlin]
 ----
 fun Itinerary.withoutJourneysBy(travelMethod: TravelMethod) =
@@ -745,6 +819,8 @@ fun Itinerary.withoutJourneysBy(travelMethod: TravelMethod) =
 fun Itinerary.withoutLastJourney() =
     withTransformedRoute { dropLast(1) }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/encapsulated-collections.15/src/main/java/travelator/itinerary/itineraries.kt#excerpt">encapsulated-collections.15:src/main/java/travelator/itinerary/itineraries.kt#excerpt</a>]
 // end-insert
 
 === Moving On

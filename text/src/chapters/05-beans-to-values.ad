@@ -81,7 +81,7 @@ Let's look at refactoring a use of a mutable bean or POJO to a value.
 Travelator has a mobile app, and the Android version is written in Java.
 In that code we represent user preferences with a `UserPreferences` JavaBean.
 
-// begin-insert: tags/beans-to-values.0:src/main/java/travelator/mobile/UserPreferences.java#excerpt
+// begin-insert: beans-to-values.0:src/main/java/travelator/mobile/UserPreferences.java#excerpt
 [source,java]
 ----
 public class UserPreferences {
@@ -111,11 +111,13 @@ public class UserPreferences {
     ... getters and setters for locale and currency
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/beans-to-values.0/src/main/java/travelator/mobile/UserPreferences.java#excerpt">beans-to-values.0:src/main/java/travelator/mobile/UserPreferences.java#excerpt</a>]
 // end-insert
 
 The `Application` has a `preferences` property, which it passes to views that need it:
 
-// begin-insert: tags/beans-to-values.0:src/main/java/travelator/mobile/Application.java#foo
+// begin-insert: beans-to-values.0:src/main/java/travelator/mobile/Application.java#foo
 [source,java]
 ----
 public class Application {
@@ -136,6 +138,8 @@ public class Application {
     ...
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/beans-to-values.0/src/main/java/travelator/mobile/Application.java#foo">beans-to-values.0:src/main/java/travelator/mobile/Application.java#foo</a>]
 // end-insert
 
 (Any similarity to an actual UI framework, living or dead, is purely coincidental.)
@@ -143,7 +147,7 @@ public class Application {
 Finally, `PreferencesView` updates its `preferences` when the user makes changes.
 We know that there has been a change because `onThingChange()` will be called:
 
-// begin-insert: tags/beans-to-values.0:src/main/java/travelator/mobile/PreferencesView.java#foo
+// begin-insert: beans-to-values.0:src/main/java/travelator/mobile/PreferencesView.java#foo
 [source,java]
 ----
 public class PreferencesView extends View {
@@ -178,6 +182,8 @@ public class PreferencesView extends View {
     ...
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/beans-to-values.0/src/main/java/travelator/mobile/PreferencesView.java#foo">beans-to-values.0:src/main/java/travelator/mobile/PreferencesView.java#foo</a>]
 // end-insert
 
 This design, whilst simple, is fraught with complications typical of mutable data, such as:
@@ -191,7 +197,7 @@ So we can't reliably use `UserPreferences` in sets or as keys in maps.
 Before we refactor to using an immutable value, let's convert `Application` and `UserPreferences` to Kotlin, which will help us see the nature of our model.
 `Application` is simple:
 
-// begin-insert: tags/beans-to-values.1:src/main/java/travelator/mobile/Application.kt#foo
+// begin-insert: beans-to-values.1:src/main/java/travelator/mobile/Application.kt#foo
 [source,kotlin]
 ----
 class Application(
@@ -207,12 +213,14 @@ class Application(
     ...
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/beans-to-values.1/src/main/java/travelator/mobile/Application.kt#foo">beans-to-values.1:src/main/java/travelator/mobile/Application.kt#foo</a>]
 // end-insert
 
 `UserPreferences` is more complicated.
 "Convert to Kotlin" in IntelliJ yields this:
 
-// begin-insert: tags/beans-to-values.1:src/main/java/travelator/mobile/UserPreferences.kt
+// begin-insert: beans-to-values.1:src/main/java/travelator/mobile/UserPreferences.kt
 [source,kotlin]
 ----
 class UserPreferences @JvmOverloads constructor(
@@ -221,6 +229,8 @@ class UserPreferences @JvmOverloads constructor(
     var currency: Currency = Currency.getInstance(Locale.UK)
 )
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/beans-to-values.1/src/main/java/travelator/mobile/UserPreferences.kt">beans-to-values.1:src/main/java/travelator/mobile/UserPreferences.kt</a>]
 // end-insert
 
 This is quite a sophisticated conversion.
@@ -245,7 +255,7 @@ Well this reduces both the number and visibility of the potentially moving parts
 
 We'll work our way there gradually, starting by converting `PreferencesView` to Kotlin:
 
-// begin-insert: tags/beans-to-values.3:src/main/java/travelator/mobile/PreferencesView.kt#foo
+// begin-insert: beans-to-values.3:src/main/java/travelator/mobile/PreferencesView.kt#foo
 [source,kotlin]
 ----
 class PreferencesView(
@@ -269,13 +279,15 @@ class PreferencesView(
     ... onLocaleChange, onCurrencyChange
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/beans-to-values.3/src/main/java/travelator/mobile/PreferencesView.kt#foo">beans-to-values.3:src/main/java/travelator/mobile/PreferencesView.kt#foo</a>]
 // end-insert
 
 `show()` overrides a method in `View` that makes the view visible and blocks until it is dismissed.
 To avoid mutation, we would like a version that returns a copy of the `UserPreferences` with any changes applied, but we can't add a return type to the `View` method.
 So instead we'll rename `show` to `showModal`, returning the existing mutable `preferences` property once `super.show()` has returned:
 
-// begin-insert: tags/beans-to-values.4:src/main/java/travelator/mobile/PreferencesView.kt#foo
+// begin-insert: beans-to-values.4:src/main/java/travelator/mobile/PreferencesView.kt#foo
 [source,kotlin]
 ----
 fun showModal(): UserPreferences {
@@ -286,12 +298,14 @@ fun showModal(): UserPreferences {
     return preferences
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/beans-to-values.4/src/main/java/travelator/mobile/PreferencesView.kt#foo">beans-to-values.4:src/main/java/travelator/mobile/PreferencesView.kt#foo</a>]
 // end-insert
 
 `Application.editPreferences()` was calling its `preferencesView.show()`, and relying on the fact that it and `PreferencesView` shared a reference to a mutable object to see any edits.
 We'll now make `Application.preferences` a mutable property, set from the result of `showModal`:
 
-// begin-insert: tags/beans-to-values.4:src/main/java/travelator/mobile/Application.kt#foo
+// begin-insert: beans-to-values.4:src/main/java/travelator/mobile/Application.kt#foo
 [source,kotlin]
 ----
 class Application(
@@ -305,6 +319,8 @@ class Application(
     ...
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/beans-to-values.4/src/main/java/travelator/mobile/Application.kt#foo">beans-to-values.4:src/main/java/travelator/mobile/Application.kt#foo</a>]
 // end-insert
 
 <1> Now a `var`
@@ -314,7 +330,7 @@ In fact, we have the worst of both worlds: a mutable reference to mutable data.
 
 We haven't finished though -- we can make things even worse by making the `preferences` property in `PreferencesView` mutable too, so that we can set it to a new `UserPreferences` object when any UI elements are updated:
 
-// begin-insert: tags/beans-to-values.5:src/main/java/travelator/mobile/PreferencesView.kt#foo
+// begin-insert: beans-to-values.5:src/main/java/travelator/mobile/PreferencesView.kt#foo
 [source,kotlin]
 ----
 class PreferencesView(
@@ -343,6 +359,8 @@ class PreferencesView(
     ... onLocaleChange, onCurrencyChange
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/beans-to-values.5/src/main/java/travelator/mobile/PreferencesView.kt#foo">beans-to-values.5:src/main/java/travelator/mobile/PreferencesView.kt#foo</a>]
 // end-insert
 
 Actually we say "even worse", but this has now removed all the uses of the setters on `UserPreferences`.
@@ -350,7 +368,7 @@ Without setters, we can make it a proper value - initialising its properties in 
 In Kotlin this means changing the `var` properties to `val` and inlining any use of the default constructor.
 This allows us to reduce `UserPreferences` to:
 
-// begin-insert: tags/beans-to-values.6:src/main/java/travelator/mobile/UserPreferences.kt
+// begin-insert: beans-to-values.6:src/main/java/travelator/mobile/UserPreferences.kt
 [source,kotlin]
 ----
 data class UserPreferences(
@@ -359,6 +377,8 @@ data class UserPreferences(
     val currency: Currency
 )
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/beans-to-values.6/src/main/java/travelator/mobile/UserPreferences.kt">beans-to-values.6:src/main/java/travelator/mobile/UserPreferences.kt</a>]
 // end-insert
 
 The eagle-eyed reader will notice that we sneakily made `UserPreferences` a data class.
@@ -387,7 +407,7 @@ Having a mutable reference in `PreferencesView` is a bit irritating though.
 We can fix that by not holding a reference at all, but instead passing the preferences into `showModal`.
 `PreferencesView` doesn't need a `UserPreferences` property, it can just distribute its values into the UI before it shows itself, and gather them back in when it is done:
 
-// begin-insert: tags/beans-to-values.7:src/main/java/travelator/mobile/PreferencesView.kt#foo
+// begin-insert: beans-to-values.7:src/main/java/travelator/mobile/PreferencesView.kt#foo
 [source,kotlin]
 ----
 class PreferencesView : View() {
@@ -408,12 +428,14 @@ class PreferencesView : View() {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/beans-to-values.7/src/main/java/travelator/mobile/PreferencesView.kt#foo">beans-to-values.7:src/main/java/travelator/mobile/PreferencesView.kt#foo</a>]
 // end-insert
 
 There is still mutation here, because we are setting values into the pickers, but these are UI components and only have default constructors, so this has to happen somewhere.
 To finish the job, we also have to update `Application` to move the `preferences` argument from the `PreferencesView` constructor to `showModal`:
 
-// begin-insert: tags/beans-to-values.7:src/main/java/travelator/mobile/Application.kt#foo
+// begin-insert: beans-to-values.7:src/main/java/travelator/mobile/Application.kt#foo
 [source,kotlin]
 ----
 class Application(
@@ -429,6 +451,8 @@ class Application(
     ...
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/beans-to-values.7/src/main/java/travelator/mobile/Application.kt#foo">beans-to-values.7:src/main/java/travelator/mobile/Application.kt#foo</a>]
 // end-insert
 
 Now we have only one place that preferences can change, made clear by the assignment in `editPreferences`.

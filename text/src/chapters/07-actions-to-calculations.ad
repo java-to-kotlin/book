@@ -213,7 +213,7 @@ Let's have a look at recognising and refactoring actions in existing code.
 
 There is an HTTP endpoint in Travelator that allows the client app to fetch information about the customers current trip:
 
-// begin-insert: tags/actions.0:src/main/java/travelator/handlers/CurrentTripsHandler.java
+// begin-insert: actions.0:src/main/java/travelator/handlers/CurrentTripsHandler.java
 [source,java]
 ----
 public class CurrentTripsHandler {
@@ -242,6 +242,8 @@ public class CurrentTripsHandler {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.0/src/main/java/travelator/handlers/CurrentTripsHandler.java">actions.0:src/main/java/travelator/handlers/CurrentTripsHandler.java</a>]
 // end-insert
 
 Actions are code that is sensitive to time, so words like _current_ in `CurrentTripsHandler` are a dead give-away.
@@ -249,7 +251,7 @@ The `handle` method is an action, and that's OK: things on the edge of our syste
 
 The handler delegates to some business logic, implemented in `Tracking`.
 
-// begin-insert: tags/actions.0:src/main/java/travelator/Tracking.java
+// begin-insert: actions.0:src/main/java/travelator/Tracking.java
 [source,java]
 ----
 class Tracking implements ITrackTrips {
@@ -276,12 +278,14 @@ class Tracking implements ITrackTrips {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.0/src/main/java/travelator/Tracking.java">actions.0:src/main/java/travelator/Tracking.java</a>]
 // end-insert
 
 Using the _current_ rule `Tracking.currentTripFor` is evidently an action too, as is `Trips.currentTripsFor`.
 Here is its implementation in `InMemoryTrips`, which is used for testing in place of a version implemented with database queries.
 
-// begin-insert: tags/actions.0:src/test/java/travelator/InMemoryTrips.java#foo
+// begin-insert: actions.0:src/test/java/travelator/InMemoryTrips.java#foo
 [source,java]
 ----
 public class InMemoryTrips implements Trips {
@@ -295,6 +299,8 @@ public class InMemoryTrips implements Trips {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.0/src/test/java/travelator/InMemoryTrips.java#foo">actions.0:src/test/java/travelator/InMemoryTrips.java#foo</a>]
 // end-insert
 
 The conversion from `Set<Trip>` (the result of `Trips.currentTripsFor`) and to `Optional<Trip>` (returned from `Tracking.currentTripFor`) seems to be because there is some business rule around there being only one active trip at any time that is not enforced in the persistence layer.
@@ -313,7 +319,7 @@ We have discussed calculations and actions as applying to named blocks of code, 
 Once you start to differentiate actions from calculations, it makes sense not to throw a random action into an otherwise pure calculation.
 Let's pull the action out so that the remainder of the expression is pure - select `clock.instant()` and "Introduce Variable", calling it `now`:
 
-// begin-insert: tags/actions.1:src/test/java/travelator/InMemoryTrips.java#foo
+// begin-insert: actions.1:src/test/java/travelator/InMemoryTrips.java#foo
 [source,java]
 ----
 @Override
@@ -326,11 +332,13 @@ public Set<Trip> currentTripsFor(String customerId) {
         .collect(toSet());
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.1/src/test/java/travelator/InMemoryTrips.java#foo">actions.1:src/test/java/travelator/InMemoryTrips.java#foo</a>]
 // end-insert
 
 That's still in the middle of the expression, let's move it up (and convert to a `var` on the way):
 
-// begin-insert: tags/actions.2:src/test/java/travelator/InMemoryTrips.java#foo
+// begin-insert: actions.2:src/test/java/travelator/InMemoryTrips.java#foo
 [source,java]
 ----
 @Override
@@ -341,6 +349,8 @@ public Set<Trip> currentTripsFor(String customerId) {
         .collect(toSet());
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.2/src/test/java/travelator/InMemoryTrips.java#foo">actions.2:src/test/java/travelator/InMemoryTrips.java#foo</a>]
 // end-insert
 
 This simple act has allowed us to realise that we were previously comparing every trip against a slightly different time!
@@ -351,7 +361,7 @@ Duncan for one has recently finished diagnosing an issue where half of a banking
 As well as making it harder to refactor our code, actions make it harder to test too.
 Let's see how that is manifested:
 
-// begin-insert: tags/actions.0:src/test/java/travelator/TrackingTests.java#foo
+// begin-insert: actions.0:src/test/java/travelator/TrackingTests.java#foo
 [source,java]
 ----
 public class TrackingTests {
@@ -387,6 +397,8 @@ public class TrackingTests {
     ...
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.0/src/test/java/travelator/TrackingTests.java#foo">actions.0:src/test/java/travelator/TrackingTests.java#foo</a>]
 // end-insert
 
 In order to give predictable results we have had to use a fake clock, injected into `InMemoryTrips`.
@@ -418,7 +430,7 @@ This is a special case of the way that we refactor to avoid dependencies on othe
 The function we want to pass the time into overrides `Trips.currentTripsFor`, so we start by adding an `Instant` parameter to that.
 Before this was:
 
-// begin-insert: tags/actions.0:src/main/java/travelator/Trips.java#foo
+// begin-insert: actions.0:src/main/java/travelator/Trips.java#foo
 [source,java]
 ----
 public interface Trips {
@@ -426,6 +438,8 @@ public interface Trips {
     Set<Trip> currentTripsFor(String customerId);
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.0/src/main/java/travelator/Trips.java#foo">actions.0:src/main/java/travelator/Trips.java#foo</a>]
 // end-insert
 
 We use IntelliJ's "Change Signature" refactoring to add the parameter, calling it `at`.
@@ -435,7 +449,7 @@ Running the tests shows that we are right -- they still pass.
 
 `Trips` now looks like this:
 
-// begin-insert: tags/actions.3:src/main/java/travelator/Trips.java#foo
+// begin-insert: actions.3:src/main/java/travelator/Trips.java#foo
 [source,java]
 ----
 public interface Trips {
@@ -443,11 +457,13 @@ public interface Trips {
     Set<Trip> currentTripsFor(String customerId, Instant at);
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.3/src/main/java/travelator/Trips.java#foo">actions.3:src/main/java/travelator/Trips.java#foo</a>]
 // end-insert
 
 Here is the method being called:
 
-// begin-insert: tags/actions.3:src/main/java/travelator/Tracking.java#foo
+// begin-insert: actions.3:src/main/java/travelator/Tracking.java#foo
 [source,java]
 ----
 class Tracking implements ITrackTrips {
@@ -470,6 +486,8 @@ class Tracking implements ITrackTrips {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.3/src/main/java/travelator/Tracking.java#foo">actions.3:src/main/java/travelator/Tracking.java#foo</a>]
 // end-insert
 
 <1> IntelliJ introduced `null` as the argument value.
@@ -477,7 +495,7 @@ class Tracking implements ITrackTrips {
 Remember that we aren't using the value of the time in our implementations of `Trips` yet, just trying to supply it on the outside of our system in order to convert as much code as possible to calculations.
 `Tracking` isn't the outside of our interaction, so we take select the `null` `Instant`, and "Introduce Parameter" to add it to the signature of `Tracking.currentTripFor`:
 
-// begin-insert: tags/actions.4:src/main/java/travelator/Tracking.java#foo
+// begin-insert: actions.4:src/main/java/travelator/Tracking.java#foo
 [source,java]
 ----
 @Override
@@ -489,13 +507,15 @@ public Optional<Trip> currentTripFor(String customerId, Instant at) { // <1>
         ...
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.4/src/main/java/travelator/Tracking.java#foo">actions.4:src/main/java/travelator/Tracking.java#foo</a>]
 // end-insert
 
 <1> Our new `Instant` parameter.
 
 When we "Introduce Parameter", IntelliJ moves the expression (`null` in this case) from the body of the method to the callers, so `CurrentTripsHandler` still compiles:
 
-// begin-insert: tags/actions.4:src/main/java/travelator/handlers/CurrentTripsHandler.java#foo
+// begin-insert: actions.4:src/main/java/travelator/handlers/CurrentTripsHandler.java#foo
 [source,java]
 ----
 public Response handle(Request request) {
@@ -514,13 +534,15 @@ public Response handle(Request request) {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.4/src/main/java/travelator/handlers/CurrentTripsHandler.java#foo">actions.4:src/main/java/travelator/handlers/CurrentTripsHandler.java#foo</a>]
 // end-insert
 
 <1> `null` argument value.
 
 `TrackingTests` is similarly fixed up:
 
-// begin-insert: tags/actions.4:src/test/java/travelator/TrackingTests.java#foo
+// begin-insert: actions.4:src/test/java/travelator/TrackingTests.java#foo
 [source,java]
 ----
 @Test
@@ -546,6 +568,8 @@ public void returns_single_active_booked_trip() {
     );
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.4/src/test/java/travelator/TrackingTests.java#foo">actions.4:src/test/java/travelator/TrackingTests.java#foo</a>]
 // end-insert
 
 <1> `null` argument value.
@@ -554,7 +578,7 @@ At this point everything compiles and passes the tests, but we aren't actually u
 Let's fix that in `InMemoryTrips`, where we started.
 We did have:
 
-// begin-insert: tags/actions.4:src/test/java/travelator/InMemoryTrips.java#foo
+// begin-insert: actions.4:src/test/java/travelator/InMemoryTrips.java#foo
 [source,java]
 ----
 public class InMemoryTrips implements Trips {
@@ -569,11 +593,13 @@ public class InMemoryTrips implements Trips {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.4/src/test/java/travelator/InMemoryTrips.java#foo">actions.4:src/test/java/travelator/InMemoryTrips.java#foo</a>]
 // end-insert
 
 Now we have the time as a parameter, we can use that rather than asking the `clock`:
 
-// begin-insert: tags/actions.5:src/test/java/travelator/InMemoryTrips.java#foo
+// begin-insert: actions.5:src/test/java/travelator/InMemoryTrips.java#foo
 [source,java]
 ----
 public class InMemoryTrips implements Trips {
@@ -587,11 +613,13 @@ public class InMemoryTrips implements Trips {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.5/src/test/java/travelator/InMemoryTrips.java#foo">actions.5:src/test/java/travelator/InMemoryTrips.java#foo</a>]
 // end-insert
 
 This causes the tests that use `InMemoryTrips` to fail with a `NullPointerException`, because the method is now using the value of the parameter, and the tests are passing in `null`:
 
-// begin-insert: tags/actions.5:src/test/java/travelator/TrackingTests.java#foo
+// begin-insert: actions.5:src/test/java/travelator/TrackingTests.java#foo
 [source,java]
 ----
 @Test
@@ -617,6 +645,8 @@ public void returns_single_active_booked_trip() {
     );
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.5/src/test/java/travelator/TrackingTests.java#foo">actions.5:src/test/java/travelator/TrackingTests.java#foo</a>]
 // end-insert
 
 <1> These `nulls` are now being dereferenced inside `InMemoryTrips`.
@@ -624,7 +654,7 @@ public void returns_single_active_booked_trip() {
 Instead of `null`, we need to pass the value that the tests were setting into the `clock`.
 A cunning refactor is to replace the ++null++s with `clock.now`:
 
-// begin-insert: tags/actions.6:src/test/java/travelator/TrackingTests.java#foo
+// begin-insert: actions.6:src/test/java/travelator/TrackingTests.java#foo
 [source,java]
 ----
 @Test
@@ -650,13 +680,15 @@ public void returns_single_active_booked_trip() {
     );
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.6/src/test/java/travelator/TrackingTests.java#foo">actions.6:src/test/java/travelator/TrackingTests.java#foo</a>]
 // end-insert
 
 This gets our tests to pass, because we are now passing the correct time as the argument, albeit via setting and immediately reading a field in the `StoppedClock`.
 To fix that, we replace the `clock.now` reads with the values from the `clock.now` writes.
 Then the `clock` is unused and we can delete it:
 
-// begin-insert: tags/actions.8:src/test/java/travelator/TrackingTests.java#foo
+// begin-insert: actions.8:src/test/java/travelator/TrackingTests.java#foo
 [source,java]
 ----
 public class TrackingTests {
@@ -689,6 +721,8 @@ public class TrackingTests {
     ...
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.8/src/test/java/travelator/TrackingTests.java#foo">actions.8:src/test/java/travelator/TrackingTests.java#foo</a>]
 // end-insert
 
 This is pattern we often see as we refactor towards more functional code.
@@ -701,7 +735,7 @@ We're almost done now. (Refactoring is never completely done.)
 
 With all this focus on the tests, we were about to check in before we realised that we haven't completed our refactor in `CurrentTripsHandler`.
 
-// begin-insert: tags/actions.8:src/main/java/travelator/handlers/CurrentTripsHandler.java#foo
+// begin-insert: actions.8:src/main/java/travelator/handlers/CurrentTripsHandler.java#foo
 [source,java]
 ----
 public Response handle(Request request) {
@@ -720,6 +754,8 @@ public Response handle(Request request) {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.8/src/main/java/travelator/handlers/CurrentTripsHandler.java#foo">actions.8:src/main/java/travelator/handlers/CurrentTripsHandler.java#foo</a>]
 // end-insert
 
 <1> We're still passing `null`
@@ -727,7 +763,7 @@ public Response handle(Request request) {
 Now that neither of our `currentTripFor` methods fetch the time, `CurrentTripHandler` is the only action - the place that we need to call `Instant.now()`.
 We can fix things by inserting the call, leaving us with:
 
-// begin-insert: tags/actions.9:src/main/java/travelator/handlers/CurrentTripsHandler.java
+// begin-insert: actions.9:src/main/java/travelator/handlers/CurrentTripsHandler.java
 [source,java]
 ----
 public class CurrentTripsHandler {
@@ -758,6 +794,8 @@ public class CurrentTripsHandler {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.9/src/main/java/travelator/handlers/CurrentTripsHandler.java">actions.9:src/main/java/travelator/handlers/CurrentTripsHandler.java</a>]
 // end-insert
 
 <1> Now our action is at the application entry point.
@@ -782,7 +820,7 @@ Note also that a lot of the refactoring steps taken in this chapter (and others)
 Before we finish this chapter, what about the other action we hinted at?
 Here is the implementation of `InMemoryTrips`, now converted to Kotlin:
 
-// begin-insert: tags/actions.10:src/test/java/travelator/InMemoryTrips.kt
+// begin-insert: actions.10:src/test/java/travelator/InMemoryTrips.kt
 [source,kotlin]
 ----
 class InMemoryTrips : Trips {
@@ -803,6 +841,8 @@ class InMemoryTrips : Trips {
             .toSet()
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.10/src/test/java/travelator/InMemoryTrips.kt">actions.10:src/test/java/travelator/InMemoryTrips.kt</a>]
 // end-insert
 
 That `MutableMap` of ++MutableSet++s is a sign that something can change over time.

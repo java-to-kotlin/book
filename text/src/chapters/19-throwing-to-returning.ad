@@ -453,7 +453,7 @@ Now that we know the error handling options available to us, let's refactor some
 
 There is an HTTP endpoint in Travelator that allows the client app to register a `Customer`:
 
-// begin-insert: tags/errors.0:src/main/java/travelator/handlers/CustomerRegistrationHandler.java
+// begin-insert: errors.0:src/main/java/travelator/handlers/CustomerRegistrationHandler.java
 [source,java]
 ----
 public class CustomerRegistrationHandler {
@@ -487,6 +487,8 @@ public class CustomerRegistrationHandler {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.0/src/main/java/travelator/handlers/CustomerRegistrationHandler.java">errors.0:src/main/java/travelator/handlers/CustomerRegistrationHandler.java</a>]
 // end-insert
 
 
@@ -507,7 +509,7 @@ If we value the ability to correctly handle different types of error, we should 
 `CustomerRegistration` implements the business rules, which is that potential customers should be vetted against an `ExclusionList`.
 We don't want to allow known-undesirables to register and abuse our services, so we reject them at this point:
 
-// begin-insert: tags/errors.0:src/main/java/travelator/CustomerRegistration.java
+// begin-insert: errors.0:src/main/java/travelator/CustomerRegistration.java
 [source,java]
 ----
 public class CustomerRegistration implements IRegisterCustomers {
@@ -533,13 +535,15 @@ public class CustomerRegistration implements IRegisterCustomers {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.0/src/main/java/travelator/CustomerRegistration.java">errors.0:src/main/java/travelator/CustomerRegistration.java</a>]
 // end-insert
 
 Look at the `throws` clause of `register`.
 It tells us that the method can fail because of the explicit exclusion, but also that `customers.add` can fail with a `DuplicateException`.
 Here is the `Customers` interface:
 
-// begin-insert: tags/errors.0:src/main/java/travelator/Customers.java
+// begin-insert: errors.0:src/main/java/travelator/Customers.java
 [source,java]
 ----
 public interface Customers {
@@ -549,12 +553,14 @@ public interface Customers {
     Optional<Customer> find(String id);
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.0/src/main/java/travelator/Customers.java">errors.0:src/main/java/travelator/Customers.java</a>]
 // end-insert
 
 Finally, `Customer` is another value type.
 Here it is after conversion to Kotlin.
 
-// begin-insert: tags/errors.1:src/main/java/travelator/Customer.kt
+// begin-insert: errors.1:src/main/java/travelator/Customer.kt
 [source,kotlin]
 ----
 data class Customer(
@@ -563,6 +569,8 @@ data class Customer(
     val email: String
 )
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.1/src/main/java/travelator/Customer.kt">errors.1:src/main/java/travelator/Customer.kt</a>]
 // end-insert
 
 This is typical of your authors' Java style.
@@ -587,7 +595,7 @@ At the same time we have to be mindful that pretty much any instruction in the J
 
 If we convert `Customers` to Kotlin we get:
 
-// begin-insert: tags/errors.3:src/main/java/travelator/Customers.kt
+// begin-insert: errors.3:src/main/java/travelator/Customers.kt
 [source,kotlin]
 ----
 interface Customers {
@@ -598,6 +606,8 @@ interface Customers {
     fun find(id: String): Optional<Customer>
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.3/src/main/java/travelator/Customers.kt">errors.3:src/main/java/travelator/Customers.kt</a>]
 // end-insert
 
 <1> Although Kotlin doesn't have checked exceptions, the `@Throws` annotation allows interop with Java code by adding the exception to the method's signature in the bytecode.
@@ -614,7 +624,7 @@ What should we call the method that works like `Customers::add` but returns a `R
 We can't call it `add` too, as both have the same parameters, so we call it `addToo` for now.
 If the new method delegates to `add`, we can make it a default method so that it is available to all implementations:
 
-// begin-insert: tags/errors.5:src/main/java/travelator/Customers.kt
+// begin-insert: errors.5:src/main/java/travelator/Customers.kt
 [source,kotlin]
 ----
 interface Customers {
@@ -633,6 +643,8 @@ interface Customers {
     fun find(id: String): Optional<Customer>
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.5/src/main/java/travelator/Customers.kt">errors.5:src/main/java/travelator/Customers.kt</a>]
 // end-insert
 
 .Naming
@@ -649,7 +661,7 @@ Now we have both exception and result versions of the method, we can migrate the
 While we can use Result4k from Java, it's a lot more convenient from Kotlin.
 So let's take `CustomerRegistration` (the caller of `add`):
 
-// begin-insert: tags/errors.5:src/main/java/travelator/CustomerRegistration.java
+// begin-insert: errors.5:src/main/java/travelator/CustomerRegistration.java
 [source,java]
 ----
 public class CustomerRegistration implements IRegisterCustomers {
@@ -675,11 +687,13 @@ public class CustomerRegistration implements IRegisterCustomers {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.5/src/main/java/travelator/CustomerRegistration.java">errors.5:src/main/java/travelator/CustomerRegistration.java</a>]
 // end-insert
 
 Converting this to Kotlin gives:
 
-// begin-insert: tags/errors.6:src/main/java/travelator/CustomerRegistration.kt
+// begin-insert: errors.6:src/main/java/travelator/CustomerRegistration.kt
 [source,kotlin]
 ----
 class CustomerRegistration(
@@ -698,13 +712,15 @@ class CustomerRegistration(
 
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.6/src/main/java/travelator/CustomerRegistration.kt">errors.6:src/main/java/travelator/CustomerRegistration.kt</a>]
 // end-insert
 
 That `customers.add` expression is the one that can throw `DuplicateException`.
 We're going to replace it with a call to `addToo` but keeping the behaviour the same.
 So we pull out `result` as a local:
 
-// begin-insert: tags/errors.7:src/main/java/travelator/CustomerRegistration.kt#foo
+// begin-insert: errors.7:src/main/java/travelator/CustomerRegistration.kt#foo
 [source,kotlin]
 ----
 @Throws(ExcludedException::class, DuplicateException::class)
@@ -717,12 +733,14 @@ override fun register(data: RegistrationData): Customer {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.7/src/main/java/travelator/CustomerRegistration.kt#foo">errors.7:src/main/java/travelator/CustomerRegistration.kt#foo</a>]
 // end-insert
 
 If we now call `addToo` instead it will no longer throw, but the exception will be returned in the `Result`.
 This won't compile yet:
 
-// begin-insert: tags/errors.8:src/main/java/travelator/CustomerRegistration.kt#foo
+// begin-insert: errors.8:src/main/java/travelator/CustomerRegistration.kt#foo
 [source,kotlin]
 ----
 @Throws(ExcludedException::class, DuplicateException::class)
@@ -736,6 +754,8 @@ override fun register(data: RegistrationData): Customer {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.8/src/main/java/travelator/CustomerRegistration.kt#foo">errors.8:src/main/java/travelator/CustomerRegistration.kt#foo</a>]
 // end-insert
 
 <1> `Type mismatch. Required: Customer Found: Result<Customer, DuplicateException>`
@@ -743,7 +763,7 @@ override fun register(data: RegistrationData): Customer {
 We have a `Result`, so we need to unpack it.
 When it is `Success`, we want to return the wrapped value; when `Failure`, throw the wrapped `DuplicateException` (in order to keep the current behaviour of `register`):
 
-// begin-insert: tags/errors.9:src/main/java/travelator/CustomerRegistration.kt#foo
+// begin-insert: errors.9:src/main/java/travelator/CustomerRegistration.kt#foo
 [source,kotlin]
 ----
 @Throws(ExcludedException::class, DuplicateException::class)
@@ -762,11 +782,13 @@ override fun register(data: RegistrationData): Customer {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.9/src/main/java/travelator/CustomerRegistration.kt#foo">errors.9:src/main/java/travelator/CustomerRegistration.kt#foo</a>]
 // end-insert
 
 As it happens, where the error type is an `Exception`, Result4k has a function to shortcut this case: `Result::orThrow`:
 
-// begin-insert: tags/errors.10:src/main/java/travelator/CustomerRegistration.kt#foo
+// begin-insert: errors.10:src/main/java/travelator/CustomerRegistration.kt#foo
 [source,kotlin]
 ----
 @Throws(ExcludedException::class, DuplicateException::class)
@@ -780,11 +802,13 @@ override fun register(data: RegistrationData): Customer {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.10/src/main/java/travelator/CustomerRegistration.kt#foo">errors.10:src/main/java/travelator/CustomerRegistration.kt#foo</a>]
 // end-insert
 
 Now we can inline to get back to a shorter form:
 
-// begin-insert: tags/errors.11:src/main/java/travelator/CustomerRegistration.kt#foo
+// begin-insert: errors.11:src/main/java/travelator/CustomerRegistration.kt#foo
 [source,kotlin]
 ----
 @Throws(ExcludedException::class, DuplicateException::class)
@@ -796,12 +820,14 @@ override fun register(data: RegistrationData): Customer {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.11/src/main/java/travelator/CustomerRegistration.kt#foo">errors.11:src/main/java/travelator/CustomerRegistration.kt#foo</a>]
 // end-insert
 
 Finally, that nesting is too confusing for comfort, so let's simplify it using "Replace 'if' with 'when'", "Replace return with 'when' expression", and "Remove braces from all 'when' entries".
 Alt-Enter all the things!
 
-// begin-insert: tags/errors.12:src/main/java/travelator/CustomerRegistration.kt#foo
+// begin-insert: errors.12:src/main/java/travelator/CustomerRegistration.kt#foo
 [source,kotlin]
 ----
 @Throws(ExcludedException::class, DuplicateException::class)
@@ -812,6 +838,8 @@ override fun register(data: RegistrationData): Customer {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.12/src/main/java/travelator/CustomerRegistration.kt#foo">errors.12:src/main/java/travelator/CustomerRegistration.kt#foo</a>]
 // end-insert
 
 Splendid.
@@ -831,7 +859,7 @@ Our code now calls them via the default implementation of `Customers::addToo` th
 We want to delete the `add` implementations, so we need to implement `addToo` directly.
 Let's look at the (not thread-safe) test version.
 
-// begin-insert: tags/errors.12:src/test/java/travelator/InMemoryCustomers.java
+// begin-insert: errors.12:src/test/java/travelator/InMemoryCustomers.java
 [source,java]
 ----
 public class InMemoryCustomers implements Customers {
@@ -868,11 +896,13 @@ public class InMemoryCustomers implements Customers {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.12/src/test/java/travelator/InMemoryCustomers.java">errors.12:src/test/java/travelator/InMemoryCustomers.java</a>]
 // end-insert
 
 The easiest way to implement `addToo` here is probably just to duplicate `add` and fix it up, returning `Failure` where we had thrown, and `Success` for the happy path:
 
-// begin-insert: tags/errors.13:src/test/java/travelator/InMemoryCustomers.java#foo
+// begin-insert: errors.13:src/test/java/travelator/InMemoryCustomers.java#foo
 [source,java]
 ----
 @SuppressWarnings("unchecked")
@@ -892,12 +922,14 @@ public Result<Customer, DuplicateException> addToo(
     return new Success<Customer>(result);
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.13/src/test/java/travelator/InMemoryCustomers.java#foo">errors.13:src/test/java/travelator/InMemoryCustomers.java#foo</a>]
 // end-insert
 
 We can also use this strategy to add `addToo` to our production implementations of `Customers`, we'll skip the details.
 Once we are done, we can delete the unused `add` from the implementations and the interface, and then rename `addToo` to `add`, leaving us with:
 
-// begin-insert: tags/errors.14:src/main/java/travelator/Customers.kt
+// begin-insert: errors.14:src/main/java/travelator/Customers.kt
 [source,kotlin]
 ----
 interface Customers {
@@ -907,11 +939,13 @@ interface Customers {
     fun find(id: String): Optional<Customer>
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.14/src/main/java/travelator/Customers.kt">errors.14:src/main/java/travelator/Customers.kt</a>]
 // end-insert
 
 The clients of `Customers` are now back to calling `add`, albeit the version returning a `Result` rather than declaring checked exceptions:
 
-// begin-insert: tags/errors.14:src/main/java/travelator/CustomerRegistration.kt
+// begin-insert: errors.14:src/main/java/travelator/CustomerRegistration.kt
 [source,kotlin]
 ----
 class CustomerRegistration(
@@ -928,13 +962,15 @@ class CustomerRegistration(
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.14/src/main/java/travelator/CustomerRegistration.kt">errors.14:src/main/java/travelator/CustomerRegistration.kt</a>]
 // end-insert
 
 We left `InMemoryCustomers` as Java really just to demonstrate that we could return Result4k types from our old code, but we can't resist the conversion, as the code now has a number of warnings of the type `Not annotated [X] overrides @NotNull [X]`.
 
 After conversion, including moving from streams to Kotlin collection operations (<<streams-to-sequences>>), we have:
 
-// begin-insert: tags/errors.15:src/test/java/travelator/InMemoryCustomers.kt
+// begin-insert: errors.15:src/test/java/travelator/InMemoryCustomers.kt
 [source,kotlin]
 ----
 class InMemoryCustomers : Customers {
@@ -968,12 +1004,14 @@ class InMemoryCustomers : Customers {
     fun size(): Int = list.size
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.15/src/test/java/travelator/InMemoryCustomers.kt">errors.15:src/test/java/travelator/InMemoryCustomers.kt</a>]
 // end-insert
 
 Let's recap where we are now.
 `Customers` is now Kotlin, and `add` returns a `Result` instead of throwing `DuplicateException`:
 
-// begin-insert: tags/errors.15:src/main/java/travelator/Customers.kt
+// begin-insert: errors.15:src/main/java/travelator/Customers.kt
 [source,kotlin]
 ----
 interface Customers {
@@ -983,11 +1021,13 @@ interface Customers {
     fun find(id: String): Optional<Customer>
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.15/src/main/java/travelator/Customers.kt">errors.15:src/main/java/travelator/Customers.kt</a>]
 // end-insert
 
 `IRegisterCustomers` is still Java, and still throws two types of exception:
 
-// begin-insert: tags/errors.15:src/main/java/travelator/IRegisterCustomers.java
+// begin-insert: errors.15:src/main/java/travelator/IRegisterCustomers.java
 [source,java]
 ----
 public interface IRegisterCustomers {
@@ -995,11 +1035,13 @@ public interface IRegisterCustomers {
         throws ExcludedException, DuplicateException;
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.15/src/main/java/travelator/IRegisterCustomers.java">errors.15:src/main/java/travelator/IRegisterCustomers.java</a>]
 // end-insert
 
 `CustomerRegistration` is now Kotlin, and is the place where we now thunk between `Result.Error` and `DuplicateException`, using `orThrow`:
 
-// begin-insert: tags/errors.15:src/main/java/travelator/CustomerRegistration.kt
+// begin-insert: errors.15:src/main/java/travelator/CustomerRegistration.kt
 [source,kotlin]
 ----
 class CustomerRegistration(
@@ -1016,6 +1058,8 @@ class CustomerRegistration(
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.15/src/main/java/travelator/CustomerRegistration.kt">errors.15:src/main/java/travelator/CustomerRegistration.kt</a>]
 // end-insert
 
 We have converted a whole layer of our interaction to use a result type, and can move out to the next.
@@ -1037,7 +1081,7 @@ Instead, our best strategy here is not to try to express the error in terms of e
 
 As _exception_ and _error_ are all overloaded terms, we've chosen `RegistrationProblem`, with subtypes of `Excluded`,(which carries no additional information and so can be an `object`), and `Duplicate`(which carries any message from the original `DuplicateException`):
 
-// begin-insert: tags/errors.16:src/main/java/travelator/IRegisterCustomers.kt#RegistrationProblem
+// begin-insert: errors.16:src/main/java/travelator/IRegisterCustomers.kt#RegistrationProblem
 [source,kotlin]
 ----
 sealed class RegistrationProblem
@@ -1048,13 +1092,15 @@ data class Duplicate(
     val message: String?
 ) : RegistrationProblem()
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.16/src/main/java/travelator/IRegisterCustomers.kt#RegistrationProblem">errors.16:src/main/java/travelator/IRegisterCustomers.kt#RegistrationProblem</a>]
 // end-insert
 
 By making `RegistrationProblem` a sealed class, we know at compile time what subclasses can exist and hence what errors have to be handled -- very much like the checked exception signature of a method.
 
 We can use this `RegistrationProblem` when we follow the pattern from earlier, adding a default implementation of `registerToo` to the interface that returns `Result<Customer, RegistrationProblem>`:
 
-// begin-insert: tags/errors.16:src/main/java/travelator/IRegisterCustomers.kt#IRegisterCustomers
+// begin-insert: errors.16:src/main/java/travelator/IRegisterCustomers.kt#IRegisterCustomers
 [source,kotlin]
 ----
 interface IRegisterCustomers {
@@ -1073,12 +1119,14 @@ interface IRegisterCustomers {
         }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.16/src/main/java/travelator/IRegisterCustomers.kt#IRegisterCustomers">errors.16:src/main/java/travelator/IRegisterCustomers.kt#IRegisterCustomers</a>]
 // end-insert
 
 Now we can migrate callers of `register` to `registerToo`.
 We'll start with `CustomerRegistrationHandler`, converting it to Kotlin first:
 
-// begin-insert: tags/errors.17:src/main/java/travelator/handlers/CustomerRegistrationHandler.kt
+// begin-insert: errors.17:src/main/java/travelator/handlers/CustomerRegistrationHandler.kt
 [source,kotlin]
 ----
 class CustomerRegistrationHandler(
@@ -1109,11 +1157,13 @@ class CustomerRegistrationHandler(
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.17/src/main/java/travelator/handlers/CustomerRegistrationHandler.kt">errors.17:src/main/java/travelator/handlers/CustomerRegistrationHandler.kt</a>]
 // end-insert
 
 Now, as we did before, we swap to calling the new method (`registerToo`) instead of the old one (`register`), and interpret the return type with `when` expression:
 
-// begin-insert: tags/errors.18:src/main/java/travelator/handlers/CustomerRegistrationHandler.kt
+// begin-insert: errors.18:src/main/java/travelator/handlers/CustomerRegistrationHandler.kt
 [source,kotlin]
 ----
 class CustomerRegistrationHandler(
@@ -1153,12 +1203,14 @@ private fun RegistrationProblem.toResponse() = when (this) {
     is Excluded -> Response(HTTP_FORBIDDEN)
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.18/src/main/java/travelator/handlers/CustomerRegistrationHandler.kt">errors.18:src/main/java/travelator/handlers/CustomerRegistrationHandler.kt</a>]
 // end-insert
 
 Finally we can remove the unnecessary exception cases and simplify the error case with `map` and `recover`.
 `Result::recover` is a Result4k extension function that unwraps the result if it is `Success`, otherwise returning the result of mapping the failure's `reason`:
 
-// begin-insert: tags/errors.19:src/main/java/travelator/handlers/CustomerRegistrationHandler.kt#foo
+// begin-insert: errors.19:src/main/java/travelator/handlers/CustomerRegistrationHandler.kt#foo
 [source,kotlin]
 ----
 fun handle(request: Request): Response =
@@ -1181,6 +1233,8 @@ fun handle(request: Request): Response =
         Response(HTTP_INTERNAL_ERROR)
     }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.19/src/main/java/travelator/handlers/CustomerRegistrationHandler.kt#foo">errors.19:src/main/java/travelator/handlers/CustomerRegistrationHandler.kt#foo</a>]
 // end-insert
 
 Note that this code is still not exception-free.
@@ -1198,7 +1252,7 @@ Ordinarily we would have fixed them straight away, but that would have interrupt
 The problem is that the tests are mock tests which expect calls to `IRegister.register`, but we are now calling `registerToo`.
 For example:
 
-// begin-insert: tags/errors.20:src/test/java/travelator/handlers/CustomerRegistrationHandlerTests.java#foo
+// begin-insert: errors.20:src/test/java/travelator/handlers/CustomerRegistrationHandlerTests.java#foo
 [source,java]
 ----
 public class CustomerRegistrationHandlerTests {
@@ -1252,11 +1306,13 @@ public class CustomerRegistrationHandlerTests {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.20/src/test/java/travelator/handlers/CustomerRegistrationHandlerTests.java#foo">errors.20:src/test/java/travelator/handlers/CustomerRegistrationHandlerTests.java#foo</a>]
 // end-insert
 
 To fix the tests, we need to change the call from `register`, returning `Customer` or throwing, to `registerToo`, returning `Result<Customer, RegistrationProblem>`:
 
-// begin-insert: tags/errors.21:src/test/java/travelator/handlers/CustomerRegistrationHandlerTests.java#foo
+// begin-insert: errors.21:src/test/java/travelator/handlers/CustomerRegistrationHandlerTests.java#foo
 [source,java]
 ----
 @Test
@@ -1291,6 +1347,8 @@ public void returns_Conflict_for_duplicate() {
 }
     ...
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.21/src/test/java/travelator/handlers/CustomerRegistrationHandlerTests.java#foo">errors.21:src/test/java/travelator/handlers/CustomerRegistrationHandlerTests.java#foo</a>]
 // end-insert
 
 The tests are actually simplified, because instead of having to choose `thenReturn` or `thenThrow`, we are now always mocking with `thenReturn`, with `Success` or `Failure` respectively.
@@ -1299,7 +1357,7 @@ Now our tests are passing again, we can return to production code, and implement
 In lieu of any cleverer idea, we do this by duplicating the `register` method and fettling the error handling.
 We do this using `Result::mapFailure` (part of Result4k), to convert `DuplicateException` to `Duplicate`.
 
-// begin-insert: tags/errors.22:src/main/java/travelator/CustomerRegistration.kt
+// begin-insert: errors.22:src/main/java/travelator/CustomerRegistration.kt
 [source,kotlin]
 ----
 class CustomerRegistration(
@@ -1328,6 +1386,8 @@ class CustomerRegistration(
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.22/src/main/java/travelator/CustomerRegistration.kt">errors.22:src/main/java/travelator/CustomerRegistration.kt</a>]
 // end-insert
 
 <1> Note that we explicitly specify the type of the lambda parameter in `mapFailure`.
@@ -1337,7 +1397,7 @@ There are two problems with this.
 Firstly, `registerToo` has no test code, and secondly, we have the duplicate logic caused by our duplicating `register` to create `registerToo`.
 We can fix both by implementing `register` in terms of `registerToo` - the opposite of what we did in `Customers`.
 
-// begin-insert: tags/errors.23:src/main/java/travelator/CustomerRegistration.kt
+// begin-insert: errors.23:src/main/java/travelator/CustomerRegistration.kt
 [source,kotlin]
 ----
 class CustomerRegistration(
@@ -1367,13 +1427,15 @@ class CustomerRegistration(
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.23/src/main/java/travelator/CustomerRegistration.kt">errors.23:src/main/java/travelator/CustomerRegistration.kt</a>]
 // end-insert
 
 <1>  Delegate to `registerToo` and process `Error` type.
 
 Now our `CustomerRegistrationTests`, which work in terms of `register`, will be testing `registerToo` for us:
 
-// begin-insert: tags/errors.23:src/test/java/travelator/CustomerRegistrationTests.java#excerpt
+// begin-insert: errors.23:src/test/java/travelator/CustomerRegistrationTests.java#excerpt
 [source,java]
 ----
 public class CustomerRegistrationTests {
@@ -1417,13 +1479,15 @@ public class CustomerRegistrationTests {
     ...
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.23/src/test/java/travelator/CustomerRegistrationTests.java#excerpt">errors.23:src/test/java/travelator/CustomerRegistrationTests.java#excerpt</a>]
 // end-insert
 
 This would be a good way to keep both `register` and `registerToo` while we migrate away from Java and exceptions to Kotlin and an error type.
 In this case though the tests are actually the last callers of `register`, so let's convert them to call `registerToo`.
 We could take the time to show how to use Result4k in Java, but we're all pretty tired of this example now, so we'll convert the tests to Kotlin and then have them call `register` with the immortal words, "Here's one I made earlier":
 
-// begin-insert: tags/errors.24:src/test/java/travelator/CustomerRegistrationTests.kt#excerpt
+// begin-insert: errors.24:src/test/java/travelator/CustomerRegistrationTests.kt#excerpt
 [source,kotlin]
 ----
 @Test
@@ -1455,11 +1519,13 @@ fun `returns Duplicate when email address exists`() {
 
     ...
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.24/src/test/java/travelator/CustomerRegistrationTests.kt#excerpt">errors.24:src/test/java/travelator/CustomerRegistrationTests.kt#excerpt</a>]
 // end-insert
 
 Now we have no callers of `register`, we can finally remove it and rename `registerToo` to `register`, ending up with exception-free Kotlin.
 
-// begin-insert: tags/errors.25:src/main/java/travelator/IRegisterCustomers.kt
+// begin-insert: errors.25:src/main/java/travelator/IRegisterCustomers.kt
 [source,kotlin]
 ----
 interface IRegisterCustomers {
@@ -1475,9 +1541,11 @@ data class Duplicate(
     val message: String?
 ) : RegistrationProblem()
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.25/src/main/java/travelator/IRegisterCustomers.kt">errors.25:src/main/java/travelator/IRegisterCustomers.kt</a>]
 // end-insert
 
-// begin-insert: tags/errors.25:src/main/java/travelator/Customers.kt
+// begin-insert: errors.25:src/main/java/travelator/Customers.kt
 [source,kotlin]
 ----
 interface Customers {
@@ -1487,6 +1555,8 @@ interface Customers {
     fun find(id: String): Optional<Customer>
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.25/src/main/java/travelator/Customers.kt">errors.25:src/main/java/travelator/Customers.kt</a>]
 // end-insert
 
 Hmm, not quite exception-free because of that `DuplicateException`.
@@ -1507,7 +1577,7 @@ So we will be back to the problem of expressing more than one error type in a si
 Let's chase that through.
 If `Customers::add` needs to declare more than one way that it can fail - our previous `DuplicateCustomerProblem` and our new `DatabaseCustomerProblem` - we introduce a sealed `CustomersProblem` as the error type, and make the two known problems its only subclasses:
 
-// begin-insert: tags/errors.27:src/main/java/travelator/Customers.kt
+// begin-insert: errors.27:src/main/java/travelator/Customers.kt
 [source,kotlin]
 ----
 interface Customers {
@@ -1523,11 +1593,13 @@ data class DuplicateCustomerProblem(val message: String): CustomersProblem()
 
 data class DatabaseCustomerProblem(val message: String): CustomersProblem()
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.27/src/main/java/travelator/Customers.kt">errors.27:src/main/java/travelator/Customers.kt</a>]
 // end-insert
 
 `CustomerRegistration` was calling `Customers::add` and handling just `DuplicateCustomerProblem` in `mapFailure`:
 
-// begin-insert: tags/errors.26:src/main/java/travelator/CustomerRegistration.kt
+// begin-insert: errors.26:src/main/java/travelator/CustomerRegistration.kt
 [source,kotlin]
 ----
 class CustomerRegistration(
@@ -1548,6 +1620,8 @@ class CustomerRegistration(
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.26/src/main/java/travelator/CustomerRegistration.kt">errors.26:src/main/java/travelator/CustomerRegistration.kt</a>]
 // end-insert
 
 This no longer compiles, as the type of the failure is now the `CustomersProblem` base class.
@@ -1556,7 +1630,7 @@ You can see that we are getting the advantages of checked exceptions -- code is 
 Now that `Customers::add` admits that it can fail in a new and interesting way, `register` is also forced to handle the truth.
 It decides to pass the knowledge on to its callers (well OK, we decide for it) by adding a new `DatabaseProblem` subtype of the existing `RegistrationProblem` sealed class:
 
-// begin-insert: tags/errors.27:src/main/java/travelator/IRegisterCustomers.kt#RegistrationProblem
+// begin-insert: errors.27:src/main/java/travelator/IRegisterCustomers.kt#RegistrationProblem
 [source,kotlin]
 ----
 sealed class RegistrationProblem
@@ -1567,12 +1641,14 @@ data class Duplicate(val message: String) : RegistrationProblem()
 
 data class DatabaseProblem(val message: String) : RegistrationProblem()
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.27/src/main/java/travelator/IRegisterCustomers.kt#RegistrationProblem">errors.27:src/main/java/travelator/IRegisterCustomers.kt#RegistrationProblem</a>]
 // end-insert
 
 Now we can fix `register` by converting between the ways that `add` can fail (`DuplicateCustomerProblem` and `DatabaseCustomerProblem`) and the ways that `register` can fail (`Duplicate` and `DatabaseProblem` respectively).
 This now makes the choice of `mapFailure` clear:
 
-// begin-insert: tags/errors.27:src/main/java/travelator/CustomerRegistration.kt#register
+// begin-insert: errors.27:src/main/java/travelator/CustomerRegistration.kt#register
 [source,kotlin]
 ----
 override fun register(
@@ -1592,11 +1668,13 @@ override fun register(
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.27/src/main/java/travelator/CustomerRegistration.kt#register">errors.27:src/main/java/travelator/CustomerRegistration.kt#register</a>]
 // end-insert
 
 Finally, because we've added to the `RegistrationProblem` sealed hierarchy, the compiler now forces us to consider the `DatabaseProblem` in the next layer up by failing to compile `CustomerRegistrationHandler`:
 
-// begin-insert: tags/errors.27:src/main/java/travelator/handlers/CustomerRegistrationHandler.kt#toResponse
+// begin-insert: errors.27:src/main/java/travelator/handlers/CustomerRegistrationHandler.kt#toResponse
 [source,kotlin]
 ----
 private fun RegistrationProblem.toResponse() = when (this) {
@@ -1605,6 +1683,8 @@ private fun RegistrationProblem.toResponse() = when (this) {
     is DatabaseProblem -> Response(HTTP_INTERNAL_ERROR) // <1>
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/errors.27/src/main/java/travelator/handlers/CustomerRegistrationHandler.kt#toResponse">errors.27:src/main/java/travelator/handlers/CustomerRegistrationHandler.kt#toResponse</a>]
 // end-insert
 
 <1> We have to add a case for `DatabaseProblem` to get the `when` expression to compile.

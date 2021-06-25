@@ -23,7 +23,7 @@ In <<accumulating-objects-to-transformations>> we saw how we estimate their cost
 
 When we last looked at the `Itinerary` class, in <<accumulating-objects-to-transformations>>, we were modelling an itinerary as a data class, with a property for the route and another for the accommodation required along the route:
 
-// begin-insert: tags/accumulator.17:src/main/java/travelator/itinerary/Itinerary.kt#excerpt
+// begin-insert: accumulator.17:src/main/java/travelator/itinerary/Itinerary.kt#excerpt
 [source,kotlin]
 ----
 data class Itinerary(
@@ -34,13 +34,15 @@ data class Itinerary(
     ...
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.17/src/main/java/travelator/itinerary/Itinerary.kt#excerpt">accumulator.17:src/main/java/travelator/itinerary/Itinerary.kt#excerpt</a>]
 // end-insert
 
 Since then, we have added more features to the application and hence more types of item to the itinerary.
 We found it increasingly cumbersome to hold each type of itinerary item in a separate collection, because too much of our code involved combining those collections or applying the same filters and transforms to separate collections.
 So we decided that an `Itinerary` would maintain a single collection of `ItineraryItem` rather than keep each type of item in a separate collection:
 
-// begin-insert: tags/open-to-sealed-2.0:src/main/java/travelator/itinerary/Itinerary.kt#itinerary
+// begin-insert: open-to-sealed-2.0:src/main/java/travelator/itinerary/Itinerary.kt#itinerary
 [source,kotlin]
 ----
 data class Itinerary(
@@ -48,11 +50,13 @@ data class Itinerary(
     val items: List<ItineraryItem>
 ) : Iterable<ItineraryItem> by items
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.0/src/main/java/travelator/itinerary/Itinerary.kt#itinerary">open-to-sealed-2.0:src/main/java/travelator/itinerary/Itinerary.kt#itinerary</a>]
 // end-insert
 
 `ItineraryItem` is an interface, implemented by the concrete item types we saw before: `Journey` and  `Accommodation`; and new types `RestaurantBooking` and `Attraction`:
 
-// begin-insert: tags/open-to-sealed-2.0:src/main/java/travelator/itinerary/ItineraryItem.kt#item
+// begin-insert: open-to-sealed-2.0:src/main/java/travelator/itinerary/ItineraryItem.kt#item
 [source,kotlin]
 ----
 interface ItineraryItem {
@@ -63,6 +67,8 @@ interface ItineraryItem {
     ... and other methods
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.0/src/main/java/travelator/itinerary/ItineraryItem.kt#item">open-to-sealed-2.0:src/main/java/travelator/itinerary/ItineraryItem.kt#item</a>]
 // end-insert
 
 Operations on `Itinerary` don't depend on the concrete type of its items.
@@ -70,7 +76,7 @@ For example, to display the itinerary on a map, we create a `MapOverlay` that wi
 The overlay for an `Itinerary` is the group of the overlays for all the items it contains.
 The `Itinerary` class and its clients don't know, or need to know, how each item represents itself as a map overlay.
 
-// begin-insert: tags/open-to-sealed-2.0:src/main/java/travelator/itinerary/Itinerary.kt#mapOverlay
+// begin-insert: open-to-sealed-2.0:src/main/java/travelator/itinerary/Itinerary.kt#mapOverlay
 [source,kotlin]
 ----
 val Itinerary.mapOverlay
@@ -78,6 +84,8 @@ val Itinerary.mapOverlay
         id = id,
         elements = items.map { it.mapOverlay })
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.0/src/main/java/travelator/itinerary/Itinerary.kt#mapOverlay">open-to-sealed-2.0:src/main/java/travelator/itinerary/Itinerary.kt#mapOverlay</a>]
 // end-insert
 
 This polymorphism makes it very easy to add new types of `ItineraryItem` to the system without having to change the parts of the application that use the `Itinerary` type.
@@ -104,7 +112,7 @@ Java's principal feature to support variability is object-oriented polymorphism,
 We could use the https://wiki.c2.com/?DoubleDispatch[Double Dispatch] pattern, but it involves a lot of boilerplate code and, because it does not play well with checked exceptions, is not widely used in Java.
 Instead, Java programmers often resort to runtime type checks, using the `instanceof` and downcast operators to run different code for different classes of object:
 
-// begin-insert: tags/open-to-sealed-2.0:src/main/java/travelator/itinerary/ItineraryItems.java#type_switch
+// begin-insert: open-to-sealed-2.0:src/main/java/travelator/itinerary/ItineraryItems.java#type_switch
 [source,java]
 ----
 if (item instanceof Journey) {
@@ -120,6 +128,8 @@ if (item instanceof Journey) {
     throw new IllegalStateException("should never happen");
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.0/src/main/java/travelator/itinerary/ItineraryItems.java#type_switch">open-to-sealed-2.0:src/main/java/travelator/itinerary/ItineraryItems.java#type_switch</a>]
 // end-insert
 
 That `IllegalStateException` shows that this approach is risky.
@@ -156,6 +166,7 @@ When none of those options apply, you can use the following utility function to 
 ----
 val <T> T.exhaustive get() = this
 ----
+
 // end-insert
 
 When used like this, it will prevent compilation when `when` is not exhaustive:
@@ -168,6 +179,7 @@ when (instanceOfSealedClass) {
     is SubclassB -> println("B")
 }.exhaustive
 ----
+
 // end-insert
 ====
 
@@ -195,7 +207,7 @@ Once we've done that, we can turn the interface and its implementations into a s
 IntelliJ does not have an automated refactoring for this, so we have to do it by manually editing the class definitions.
 At least moving all the classes into the same file has made the task easier.
 
-// begin-insert: tags/open-to-sealed-2.2:src/main/java/travelator/itinerary/ItineraryItem.kt#sealed
+// begin-insert: open-to-sealed-2.2:src/main/java/travelator/itinerary/ItineraryItem.kt#sealed
 [source,kotlin]
 ----
 sealed class ItineraryItem { // <1>
@@ -233,6 +245,8 @@ data class Accommodation(
 
 ... and other subclasses
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.2/src/main/java/travelator/itinerary/ItineraryItem.kt#sealed">open-to-sealed-2.2:src/main/java/travelator/itinerary/ItineraryItem.kt#sealed</a>]
 // end-insert
 
 <1> We declare `ItineraryItem` as a `sealed class` instead of an `interface`.
@@ -251,7 +265,7 @@ Its operations are still polymorphic methods, but we can add _new_ operations th
 First we'll write the extension functions that we need to translate an `Itinerary` to a calendar.
 When we're done, we'll continue refactoring to make the other operations on `ItineraryItem` work the same way.
 
-// begin-insert: tags/open-to-sealed-2.3:src/main/java/travelator/calendar/ItineraryToCalendar.kt#toCalendarEvent
+// begin-insert: open-to-sealed-2.3:src/main/java/travelator/calendar/ItineraryToCalendar.kt#toCalendarEvent
 [source,kotlin]
 ----
 fun ItineraryItem.toCalendarEvent(): CalendarEvent? = when (this) {
@@ -282,6 +296,8 @@ fun ItineraryItem.toCalendarEvent(): CalendarEvent? = when (this) {
     )
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.3/src/main/java/travelator/calendar/ItineraryToCalendar.kt#toCalendarEvent">open-to-sealed-2.3:src/main/java/travelator/calendar/ItineraryToCalendar.kt#toCalendarEvent</a>]
 // end-insert
 
 [TIP]
@@ -308,7 +324,7 @@ Can it really be that easy?
 Unfortunately, no.
 At the time of writing, the IDE action only gets us part of the way there and leaves us with code that does not compile.
 
-// begin-insert: tags/open-to-sealed-2.4:src/main/java/travelator/itinerary/ItineraryItem.kt#item
+// begin-insert: open-to-sealed-2.4:src/main/java/travelator/itinerary/ItineraryItem.kt#item
 [source,kotlin]
 ----
 sealed class ItineraryItem {
@@ -346,6 +362,8 @@ data class Accommodation(
     ... and other methods
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.4/src/main/java/travelator/itinerary/ItineraryItem.kt#item">open-to-sealed-2.4:src/main/java/travelator/itinerary/ItineraryItem.kt#item</a>]
 // end-insert
 
 <1> The IDE removed the mapOverlay method from the `ItineraryItem` class ...
@@ -355,7 +373,7 @@ data class Accommodation(
 We can get the code compiling again by removing the `override` modifiers in the subclasses.
 Then we'll make the code actually work by implementing the body of an extension function as a `when` expression that switches on the type of `ItineraryItem` and calls the now monomorphic `mapOverlay` getter on each concrete class.
 
-// begin-insert: tags/open-to-sealed-2.5:src/main/java/travelator/itinerary/ItineraryItem.kt#mapOverlay
+// begin-insert: open-to-sealed-2.5:src/main/java/travelator/itinerary/ItineraryItem.kt#mapOverlay
 [source,kotlin]
 ----
 val ItineraryItem.mapOverlay: MapOverlay get() = when (this) {
@@ -365,6 +383,8 @@ val ItineraryItem.mapOverlay: MapOverlay get() = when (this) {
     is RestaurantBooking -> mapOverlay
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.5/src/main/java/travelator/itinerary/ItineraryItem.kt#mapOverlay">open-to-sealed-2.5:src/main/java/travelator/itinerary/ItineraryItem.kt#mapOverlay</a>]
 // end-insert
 
 The `when` expression will not compile until we have covered all the subclasses of `ItineraryItem`.
@@ -373,7 +393,7 @@ IntelliJ also highlights each read of the subclass `mapOverlay` properties to sh
 Now the point of this refactor was to prevent every implementation of `ItineraryItem` from having to know about map overlays.
 At present each still does, because each has its own `mapOverlay` property -- the one that was originally overriding the property in the interface:
 
-// begin-insert: tags/open-to-sealed-2.5:src/main/java/travelator/itinerary/ItineraryItem.kt#accommodation
+// begin-insert: open-to-sealed-2.5:src/main/java/travelator/itinerary/ItineraryItem.kt#accommodation
 [source,kotlin]
 ----
 data class Accommodation(
@@ -389,11 +409,13 @@ data class Accommodation(
         )
     ...
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.5/src/main/java/travelator/itinerary/ItineraryItem.kt#accommodation">open-to-sealed-2.5:src/main/java/travelator/itinerary/ItineraryItem.kt#accommodation</a>]
 // end-insert
 
 We can solve this problem by converting the `mapOverlay` properties with "Convert member to extension":
 
-// begin-insert: tags/open-to-sealed-2.6:src/main/java/travelator/itinerary/ItineraryItem.kt#accommodation
+// begin-insert: open-to-sealed-2.6:src/main/java/travelator/itinerary/ItineraryItem.kt#accommodation
 [source,kotlin]
 ----
 data class Accommodation(
@@ -410,11 +432,13 @@ val Accommodation.mapOverlay
         icon = StandardIcons.HOTEL
     )
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.6/src/main/java/travelator/itinerary/ItineraryItem.kt#accommodation">open-to-sealed-2.6:src/main/java/travelator/itinerary/ItineraryItem.kt#accommodation</a>]
 // end-insert
 
 Now `ItineraryItem.mapOverlay` doesn't appear to have changed at all:
 
-// begin-insert: tags/open-to-sealed-2.6:src/main/java/travelator/itinerary/ItineraryItem.kt#mapOverlay
+// begin-insert: open-to-sealed-2.6:src/main/java/travelator/itinerary/ItineraryItem.kt#mapOverlay
 [source,kotlin]
 ----
 val ItineraryItem.mapOverlay: MapOverlay get() = when (this) {
@@ -424,13 +448,15 @@ val ItineraryItem.mapOverlay: MapOverlay get() = when (this) {
     is RestaurantBooking -> mapOverlay
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.6/src/main/java/travelator/itinerary/ItineraryItem.kt#mapOverlay">open-to-sealed-2.6:src/main/java/travelator/itinerary/ItineraryItem.kt#mapOverlay</a>]
 // end-insert
 
 Look closer though (well, hover in IntelliJ), and we can see that those property accesses are now extension properties, not method calls -- `Accommodation` etc no longer depend on `MapOverlay`.
 And now that `ItineraryItem.mapOverlay`, and all the subclass properties are extensions, they don't need to be defined in the same file as the sealed classes.
 We can move them to the module or package where they are used, and they won't clutter our core domain abstraction.
 
-// begin-insert: tags/open-to-sealed-2.7:src/main/java/travelator/geo/ItineraryToMapOverlay.kt#mapOverlay
+// begin-insert: open-to-sealed-2.7:src/main/java/travelator/geo/ItineraryToMapOverlay.kt#mapOverlay
 [source,kotlin]
 ----
 package travelator.geo
@@ -454,6 +480,8 @@ private val Accommodation.mapOverlay
 
  ... Attraction.mapOverlay etc
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.7/src/main/java/travelator/geo/ItineraryToMapOverlay.kt#mapOverlay">open-to-sealed-2.7:src/main/java/travelator/geo/ItineraryToMapOverlay.kt#mapOverlay</a>]
 // end-insert
 
 We can do the same with the other members of `ItineraryItem`, until the sealed class declares only the fundamental properties of the type.
@@ -465,7 +493,7 @@ For example, each subtype derives its description from its fundamental propertie
 Nat prefers to define properties like these as extensions, while Duncan prefers to define them as members of the class.
 Nat is writing this example, so we'll make `description` an extension:
 
-// begin-insert: tags/open-to-sealed-2.8:src/main/java/travelator/itinerary/ItineraryDescription.kt
+// begin-insert: open-to-sealed-2.8:src/main/java/travelator/itinerary/ItineraryDescription.kt
 [source,kotlin]
 ----
 val ItineraryItem.description: String
@@ -481,13 +509,15 @@ val ItineraryItem.description: String
         is RestaurantBooking -> location.userReadableName
     }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.8/src/main/java/travelator/itinerary/ItineraryDescription.kt">open-to-sealed-2.8:src/main/java/travelator/itinerary/ItineraryDescription.kt</a>]
 // end-insert
 
 You'll have to make your own judgement call in your own code.
 That leaves the sealed `ItineraryItem` class declaring only the `id` property, and its subclasses declaring their fundamental properties.
 The whole hierarchy looks like this:
 
-// begin-insert: tags/open-to-sealed-2.8:src/main/java/travelator/itinerary/ItineraryItem.kt
+// begin-insert: open-to-sealed-2.8:src/main/java/travelator/itinerary/ItineraryItem.kt
 [source,kotlin]
 ----
 sealed class ItineraryItem {
@@ -529,6 +559,8 @@ data class RestaurantBooking(
     val time: ZonedDateTime
 ) : ItineraryItem()
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.8/src/main/java/travelator/itinerary/ItineraryItem.kt">open-to-sealed-2.8:src/main/java/travelator/itinerary/ItineraryItem.kt</a>]
 // end-insert
 
 Our `ItineraryItem` model is now a sealed class hierarchy of pure data classes.

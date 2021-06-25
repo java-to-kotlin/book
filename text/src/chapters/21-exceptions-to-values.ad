@@ -19,7 +19,7 @@ Without a person in the loop to interpret those stack traces, it looks like we'r
 
 Here's the code as we left it:
 
-// begin-insert: tags/exceptions-to-values.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt
+// begin-insert: exceptions-to-values.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt
 [source,kotlin]
 ----
 fun Sequence<String>.toHighValueCustomerReport(): Sequence<String> {
@@ -62,6 +62,8 @@ private fun Any?.formattedAs(format: String) = String.format(format, this)
 private val CustomerData.marketingName: String
     get() = "${familyName.toUpperCase()}, $givenName"
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/exceptions-to-values.0/src/main/java/travelator/marketing/HighValueCustomersReport.kt">exceptions-to-values.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt</a>]
 // end-insert
 
 If we're to do a thorough job of error handling, the first thing we have to do is to establish what might go wrong.
@@ -72,12 +74,14 @@ Let's work our way up the functions from the bottom of the listing, looking for 
 
 `CustomerData.marketingName` looks benign:
 
-// begin-insert: tags/exceptions-to-values.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt#marketingName
+// begin-insert: exceptions-to-values.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt#marketingName
 [source,kotlin]
 ----
 private val CustomerData.marketingName: String
     get() = "${familyName.toUpperCase()}, $givenName"
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/exceptions-to-values.0/src/main/java/travelator/marketing/HighValueCustomersReport.kt#marketingName">exceptions-to-values.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt#marketingName</a>]
 // end-insert
 
 If `CustomerData` were implemented in Java we might find `familyName` resolving to `null` and hence throwing when we try `toUpperCase()`, but in Kotlin it can't, so it won't.
@@ -86,11 +90,13 @@ From here on we'll count throwing `Error` as extraordinary and not consider it i
 
 Now `formattedAs`:
 
-// begin-insert: tags/exceptions-to-values.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt#formattedAs
+// begin-insert: exceptions-to-values.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt#formattedAs
 [source,kotlin]
 ----
 private fun Any?.formattedAs(format: String) = String.format(format, this)
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/exceptions-to-values.0/src/main/java/travelator/marketing/HighValueCustomersReport.kt#formattedAs">exceptions-to-values.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt#formattedAs</a>]
 // end-insert
 
 `String.format(format, this)` is implemented as `java.lang.String::format`, which is documented to throw `IllegalFormatException` if the `format` is not compatible with its other input.
@@ -101,12 +107,14 @@ If they do fail, it's because our analysis is incorrect (or its assumptions are 
 
 Next we have:
 
-// begin-insert: tags/exceptions-to-values.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt#outputLine
+// begin-insert: exceptions-to-values.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt#outputLine
 [source,kotlin]
 ----
 private val CustomerData.outputLine: String
     get() = "$id\t$marketingName\t${spend.toMoneyString()}"
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/exceptions-to-values.0/src/main/java/travelator/marketing/HighValueCustomersReport.kt#outputLine">exceptions-to-values.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt#outputLine</a>]
 // end-insert
 
 This only calls code that we have just reasoned shouldn't fail, so by the transitive property of failure, it should also be safe.
@@ -116,7 +124,7 @@ They don't depend on any external state, so we can reason about them just by loo
 
 So far so good, now `String.toCustomerData()`:
 
-// begin-insert: tags/exceptions-to-values.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
+// begin-insert: exceptions-to-values.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
 [source,kotlin]
 ----
 internal fun String.toCustomerData(): CustomerData =
@@ -130,6 +138,8 @@ internal fun String.toCustomerData(): CustomerData =
         )
     }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/exceptions-to-values.0/src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData">exceptions-to-values.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData</a>]
 // end-insert
 
 OK, this is another partial function -- almost no values of the `String` receiver will lead to this function being able to return a result.
@@ -153,7 +163,7 @@ If we aren't to throw an exception, then the cheapest change (provided our calle
 Client code will then be forced to consider the `null` case and act accordingly.
 For example:
 
-// begin-insert: tags/exceptions-to-values.1:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
+// begin-insert: exceptions-to-values.1:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
 [source,kotlin]
 ----
 internal fun String.toCustomerData(): CustomerData? =
@@ -170,6 +180,8 @@ internal fun String.toCustomerData(): CustomerData? =
             )
     }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/exceptions-to-values.1/src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData">exceptions-to-values.1:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData</a>]
 // end-insert
 
 We could have chosen to simply wrap the whole implementation in a `try` block and return `null` from the `catch`, but here we have been more proactive than reactive.
@@ -177,7 +189,7 @@ This means that the code will still throw if the relevant fields cannot be conve
 
 This change breaks `toHighValueCustomerReport`, which is now forced to consider the possibility of failure:
 
-// begin-insert: tags/exceptions-to-values.1:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: exceptions-to-values.1:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 fun Sequence<String>.toHighValueCustomerReport(): Sequence<String> {
@@ -192,13 +204,15 @@ fun Sequence<String>.toHighValueCustomerReport(): Sequence<String> {
         valuableCustomers.summarised()
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/exceptions-to-values.1/src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate">exceptions-to-values.1:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate</a>]
 // end-insert
 
 <1> Doesn't compile, as `it` is nullable.
 
 Now if we want to just ignore badly formed input lines, we can get everything running again with `filterNotNull`:
 
-// begin-insert: tags/exceptions-to-values.2:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: exceptions-to-values.2:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 fun Sequence<String>.toHighValueCustomerReport(): Sequence<String> {
@@ -214,12 +228,14 @@ fun Sequence<String>.toHighValueCustomerReport(): Sequence<String> {
         valuableCustomers.summarised()
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/exceptions-to-values.2/src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate">exceptions-to-values.2:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate</a>]
 // end-insert
 
 We don't have any tests to support this, and we really should write some, but for now we'll proceed without a safety net because this is an exploratory spike solution.
 From here, we can use `null` to represent the other ways that we know `toCustomerData` can fail:
 
-// begin-insert: tags/exceptions-to-values.3:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
+// begin-insert: exceptions-to-values.3:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
 [source,kotlin]
 ----
 internal fun String.toCustomerData(): CustomerData? =
@@ -239,6 +255,8 @@ internal fun String.toCustomerData(): CustomerData? =
         )
     }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/exceptions-to-values.3/src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData">exceptions-to-values.3:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData</a>]
 // end-insert
 
 Note that the Kotlin standard library has helped us out by providing `String::toSomethingOrNull` functions with just this error-handling convention.
@@ -249,7 +267,7 @@ _Somehow_ is a bit vague, but funnily enough it has a type: `(String) -> Unit` i
 Which is to say, we can delegate the what-to-do to a function that accepts the errant line and doesn't affect the result.
 We allude to this technique in <<errors-invoking-a-function>>. In order to illustrate this, let's add a test:
 
-// begin-insert: tags/exceptions-to-values.4:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#error
+// begin-insert: exceptions-to-values.4:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#error
 [source,kotlin]
 ----
 @Test
@@ -283,13 +301,15 @@ fun `calls back on parsing error`() {
     )
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/exceptions-to-values.4/src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#error">exceptions-to-values.4:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#error</a>]
 // end-insert
 
 <1> This lambda implements `onErrorLine` in the next sample.
 
 Let's implement that with the simplest thing that could possibly work:
 
-// begin-insert: tags/exceptions-to-values.4:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: exceptions-to-values.4:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 fun Sequence<String>.toHighValueCustomerReport(
@@ -312,12 +332,14 @@ fun Sequence<String>.toHighValueCustomerReport(
         valuableCustomers.summarised()
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/exceptions-to-values.4/src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate">exceptions-to-values.4:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate</a>]
 // end-insert
 
 This is still filtering out error lines, but only after passing them off to `onErrorLine`, which can decide what to do.
 In `main`, we'll use it to print errors to `System.err` and then abort:
 
-// begin-insert: tags/exceptions-to-values.4:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
+// begin-insert: exceptions-to-values.4:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
 [source,kotlin]
 ----
 fun main() {
@@ -342,6 +364,8 @@ fun main() {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/exceptions-to-values.4/src/main/java/travelator/marketing/HighValueCustomersMain.kt#main">exceptions-to-values.4:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main</a>]
 // end-insert
 
 This is one of the few places in this book that we have fallen back on a mutable `List`.
@@ -363,7 +387,7 @@ Now that we are communicating _that_ our parsing can fail (by returning a nullab
 Returning a result type rather than a nullable type allows us to specify what failure modes there are, and provide details when they happen.
 Let's change `String.toCustomerData()` to return a `Result` rather than nullable:
 
-// begin-insert: tags/exceptions-to-values.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
+// begin-insert: exceptions-to-values.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
 [source,kotlin]
 ----
 internal fun String.toCustomerData(): Result<CustomerData, ParseFailure> =
@@ -385,11 +409,13 @@ internal fun String.toCustomerData(): Result<CustomerData, ParseFailure> =
         )
     }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/exceptions-to-values.5/src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData">exceptions-to-values.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData</a>]
 // end-insert
 
 As we did in <<throwing-to-returning>>, we create a sealed class to represent why parsing failed:
 
-// begin-insert: tags/exceptions-to-values.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#ParseFailure
+// begin-insert: exceptions-to-values.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#ParseFailure
 [source,kotlin]
 ----
 sealed class ParseFailure(open val line: String)
@@ -397,12 +423,14 @@ data class NotEnoughFieldsFailure(override val line: String) : ParseFailure(line
 data class ScoreIsNotAnIntFailure(override val line: String) : ParseFailure(line)
 data class SpendIsNotADoubleFailure(override val line: String) : ParseFailure(line)
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/exceptions-to-values.5/src/main/java/travelator/marketing/HighValueCustomersReport.kt#ParseFailure">exceptions-to-values.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#ParseFailure</a>]
 // end-insert
 
 To be honest this is overkill in this situation (a single data class carrying the failing line and a string reason would do here), but we are exemplifying excellence in error engineering.
 We can fix up the callers of `toCustomerData` by invoking `onErrorLine` with the data held in the `ParseFailure` and then yielding `null` when we have an `Error` - this passes the current tests:
 
-// begin-insert: tags/exceptions-to-values.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: exceptions-to-values.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 fun Sequence<String>.toHighValueCustomerReport(
@@ -425,12 +453,14 @@ fun Sequence<String>.toHighValueCustomerReport(
         valuableCustomers.summarised()
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/exceptions-to-values.5/src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate">exceptions-to-values.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate</a>]
 // end-insert
 
 What we really want though, is to expose the `ParseFailure`.
 Let change the test first to collect the ++ParseFailure++'s instead of lines with errors:
 
-// begin-insert: tags/exceptions-to-values.6:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#excerpt
+// begin-insert: exceptions-to-values.6:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#excerpt
 [source,kotlin]
 ----
 val errorCollector = mutableListOf<ParseFailure>()
@@ -446,11 +476,13 @@ assertEquals(
     errorCollector
 )
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/exceptions-to-values.6/src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#excerpt">exceptions-to-values.6:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#excerpt</a>]
 // end-insert
 
 Now we can change `onErrorLine` to take the failure:
 
-// begin-insert: tags/exceptions-to-values.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: exceptions-to-values.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 fun Sequence<String>.toHighValueCustomerReport(
@@ -473,11 +505,13 @@ fun Sequence<String>.toHighValueCustomerReport(
         valuableCustomers.summarised()
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/exceptions-to-values.6/src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate">exceptions-to-values.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate</a>]
 // end-insert
 
 This lets `main` report the reason and the line:
 
-// begin-insert: tags/exceptions-to-values.6:src/main/java/travelator/marketing/HighValueCustomersMain.kt#excerpt
+// begin-insert: exceptions-to-values.6:src/main/java/travelator/marketing/HighValueCustomersMain.kt#excerpt
 [source,kotlin]
 ----
 if (errorLines.isNotEmpty()) {
@@ -492,6 +526,8 @@ if (errorLines.isNotEmpty()) {
     reportLines.writeTo(writer)
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/exceptions-to-values.6/src/main/java/travelator/marketing/HighValueCustomersMain.kt#excerpt">exceptions-to-values.6:src/main/java/travelator/marketing/HighValueCustomersMain.kt#excerpt</a>]
 // end-insert
 
 We might not have used the runtime type of the `ParseFailure` to process errors differently, but we have used its name in the error message, so we are at least getting some value from our little sealed class hierarchy.
@@ -505,7 +541,7 @@ If we do find out that we have bitten off more than we can chew, it's easy to re
 Now the tests are passing we should go back and make sure everything is as tidy and expressive as it can be.
 In particular, we did the quickest thing we could to get everything to work again in `toHighValueCustomerReport`:
 
-// begin-insert: tags/exceptions-to-values.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: exceptions-to-values.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 fun Sequence<String>.toHighValueCustomerReport(
@@ -528,6 +564,8 @@ fun Sequence<String>.toHighValueCustomerReport(
         valuableCustomers.summarised()
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/exceptions-to-values.6/src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate">exceptions-to-values.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate</a>]
 // end-insert
 
 There's something about yielding `null` from the `recover` block and then skipping these with `filterNotNull` that is a little unsatisfactory -- it doesn't communicate how it works directly, and gets in the way of the happy path.
@@ -536,7 +574,7 @@ If you do find a nice simple way then please let us know.
 
 Similarly, the early returns in `toCustomerData` look a bit ugly:
 
-// begin-insert: tags/exceptions-to-values.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
+// begin-insert: exceptions-to-values.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
 [source,kotlin]
 ----
 internal fun String.toCustomerData(): Result<CustomerData, ParseFailure> =
@@ -558,12 +596,14 @@ internal fun String.toCustomerData(): Result<CustomerData, ParseFailure> =
         )
     }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/exceptions-to-values.6/src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData">exceptions-to-values.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData</a>]
 // end-insert
 
 "Proper" functional error handling would not return early, but use a `flatMap` chain.
 Readers of a nervous disposition may wish to look away:
 
-// begin-insert: tags/exceptions-to-values.7:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
+// begin-insert: exceptions-to-values.7:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
 [source,kotlin]
 ----
 internal fun String.toCustomerData(): Result<CustomerData, ParseFailure> =
@@ -593,6 +633,8 @@ internal fun String.toCustomerData(): Result<CustomerData, ParseFailure> =
             }
     }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/exceptions-to-values.7/src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData">exceptions-to-values.7:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData</a>]
 // end-insert
 
 Your authors like a single expression even more than most people, but not if this is the `Result` (pun intended).
@@ -603,7 +645,7 @@ For us then, the early returns will do.
 
 Finally, returning to `main` on our final check before checkin:
 
-// begin-insert: tags/exceptions-to-values.6:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
+// begin-insert: exceptions-to-values.6:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
 [source,kotlin]
 ----
 fun main() {
@@ -630,13 +672,15 @@ fun main() {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/exceptions-to-values.6/src/main/java/travelator/marketing/HighValueCustomersMain.kt#main">exceptions-to-values.6:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main</a>]
 // end-insert
 
 Those three levels of nested `use` obfuscate the actual structure, and that `exitProcess` from deep in the bowels of the function is also a bit iffy.
 We can define our own `using` overload to address the former, and pass out an exit code to solve the latter (an example of using data rather than control flow to address errors.)
 We can extract an extension function to print the errors too:
 
-// begin-insert: tags/exceptions-to-values.8:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
+// begin-insert: exceptions-to-values.8:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
 [source,kotlin]
 ----
 fun main() {
@@ -683,6 +727,8 @@ private fun List<ParseFailure>.writeTo(error: OutputStreamWriter) {
     }.writeTo(error)
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/exceptions-to-values.8/src/main/java/travelator/marketing/HighValueCustomersMain.kt#main">exceptions-to-values.8:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main</a>]
 // end-insert
 
 === What About IO?
@@ -705,7 +751,7 @@ Helpfully now the onus is entirely on the caller - `main` here.
 It is `main` that is passing an IO-backed `Sequence` into `toHighValueCustomerReport`, so `main` should be aware that `toHighValueCustomerReport` can therefore fail with an `IOException` and deal with it accordingly.
 Let's add that code:
 
-// begin-insert: tags/exceptions-to-values.9:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
+// begin-insert: exceptions-to-values.9:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
 [source,kotlin]
 ----
 fun main() {
@@ -736,6 +782,8 @@ fun main() {
     exitProcess(statusCode)
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/exceptions-to-values.9/src/main/java/travelator/marketing/HighValueCustomersMain.kt#main">exceptions-to-values.9:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main</a>]
 // end-insert
 
 This is perhaps overkill for this application, but it shows the pattern of catching and dealing with the exceptions that we _expect_ (printing a relatively friendly message for `IOException`) but allowing all others to leak and quit the application.

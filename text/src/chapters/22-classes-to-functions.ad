@@ -24,7 +24,7 @@ As you might have been able to tell from the preceding chapters, the Travelator 
 We write code test-first, starting with a high-level acceptance test.
 We're working on a table reader, so we create a class `TableReaderAcceptanceTests` with a stub method and check that it runs:
 
-// begin-insert: tags/table-reader.1:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt
+// begin-insert: table-reader.1:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt
 [source,kotlin]
 ----
 class TableReaderAcceptanceTests {
@@ -33,6 +33,8 @@ class TableReaderAcceptanceTests {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.1/src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt">table-reader.1:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt</a>]
 // end-insert
 
 It does run (it even passes!), so now we can start coding proper.
@@ -41,7 +43,7 @@ Part of the acceptance test's job is to help us decide what our interface should
 Having parsed a few files in our time, we know that what we almost always want to do is to read a file and return a list of values of some domain type, one for each (non-header) row.
 Let's sketch that as our test, with `Measurement` as our domain type:
 
-// begin-insert: tags/table-reader.2:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt
+// begin-insert: table-reader.2:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt
 [source,kotlin]
 ----
 class TableReaderAcceptanceTests {
@@ -75,6 +77,8 @@ class TableReaderAcceptanceTests {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.2/src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt">table-reader.2:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt</a>]
 // end-insert
 
 
@@ -89,7 +93,7 @@ Maybe _map_ holds the key?
 (An accidental pun that one.)
 What if `someFunction` looked like this?
 
-// begin-insert: tags/table-reader.3:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#someFunction
+// begin-insert: table-reader.3:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#someFunction
 [source,kotlin]
 ----
 private fun someFunction(input: List<String>): List<Measurement> =
@@ -102,6 +106,8 @@ private fun someFunction(input: List<String>): List<Measurement> =
         )
     }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.3/src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#someFunction">table-reader.3:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#someFunction</a>]
 // end-insert
 
 <1> `readTable` is our table reading API entry point:
@@ -111,13 +117,15 @@ private fun someFunction(input: List<String>): List<Measurement> =
 
 This doesn't compile, because we don't have `readTable` yet, but if we Alt-Enter on the error then IntelliJ will create the function for us:
 
-// begin-insert: tags/table-reader.3:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#readTable
+// begin-insert: table-reader.3:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#readTable
 [source,kotlin]
 ----
 private fun readTable(input: List<String>): Any {
     TODO("Not yet implemented")
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.3/src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#readTable">table-reader.3:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#readTable</a>]
 // end-insert
 
 We haven't given IntelliJ enough clues about the return type of `readTable`, so it chose `Any`, and so `someFunction` still doesn't compile.
@@ -127,7 +135,7 @@ And if that `List` contained `Map<String, String>` then our `record` variable wo
 The only issue is that `Map.get` returns a nullable value.
 That's close enough - let's take account of it in `someFunction` by raising errors if `get` returns `null`:
 
-// begin-insert: tags/table-reader.4:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt
+// begin-insert: table-reader.4:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt
 [source,kotlin]
 ----
 private fun someFunction(input: List<String>): List<Measurement> =
@@ -143,6 +151,8 @@ fun readTable(input: List<String>): List<Map<String, String>> {
     TODO("Not yet implemented")
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.4/src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt">table-reader.4:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt</a>]
 // end-insert
 
 This compiles, although obviously the `TODO` fails the test.
@@ -152,18 +162,20 @@ The answer is that this is just test code: the API of `Map.get` is forcing us to
 We put our client hats on to write the acceptance tests, and these tests have shown that we can at least use a function with the signature of `readTable` to convert lines to a list of `Measurement`.
 Now that we have a plausible API, we can move the definition of `readTable` into `src/main/travelator/tablereader/table-reading.kt`:
 
-// begin-insert: tags/table-reader.5:src/main/java/travelator/tablereader/table-reading.kt
+// begin-insert: table-reader.5:src/main/java/travelator/tablereader/table-reading.kt
 [source,kotlin]
 ----
 fun readTable(input: List<String>): List<Map<String, String>> {
     TODO("Not yet implemented")
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.5/src/main/java/travelator/tablereader/table-reading.kt">table-reader.5:src/main/java/travelator/tablereader/table-reading.kt</a>]
 // end-insert
 
 Finally in this first stage, we can inline `someFunction` to give our acceptance test:
 
-// begin-insert: tags/table-reader.5:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt
+// begin-insert: table-reader.5:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt
 [source,kotlin]
 ----
 @Disabled
@@ -192,6 +204,8 @@ fun `acceptance test`() {
     )
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.5/src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt">table-reader.5:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt</a>]
 // end-insert
 
 Note that we have disabled the test, as it will be some time before we get it running.
@@ -208,7 +222,7 @@ Now that we have an interface to implement, we can park the acceptance test and 
 What is minimal?
 We like to start with empty - what should happen if we read an empty file?
 
-// begin-insert: tags/table-reader.6:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
+// begin-insert: table-reader.6:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
 [source,kotlin]
 ----
 class TableReaderTests {
@@ -223,17 +237,21 @@ class TableReaderTests {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.6/src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt">table-reader.6:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt</a>]
 // end-insert
 
 The simplest way to get this to pass is to hard-code the result in `readTable`:
 
-// begin-insert: tags/table-reader.7:src/main/java/travelator/tablereader/table-reading.kt
+// begin-insert: table-reader.7:src/main/java/travelator/tablereader/table-reading.kt
 [source,kotlin]
 ----
 fun readTable(input: List<String>): List<Map<String, String>> {
     return emptyList()
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.7/src/main/java/travelator/tablereader/table-reading.kt">table-reader.7:src/main/java/travelator/tablereader/table-reading.kt</a>]
 // end-insert
 
 This passes.
@@ -246,7 +264,7 @@ Why this rather than a header and one line of data?
 To be honest, this is just the first thing that came to mind -- maybe if we were actually pairing at this point you would have suggested using a header row.
 Our choice leaves us having to decide how to name the columns, and we decide to use the `String` representation of their index, `"0"` for the first column, `"1"` for the second and so on -- this feels like the simplest way that we can generate a `String` key:
 
-// begin-insert: tags/table-reader.8:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
+// begin-insert: table-reader.8:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
 [source,kotlin]
 ----
 @Test
@@ -269,6 +287,8 @@ fun `one line of input with default field names`() {
     )
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.8/src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt">table-reader.8:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt</a>]
 // end-insert
 
 We _could_ instead have made `readTable` return `<Map<Int, String>>` when we don't have a header row.
@@ -277,7 +297,7 @@ If you have some spare time, that might be a path worth following to see where i
 Back in our current predicament, we have a failing test, and we can be clever, or we can be quick.
 We choose quick, to get the test passing straight away by hard-coding the result again:
 
-// begin-insert: tags/table-reader.8:src/main/java/travelator/tablereader/table-reading.kt
+// begin-insert: table-reader.8:src/main/java/travelator/tablereader/table-reading.kt
 [source,kotlin]
 ----
 fun readTable(lines: List<String>): List<Map<String, String>> {
@@ -288,12 +308,14 @@ fun readTable(lines: List<String>): List<Map<String, String>> {
     )
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.8/src/main/java/travelator/tablereader/table-reading.kt">table-reader.8:src/main/java/travelator/tablereader/table-reading.kt</a>]
 // end-insert
 
 Now our tests are passing we can simplify the implementation by noticing that we want a line in the output for every line in the input.
 `Iterable::map` will do this, allowing us to remove the `if` expression:
 
-// begin-insert: tags/table-reader.9:src/main/java/travelator/tablereader/table-reading.kt
+// begin-insert: table-reader.9:src/main/java/travelator/tablereader/table-reading.kt
 [source,kotlin]
 ----
 fun readTable(lines: List<String>): List<Map<String, String>> {
@@ -302,12 +324,14 @@ fun readTable(lines: List<String>): List<Map<String, String>> {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.9/src/main/java/travelator/tablereader/table-reading.kt">table-reader.9:src/main/java/travelator/tablereader/table-reading.kt</a>]
 // end-insert
 
 This continues to pass the tests, and would now work for more lines (of identical data)!
 It's only a stepping stone though, allowing us to extract the lambda as a function:
 
-// begin-insert: tags/table-reader.10:src/main/java/travelator/tablereader/table-reading.kt
+// begin-insert: table-reader.10:src/main/java/travelator/tablereader/table-reading.kt
 [source,kotlin]
 ----
 fun readTable(lines: List<String>): List<Map<String, String>> {
@@ -316,11 +340,13 @@ fun readTable(lines: List<String>): List<Map<String, String>> {
 
 private fun parseLine(line: String) = mapOf("0" to "field0", "1" to "field1")
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.10/src/main/java/travelator/tablereader/table-reading.kt">table-reader.10:src/main/java/travelator/tablereader/table-reading.kt</a>]
 // end-insert
 
 Now we'll start removing the hard-coded values by splitting the pairs into `keys` and `values`:
 
-// begin-insert: tags/table-reader.11:src/main/java/travelator/tablereader/table-reading.kt#parseLine
+// begin-insert: table-reader.11:src/main/java/travelator/tablereader/table-reading.kt#parseLine
 [source,kotlin]
 ----
 private fun parseLine(line: String): Map<String, String> {
@@ -329,11 +355,13 @@ private fun parseLine(line: String): Map<String, String> {
     return keys.zip(values).toMap()
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.11/src/main/java/travelator/tablereader/table-reading.kt#parseLine">table-reader.11:src/main/java/travelator/tablereader/table-reading.kt#parseLine</a>]
 // end-insert
 
 We're still resolutely cheating, but we can now see the pattern in the `keys` and generate these from the `values`:
 
-// begin-insert: tags/table-reader.12:src/main/java/travelator/tablereader/table-reading.kt#parseLine
+// begin-insert: table-reader.12:src/main/java/travelator/tablereader/table-reading.kt#parseLine
 [source,kotlin]
 ----
 private fun parseLine(line: String): Map<String, String> {
@@ -342,11 +370,13 @@ private fun parseLine(line: String): Map<String, String> {
     return keys.zip(values).toMap()
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.12/src/main/java/travelator/tablereader/table-reading.kt#parseLine">table-reader.12:src/main/java/travelator/tablereader/table-reading.kt#parseLine</a>]
 // end-insert
 
 For the `values`, we can split the line around the commas:
 
-// begin-insert: tags/table-reader.13:src/main/java/travelator/tablereader/table-reading.kt#parseLine
+// begin-insert: table-reader.13:src/main/java/travelator/tablereader/table-reading.kt#parseLine
 [source,kotlin]
 ----
 private fun parseLine(line: String): Map<String, String> {
@@ -355,6 +385,8 @@ private fun parseLine(line: String): Map<String, String> {
     return keys.zip(values).toMap()
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.13/src/main/java/travelator/tablereader/table-reading.kt#parseLine">table-reader.13:src/main/java/travelator/tablereader/table-reading.kt#parseLine</a>]
 // end-insert
 
 Success: we have removed the hard-coded keys and values, and the tests still pass.
@@ -368,7 +400,7 @@ For that matter, what should `readTable` return when fed an empty line?
 Discussing it, we come to the conclusion that an empty line should yield an empty `Map`.
 That feels clean, so we write a test to both document our decision and check that it works:
 
-// begin-insert: tags/table-reader.14:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
+// begin-insert: table-reader.14:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
 [source,kotlin]
 ----
 @Test
@@ -383,6 +415,8 @@ fun `empty line returns empty map`() {
     )
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.14/src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt">table-reader.14:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt</a>]
 // end-insert
 
 Aha!
@@ -397,7 +431,7 @@ After a little investigation, we discover that calling `split` on an empty `Stri
 Maybe that makes sense in other circumstances.
 Maybe, but it messes up our algorithm, so we have to work around it with a special case in `parseLine`:
 
-// begin-insert: tags/table-reader.14:src/main/java/travelator/tablereader/table-reading.kt#parseLine
+// begin-insert: table-reader.14:src/main/java/travelator/tablereader/table-reading.kt#parseLine
 [source,kotlin]
 ----
 private fun parseLine(line: String): Map<String, String> {
@@ -406,12 +440,14 @@ private fun parseLine(line: String): Map<String, String> {
     return keys.zip(values).toMap()
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.14/src/main/java/travelator/tablereader/table-reading.kt#parseLine">table-reader.14:src/main/java/travelator/tablereader/table-reading.kt#parseLine</a>]
 // end-insert
 
 That gets the tests passing, but muddies the waters of the `parseLine` function.
 So we extract the muddy line to a function called `splitFields`:
 
-// begin-insert: tags/table-reader.15:src/main/java/travelator/tablereader/table-reading.kt#parseLine
+// begin-insert: table-reader.15:src/main/java/travelator/tablereader/table-reading.kt#parseLine
 [source,kotlin]
 ----
 private fun parseLine(line: String): Map<String, String> {
@@ -423,11 +459,13 @@ private fun parseLine(line: String): Map<String, String> {
 private fun splitFields(line: String): List<String> =
     if (line.isEmpty()) emptyList() else line.split(",")
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.15/src/main/java/travelator/tablereader/table-reading.kt#parseLine">table-reader.15:src/main/java/travelator/tablereader/table-reading.kt#parseLine</a>]
 // end-insert
 
 If we make `splitFields` an extension function and introduce a `separators` parameter we get the function we always really wanted `split` to be:
 
-// begin-insert: tags/table-reader.16:src/main/java/travelator/tablereader/table-reading.kt#parseLine
+// begin-insert: table-reader.16:src/main/java/travelator/tablereader/table-reading.kt#parseLine
 [source,kotlin]
 ----
 private fun parseLine(line: String): Map<String, String> {
@@ -439,6 +477,8 @@ private fun parseLine(line: String): Map<String, String> {
 private fun String.splitFields(separators: String): List<String> =
     if (isEmpty()) emptyList() else split(separators)
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.16/src/main/java/travelator/tablereader/table-reading.kt#parseLine">table-reader.16:src/main/java/travelator/tablereader/table-reading.kt#parseLine</a>]
 // end-insert
 
 So far we have gotten the code working with an empty input, and then an input of a single line.
@@ -447,7 +487,7 @@ We believe that `readTable` should work for all the numbers known to programmers
 
 "Trust but verify" they say though, so we add a test:
 
-// begin-insert: tags/table-reader.17:src/test/java/travelator/tablereader/TableReaderTests.kt#twoLines
+// begin-insert: table-reader.17:src/test/java/travelator/tablereader/TableReaderTests.kt#twoLines
 [source,kotlin]
 ----
 @Test
@@ -464,6 +504,8 @@ fun `two lines of input with default field names`() {
     )
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.17/src/test/java/travelator/tablereader/TableReaderTests.kt#twoLines">table-reader.17:src/test/java/travelator/tablereader/TableReaderTests.kt#twoLines</a>]
 // end-insert
 
 It passes, and we reason that `(0, 1, 2)` is close enough to `(0, 1, 2147483647)` that we are done for now.
@@ -480,7 +522,7 @@ Generally we prefer a different function for different functionality, so let's a
 
 As with `readTable`, we first add a test that calls the function that we wish we had:
 
-// begin-insert: tags/table-reader.18:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
+// begin-insert: table-reader.18:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
 [source,kotlin]
 ----
 @Test
@@ -498,12 +540,14 @@ fun `takes headers from header line`() {
     )
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.18/src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt">table-reader.18:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt</a>]
 // end-insert
 
 Alt-Enter on the compilation error at `readTableWithHeader` and IntelliJ will create it for us.
 Then we can name the parameters, and delegate to our original function for now:
 
-// begin-insert: tags/table-reader.18:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: table-reader.18:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTableWithHeader(lines: List<String>): List<Map<String, String>> {
@@ -514,6 +558,8 @@ fun readTable(lines: List<String>): List<Map<String, String>> {
     return lines.map(::parseLine)
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.18/src/main/java/travelator/tablereader/table-reading.kt#excerpt">table-reader.18:src/main/java/travelator/tablereader/table-reading.kt#excerpt</a>]
 // end-insert
 
 This compiles, but fails the tests, as we expect:
@@ -530,7 +576,7 @@ The new feature will then be an addition _rather_ than a modification (the https
 
 Currently, the field name information is buried in `parseLine`:
 
-// begin-insert: tags/table-reader.18:src/main/java/travelator/tablereader/table-reading.kt#parseLine
+// begin-insert: table-reader.18:src/main/java/travelator/tablereader/table-reading.kt#parseLine
 [source,kotlin]
 ----
 private fun parseLine(line: String): Map<String, String> {
@@ -539,6 +585,8 @@ private fun parseLine(line: String): Map<String, String> {
     return keys.zip(values).toMap()
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.18/src/main/java/travelator/tablereader/table-reading.kt#parseLine">table-reader.18:src/main/java/travelator/tablereader/table-reading.kt#parseLine</a>]
 // end-insert
 
 We're going to pull it out from here to a place where we can use the header line to supply it.
@@ -546,7 +594,7 @@ We're going to pull it out from here to a place where we can use the header line
 `Int::toString` is our current mapping from index to key.
 Let's prepare to make this configurable by introducing a variable named `headerProvider`:
 
-// begin-insert: tags/table-reader.19:src/main/java/travelator/tablereader/table-reading.kt#parseLine
+// begin-insert: table-reader.19:src/main/java/travelator/tablereader/table-reading.kt#parseLine
 [source,kotlin]
 ----
 private fun parseLine(line: String): Map<String, String> {
@@ -556,6 +604,8 @@ private fun parseLine(line: String): Map<String, String> {
     return keys.zip(values).toMap()
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.19/src/main/java/travelator/tablereader/table-reading.kt#parseLine">table-reader.19:src/main/java/travelator/tablereader/table-reading.kt#parseLine</a>]
 // end-insert
 
 This still passes our tests, except for the new `takes headers from header line`, which is still failing.
@@ -564,7 +614,7 @@ So we `@Disabled` it for now, in order to only run tests for completed features 
 
 "Introduce Parameter" on the `headerProvider` line and naming it `headerProvider` will allow us to support different behaviours:
 
-// begin-insert: tags/table-reader.20:src/main/java/travelator/tablereader/table-reading.kt#parseLine
+// begin-insert: table-reader.20:src/main/java/travelator/tablereader/table-reading.kt#parseLine
 [source,kotlin]
 ----
 private fun parseLine(
@@ -576,11 +626,13 @@ private fun parseLine(
     return keys.zip(values).toMap()
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.20/src/main/java/travelator/tablereader/table-reading.kt#parseLine">table-reader.20:src/main/java/travelator/tablereader/table-reading.kt#parseLine</a>]
 // end-insert
 
 Unfortunately IntelliJ currently fails to make this refactor work, breaking `readTable`:
 
-// begin-insert: tags/table-reader.20:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: table-reader.20:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTableWithHeader(lines: List<String>): List<Map<String, String>> {
@@ -591,13 +643,15 @@ fun readTable(lines: List<String>): List<Map<String, String>> {
     return lines.map(::parseLine) // <1>
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.20/src/main/java/travelator/tablereader/table-reading.kt#excerpt">table-reader.20:src/main/java/travelator/tablereader/table-reading.kt#excerpt</a>]
 // end-insert
 
 <1> We could use the function reference when `parseLine` only had one parameter. Now it needs two arguments, but `map` can only supply one.
 
 "Replace function reference with lambda" _before_ the refactor would have made everything work now, but we'll fail forward by expanding the lambda now and adding `Int::toString` as the `headerProvider` to get things compiling again:
 
-// begin-insert: tags/table-reader.21:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: table-reader.21:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTableWithHeader(lines: List<String>): List<Map<String, String>> {
@@ -608,6 +662,8 @@ fun readTable(lines: List<String>): List<Map<String, String>> {
     return lines.map { parseLine(it, Int::toString) }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.21/src/main/java/travelator/tablereader/table-reading.kt#excerpt">table-reader.21:src/main/java/travelator/tablereader/table-reading.kt#excerpt</a>]
 // end-insert
 
 All our tests still pass, so we're quietly confident that we haven't broken anything.
@@ -617,7 +673,7 @@ Our plan is to have the new `readTableWithHeader` read the header line to create
 Sitting between `readTableWithHeader` and `parseLine` is the call to our old `readTable`, so it needs a `headerProvider` parameter too in order relay the value.
 So its "Introduce Parameter" (with "Introduce Default Value") again, this time on `Int::toString` in `readTable`:
 
-// begin-insert: tags/table-reader.22:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: table-reader.22:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTableWithHeader(lines: List<String>): List<Map<String, String>> {
@@ -631,6 +687,8 @@ fun readTable(
     return lines.map { parseLine(it, headerProvider) }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.22/src/main/java/travelator/tablereader/table-reading.kt#excerpt">table-reader.22:src/main/java/travelator/tablereader/table-reading.kt#excerpt</a>]
 // end-insert
 
 <1> Doesn't compile: `Unresolved reference: KFunction1`
@@ -639,7 +697,7 @@ It's hard to say why IntelliJ (at the time of writing) sometimes uses function t
 It would be nice if it was consistent, or at least generated code that compiled.
 We'll fix this one by translating the `KFunction1` to an `(Int) -> String` by hand and hold just a little grudge for this second failed refactor in a row:
 
-// begin-insert: tags/table-reader.23:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: table-reader.23:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTableWithHeader(lines: List<String>): List<Map<String, String>> {
@@ -653,6 +711,8 @@ fun readTable(
     return lines.map { parseLine(it, headerProvider) }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.23/src/main/java/travelator/tablereader/table-reading.kt#excerpt">table-reader.23:src/main/java/travelator/tablereader/table-reading.kt#excerpt</a>]
 // end-insert
 
 On the plus side, because the `headerProvider` parameter has a default value, our tests are unchanged and continue to pass.
@@ -663,7 +723,7 @@ It needs to split the lines into the header (`first()`) and the rest (`drop(1)`)
 `Iterable.first` will fail if there are no lines, so we make a note to add a test for this case.
 As for converting the header line into a `headerProvider`, we'll pretend that we have a function to do that called `headerProviderFrom(String)`:
 
-// begin-insert: tags/table-reader.24:src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader
+// begin-insert: table-reader.24:src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader
 [source,kotlin]
 ----
 fun readTableWithHeader(lines: List<String>): List<Map<String, String>> {
@@ -673,24 +733,28 @@ fun readTableWithHeader(lines: List<String>): List<Map<String, String>> {
     )
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.24/src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader">table-reader.24:src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader</a>]
 // end-insert
 
 Alt-Enter on the new function's invocation allows us to create it, giving:
 
-// begin-insert: tags/table-reader.24:src/main/java/travelator/tablereader/table-reading.kt#headerProviderFrom
+// begin-insert: table-reader.24:src/main/java/travelator/tablereader/table-reading.kt#headerProviderFrom
 [source,kotlin]
 ----
 fun headerProviderFrom(header: String): (Int) -> String {
     TODO("Not yet implemented")
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.24/src/main/java/travelator/tablereader/table-reading.kt#headerProviderFrom">table-reader.24:src/main/java/travelator/tablereader/table-reading.kt#headerProviderFrom</a>]
 // end-insert
 
 This is a function that needs to return a function type.
 We can implement the return value with a lambda that takes an `Int` index and returns a `String`.
 The `String` we need to return is the header field at that index -- we can use our `splitFields` again here:
 
-// begin-insert: tags/table-reader.25:src/main/java/travelator/tablereader/table-reading.kt#headerProviderFrom
+// begin-insert: table-reader.25:src/main/java/travelator/tablereader/table-reading.kt#headerProviderFrom
 [source,kotlin]
 ----
 private fun headerProviderFrom(header: String): (Int) -> String {
@@ -698,13 +762,15 @@ private fun headerProviderFrom(header: String): (Int) -> String {
     return { index -> headers[index] }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.25/src/main/java/travelator/tablereader/table-reading.kt#headerProviderFrom">table-reader.25:src/main/java/travelator/tablereader/table-reading.kt#headerProviderFrom</a>]
 // end-insert
 
 We've taken care to split the `header` outside the lambda, otherwise it will happen for every other row of the table.
 Our tests still pass, and if we're right, so will the test for `readTableWithHeader` that we disabled previously.
 Let's un-`@Disabled` it:
 
-// begin-insert: tags/table-reader.26:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
+// begin-insert: table-reader.26:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
 [source,kotlin]
 ----
 @Test
@@ -722,13 +788,15 @@ fun `takes headers from header line`() {
     )
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.26/src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt">table-reader.26:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt</a>]
 // end-insert
 
 This passes, hooray!
 We are about to say that we're done for now, until we look down at our TODO list and remember that we predicted `readTableWithHeader` should fail given an empty input.
 So we write a test, asserting the desired behaviour, which is to return an empty `List`:
 
-// begin-insert: tags/table-reader.26:src/test/java/travelator/tablereader/TableReaderTests.kt#empty
+// begin-insert: table-reader.26:src/test/java/travelator/tablereader/TableReaderTests.kt#empty
 [source,kotlin]
 ----
 @Test
@@ -741,11 +809,13 @@ fun `readTableWithHeader on empty list returns empty list`() {
     )
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.26/src/test/java/travelator/tablereader/TableReaderTests.kt#empty">table-reader.26:src/test/java/travelator/tablereader/TableReaderTests.kt#empty</a>]
 // end-insert
 
 As we thought, this fails with `java.util.NoSuchElementException: List is empty.`, because `readTableWithHeader` is trying to call `lines.first()` on a empty `List`:
 
-// begin-insert: tags/table-reader.25:src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader
+// begin-insert: table-reader.25:src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader
 [source,kotlin]
 ----
 fun readTableWithHeader(lines: List<String>): List<Map<String, String>> {
@@ -755,6 +825,8 @@ fun readTableWithHeader(lines: List<String>): List<Map<String, String>> {
     )
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.25/src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader">table-reader.25:src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader</a>]
 // end-insert
 
 Our irritation at not being finished is mitigated by being right about there being a problem!
@@ -762,7 +834,7 @@ The simplest fix is to split our function into two definitions, with a `when` to
 This passes all the tests, and empties our TODO list.
 Here then is our public API:
 
-// begin-insert: tags/table-reader.26:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: table-reader.26:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTableWithHeader(
@@ -782,6 +854,8 @@ fun readTable(
 ): List<Map<String, String>> =
     lines.map { parseLine(it, headerProvider) }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.26/src/main/java/travelator/tablereader/table-reading.kt#excerpt">table-reader.26:src/main/java/travelator/tablereader/table-reading.kt#excerpt</a>]
 // end-insert
 
 This is nice -- our clients now can read with or without a header row.
@@ -789,7 +863,7 @@ But wait!
 Looking at the code we realise that, if they want to specify their own field names for `readTable`, they can do this by overriding the default `headerProvider` in `readTable` - we have a feature for free!
 Let's write a test to demonstrate it:
 
-// begin-insert: tags/table-reader.27:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
+// begin-insert: table-reader.27:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
 [source,kotlin]
 ----
 @Test
@@ -809,6 +883,8 @@ fun `can specify header names when there is no header row`() {
     )
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.27/src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt">table-reader.27:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt</a>]
 // end-insert
 
 See how easy it is to convert from a `List<String>` to our header provider function `(Int) -> String` - with the method reference `headers::get`.
@@ -831,7 +907,7 @@ If we are able to express a dependency as one of these function types, then our 
 Now that we have implemented reading a table with a header, we are in a position to try running our acceptance test.
 This was:
 
-// begin-insert: tags/table-reader.26:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt
+// begin-insert: table-reader.26:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt
 [source,kotlin]
 ----
 @Disabled
@@ -860,11 +936,13 @@ fun `acceptance test`() {
     )
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.26/src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt">table-reader.26:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt</a>]
 // end-insert
 
 The function that we thought we would call `readTable` when we wrote the test turns out to be `readTableWithHeader`, so we make the change and run the test:
 
-// begin-insert: tags/table-reader.27:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt
+// begin-insert: table-reader.27:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt
 [source,kotlin]
 ----
 assertEquals(
@@ -877,6 +955,8 @@ assertEquals(
         )
     }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.27/src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt">table-reader.27:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt#excerpt</a>]
 // end-insert
 
 It passes, and we ride the little dopamine hit to check in the code and take a coffee break.
@@ -892,7 +972,7 @@ What is the abstraction here?
 
 Looking at the code we see that the header and body parsing both call `splitFields`:
 
-// begin-insert: tags/table-reader.28:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: table-reader.28:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 private fun headerProviderFrom(header: String): (Int) -> String {
@@ -912,6 +992,8 @@ private fun parseLine(
 private fun String.splitFields(separators: String): List<String> =
     if (isEmpty()) emptyList() else split(separators)
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.28/src/main/java/travelator/tablereader/table-reading.kt#excerpt">table-reader.28:src/main/java/travelator/tablereader/table-reading.kt#excerpt</a>]
 // end-insert
 
 Neither the header parsing nor the body parsing really want to depend on the details of how the splitting should happen, so let's abstract that behind a function `(String) -> List<String>`.
@@ -928,7 +1010,7 @@ As soon as we need to parameterize an aspect of our code, it is natural to ask w
 Let's start in `parseLine`.
 To extract the current splitting implementation, we can select `line.splitFields(",")` and "Introduce Functional Parameter", choosing the parameter name `splitter`:
 
-// begin-insert: tags/table-reader.29:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: table-reader.29:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTable(
@@ -953,6 +1035,8 @@ private fun parseLine(
     return keys.zip(values).toMap()
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.29/src/main/java/travelator/tablereader/table-reading.kt#excerpt">table-reader.29:src/main/java/travelator/tablereader/table-reading.kt#excerpt</a>]
 // end-insert
 
 <1> This lambda ...
@@ -961,7 +1045,7 @@ private fun parseLine(
 We could continue this process, extracting the splitter lambda to the top level.
 Our lives will be made a bit easier though if have a global value for the splitter, so we select the lambda in `readTable` and "Introduce Variable" named `splitOnComma`:
 
-// begin-insert: tags/table-reader.30:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: table-reader.30:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTable(
@@ -975,12 +1059,14 @@ fun readTable(
         parseLine(it, headerProvider, splitOnComma)
     }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.30/src/main/java/travelator/tablereader/table-reading.kt#excerpt">table-reader.30:src/main/java/travelator/tablereader/table-reading.kt#excerpt</a>]
 // end-insert
 
 Now we can cut the `val` from the function and move it to the top level.
 It feels like there should be an automated refactor for this, but nothing works at the time of writing:
 
-// begin-insert: tags/table-reader.31:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: table-reader.31:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTable(
@@ -995,13 +1081,15 @@ val splitOnComma: (String) -> List<String> = { line ->
     line.splitFields(",")
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.31/src/main/java/travelator/tablereader/table-reading.kt#excerpt">table-reader.31:src/main/java/travelator/tablereader/table-reading.kt#excerpt</a>]
 // end-insert
 
 Now that `splitOnComma` is a global property, we can conveniently use it as a default.
 We select the reference to it in `readTable`, then "Introduce Parameter", with "Introduce default value", calling the new parameter `splitter`.
 This yields;
 
-// begin-insert: tags/table-reader.32:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: table-reader.32:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTable(
@@ -1017,12 +1105,14 @@ val splitOnComma: (String) -> List<String> = { line ->
     line.splitFields(",")
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.32/src/main/java/travelator/tablereader/table-reading.kt#excerpt">table-reader.32:src/main/java/travelator/tablereader/table-reading.kt#excerpt</a>]
 // end-insert
 
 Because of the default value, we haven't had to change any of the clients, and the tests continue to pass.
 As it stands, `readTable` is now using the supplied `splitter`, but `headerProviderFrom` is not:
 
-// begin-insert: tags/table-reader.32:src/main/java/travelator/tablereader/table-reading.kt#headerProviderFrom
+// begin-insert: table-reader.32:src/main/java/travelator/tablereader/table-reading.kt#headerProviderFrom
 [source,kotlin]
 ----
 private fun headerProviderFrom(header: String): (Int) -> String {
@@ -1030,11 +1120,13 @@ private fun headerProviderFrom(header: String): (Int) -> String {
     return { index -> headers[index] }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.32/src/main/java/travelator/tablereader/table-reading.kt#headerProviderFrom">table-reader.32:src/main/java/travelator/tablereader/table-reading.kt#headerProviderFrom</a>]
 // end-insert
 
 Introducing a functional parameter for `header.splitFields(...) yields:
 
-// begin-insert: tags/table-reader.33:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: table-reader.33:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTableWithHeader(
@@ -1064,6 +1156,8 @@ private fun headerProviderFrom(
     return { index -> headers[index] }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.33/src/main/java/travelator/tablereader/table-reading.kt#excerpt">table-reader.33:src/main/java/travelator/tablereader/table-reading.kt#excerpt</a>]
 // end-insert
 
 <1> This lambda ...
@@ -1071,7 +1165,7 @@ private fun headerProviderFrom(
 
 Now the lambda in `readTableWithHeader` is the same code as `splitOnComma`, so we use that instead:
 
-// begin-insert: tags/table-reader.34:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: table-reader.34:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTableWithHeader(
@@ -1091,11 +1185,13 @@ val splitOnComma: (String) -> List<String> = { line ->
     line.splitFields(",")
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.34/src/main/java/travelator/tablereader/table-reading.kt#excerpt">table-reader.34:src/main/java/travelator/tablereader/table-reading.kt#excerpt</a>]
 // end-insert
 
 You can see the pattern here -- now we make a parameter from the `splitOnComma` reference, again with a default to avoid breaking existing clients:
 
-// begin-insert: tags/table-reader.35:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: table-reader.35:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTableWithHeader(
@@ -1110,12 +1206,14 @@ fun readTableWithHeader(
         )
     }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.35/src/main/java/travelator/tablereader/table-reading.kt#excerpt">table-reader.35:src/main/java/travelator/tablereader/table-reading.kt#excerpt</a>]
 // end-insert
 
 Finally, in `readTableWithHeader` we are calling `readTable` without providing a `splitter`, so it will use its default (`splitOnComma`).
 We don't want this, so we pass the parameter down: the header and body should be using the same splitter, so we pass it from `readTableWithHeader` to the inner `readTable`:
 
-// begin-insert: tags/table-reader.36:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: table-reader.36:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTableWithHeader(
@@ -1140,6 +1238,8 @@ fun readTable(
         parseLine(it, headerProvider, splitter)
     }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.36/src/main/java/travelator/tablereader/table-reading.kt#excerpt">table-reader.36:src/main/java/travelator/tablereader/table-reading.kt#excerpt</a>]
 // end-insert
 
 <1> Pass on the `splitter`
@@ -1148,13 +1248,15 @@ Some test-driven developers might insist on a failing test to show the need for 
 We certainly should write a test to demonstrate the use of the splitter, but before we do, let's make it more convenient to make one.
 Here is `splitOnComma`:
 
-// begin-insert: tags/table-reader.36:src/main/java/travelator/tablereader/table-reading.kt#splitOnComma
+// begin-insert: table-reader.36:src/main/java/travelator/tablereader/table-reading.kt#splitOnComma
 [source,kotlin]
 ----
 val splitOnComma: (String) -> List<String> = { line ->
     line.splitFields(",")
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.36/src/main/java/travelator/tablereader/table-reading.kt#splitOnComma">table-reader.36:src/main/java/travelator/tablereader/table-reading.kt#splitOnComma</a>]
 // end-insert
 
 It would be nice to be able to create splitters without having to define a lambda every time.
@@ -1162,7 +1264,7 @@ That way our French clients could call `readTable` with, for example, `splitter 
 The `splitOn` function would take the separators and return a value of function type `(String) -> List<String>`.
 We could try to extract this function from our current `splitOnComma` lambda, but the refactoring is tedious, so instead let's just define the function and call it:
 
-// begin-insert: tags/table-reader.37:src/main/java/travelator/tablereader/table-reading.kt#splitOnComma
+// begin-insert: table-reader.37:src/main/java/travelator/tablereader/table-reading.kt#splitOnComma
 [source,kotlin]
 ----
 fun splitOn(
@@ -1174,11 +1276,13 @@ fun splitOn(
 val splitOnComma: (String) -> List<String> = splitOn(",")
 val splitOnTab: (String) -> List<String> = splitOn("\t")
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.37/src/main/java/travelator/tablereader/table-reading.kt#splitOnComma">table-reader.37:src/main/java/travelator/tablereader/table-reading.kt#splitOnComma</a>]
 // end-insert
 
 You can see that we have taken the opportunity to define a `splitOnTab` too, so that we can use it in the new test we promised ourselves that we would write:
 
-// begin-insert: tags/table-reader.38:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
+// begin-insert: table-reader.38:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
 [source,kotlin]
 ----
 @Test
@@ -1200,6 +1304,8 @@ fun `can specify splitter`() {
     )
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.38/src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt">table-reader.38:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt</a>]
 // end-insert
 
 This passes, giving us both reassurance and documentation.
@@ -1224,7 +1330,7 @@ If we're clever we can test through the convenient `List` API, thus getting two 
 
 `readTable` currently looks like this:
 
-// begin-insert: tags/table-reader.39:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: table-reader.39:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTable(
@@ -1236,11 +1342,13 @@ fun readTable(
         parseLine(it, headerProvider, splitter)
     }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.39/src/main/java/travelator/tablereader/table-reading.kt#excerpt">table-reader.39:src/main/java/travelator/tablereader/table-reading.kt#excerpt</a>]
 // end-insert
 
 We can try out our plan by converting to and from `Sequence` in the middle of the pipeline:
 
-// begin-insert: tags/table-reader.40:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: table-reader.40:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTable(
@@ -1255,12 +1363,14 @@ fun readTable(
         }
         .toList()
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.40/src/main/java/travelator/tablereader/table-reading.kt#excerpt">table-reader.40:src/main/java/travelator/tablereader/table-reading.kt#excerpt</a>]
 // end-insert
 
 That passes the tests, and they all funnel through this function, so that's reassuring.
 Now we can extract the inner workings into a function taking and returning a `Sequence` - this is extracting part of a chain as described in <<extracting-part-of-a-pipeline>>.
 
-// begin-insert: tags/table-reader.41:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: table-reader.41:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTable(
@@ -1282,12 +1392,14 @@ fun readTable(
         parseLine(it, headerProvider, splitter)
     }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.41/src/main/java/travelator/tablereader/table-reading.kt#excerpt">table-reader.41:src/main/java/travelator/tablereader/table-reading.kt#excerpt</a>]
 // end-insert
 
 This gives us a `Sequence` version of `readTable` which the `List` version calls, and the `List` version is well tested.
 Now for the outer `readTableWithHeader` -- it looks like this:
 
-// begin-insert: tags/table-reader.42:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: table-reader.42:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTableWithHeader(
@@ -1303,12 +1415,14 @@ fun readTableWithHeader(
         )
     }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.42/src/main/java/travelator/tablereader/table-reading.kt#excerpt">table-reader.42:src/main/java/travelator/tablereader/table-reading.kt#excerpt</a>]
 // end-insert
 
 `readTableWithHeader` is currently delegating to the `List` version of `readTable`.
 If we want to produce a `Sequence` version (and we do) it should call the `Sequence` version of `readTable`, so we inline the call here to give:
 
-// begin-insert: tags/table-reader.43:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: table-reader.43:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTableWithHeader(
@@ -1324,12 +1438,14 @@ fun readTableWithHeader(
         ).toList()
     }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.43/src/main/java/travelator/tablereader/table-reading.kt#excerpt">table-reader.43:src/main/java/travelator/tablereader/table-reading.kt#excerpt</a>]
 // end-insert
 
 Now, by hand, create a `linesAsSequence` as a variable and use it in place of `lines`.
 This nearly works:
 
-// begin-insert: tags/table-reader.44:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: table-reader.44:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTableWithHeader(
@@ -1349,6 +1465,8 @@ fun readTableWithHeader(
     }.toList()
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.44/src/main/java/travelator/tablereader/table-reading.kt#excerpt">table-reader.44:src/main/java/travelator/tablereader/table-reading.kt#excerpt</a>]
 // end-insert
 
 <1> Doesn't compile, as there is no `Sequence<T>.isEmpty()`.
@@ -1356,7 +1474,7 @@ fun readTableWithHeader(
 How do we tell if a `Sequence` is empty?
 `linesAsSequence.firstOrNull() == null` does the trick:
 
-// begin-insert: tags/table-reader.45:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: table-reader.45:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTableWithHeader(
@@ -1376,12 +1494,14 @@ fun readTableWithHeader(
     }.toList()
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.45/src/main/java/travelator/tablereader/table-reading.kt#excerpt">table-reader.45:src/main/java/travelator/tablereader/table-reading.kt#excerpt</a>]
 // end-insert
 
 This passes the tests, so we can again extract the expression between the `return` and `.toList()` as the function we are looking for.
 Extracting it and tidying up we have the `Sequence` version of `readTableWithHeader`:
 
-// begin-insert: tags/table-reader.46:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: table-reader.46:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 fun readTableWithHeader(
@@ -1407,6 +1527,8 @@ fun readTableWithHeader(
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.46/src/main/java/travelator/tablereader/table-reading.kt#excerpt">table-reader.46:src/main/java/travelator/tablereader/table-reading.kt#excerpt</a>]
 // end-insert
 
 At this point, we have two versions of `readTable` and `readTableWithHeader`: a `List` and a `Sequence` version of each.
@@ -1415,7 +1537,7 @@ Let's just move their definitions into the tests while we don't have any product
 
 Here then is the entire public interface to our table parser:
 
-// begin-insert: tags/table-reader.47:src/main/java/travelator/tablereader/table-reading.kt#public
+// begin-insert: table-reader.47:src/main/java/travelator/tablereader/table-reading.kt#public
 [source,kotlin]
 ----
 fun readTableWithHeader(
@@ -1449,11 +1571,13 @@ fun splitOn(
     line.splitFields(separators)
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.47/src/main/java/travelator/tablereader/table-reading.kt#public">table-reader.47:src/main/java/travelator/tablereader/table-reading.kt#public</a>]
 // end-insert
 
 This is supported by three utility functions:
 
-// begin-insert: tags/table-reader.47:src/main/java/travelator/tablereader/table-reading.kt#private
+// begin-insert: table-reader.47:src/main/java/travelator/tablereader/table-reading.kt#private
 [source,kotlin]
 ----
 private fun headerProviderFrom(
@@ -1479,6 +1603,8 @@ private fun parseLine(
 private fun String.splitFields(separators: String): List<String> =
     if (isEmpty()) emptyList() else split(separators)
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.47/src/main/java/travelator/tablereader/table-reading.kt#private">table-reader.47:src/main/java/travelator/tablereader/table-reading.kt#private</a>]
 // end-insert
 
 When we looked back at the code we realised that it wasn't clear _why_ we needed `splitFields`, so we added a comment.
@@ -1493,7 +1619,7 @@ This seems a fine interface in the abstract, but the first time we come to use i
 Let's illustrate the problem with a test.
 This calls the `Sequence` version of `readTableWithHeader`:
 
-// begin-insert: tags/table-reader.48:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
+// begin-insert: table-reader.48:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
 [source,kotlin]
 ----
 @Test
@@ -1515,6 +1641,8 @@ fun `read from reader`() {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.48/src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt">table-reader.48:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt</a>]
 // end-insert
 
 Can you see why this fails?
@@ -1522,7 +1650,7 @@ What if we say that it fails with `java.lang.IllegalStateException: This sequenc
 
 Yes, once again (<<sequences-multiple-operations>>), ++Sequence++s bite us because we didn't test both types -- those that can and can't be consumed twice -- as input.
 
-// begin-insert: tags/table-reader.47:src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader
+// begin-insert: table-reader.47:src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader
 [source,kotlin]
 ----
 fun readTableWithHeader(
@@ -1538,6 +1666,8 @@ fun readTableWithHeader(
         )
     }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.47/src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader">table-reader.47:src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader</a>]
 // end-insert
 
 `lines.firstOrNull()` consumes the sequence, and when reading from a `Reader` we can't just go back and start again in order to evaluate `lines.drop(1)` and `lines.first()`.
@@ -1555,7 +1685,7 @@ Sometimes in logic though, when we can't do a thing that we want in isolation, w
 In this case we don't just want to see if the `Sequence` is empty - we want to split it into its head and tail if it isn't.
 We can achieve that wider goal by destructuring the `Sequence` with a function like this:
 
-// begin-insert: tags/table-reader.49:src/main/java/travelator/tablereader/table-reading.kt#destruct
+// begin-insert: table-reader.49:src/main/java/travelator/tablereader/table-reading.kt#destruct
 [source,kotlin]
 ----
 fun <T> Sequence<T>.destruct()
@@ -1568,13 +1698,15 @@ fun <T> Sequence<T>.destruct()
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.49/src/main/java/travelator/tablereader/table-reading.kt#destruct">table-reader.49:src/main/java/travelator/tablereader/table-reading.kt#destruct</a>]
 // end-insert
 
 `destruct` returns `null` if the `Sequence` is empty, otherwise it returns a `Pair` of the head and the tail (where the tail may be an empty `Sequence`).
 It consumes the original (by calling `iterator()`), but provides a fresh `Sequence` to continue processing.
 We can use it to refactor `readTableWithHeader`, currently:
 
-// begin-insert: tags/table-reader.48:src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader
+// begin-insert: table-reader.48:src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader
 [source,kotlin]
 ----
 fun readTableWithHeader(
@@ -1590,11 +1722,13 @@ fun readTableWithHeader(
         )
     }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.48/src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader">table-reader.48:src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader</a>]
 // end-insert
 
 It certainly isn't a trivial rearrangement, but we can transform this into:
 
-// begin-insert: tags/table-reader.49:src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader
+// begin-insert: table-reader.49:src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader
 [source,kotlin]
 ----
 fun readTableWithHeader(
@@ -1612,13 +1746,15 @@ fun readTableWithHeader(
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.49/src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader">table-reader.49:src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader</a>]
 // end-insert
 
 The new form passes all the tests, because it doesn't consume `lines` more than once.
 If it feels a little clunky, we can combine a `?.let`, destructuring and an Elvis operator to give a single expression that you may or may not find acceptably terse.
 The result is this public API:
 
-// begin-insert: tags/table-reader.50:src/main/java/travelator/tablereader/table-reading.kt#public
+// begin-insert: table-reader.50:src/main/java/travelator/tablereader/table-reading.kt#public
 [source,kotlin]
 ----
 fun readTableWithHeader(
@@ -1651,13 +1787,15 @@ fun splitOn(
     line.splitFields(separators)
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.50/src/main/java/travelator/tablereader/table-reading.kt#public">table-reader.50:src/main/java/travelator/tablereader/table-reading.kt#public</a>]
 // end-insert
 
 We are almost done, we promise.
 
 The last step, now that the API has crystallised around two functions, is to take the opportunity to make the tests more expressive:
 
-// begin-insert: tags/table-reader.52:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
+// begin-insert: table-reader.52:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
 [source,kotlin]
 ----
 class TableReaderTests {
@@ -1740,6 +1878,8 @@ private fun checkReadTableWithHeader(
     )
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.52/src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt">table-reader.52:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt</a>]
 // end-insert
 
 This is an important step.
@@ -1756,7 +1896,7 @@ Before we finish the chapter, let's compare our API with that of the Commons equ
 The most common use case for a table parser is to read a file with known columns, translating each row into some data class.
 Here is how we do that with our parser:
 
-// begin-insert: tags/table-reader.53:src/test/java/travelator/tablereader/CsvExampleTests.kt#ours
+// begin-insert: table-reader.53:src/test/java/travelator/tablereader/CsvExampleTests.kt#ours
 [source,kotlin]
 ----
 @Test
@@ -1781,6 +1921,8 @@ fun example() {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.53/src/test/java/travelator/tablereader/CsvExampleTests.kt#ours">table-reader.53:src/test/java/travelator/tablereader/CsvExampleTests.kt#ours</a>]
 // end-insert
 
 Real-world code would probably need more error handling (we see how in <<exceptions-to-values>>), but this shows the basic use case.
@@ -1790,7 +1932,7 @@ This design didn't happen by accident - it was the decisions that we made at the
 
 Here is the Commons CSV version:
 
-// begin-insert: tags/table-reader.53:src/test/java/travelator/tablereader/CsvExampleTests.kt#commons
+// begin-insert: table-reader.53:src/test/java/travelator/tablereader/CsvExampleTests.kt#commons
 [source,kotlin]
 ----
 @Test
@@ -1819,6 +1961,8 @@ fun `commons csv`() {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.53/src/test/java/travelator/tablereader/CsvExampleTests.kt#commons">table-reader.53:src/test/java/travelator/tablereader/CsvExampleTests.kt#commons</a>]
 // end-insert
 
 It too has a static function entry point, `CSVParser.parse`, which also takes configuration about the table format (in this case `CSVFormat.DEFAULT.withFirstRecordAsHeader()`; in ours `splitOnComma`).
@@ -1835,7 +1979,7 @@ This is a clever design choice, as it allows Java developers to use a `for` stat
 In fact the Kotlin usability is due to the design of the Kotlin standard library, which builds on the same `Iterable` abstraction that the Apache developers also leverage.
 
 Moving on, the code to create an individual `Measurement` looks identical in both examples:
-// begin-insert: tags/table-reader.53:src/test/java/travelator/tablereader/CsvExampleTests.kt#map
+// begin-insert: table-reader.53:src/test/java/travelator/tablereader/CsvExampleTests.kt#map
 [source,kotlin]
 ----
 .map { record ->
@@ -1849,6 +1993,8 @@ Moving on, the code to create an individual `Measurement` looks identical in bot
     )
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.53/src/test/java/travelator/tablereader/CsvExampleTests.kt#map">table-reader.53:src/test/java/travelator/tablereader/CsvExampleTests.kt#map</a>]
 // end-insert
 
 While the type of `record` in our parser is `Map<String, String>`, in the Commons case it is `CSVRecord`.
@@ -1868,7 +2014,7 @@ Armed with a `CSVFormat` you can pass it to the `CSVParser.parse` method as we s
 Can we provide this facility without defining new types in our API?
 How about using `splitOnComma` as if it was our configuration:
 
-// begin-insert: tags/table-reader.54:src/test/java/travelator/tablereader/CsvExampleTests.kt#extension
+// begin-insert: table-reader.54:src/test/java/travelator/tablereader/CsvExampleTests.kt#extension
 [source,kotlin]
 ----
 @Test
@@ -1892,11 +2038,13 @@ fun `configuration example`() {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.54/src/test/java/travelator/tablereader/CsvExampleTests.kt#extension">table-reader.54:src/test/java/travelator/tablereader/CsvExampleTests.kt#extension</a>]
 // end-insert
 
 We can achieve this by defining `splitOnComma.readTableWithHeader(reader)` as an extension function on the function type:
 
-// begin-insert: tags/table-reader.54:src/main/java/travelator/tablereader/table-reading.kt#extension
+// begin-insert: table-reader.54:src/main/java/travelator/tablereader/table-reading.kt#extension
 [source,kotlin]
 ----
 fun ((String) -> List<String>).readTableWithHeader(
@@ -1904,6 +2052,8 @@ fun ((String) -> List<String>).readTableWithHeader(
 ): Sequence<Map<String, String>> =
     readTableWithHeader(reader.buffered().lineSequence(), this)
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.54/src/main/java/travelator/tablereader/table-reading.kt#extension">table-reader.54:src/main/java/travelator/tablereader/table-reading.kt#extension</a>]
 // end-insert
 
 In reality, `CSVFormat` represents a whole package of strategies for escaping rules, what to do with blank lines etc, not just how to split a line.
@@ -1919,7 +2069,7 @@ In order to return header information _and_ the parsed records, we could return 
 Instead, we can return a type `Table` that implements `Sequence<Map<String, String>>`, but also has a header property.
 This way all our current callers remain unchanged, but we can access `headers` when required:
 
-// begin-insert: tags/table-reader.55:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
+// begin-insert: table-reader.55:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
 [source,kotlin]
 ----
 @Test
@@ -1944,11 +2094,13 @@ fun `Table contains empty headers for empty input`() {
     )
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.55/src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt">table-reader.55:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt</a>]
 // end-insert
 
 We'll spare you the refactoring steps, but here is the implementation:
 
-// begin-insert: tags/table-reader.55:src/main/java/travelator/tablereader/table-reading.kt#excerpt
+// begin-insert: table-reader.55:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
 ----
 class Table(
@@ -1978,6 +2130,8 @@ private fun tableOf(
     return Table(headers, sequence)
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/table-reader.55/src/main/java/travelator/tablereader/table-reading.kt#excerpt">table-reader.55:src/main/java/travelator/tablereader/table-reading.kt#excerpt</a>]
 // end-insert
 
 === Moving On

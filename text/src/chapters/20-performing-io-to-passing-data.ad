@@ -15,7 +15,7 @@ Now that earlier chapters have built some foundations, we're going to up the pac
 In <<functions-to-extension-functions>>, we looked at some Java code that produced a report for marketing.
 When we left the code, we had introduced extension functions to the `HighValueCustomersReport`, giving us:
 
-// begin-insert: tags/io-to-data.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt#all
+// begin-insert: io-to-data.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt#all
 [source,kotlin]
 ----
 @Throws(IOException::class)
@@ -42,11 +42,13 @@ private fun List<CustomerData>.summarised(): String =
         "\tTOTAL\t${total.toMoneyString()}"
     }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.0/src/main/java/travelator/marketing/HighValueCustomersReport.kt#all">io-to-data.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt#all</a>]
 // end-insert
 
 Here are the tests, after conversion to Kotlin:
 
-// begin-insert: tags/io-to-data.1:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#all
+// begin-insert: io-to-data.1:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#all
 [source,kotlin]
 ----
 class HighValueCustomersReportTests {
@@ -84,6 +86,8 @@ class HighValueCustomersReportTests {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.1/src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#all">io-to-data.1:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#all</a>]
 // end-insert
 
 We didn't really look at the tests in <<functions-to-extension-functions>>, but if we do now, what stands out in the light of your author's obsession with actions and calculations (<<actions-to-calculations>>)?
@@ -92,7 +96,7 @@ In particular, look at that `check` function.
 `check` is evidently not a calculation (<<calculations>>), as it works entirely by throwing an exception instead of returning a value.
 If we look at it this way though?
 
-// begin-insert: tags/io-to-data.2:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
+// begin-insert: io-to-data.2:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
 [source,kotlin]
 ----
 private fun check(
@@ -107,6 +111,8 @@ private fun check(
     assertEquals(expectedLines, outputLines)
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.2/src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check">io-to-data.2:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check</a>]
 // end-insert
 
 This is to all intents and purposes the same code, but now we can see that we have a calculation, taking `inputLines` and yielding `outputLines`, before we go on to the assertion.
@@ -128,7 +134,7 @@ You're right, that was a rhetorical question.
 As the first stage in our refactor, let's try to wean `generate` off its `reader` parameter.
 The code is currently:
 
-// begin-insert: tags/io-to-data.3:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: io-to-data.3:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 @Throws(IOException::class)
@@ -144,12 +150,14 @@ fun generate(reader: Reader, writer: Writer) {
     writer.append(valuableCustomers.summarised())
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.3/src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate">io-to-data.3:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate</a>]
 // end-insert
 
 We can convert `generate` to read from a `List` by invoking "Introduce parameter" on the `reader.readLines()` expression, naming the parameter `lines`.
 As the expression is the only use of the existing `reader` parameter, IntelliJ removes `reader` for us:
 
-// begin-insert: tags/io-to-data.4:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: io-to-data.4:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 @Throws(IOException::class)
@@ -164,11 +172,13 @@ fun generate(writer: Writer, lines: List<String>) {
     writer.append(valuableCustomers.summarised())
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.4/src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate">io-to-data.4:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate</a>]
 // end-insert
 
 The refactoring has moved the `readLines()` out into the callers -- here is the result in test:
 
-// begin-insert: tags/io-to-data.4:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
+// begin-insert: io-to-data.4:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
 [source,kotlin]
 ----
 private fun check(
@@ -183,13 +193,15 @@ private fun check(
     assertEquals(expectedLines, outputLines)
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.4/src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check">io-to-data.4:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check</a>]
 // end-insert
 
 This now shouts what the test was whispering all along.
 We were having to create a `StringReader` from a list of lines just in order to parse the lines back out in `generate`.
 Now the steps are in the same place in the test we can elide them to remove the `Reader`:
 
-// begin-insert: tags/io-to-data.5:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
+// begin-insert: io-to-data.5:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
 [source,kotlin]
 ----
 private fun check(
@@ -203,13 +215,15 @@ private fun check(
     assertEquals(expectedLines, outputLines)
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.5/src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check">io-to-data.5:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check</a>]
 // end-insert
 
 We are now reading from a `List`.
 Let's go back and look at how to return a `List` too; rather than modifying the `Writer`.
 Here is the code:
 
-// begin-insert: tags/io-to-data.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#writer
+// begin-insert: io-to-data.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#writer
 [source,kotlin]
 ----
 writer.appendLine("ID\tName\tSpend")
@@ -218,22 +232,26 @@ for (customerData in valuableCustomers) {
 }
 writer.append(valuableCustomers.summarised())
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.5/src/main/java/travelator/marketing/HighValueCustomersReport.kt#writer">io-to-data.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#writer</a>]
 // end-insert
 
 Instead of thinking imperatively about the ways that we want to mutate the writer, lets think in terms of the data that we want written and create that:
 
-// begin-insert: tags/io-to-data.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#resultLines
+// begin-insert: io-to-data.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#resultLines
 [source,kotlin]
 ----
 val resultLines = listOf("ID\tName\tSpend") +
     valuableCustomers.map(CustomerData::outputLine) +
     valuableCustomers.summarised()
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.6/src/main/java/travelator/marketing/HighValueCustomersReport.kt#resultLines">io-to-data.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#resultLines</a>]
 // end-insert
 
 Then we can write it in one lump to `writer`:
 
-// begin-insert: tags/io-to-data.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: io-to-data.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 @Throws(IOException::class)
@@ -247,12 +265,14 @@ fun generate(writer: Writer, lines: List<String>) {
     writer.append(resultLines.joinToString("\n"))
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.6/src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate">io-to-data.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate</a>]
 // end-insert
 
 This function is now two statements which make up a calculation, and a final action taking the result of the calculation.
 If we now "Extract function" with the calculation lines, making it public and calling it `generate` too, we get the following:
 
-// begin-insert: tags/io-to-data.7:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: io-to-data.7:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 @Throws(IOException::class)
@@ -271,11 +291,13 @@ fun generate(lines: List<String>): List<String> {
     return resultLines
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.7/src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate">io-to-data.7:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate</a>]
 // end-insert
 
 Inlining both vestigial `resultLines` gives:
 
-// begin-insert: tags/io-to-data.8:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: io-to-data.8:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 @Throws(IOException::class)
@@ -292,12 +314,14 @@ fun generate(lines: List<String>): List<String> {
         valuableCustomers.summarised()
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.8/src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate">io-to-data.8:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate</a>]
 // end-insert
 
 One more inline then, this time of the old `generate` function.
 That replaces its invocation in client code, leaving this in the test:
 
-// begin-insert: tags/io-to-data.9:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
+// begin-insert: io-to-data.9:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
 [source,kotlin]
 ----
 private fun check(
@@ -311,13 +335,15 @@ private fun check(
     assertEquals(expectedLines, outputLines)
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.9/src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check">io-to-data.9:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check</a>]
 // end-insert
 
 This refactor has moved the action part of `generate` out a level, leaving the nice pure calculation bits in its place.
 Another way of looking at this is that our original `Writer` was an accumulating object, which we have replaced with a transformation as we saw in <<accumulating-objects-to-transformations>>.
 Our tests didn't really want to be testing an action anyway, so they again have redundant IO, which we can simplify to the form we were aiming for:
 
-// begin-insert: tags/io-to-data.10:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
+// begin-insert: io-to-data.10:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
 [source,kotlin]
 ----
 private fun check(
@@ -327,11 +353,13 @@ private fun check(
     assertEquals(expectedLines, generate(inputLines))
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.10/src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check">io-to-data.10:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check</a>]
 // end-insert
 
 Let's take stock of our new `generate`:
 
-// begin-insert: tags/io-to-data.11:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: io-to-data.11:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 fun generate(lines: List<String>): List<String> {
@@ -349,13 +377,15 @@ private fun List<String>.toValuableCustomers() = withoutHeader()
 
 private fun List<String>.withoutHeader() = drop(1)
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.11/src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate">io-to-data.11:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate</a>]
 // end-insert
 
 Now that `generate` is doing so much less, it isn't clear that the function `toValuableCustomers()` is worthwhile.
 Looking at it afresh we see that it is working at mixed levels, converting and filtering.
 Let's try inlining it:
 
-// begin-insert: tags/io-to-data.12:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: io-to-data.12:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 fun generate(lines: List<String>): List<String> {
@@ -369,6 +399,8 @@ fun generate(lines: List<String>): List<String> {
         valuableCustomers.summarised()
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.12/src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate">io-to-data.12:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate</a>]
 // end-insert
 
 That's better.
@@ -402,7 +434,7 @@ We haven't bothered you with the details so far, but there is a `main` method th
 It is designed to be invoked with shell redirection, reading from a file piped as the standard input, and writing to a file collected from the standard output.
 This way, our process doesn't have to read filenames from the command line:
 
-// begin-insert: tags/io-to-data.0:src/main/java/travelator/marketing/HighValueCustomersMain.kt
+// begin-insert: io-to-data.0:src/main/java/travelator/marketing/HighValueCustomersMain.kt
 [source,kotlin]
 ----
 fun main() {
@@ -413,11 +445,13 @@ fun main() {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.0/src/main/java/travelator/marketing/HighValueCustomersMain.kt">io-to-data.0:src/main/java/travelator/marketing/HighValueCustomersMain.kt</a>]
 // end-insert
 
 When we refactored `generate` to process ++List++s rather than a `Reader` and `Writer`, `main` was automatically updated along with the tests to yield:
 
-// begin-insert: tags/io-to-data.9:src/main/java/travelator/marketing/HighValueCustomersMain.kt
+// begin-insert: io-to-data.9:src/main/java/travelator/marketing/HighValueCustomersMain.kt
 [source,kotlin]
 ----
 fun main() {
@@ -432,6 +466,8 @@ fun main() {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.9/src/main/java/travelator/marketing/HighValueCustomersMain.kt">io-to-data.9:src/main/java/travelator/marketing/HighValueCustomersMain.kt</a>]
 // end-insert
 
 Ah, there's our problem.
@@ -443,7 +479,7 @@ We could quickly revert our changes and go and see if there are any crumpets lef
 
 Let's go back to `generate` and see what leeway we have:
 
-// begin-insert: tags/io-to-data.12:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: io-to-data.12:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 fun generate(lines: List<String>): List<String> {
@@ -457,6 +493,8 @@ fun generate(lines: List<String>): List<String> {
         valuableCustomers.summarised()
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.12/src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate">io-to-data.12:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate</a>]
 // end-insert
 
 Concentrating on the output for now, we can see that we are building a `List` of the lines of the output.
@@ -467,7 +505,7 @@ To avoid running out of memory we'll need to defer the creation of the intermedi
 We can convert `generate` to return a `Sequence` methodically or quickly.
 For once we'll choose quickly, and just replace `listOf` with `sequenceOf` in our `return` expression:
 
-// begin-insert: tags/io-to-data.13:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: io-to-data.13:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 fun generate(lines: List<String>): Sequence<String> {
@@ -481,13 +519,15 @@ fun generate(lines: List<String>): Sequence<String> {
         valuableCustomers.summarised()
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.13/src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate">io-to-data.13:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate</a>]
 // end-insert
 
 Now we will only be creating the output lines one at a time when the `Sequence` is iterated -- each line can be disposed of quickly rather than hanging around until we have written the whole file.
 
 The tests have to change to convert the returned `Sequence` to a `List`:
 
-// begin-insert: tags/io-to-data.13:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
+// begin-insert: io-to-data.13:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
 [source,kotlin]
 ----
 private fun check(
@@ -500,11 +540,13 @@ private fun check(
     )
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.13/src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check">io-to-data.13:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check</a>]
 // end-insert
 
 Interestingly though, `main` does not:
 
-// begin-insert: tags/io-to-data.13:src/main/java/travelator/marketing/HighValueCustomersMain.kt
+// begin-insert: io-to-data.13:src/main/java/travelator/marketing/HighValueCustomersMain.kt
 [source,kotlin]
 ----
 fun main() {
@@ -519,6 +561,8 @@ fun main() {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.13/src/main/java/travelator/marketing/HighValueCustomersMain.kt">io-to-data.13:src/main/java/travelator/marketing/HighValueCustomersMain.kt</a>]
 // end-insert
 
 `main` needs to be _recompiled_ now that `generate` returns a `Sequence` rather than a `List`, but its _source_ doesn't need to be changed.
@@ -527,7 +571,7 @@ This is because there are extension functions `joinToString()` defined on both `
 It might not _need_ to change, but unless `main` _does_ change, we are still creating one large string of all the output, before writing it in one operation.
 To avoid that we need to get imperative again, and write each output line individually, as our original `generate` had done:
 
-// begin-insert: tags/io-to-data.14:src/main/java/travelator/marketing/HighValueCustomersMain.kt
+// begin-insert: io-to-data.14:src/main/java/travelator/marketing/HighValueCustomersMain.kt
 [source,kotlin]
 ----
 fun main() {
@@ -542,6 +586,8 @@ fun main() {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.14/src/main/java/travelator/marketing/HighValueCustomersMain.kt">io-to-data.14:src/main/java/travelator/marketing/HighValueCustomersMain.kt</a>]
 // end-insert
 
 The pedantic reader (don't worry, you're amongst friends) will have spotted that this behaviour is subtly different to the `joinToString("\n")` version.
@@ -549,7 +595,7 @@ We're quietly confident that a trailing newline won't break anything, so we pres
 
 We can always pretend we aren't looping by hiding the iteration inside a `Writer::appendLines` extension function that we assumed the Kotlin standard library would define, but doesn't seem to:
 
-// begin-insert: tags/io-to-data.15:src/main/java/travelator/marketing/HighValueCustomersMain.kt
+// begin-insert: io-to-data.15:src/main/java/travelator/marketing/HighValueCustomersMain.kt
 [source,kotlin]
 ----
 fun main() {
@@ -568,6 +614,8 @@ fun Writer.appendLines(lines: Sequence<CharSequence>): Writer {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.15/src/main/java/travelator/marketing/HighValueCustomersMain.kt">io-to-data.15:src/main/java/travelator/marketing/HighValueCustomersMain.kt</a>]
 // end-insert
 
 Note that while the definition of `Writer::appendLines` is a single expression, we agreed in <<multi-to-single-expression-functions>> to use long-form where functions are actions, and `appendLines` is definitely that.
@@ -581,7 +629,7 @@ Do marketing have any jam?
 We would be remiss if we didn't finish the job and pretend that we also need to save memory on reading too.
 Let's look at `generate` again:
 
-// begin-insert: tags/io-to-data.15:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: io-to-data.15:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 fun generate(lines: List<String>): Sequence<String> {
@@ -595,6 +643,8 @@ fun generate(lines: List<String>): Sequence<String> {
         valuableCustomers.summarised()
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.15/src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate">io-to-data.15:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate</a>]
 // end-insert
 
 The pipeline of operations that builds `valuableCustomers` is going to build intermediate ++List++s: one for each stage, and each taking up memory.
@@ -603,7 +653,7 @@ Every line in the input is going to be in memory at once, along with a `Customer
 We can avoid the intermediate collections by reading from a `Sequence`, although that will bring a few problems of its own.
 We can see this if we change the code in `generate` to convert the `lines` to a `Sequence`, and fix up the methods that did take `List`.
 
-// begin-insert: tags/io-to-data.16:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: io-to-data.16:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 fun generate(lines: List<String>): Sequence<String> {
@@ -625,6 +675,8 @@ private fun Sequence<CustomerData>.summarised(): String =
         "\tTOTAL\t${total.toMoneyString()}"
     }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.16/src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate">io-to-data.16:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate</a>]
 // end-insert
 
 This passes the unit tests.
@@ -641,7 +693,7 @@ Iterating over a `Sequence` looks like iterating over a `List`, but will change 
 
 We can show that we are abusing this `Sequence` by adding a `.constrainOnce()` call:
 
-// begin-insert: tags/io-to-data.17:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: io-to-data.17:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
     val valuableCustomers: Sequence<CustomerData> = lines
@@ -652,12 +704,14 @@ We can show that we are abusing this `Sequence` by adding a `.constrainOnce()` c
         .filter { it.score >= 10 }
         .sortedBy(CustomerData::score)
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.17/src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate">io-to-data.17:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate</a>]
 // end-insert
 
 This will cause our tests to fail with an `IllegalStateException`.
 The simplest fix is to resolve the `Sequence` with a `.toList()` call.
 
-// begin-insert: tags/io-to-data.18:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: io-to-data.18:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
     val valuableCustomers: List<CustomerData> = lines
@@ -669,6 +723,8 @@ The simplest fix is to resolve the `Sequence` with a `.toList()` call.
         .sortedBy(CustomerData::score)
         .toList()
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.18/src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate">io-to-data.18:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate</a>]
 // end-insert
 
 This terminates the sequence (and hence ultimately reads the whole file) in that statement, but at least we run the pipeline only once, and the memory for each line can be discarded as soon as it is parsed `toCustomerData`.
@@ -678,7 +734,7 @@ Now we can replay the "Introduce parameter" refactoring we used at the beginning
 There we converted a `Reader` parameter into a `List`, now we convert the `List` to a `Sequence`.
 The parameter we introduce is the expression `lines.asSequence().constrainOnce()`:
 
-// begin-insert: tags/io-to-data.19:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: io-to-data.19:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 fun generate(lines: Sequence<String>): Sequence<String> {
@@ -698,11 +754,13 @@ private fun List<CustomerData>.summarised(): String =
         "\tTOTAL\t${total.toMoneyString()}"
     }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.19/src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate">io-to-data.19:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate</a>]
 // end-insert
 
 The refactoring pulls the conversion of the `List` to the `Sequence` up into the tests:
 
-// begin-insert: tags/io-to-data.19:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
+// begin-insert: io-to-data.19:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check
 [source,kotlin]
 ----
 private fun check(
@@ -717,11 +775,13 @@ private fun check(
     )
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.19/src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check">io-to-data.19:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#check</a>]
 // end-insert
 
 It also pulls it up into `main`:
 
-// begin-insert: tags/io-to-data.19:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
+// begin-insert: io-to-data.19:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
 [source,kotlin]
 ----
 fun main() {
@@ -736,12 +796,14 @@ fun main() {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.19/src/main/java/travelator/marketing/HighValueCustomersMain.kt#main">io-to-data.19:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main</a>]
 // end-insert
 
 This is where we are really able to save memory.
 Instead of reading all the lines as once and converting to a `Sequence`, we can get a `Sequence` from the `Reader` with `buffered().lineSequence()`:
 
-// begin-insert: tags/io-to-data.20:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
+// begin-insert: io-to-data.20:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
 [source,kotlin]
 ----
 fun main() {
@@ -756,6 +818,8 @@ fun main() {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.20/src/main/java/travelator/marketing/HighValueCustomersMain.kt#main">io-to-data.20:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main</a>]
 // end-insert
 
 Now `generate` will be pulling the lines into memory one by one as it executes its pipeline.
@@ -763,7 +827,7 @@ We're now really quite efficient in our use of memory, and run pleasingly quickl
 Can we resist one last tinker?
 How much nicer would `main` read with more extension functions?
 
-// begin-insert: tags/io-to-data.21:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
+// begin-insert: io-to-data.21:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
 [source,kotlin]
 ----
 fun main() {
@@ -777,12 +841,14 @@ fun main() {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.21/src/main/java/travelator/marketing/HighValueCustomersMain.kt#main">io-to-data.21:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main</a>]
 // end-insert
 
 Which finally answers the question we posed back at the end of <<functions-to-extension-functions>>: yes, we do end up with report generation as an extension function.
 We love it when a plan comes together:
 
-// begin-insert: tags/io-to-data.21:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
+// begin-insert: io-to-data.21:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
 ----
 fun Sequence<String>.toHighValueCustomerReport(): Sequence<String> {
@@ -797,6 +863,8 @@ fun Sequence<String>.toHighValueCustomerReport(): Sequence<String> {
         valuableCustomers.summarised()
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/io-to-data.21/src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate">io-to-data.21:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate</a>]
 // end-insert
 
 === Moving On

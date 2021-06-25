@@ -38,7 +38,10 @@ data class FileSnippet(
 
 private fun CodeFile.toTag(fragment: String?): String? =
     when (this) {
-        is GitFile -> """pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/$version/$relativePath">$version/$relativePath</a>]"""
+        is GitFile -> """pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/$version/$relativePath${fragment.toFragment()}">$version:$relativePath${fragment.toFragment()}</a>]"""
         else -> null
     }
+
+private fun String?.toFragment() =
+    if (this == null) "" else "#$this"
 

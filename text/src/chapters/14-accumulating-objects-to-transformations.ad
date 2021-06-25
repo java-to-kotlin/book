@@ -19,7 +19,7 @@ The `Itinerary` class has an operation for summarising its costs with a `CostSum
 It is used like this:
 
 [[cost-summary-calculator-usage]]
-// begin-insert: tags/accumulator.0:src/test/java/travelator/itinerary/Itinerary_CostTest.kt#calculation
+// begin-insert: accumulator.0:src/test/java/travelator/itinerary/Itinerary_CostTest.kt#calculation
 [source,kotlin]
 ----
 val fx: ExchangeRates = ...
@@ -31,6 +31,8 @@ fun costSummary(i: Itinerary): CostSummary {
     return calculator.summarise() // <3>
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.0/src/test/java/travelator/itinerary/Itinerary_CostTest.kt#calculation">accumulator.0:src/test/java/travelator/itinerary/Itinerary_CostTest.kt#calculation</a>]
 // end-insert
 
 <1> Here the code creates a `CostSummaryCalculator` with the traveller's preferred currency and a source of currency exchange rates.
@@ -39,7 +41,7 @@ fun costSummary(i: Itinerary): CostSummary {
 
 Someone has already converted the `Itinerary` class to Kotlin, but the implementations of `addCostsTo` still have a Java flavour:
 
-// begin-insert: tags/accumulator.0:src/main/java/travelator/itinerary/Itinerary.kt#costs
+// begin-insert: accumulator.0:src/main/java/travelator/itinerary/Itinerary.kt#costs
 [source,kotlin]
 ----
 data class Itinerary(
@@ -63,6 +65,8 @@ fun Iterable<Accommodation>.addCostsTo(calculator: CostSummaryCalculator) {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.0/src/main/java/travelator/itinerary/Itinerary.kt#costs">accumulator.0:src/main/java/travelator/itinerary/Itinerary.kt#costs</a>]
 // end-insert
 
 The logic relies upon side effects to accumulate costs in the mutable state of the `CostSummaryCalculator`.
@@ -94,7 +98,7 @@ We'll return to this later in this chapter.
 Before we look at `CostSummaryCalculator`, let's have a look at the `CostSummary` that it computes.
 It uses `CurrencyConversion` (thankfully already Kotlin):
 
-// begin-insert: tags/accumulator.0:src/main/java/travelator/money/CurrencyConversion.kt
+// begin-insert: accumulator.0:src/main/java/travelator/money/CurrencyConversion.kt
 [source,kotlin]
 ----
 data class CurrencyConversion(
@@ -102,11 +106,13 @@ data class CurrencyConversion(
     val toMoney: Money
 )
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.0/src/main/java/travelator/money/CurrencyConversion.kt">accumulator.0:src/main/java/travelator/money/CurrencyConversion.kt</a>]
 // end-insert
 
 A `CostSummary` is a mutable POJO (as described in <<beans-to-values>>) that holds a list of `CurrencyConversion`, from local currencies to the traveller's preferred currency.
 
-// begin-insert: tags/accumulator.0:src/main/java/travelator/itinerary/CostSummary.java
+// begin-insert: accumulator.0:src/main/java/travelator/itinerary/CostSummary.java
 [source,java]
 ----
 public class CostSummary {
@@ -131,6 +137,8 @@ public class CostSummary {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.0/src/main/java/travelator/itinerary/CostSummary.java">accumulator.0:src/main/java/travelator/itinerary/CostSummary.java</a>]
 // end-insert
 
 `CostSummary` also reports the total cost in the preferred currency.
@@ -144,7 +152,7 @@ Now to `CostSummaryCalculator`.
 It keeps a running total for each `Currency` in a `currencyTotals` field when `addCost` is called.
 The `summarise` method constructs a `CostSummary` using a source of exchange rates to convert local costs to the traveller's preferred currency:
 
-// begin-insert: tags/accumulator.0:src/main/java/travelator/itinerary/CostSummaryCalculator.java
+// begin-insert: accumulator.0:src/main/java/travelator/itinerary/CostSummaryCalculator.java
 [source,java]
 ----
 public class CostSummaryCalculator {
@@ -181,6 +189,8 @@ public class CostSummaryCalculator {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.0/src/main/java/travelator/itinerary/CostSummaryCalculator.java">accumulator.0:src/main/java/travelator/itinerary/CostSummaryCalculator.java</a>]
 // end-insert
 
 Thus, the calculation of a `CostSummary` is spread between two classes that intertwine the following responsibilities:
@@ -215,7 +225,7 @@ Let's refactor the calculation from mutable classes to functions that work with 
 Converting the two classes to Kotlin leaves us with "Java in Kotlin syntax".
 Here is `CostSummary`, after a little tidying and rearranging:
 
-// begin-insert: tags/accumulator.1:src/main/java/travelator/itinerary/CostSummary.kt
+// begin-insert: accumulator.1:src/main/java/travelator/itinerary/CostSummary.kt
 [source,kotlin]
 ----
 class CostSummary(userCurrency: Currency) {
@@ -233,11 +243,13 @@ class CostSummary(userCurrency: Currency) {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.1/src/main/java/travelator/itinerary/CostSummary.kt">accumulator.1:src/main/java/travelator/itinerary/CostSummary.kt</a>]
 // end-insert
 
 The automatic conversion of `CostSummaryCalculator` needs less tidying:
 
-// begin-insert: tags/accumulator.1:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
+// begin-insert: accumulator.1:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
 [source,kotlin]
 ----
 class CostSummaryCalculator(
@@ -266,13 +278,15 @@ class CostSummaryCalculator(
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.1/src/main/java/travelator/itinerary/CostSummaryCalculator.kt">accumulator.1:src/main/java/travelator/itinerary/CostSummaryCalculator.kt</a>]
 // end-insert
 
 We can start from here and refactor away the mutability.
 We'll work from the inside, making `CostSummary` an immutable value type, and gradually push immutability outwards through the `CostSummaryCalculator`.
 Before we do though, we've been stung by Java's obsession with sorting collections in place before now, so we fix that first:
 
-// begin-insert: tags/accumulator.2:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise
+// begin-insert: accumulator.2:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise
 [source,kotlin]
 ----
 fun summarise(): CostSummary {
@@ -286,12 +300,14 @@ fun summarise(): CostSummary {
     return summary
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.2/src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise">accumulator.2:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise</a>]
 // end-insert
 
 Now we see a pattern that is common in mutating code: create an object (`CostSummary` in this case), call some initialisation steps and then return it.
 Whenever we see initialisation steps like this we should reach for `apply`:
 
-// begin-insert: tags/accumulator.3:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise
+// begin-insert: accumulator.3:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise
 [source,kotlin]
 ----
 fun summarise(): CostSummary {
@@ -306,6 +322,8 @@ fun summarise(): CostSummary {
     return summary
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.3/src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise">accumulator.3:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise</a>]
 // end-insert
 
 `apply` allows us to group the initialisation steps into a block to better express our intent.
@@ -314,7 +332,7 @@ It's like a mini builder -- the `summarise` function never sees a reference to a
 This is small-scale functional thinking - trying to limit the scope of mutation even within a function.
 Functional thinking also helps us to see that looping over `totals`, creating a `CurrencyConversion` for each, and calling `addLine` with it, is the same as creating a `conversions` list and looping over that:
 
-// begin-insert: tags/accumulator.4:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise
+// begin-insert: accumulator.4:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise
 [source,kotlin]
 ----
 fun summarise(): CostSummary {
@@ -327,6 +345,8 @@ fun summarise(): CostSummary {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.4/src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise">accumulator.4:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise</a>]
 // end-insert
 
 Why make this change?
@@ -335,7 +355,7 @@ If `CostSummary` was immutable, client code would have to pass the list of lines
 `CostSummary` shouldn't be responsible for currency conversion, so we're making the `apply` block look like we want its constructor to look.
 From here we add a secondary constructor that duplicates this initialisation logic:
 
-// begin-insert: tags/accumulator.5:src/main/java/travelator/itinerary/CostSummary.kt
+// begin-insert: accumulator.5:src/main/java/travelator/itinerary/CostSummary.kt
 [source,kotlin]
 ----
 class CostSummary(userCurrency: Currency) {
@@ -360,11 +380,13 @@ class CostSummary(userCurrency: Currency) {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.5/src/main/java/travelator/itinerary/CostSummary.kt">accumulator.5:src/main/java/travelator/itinerary/CostSummary.kt</a>]
 // end-insert
 
 Now we can change the `CostSummaryCalculator.summarise` method to call the new constructor: treating the `CostSummary` class as if it was an immutable value type:
 
-// begin-insert: tags/accumulator.5:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise
+// begin-insert: accumulator.5:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise
 [source,kotlin]
 ----
 fun summarise(): CostSummary {
@@ -375,11 +397,13 @@ fun summarise(): CostSummary {
     return CostSummary(userCurrency, conversions)
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.5/src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise">accumulator.5:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise</a>]
 // end-insert
 
 This in turn allows us to make the `CostSummary` class actually immutable, at least from outside:
 
-// begin-insert: tags/accumulator.6:src/main/java/travelator/itinerary/CostSummary.kt
+// begin-insert: accumulator.6:src/main/java/travelator/itinerary/CostSummary.kt
 [source,kotlin]
 ----
 class CostSummary(
@@ -397,6 +421,8 @@ class CostSummary(
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.6/src/main/java/travelator/itinerary/CostSummary.kt">accumulator.6:src/main/java/travelator/itinerary/CostSummary.kt</a>]
 // end-insert
 
 As we can see from that nasty `var` and `init`, it's sometimes hard to get away from mutation once it has set in, especially for accumulators like this.
@@ -404,7 +430,7 @@ As we can see from that nasty `var` and `init`, it's sometimes hard to get away 
 We had a series of actions (<<actions>>) acting on the mutable variable `total`.
 `fold` converts the actions to a single calculation (<<calculations>>) that we can use to initialise an immutable variable:
 
-// begin-insert: tags/accumulator.7:src/main/java/travelator/itinerary/CostSummary.kt
+// begin-insert: accumulator.7:src/main/java/travelator/itinerary/CostSummary.kt
 [source,kotlin]
 ----
 class CostSummary(
@@ -416,6 +442,8 @@ class CostSummary(
         .fold(Money.of(0, userCurrency), Money::add)
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.7/src/main/java/travelator/itinerary/CostSummary.kt">accumulator.7:src/main/java/travelator/itinerary/CostSummary.kt</a>]
 // end-insert
 
 Now that it is fully immutable, we can make `CostSummary` a data class, if we can make `total` a primary constructor parameter.
@@ -423,7 +451,7 @@ We could do this by converting the current constructor to a secondary constructo
 
 To do this, we first select the expression to the right of the equals sign in the definition of the `total` property, and use the IDE's "Introduce Parameter" refactoring to push the expression out as a constructor parameter:
 
-// begin-insert: tags/accumulator.8:src/main/java/travelator/itinerary/CostSummary.kt
+// begin-insert: accumulator.8:src/main/java/travelator/itinerary/CostSummary.kt
 [source,kotlin]
 ----
 class CostSummary(
@@ -433,12 +461,14 @@ class CostSummary(
     val total = total
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.8/src/main/java/travelator/itinerary/CostSummary.kt">accumulator.8:src/main/java/travelator/itinerary/CostSummary.kt</a>]
 // end-insert
 
 The `total` property is now highlighted as a style warning - the IDE detected that the property can be declared in the constructor parameter.
 A quick Alt-Enter on the warning leaves the class declaration as:
 
-// begin-insert: tags/accumulator.9:src/main/java/travelator/itinerary/CostSummary.kt
+// begin-insert: accumulator.9:src/main/java/travelator/itinerary/CostSummary.kt
 [source,kotlin]
 ----
 class CostSummary(
@@ -446,11 +476,13 @@ class CostSummary(
     val total: Money
 )
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.9/src/main/java/travelator/itinerary/CostSummary.kt">accumulator.9:src/main/java/travelator/itinerary/CostSummary.kt</a>]
 // end-insert
 
 Meanwhile, back at the `CostSummaryCalculator`, IntelliJ has pulled the calculation into `summarise`, leaving it looking like this:
 
-// begin-insert: tags/accumulator.9:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise
+// begin-insert: accumulator.9:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise
 [source,kotlin]
 ----
 fun summarise(): CostSummary {
@@ -465,12 +497,14 @@ fun summarise(): CostSummary {
     return CostSummary(lines, total)
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.9/src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise">accumulator.9:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise</a>]
 // end-insert
 
 _Now_ we can make `CostSummary` a data class.
 Its sole responsibility is to hold the results of the calculation for filtering, sorting and display.
 
-// begin-insert: tags/accumulator.10:src/main/java/travelator/itinerary/CostSummary.kt
+// begin-insert: accumulator.10:src/main/java/travelator/itinerary/CostSummary.kt
 [source,kotlin]
 ----
 data class CostSummary(
@@ -478,13 +512,15 @@ data class CostSummary(
     val total: Money
 )
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.10/src/main/java/travelator/itinerary/CostSummary.kt">accumulator.10:src/main/java/travelator/itinerary/CostSummary.kt</a>]
 // end-insert
 
 We said previously that mutable state can obscure algorithms by smearing them through the code.
 We can now look back and see that was the case with `CostSummary`.
 When we arrived, calculating the total was split into initialising a mutable `total` property and updating it in the `addLine` method:
 
-// begin-insert: tags/accumulator.1:src/main/java/travelator/itinerary/CostSummary.kt
+// begin-insert: accumulator.1:src/main/java/travelator/itinerary/CostSummary.kt
 [source,kotlin]
 ----
 class CostSummary(userCurrency: Currency) {
@@ -502,24 +538,28 @@ class CostSummary(userCurrency: Currency) {
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.1/src/main/java/travelator/itinerary/CostSummary.kt">accumulator.1:src/main/java/travelator/itinerary/CostSummary.kt</a>]
 // end-insert
 
 Now the calculation is a single expression in `summarise`:
 
-// begin-insert: tags/accumulator.9:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#total
+// begin-insert: accumulator.9:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#total
 [source,kotlin]
 ----
 val total = lines
     .map { it.toMoney }
     .fold(Money.of(0, userCurrency), Money::add)
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.9/src/main/java/travelator/itinerary/CostSummaryCalculator.kt#total">accumulator.9:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#total</a>]
 // end-insert
 
 === Let's do that Again
 
 Similarly, whatever is happening with currencies is still hidden in the remaining mutations in `CostSummaryCalculator`:
 
-// begin-insert: tags/accumulator.9:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
+// begin-insert: accumulator.9:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
 [source,kotlin]
 ----
 class CostSummaryCalculator(
@@ -549,12 +589,14 @@ class CostSummaryCalculator(
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.9/src/main/java/travelator/itinerary/CostSummaryCalculator.kt">accumulator.9:src/main/java/travelator/itinerary/CostSummaryCalculator.kt</a>]
 // end-insert
 
 We can apply a similar process to eliminate these, but this time we won't add a secondary constructor.
 Instead, we will apply <<expand-contract>>, by adding an overload of the `summarise` method that takes the costs:
 
-// begin-insert: tags/accumulator.11:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise_overload
+// begin-insert: accumulator.11:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise_overload
 [source,kotlin]
 ----
 fun summarise(costs: Iterable<Money>): CostSummary {
@@ -563,6 +605,8 @@ fun summarise(costs: Iterable<Money>): CostSummary {
     return delegate.summarise()
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.11/src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise_overload">accumulator.11:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise_overload</a>]
 // end-insert
 
 This is quite sneaky.
@@ -579,7 +623,7 @@ Instead of asking children to add their costs to the `CostSummaryCalculator`, pa
 
 We'll end up using the calculator like this:
 
-// begin-insert: tags/accumulator.12:src/test/java/travelator/itinerary/Itinerary_CostTest.kt#calculation
+// begin-insert: accumulator.12:src/test/java/travelator/itinerary/Itinerary_CostTest.kt#calculation
 [source,kotlin]
 ----
 val fx: ExchangeRates = ...
@@ -589,11 +633,13 @@ val calculator = CostSummaryCalculator(userCurrency, fx)
 fun costSummary(i: Itinerary) =
     calculator.summarise(i.costs())
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.12/src/test/java/travelator/itinerary/Itinerary_CostTest.kt#calculation">accumulator.12:src/test/java/travelator/itinerary/Itinerary_CostTest.kt#calculation</a>]
 // end-insert
 
 And we'll report the costs from our domain models like this:
 
-// begin-insert: tags/accumulator.12:src/main/java/travelator/itinerary/Itinerary.kt#costs
+// begin-insert: accumulator.12:src/main/java/travelator/itinerary/Itinerary.kt#costs
 [source,kotlin]
 ----
 data class Itinerary(
@@ -609,11 +655,13 @@ data class Itinerary(
 
 fun Iterable<Accommodation>.costs(): List<Money> = flatMap { it.costs() }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.12/src/main/java/travelator/itinerary/Itinerary.kt#costs">accumulator.12:src/main/java/travelator/itinerary/Itinerary.kt#costs</a>]
 // end-insert
 
 When all uses of `CostSummaryCalculator` in the application are using our new `summarise` method, we can flatten the calculation of the `currencyTotals` and `CostSummary` into that method, the one that currently uses a local to do the job:
 
-// begin-insert: tags/accumulator.11:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise_overload
+// begin-insert: accumulator.11:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise_overload
 [source,kotlin]
 ----
 fun summarise(costs: Iterable<Money>): CostSummary {
@@ -622,11 +670,13 @@ fun summarise(costs: Iterable<Money>): CostSummary {
     return delegate.summarise()
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.11/src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise_overload">accumulator.11:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise_overload</a>]
 // end-insert
 
 We can effectively inline the entire class into this method using local variables instead:
 
-// begin-insert: tags/accumulator.13:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise_overload
+// begin-insert: accumulator.13:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise_overload
 [source,kotlin]
 ----
 fun summarise(costs: Iterable<Money>): CostSummary {
@@ -643,6 +693,8 @@ fun summarise(costs: Iterable<Money>): CostSummary {
     return CostSummary(lines, total)
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.13/src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise_overload">accumulator.13:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#summarise_overload</a>]
 // end-insert
 
 Our tests still pass, and IntelliJ tells us that all the other methods of `CostSummaryCalculator` are now unused, as is the `currencyTotals` field, so by deleting them all we have finally succeeded in removing all the mutable state from the class.
@@ -654,7 +706,7 @@ What is that form?
 We have to think about that, but come to the conclusion that the `MutableMap.merge` is accumulating a total per currency.
 When we have all the data at once, as we do now, we can perform the same calculation by grouping by currency and summing the lists:
 
-// begin-insert: tags/accumulator.14:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
+// begin-insert: accumulator.14:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
 [source,kotlin]
 ----
 class CostSummaryCalculator(
@@ -676,6 +728,8 @@ class CostSummaryCalculator(
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.14/src/main/java/travelator/itinerary/CostSummaryCalculator.kt">accumulator.14:src/main/java/travelator/itinerary/CostSummaryCalculator.kt</a>]
 // end-insert
 
 It is a bit irritating that we have to use `reduce` to sum moneys instead of having a nice `Iterable<Money>.sum()` extension function -- we should probably fix that.
@@ -710,7 +764,7 @@ At that point, the class is no longer a calculator of cost summaries -- it holds
 So let's rename it to reflect its new-found responsibility.
 At the moment, we can't think of a better name than `PricingContext`, which leaves our class looking like this:
 
-// begin-insert: tags/accumulator.16:src/main/java/travelator/itinerary/PricingContext.kt
+// begin-insert: accumulator.16:src/main/java/travelator/itinerary/PricingContext.kt
 [source,kotlin]
 ----
 class PricingContext(
@@ -737,6 +791,8 @@ class PricingContext(
     }
 }
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.16/src/main/java/travelator/itinerary/PricingContext.kt">accumulator.16:src/main/java/travelator/itinerary/PricingContext.kt</a>]
 // end-insert
 
 .Naming
@@ -748,7 +804,7 @@ Renames are cheap, even in a mixed Java/Kotlin codebase, so a small incremental 
 
 This leaves the code that used to use the `CostSummaryCalculator` looking like this:
 
-// begin-insert: tags/accumulator.16:src/test/java/travelator/itinerary/Itinerary_CostTest.kt#calculation
+// begin-insert: accumulator.16:src/test/java/travelator/itinerary/Itinerary_CostTest.kt#calculation
 [source,kotlin]
 ----
 val fx: ExchangeRates = ...
@@ -757,6 +813,8 @@ val pricing = PricingContext(userCurrency, fx)
 
 fun costSummary(i: Itinerary) = pricing.summarise(i.costs())
 ----
+
+pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.16/src/test/java/travelator/itinerary/Itinerary_CostTest.kt#calculation">accumulator.16:src/test/java/travelator/itinerary/Itinerary_CostTest.kt#calculation</a>]
 // end-insert
 
 Now we have this concept in our codebase, we can identify other parts of our application that can use it.
