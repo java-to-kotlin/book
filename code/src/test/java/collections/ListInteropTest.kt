@@ -140,7 +140,7 @@ class ListInteropTest {
         assertThrows<AssertionError> {
             /// begin: mutate
             aMutableList[0] = "banana"
-            assertEquals(holdsState.first, holdsState.strings.first()) // Expected "0", actual "banana"
+            assertEquals(holdsState.first, holdsState.strings.first()) // <1>
             /// end: mutate
         }
     }
