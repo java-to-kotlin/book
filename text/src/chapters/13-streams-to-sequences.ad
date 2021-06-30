@@ -25,7 +25,6 @@ public static double averageNonBlankLength(List<String> strings) {
     return sum / (double) strings.size();
 }
 ----
-
 // end-insert
 
 With Java streams we can express this algorithm as `filter`, `map` and `reduce` by first converting the `List` to a `Stream` and applying transformations:
@@ -42,7 +41,6 @@ public static double averageNonBlankLength(List<String> strings) {
         / (double) strings.size();
 }
 ----
-
 // end-insert
 
 Rather than having to run the for-loop in our heads to see what this code is doing, we can see the steps of the algorithm declared line by line, and rely on the runtime to implement those steps for us.
@@ -61,7 +59,6 @@ public static double averageNonBlankLength(List<String> strings) {
         / (double) strings.size();
 }
 ----
-
 // end-insert
 
 <1> `parallelStream` will divide the work across multiple threads.
@@ -93,7 +90,6 @@ public static List<String> translatedWordsUntilSTOP(List<String> strings) {
     return result;
 }
 ----
-
 // end-insert
 
 By breaking out of the loop we don't translate all the words, only the minimum we need.
@@ -110,7 +106,6 @@ public static List<String> translatedWordsUntilSTOP(List<String> strings) {
         .collect(toList());
 }
 ----
-
 // end-insert
 
 This works because the `collect` causes values to be sucked through the pipeline, and `takeWhile` stops sucking from its predecessor when its predicate returns `false`.
@@ -135,7 +130,6 @@ fun averageNonBlankLength(strings: List<String>): Double =
         .sum()
         / strings.size.toDouble())
 ----
-
 // end-insert
 
 Here `filter` is an extension function on `Iterable`.
@@ -171,7 +165,6 @@ fun averageNonBlankLength(strings: List<String>): Double =
         .sum()
         / strings.size.toDouble())
 ----
-
 // end-insert
 
 The familiarity is suspicious because all those operations (`filter`, `map`, `sum`) are now extensions not on `Iterable` but `Sequence`; and they don't return a `List`, they return another `Sequence`.
@@ -203,7 +196,6 @@ fun averageNonBlankLength(strings: List<String>): Double =
         .sumBy(String::length)
         / strings.size.toDouble())
 ----
-
 // end-insert
 
 `sumBy` (also available as an extension on `Iterable`) avoids boxing by taking a function that returns an `Int`.
@@ -235,7 +227,6 @@ public static double averageNonBlankLength(Stream<String> strings) {
         / (double) strings.count();
 }
 ----
-
 // end-insert
 
 This looks very plausible: we've just extracted a function taking a `Stream` parameter rather than the `List`.
@@ -261,7 +252,6 @@ fun averageNonBlankLength(strings: Sequence<String>): Double =
         .sumBy(String::length)
         / strings.count().toDouble())
 ----
-
 // end-insert
 
 In Kotlin, we can call the `Sequence` version from the `List` version and all is fine ... for now.
@@ -275,7 +265,6 @@ To see why, let's step out another layer and add a function that takes an `Itera
 fun averageNonBlankLength(strings: Iterator<String>): Double =
     averageNonBlankLength(strings.asSequence())
 ----
-
 // end-insert
 
 If we call this function, we now get `java.lang.IllegalStateException: This sequence can be consumed only once.` (Comparing this to the streams error, we see that the Kotlin developers seem to be more grammatically pedantic than the JVM developers.)
@@ -313,7 +302,6 @@ fun averageNonBlankLength(strings: Sequence<String>): Double {
         / count.toDouble())
 }
 ----
-
 // end-insert
 
 This is the first problem that we have solved in this book with a mutable local variable!
@@ -338,7 +326,6 @@ fun averageNonBlankLength(strings: Sequence<String>): Double {
             / countingSequence.count.toDouble())
 }
 ----
-
 // end-insert
 
 This a recurrent theme in Kotlin algorithms -- we might occasionally need to stoop to mutation to implement something in a sensible or efficient way, but we can usually hide the mutation in a way that both reduces its visibility and makes for a useful abstraction.
@@ -377,7 +364,6 @@ fun averageNonBlankLength(strings: List<String>): Double =
         .sum()
         / strings.size.toDouble())
 ----
-
 // end-insert
 
 In addition, we can use extension functions to 'add' operations to streams, in the same way as Kotlin defines its `Sequence` operations.
@@ -410,7 +396,6 @@ public static List<String> translatedWordsUntilSTOP(List<String> strings) {
         .collect(toList());
 }
 ----
-
 // end-insert
 
 We can convert this to the equivalent iterable expression:
@@ -423,7 +408,6 @@ fun translatedWordsUntilSTOP(strings: List<String>): List<String> =
         .map { translate(it) }
         .takeWhile { !it.equals("STOP", ignoreCase = true) }
 ----
-
 // end-insert
 
 But then _all_ words in the input `List` will be translated to another `List` by `map`, even those after `STOP`.
@@ -439,7 +423,6 @@ fun translatedWordsUntilSTOP(strings: List<String>): List<String> =
         .takeWhile { !it.equals("STOP", ignoreCase = true) }
         .toList()
 ----
-
 // end-insert
 
 If we don't need lazy evaluation, and for smaller collections, or when writing from scratch in Kotlin, `Iterable` pipelines are simple, generally quick, and easy to reason with.
@@ -480,7 +463,6 @@ fun averageNonBlankLength(strings: Sequence<String>): Double {
             / countingSequence.count.toDouble())
 }
 ----
-
 // end-insert
 
 All that complication arises because we don't want the simple average, but the average where blank strings are counted as if empty.
@@ -495,7 +477,6 @@ fun averageNonBlankLength(strings: Sequence<String>): Double =
         .map { if (it.isBlank()) 0 else it.length }
         .average()
 ----
-
 // end-insert
 
 This is a mathematical rearrangement, and, as with our code refactoring, works only if all the operations are calculations.
@@ -517,7 +498,6 @@ inline fun <T> Sequence<T>.averageBy(selector: (T) -> Int): Double {
     return if (count == 0) Double.NaN else sum / count
 }
 ----
-
 // end-insert
 
 This again stoops to mutation in the name of efficiency, and finally allows us to write:
@@ -530,7 +510,6 @@ fun averageNonBlankLength(strings: Sequence<String>): Double =
         if (it.isBlank()) 0 else it.length
     }
 ----
-
 // end-insert
 
 Why did we not just write it that way in the first place?
@@ -549,7 +528,6 @@ public static double averageNonBlankLength(List<String> strings) {
     return sum / (double) strings.size();
 }
 ----
-
 // end-insert
 
 Given this code, it is natural to translate the `if` statement to a `filter`:
@@ -566,7 +544,6 @@ public static double averageNonBlankLength(List<String> strings) {
         / (double) strings.size();
 }
 ----
-
 // end-insert
 
 What if our original code had been more slightly more functional, selecting the value to be added to the `sum` (with a ternary operator), rather than whether to add (with an `if` statement)?
@@ -582,7 +559,6 @@ public static double averageNonBlankLength(List<String> strings) {
     return sum / (double) strings.size();
 }
 ----
-
 // end-insert
 
 Ah -- then our initial translation would probably have been:
@@ -598,7 +574,6 @@ public static double averageNonBlankLength(List<String> strings) {
         .orElse(Double.NaN);
 }
 ----
-
 // end-insert
 
 In that case we would have had a shorter chapter, but learned less.
@@ -625,8 +600,13 @@ public interface EventStore {
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.0/src/main/java/travelator/analytics/EventStore.java">streams-to-sequences.0:src/main/java/travelator/analytics/EventStore.java</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.0/src/main/java/travelator/analytics/EventStore.java">
+        streams-to-sequences.0:src/main/java/travelator/analytics/EventStore.java
+    </a>
+</div>
+++++
 // end-insert
 
 The interface contains its own conversion of the `Iterator` to a `Stream` for our happy convenience (amazingly there is no conversion function built in to the JDK).
@@ -660,8 +640,13 @@ public double averageNumberOfEventsPerCompletedBooking(
     return averageNumberOfEventsPerCompletedBooking.orElse(Double.NaN);
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.0/src/main/java/travelator/analytics/MarketingAnalytics.java#excerpt">streams-to-sequences.0:src/main/java/travelator/analytics/MarketingAnalytics.java#excerpt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.0/src/main/java/travelator/analytics/MarketingAnalytics.java#excerpt">
+        streams-to-sequences.0:src/main/java/travelator/analytics/MarketingAnalytics.java#excerpt
+    </a>
+</div>
+++++
 // end-insert
 
 We did our best when we wrote this to make it understandable.
@@ -709,8 +694,13 @@ fun averageNumberOfEventsPerCompletedBooking(
     return averageNumberOfEventsPerCompletedBooking.orElse(Double.NaN)
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.1/src/main/java/travelator/analytics/MarketingAnalytics.kt#excerpt">streams-to-sequences.1:src/main/java/travelator/analytics/MarketingAnalytics.kt#excerpt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.1/src/main/java/travelator/analytics/MarketingAnalytics.kt#excerpt">
+        streams-to-sequences.1:src/main/java/travelator/analytics/MarketingAnalytics.kt#excerpt
+    </a>
+</div>
+++++
 // end-insert
 
 At the time of writing, the Java to Kotlin converter is not as clever as it might be mapping between lambdas in the two languages.
@@ -741,8 +731,13 @@ fun averageNumberOfEventsPerCompletedBooking(
     return averageNumberOfEventsPerCompletedBooking.orElse(Double.NaN)
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.2/src/main/java/travelator/analytics/MarketingAnalytics.kt#excerpt">streams-to-sequences.2:src/main/java/travelator/analytics/MarketingAnalytics.kt#excerpt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.2/src/main/java/travelator/analytics/MarketingAnalytics.kt#excerpt">
+        streams-to-sequences.2:src/main/java/travelator/analytics/MarketingAnalytics.kt#excerpt
+    </a>
+</div>
+++++
 // end-insert
 
 The Java code before conversion mixed some old-style explicitly typed variables: `Stream<Map<String, Object>>` for example; with the implicit `var averageNumberOfEventsPerCompletedBooking`.
@@ -773,8 +768,13 @@ val bookingEventsByInteractionId = eventsForSuccessfulBookings.collect(
     groupingBy { event -> event["interactionId"] as String }
 )
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.2/src/main/java/travelator/analytics/MarketingAnalytics.kt#part1">streams-to-sequences.2:src/main/java/travelator/analytics/MarketingAnalytics.kt#part1</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.2/src/main/java/travelator/analytics/MarketingAnalytics.kt#part1">
+        streams-to-sequences.2:src/main/java/travelator/analytics/MarketingAnalytics.kt#part1
+    </a>
+</div>
+++++
 // end-insert
 
 The second processes that collection:
@@ -789,8 +789,13 @@ val averageNumberOfEventsPerCompletedBooking = bookingEventsByInteractionId
     .average()
 return averageNumberOfEventsPerCompletedBooking.orElse(Double.NaN)
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.2/src/main/java/travelator/analytics/MarketingAnalytics.kt#part2">streams-to-sequences.2:src/main/java/travelator/analytics/MarketingAnalytics.kt#part2</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.2/src/main/java/travelator/analytics/MarketingAnalytics.kt#part2">
+        streams-to-sequences.2:src/main/java/travelator/analytics/MarketingAnalytics.kt#part2
+    </a>
+</div>
+++++
 // end-insert
 
 As we saw earlier, Java uses streams for both these cases, whereas in Kotlin we would tend to use a `Sequence` to process input of unknown length, and an `Iterable` to process data in memory.
@@ -813,8 +818,13 @@ val averageNumberOfEventsPerCompletedBooking = bookingEventsByInteractionId
     .average()
 return averageNumberOfEventsPerCompletedBooking
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.3/src/main/java/travelator/analytics/MarketingAnalytics.kt#part2">streams-to-sequences.3:src/main/java/travelator/analytics/MarketingAnalytics.kt#part2</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.3/src/main/java/travelator/analytics/MarketingAnalytics.kt#part2">
+        streams-to-sequences.3:src/main/java/travelator/analytics/MarketingAnalytics.kt#part2
+    </a>
+</div>
+++++
 // end-insert
 
 Has this been a good change though?
@@ -833,8 +843,13 @@ We can refactor from here by extracting `values` and using `sumBy()`:
 val values = bookingEventsByInteractionId.values
 return values.sumBy { it.size } / values.size.toDouble()
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.4/src/main/java/travelator/analytics/MarketingAnalytics.kt#part2">streams-to-sequences.4:src/main/java/travelator/analytics/MarketingAnalytics.kt#part2</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.4/src/main/java/travelator/analytics/MarketingAnalytics.kt#part2">
+        streams-to-sequences.4:src/main/java/travelator/analytics/MarketingAnalytics.kt#part2
+    </a>
+</div>
+++++
 // end-insert
 
 Now "Extract Function" `averageBy` on the returned expression:
@@ -845,8 +860,13 @@ Now "Extract Function" `averageBy` on the returned expression:
 val values = bookingEventsByInteractionId.values
 return averageBy(values)
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.5/src/main/java/travelator/analytics/MarketingAnalytics.kt#part2">streams-to-sequences.5:src/main/java/travelator/analytics/MarketingAnalytics.kt#part2</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.5/src/main/java/travelator/analytics/MarketingAnalytics.kt#part2">
+        streams-to-sequences.5:src/main/java/travelator/analytics/MarketingAnalytics.kt#part2
+    </a>
+</div>
+++++
 // end-insert
 
 // begin-insert: streams-to-sequences.5:src/main/java/travelator/analytics/MarketingAnalytics.kt#averageBy
@@ -858,8 +878,13 @@ private fun averageBy(
     return values.sumBy { it.size } / values.size.toDouble()
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.5/src/main/java/travelator/analytics/MarketingAnalytics.kt#averageBy">streams-to-sequences.5:src/main/java/travelator/analytics/MarketingAnalytics.kt#averageBy</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.5/src/main/java/travelator/analytics/MarketingAnalytics.kt#averageBy">
+        streams-to-sequences.5:src/main/java/travelator/analytics/MarketingAnalytics.kt#averageBy
+    </a>
+</div>
+++++
 // end-insert
 
 Eeek!
@@ -877,8 +902,13 @@ private fun averageBy(
     return values.sumBy(selector) / values.size.toDouble()
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.6/src/main/java/travelator/analytics/MarketingAnalytics.kt#averageBy">streams-to-sequences.6:src/main/java/travelator/analytics/MarketingAnalytics.kt#averageBy</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.6/src/main/java/travelator/analytics/MarketingAnalytics.kt#averageBy">
+        streams-to-sequences.6:src/main/java/travelator/analytics/MarketingAnalytics.kt#averageBy
+    </a>
+</div>
+++++
 // end-insert
 
 Now we don't want to care about the actual type of items in the `Collection`.
@@ -894,8 +924,13 @@ private fun <T : MutableList<MutableMap<String, Any>>> averageBy(
     return values.sumBy(selector) / values.size.toDouble()
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.7/src/main/java/travelator/analytics/MarketingAnalytics.kt#averageBy">streams-to-sequences.7:src/main/java/travelator/analytics/MarketingAnalytics.kt#averageBy</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.7/src/main/java/travelator/analytics/MarketingAnalytics.kt#averageBy">
+        streams-to-sequences.7:src/main/java/travelator/analytics/MarketingAnalytics.kt#averageBy
+    </a>
+</div>
+++++
 // end-insert
 
 That refactoring is clever enough that we don't begrudge having to tell IntelliJ that `T` can be anything really (by removing the `MutableList<MutableMap<String, Any>>` type restriction):
@@ -910,8 +945,13 @@ private fun <T> averageBy(
     return values.sumBy(selector) / values.size.toDouble()
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.8/src/main/java/travelator/analytics/MarketingAnalytics.kt#averageBy">streams-to-sequences.8:src/main/java/travelator/analytics/MarketingAnalytics.kt#averageBy</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.8/src/main/java/travelator/analytics/MarketingAnalytics.kt#averageBy">
+        streams-to-sequences.8:src/main/java/travelator/analytics/MarketingAnalytics.kt#averageBy
+    </a>
+</div>
+++++
 // end-insert
 
 IntelliJ also added the type to the call for some reason:
@@ -922,8 +962,13 @@ IntelliJ also added the type to the call for some reason:
 val values = bookingEventsByInteractionId.values
 return averageBy<MutableList<MutableMap<String, Any>>>(values) { it.size }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.7/src/main/java/travelator/analytics/MarketingAnalytics.kt#part2">streams-to-sequences.7:src/main/java/travelator/analytics/MarketingAnalytics.kt#part2</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.7/src/main/java/travelator/analytics/MarketingAnalytics.kt#part2">
+        streams-to-sequences.7:src/main/java/travelator/analytics/MarketingAnalytics.kt#part2
+    </a>
+</div>
+++++
 // end-insert
 
 So we remove the `MutableList<MutableMap<String, Any>>` from there too.
@@ -936,8 +981,13 @@ Finally, we can make `averageBy` the tiny single-expression inline extension fun
 inline fun <T> Collection<T>.averageBy(selector: (T) -> Int): Double =
     sumBy(selector) / size.toDouble()
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.9/src/main/java/travelator/analytics/MarketingAnalytics.kt#averageBy">streams-to-sequences.9:src/main/java/travelator/analytics/MarketingAnalytics.kt#averageBy</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.9/src/main/java/travelator/analytics/MarketingAnalytics.kt#averageBy">
+        streams-to-sequences.9:src/main/java/travelator/analytics/MarketingAnalytics.kt#averageBy
+    </a>
+</div>
+++++
 // end-insert
 
 This version doesn't box integers, nor iterate more than once, so it is probably as efficient as we are going to get.
@@ -971,8 +1021,13 @@ fun averageNumberOfEventsPerCompletedBooking(
     return bookingEventsByInteractionId.values.averageBy { it.size }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.9/src/main/java/travelator/analytics/MarketingAnalytics.kt#excerpt">streams-to-sequences.9:src/main/java/travelator/analytics/MarketingAnalytics.kt#excerpt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.9/src/main/java/travelator/analytics/MarketingAnalytics.kt#excerpt">
+        streams-to-sequences.9:src/main/java/travelator/analytics/MarketingAnalytics.kt#excerpt
+    </a>
+</div>
+++++
 // end-insert
 
 Now the variable `bookingEventsByInteractionId` is only really there to give a checkpoint in the algorithm: it names an intermediate in the hope that it aids understanding.
@@ -987,8 +1042,13 @@ val bookingEventsByInteractionId = eventsForSuccessfulBookings
         event["interactionId"] as String
     }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.10/src/main/java/travelator/analytics/MarketingAnalytics.kt#part2">streams-to-sequences.10:src/main/java/travelator/analytics/MarketingAnalytics.kt#part2</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.10/src/main/java/travelator/analytics/MarketingAnalytics.kt#part2">
+        streams-to-sequences.10:src/main/java/travelator/analytics/MarketingAnalytics.kt#part2
+    </a>
+</div>
+++++
 // end-insert
 
 Swapping out one method for another method (or extension function) with a similar name that takes a compatible lambda is a good sign that we are on the right track.
@@ -1005,8 +1065,13 @@ val eventsForSuccessfulBookings = eventStore
         eventStore.queryAsStream("interactionId=$interactionId")
     }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.10/src/main/java/travelator/analytics/MarketingAnalytics.kt#part1">streams-to-sequences.10:src/main/java/travelator/analytics/MarketingAnalytics.kt#part1</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.10/src/main/java/travelator/analytics/MarketingAnalytics.kt#part1">
+        streams-to-sequences.10:src/main/java/travelator/analytics/MarketingAnalytics.kt#part1
+    </a>
+</div>
+++++
 // end-insert
 
 This would also _probably just work™_ if we had a sequences rather than streams.
@@ -1026,8 +1091,13 @@ val eventsForSuccessfulBookings = eventStore
             .asSequence()
     }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.11/src/main/java/travelator/analytics/MarketingAnalytics.kt#part1">streams-to-sequences.11:src/main/java/travelator/analytics/MarketingAnalytics.kt#part1</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.11/src/main/java/travelator/analytics/MarketingAnalytics.kt#part1">
+        streams-to-sequences.11:src/main/java/travelator/analytics/MarketingAnalytics.kt#part1
+    </a>
+</div>
+++++
 // end-insert
 
 Awesomely, this continues to compile and to pass our (cursory) test!
@@ -1042,8 +1112,13 @@ val bookingEventsByInteractionId = eventsForSuccessfulBookings
         event["interactionId"] as String
     }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.11/src/main/java/travelator/analytics/MarketingAnalytics.kt#part2">streams-to-sequences.11:src/main/java/travelator/analytics/MarketingAnalytics.kt#part2</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.11/src/main/java/travelator/analytics/MarketingAnalytics.kt#part2">
+        streams-to-sequences.11:src/main/java/travelator/analytics/MarketingAnalytics.kt#part2
+    </a>
+</div>
+++++
 // end-insert
 
 This resolves to `Sequence.asSequence()`, which is a no-op.
@@ -1057,8 +1132,13 @@ val bookingEventsByInteractionId = eventsForSuccessfulBookings
         event["interactionId"] as String
     }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.12/src/main/java/travelator/analytics/MarketingAnalytics.kt#part2">streams-to-sequences.12:src/main/java/travelator/analytics/MarketingAnalytics.kt#part2</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.12/src/main/java/travelator/analytics/MarketingAnalytics.kt#part2">
+        streams-to-sequences.12:src/main/java/travelator/analytics/MarketingAnalytics.kt#part2
+    </a>
+</div>
+++++
 // end-insert
 
 Returning to `eventsForSuccessfulBookings`, we now have:
@@ -1076,8 +1156,13 @@ val eventsForSuccessfulBookings = eventStore
             .asSequence()
     }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.11/src/main/java/travelator/analytics/MarketingAnalytics.kt#part1">streams-to-sequences.11:src/main/java/travelator/analytics/MarketingAnalytics.kt#part1</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.11/src/main/java/travelator/analytics/MarketingAnalytics.kt#part1">
+        streams-to-sequences.11:src/main/java/travelator/analytics/MarketingAnalytics.kt#part1
+    </a>
+</div>
+++++
 // end-insert
 
 What we really wanted was for `EventStore` to support `queryAsSequence` - we can do this without modifying it by introducing an extension function:
@@ -1088,8 +1173,13 @@ What we really wanted was for `EventStore` to support `queryAsSequence` - we can
 fun EventStore.queryAsSequence(query: String) =
     this.queryAsStream(query).asSequence()
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.12/src/main/java/travelator/analytics/MarketingAnalytics.kt#queryAsSequence">streams-to-sequences.12:src/main/java/travelator/analytics/MarketingAnalytics.kt#queryAsSequence</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.12/src/main/java/travelator/analytics/MarketingAnalytics.kt#queryAsSequence">
+        streams-to-sequences.12:src/main/java/travelator/analytics/MarketingAnalytics.kt#queryAsSequence
+    </a>
+</div>
+++++
 // end-insert
 
 This allows us to remove the `asSequence` calls from the calling function:
@@ -1114,8 +1204,13 @@ fun averageNumberOfEventsPerCompletedBooking(
     return bookingEventsByInteractionId.values.averageBy { it.size }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.12/src/main/java/travelator/analytics/MarketingAnalytics.kt#averageNumberOfEventsPerCompletedBooking">streams-to-sequences.12:src/main/java/travelator/analytics/MarketingAnalytics.kt#averageNumberOfEventsPerCompletedBooking</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.12/src/main/java/travelator/analytics/MarketingAnalytics.kt#averageNumberOfEventsPerCompletedBooking">
+        streams-to-sequences.12:src/main/java/travelator/analytics/MarketingAnalytics.kt#averageNumberOfEventsPerCompletedBooking
+    </a>
+</div>
+++++
 // end-insert
 
 OK, time to review.
@@ -1144,8 +1239,13 @@ fun averageNumberOfEventsPerCompletedBooking(
         .averageBy { it.size }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.13/src/main/java/travelator/analytics/MarketingAnalytics.kt#averageNumberOfEventsPerCompletedBooking">streams-to-sequences.13:src/main/java/travelator/analytics/MarketingAnalytics.kt#averageNumberOfEventsPerCompletedBooking</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.13/src/main/java/travelator/analytics/MarketingAnalytics.kt#averageNumberOfEventsPerCompletedBooking">
+        streams-to-sequences.13:src/main/java/travelator/analytics/MarketingAnalytics.kt#averageNumberOfEventsPerCompletedBooking
+    </a>
+</div>
+++++
 // end-insert
 
 It looks like the part starting with `flatMap` and ending before `groupBy` might stand-alone.
@@ -1178,8 +1278,13 @@ private fun allEventsInSameInteractions(timeRange: String) = eventStore
             .queryAsSequence("interactionId=$interactionId")
     }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.14/src/main/java/travelator/analytics/MarketingAnalytics.kt#averageNumberOfEventsPerCompletedBooking">streams-to-sequences.14:src/main/java/travelator/analytics/MarketingAnalytics.kt#averageNumberOfEventsPerCompletedBooking</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.14/src/main/java/travelator/analytics/MarketingAnalytics.kt#averageNumberOfEventsPerCompletedBooking">
+        streams-to-sequences.14:src/main/java/travelator/analytics/MarketingAnalytics.kt#averageNumberOfEventsPerCompletedBooking
+    </a>
+</div>
+++++
 // end-insert
 
 Now we select the bits of the pipeline that we don't want in the new function, so `eventStore` to before `.flatMap`, and "Introduce Parameter".
@@ -1210,8 +1315,13 @@ private fun allEventsInSameInteractions(
             .queryAsSequence("interactionId=$interactionId")
     }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.15/src/main/java/travelator/analytics/MarketingAnalytics.kt#averageNumberOfEventsPerCompletedBooking">streams-to-sequences.15:src/main/java/travelator/analytics/MarketingAnalytics.kt#averageNumberOfEventsPerCompletedBooking</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.15/src/main/java/travelator/analytics/MarketingAnalytics.kt#averageNumberOfEventsPerCompletedBooking">
+        streams-to-sequences.15:src/main/java/travelator/analytics/MarketingAnalytics.kt#averageNumberOfEventsPerCompletedBooking
+    </a>
+</div>
+++++
 // end-insert
 
 That's really ugly, but once we convert the `sequence` parameter of `allEventsInSameInteractions` to a receiver and reformat we have:
@@ -1238,8 +1348,13 @@ fun Sequence<Map<String, Any?>>.allEventsInSameInteractions() =
             .queryAsSequence("interactionId=$interactionId")
     }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.16/src/main/java/travelator/analytics/MarketingAnalytics.kt#averageNumberOfEventsPerCompletedBooking">streams-to-sequences.16:src/main/java/travelator/analytics/MarketingAnalytics.kt#averageNumberOfEventsPerCompletedBooking</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.16/src/main/java/travelator/analytics/MarketingAnalytics.kt#averageNumberOfEventsPerCompletedBooking">
+        streams-to-sequences.16:src/main/java/travelator/analytics/MarketingAnalytics.kt#averageNumberOfEventsPerCompletedBooking
+    </a>
+</div>
+++++
 // end-insert
 
 As we discussed in <<functions-to-extension-functions>>, extension functions really come into their own when we are chaining operations.
@@ -1258,8 +1373,13 @@ typealias Event = Map<String, Any?>
 val Event.interactionId: String? get() =
     this["interactionId"] as? String
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.17/src/main/java/travelator/analytics/MarketingAnalytics.kt#event">streams-to-sequences.17:src/main/java/travelator/analytics/MarketingAnalytics.kt#event</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.17/src/main/java/travelator/analytics/MarketingAnalytics.kt#event">
+        streams-to-sequences.17:src/main/java/travelator/analytics/MarketingAnalytics.kt#event
+    </a>
+</div>
+++++
 // end-insert
 
 This lets us concentrate on the hard stuff when we read the code:
@@ -1293,8 +1413,13 @@ inline fun <T> Collection<T>.averageBy(selector: (T) -> Int): Double =
 fun EventStore.queryAsSequence(query: String) =
     this.queryAsStream(query).asSequence()
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.17/src/main/java/travelator/analytics/MarketingAnalytics.kt#excerpt">streams-to-sequences.17:src/main/java/travelator/analytics/MarketingAnalytics.kt#excerpt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/streams-to-sequences.17/src/main/java/travelator/analytics/MarketingAnalytics.kt#excerpt">
+        streams-to-sequences.17:src/main/java/travelator/analytics/MarketingAnalytics.kt#excerpt
+    </a>
+</div>
+++++
 // end-insert
 
 In passing, note that `allEventsInSameInteractions` is an example of a extension function as method that we discussed in <<functions-to-extension-functions>>.

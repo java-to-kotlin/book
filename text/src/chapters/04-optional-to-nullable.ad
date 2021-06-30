@@ -89,8 +89,13 @@ public class Legs {
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.0/src/main/java/travelator/Legs.java">nullability.0:src/main/java/travelator/Legs.java</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.0/src/main/java/travelator/Legs.java">
+        nullability.0:src/main/java/travelator/Legs.java
+    </a>
+</div>
+++++
 // end-insert
 
 The tests check that the code works as intended, and allow us to see its behaviour at a glance:
@@ -144,8 +149,13 @@ public class LongestLegOverTests {
     ...
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.0/src/test/java/travelator/LongestLegOverTests.java#foo">nullability.0:src/test/java/travelator/LongestLegOverTests.java#foo</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.0/src/test/java/travelator/LongestLegOverTests.java#foo">
+        nullability.0:src/test/java/travelator/LongestLegOverTests.java#foo
+    </a>
+</div>
+++++
 // end-insert
 
 Let's see what we can do to make things better in Kotlin.
@@ -175,8 +185,13 @@ object Legs {
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.3/src/main/java/travelator/Legs.kt">nullability.3:src/main/java/travelator/Legs.kt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.3/src/main/java/travelator/Legs.kt">
+        nullability.3:src/main/java/travelator/Legs.kt
+    </a>
+</div>
+++++
 // end-insert
 
 The method parameters are as we might expect, with Kotlin `List<Leg>` transparently accepting a `java.util.List` (we'll examine Java and Kotlin collections more in <<java-to-kotlin-collections>>.
@@ -248,8 +263,13 @@ class LongestLegOverTests {
     ...
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.4/src/test/java/travelator/LongestLegOverTests.kt#foo">nullability.4:src/test/java/travelator/LongestLegOverTests.kt#foo</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.4/src/test/java/travelator/LongestLegOverTests.kt#foo">
+        nullability.4:src/test/java/travelator/LongestLegOverTests.kt#foo
+    </a>
+</div>
+++++
 // end-insert
 
 Now to migrate gradually, we're going to need two versions of `findLongestLegOver`: the existing `Optional<Leg>`-returning one, and a new one that returns `Leg?`.
@@ -274,8 +294,13 @@ fun findLongestLegOver(
     return Optional.ofNullable(result)
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.4/src/main/java/travelator/Legs.kt#foo">nullability.4:src/main/java/travelator/Legs.kt#foo</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.4/src/main/java/travelator/Legs.kt#foo">
+        nullability.4:src/main/java/travelator/Legs.kt#foo
+    </a>
+</div>
+++++
 // end-insert
 
 We "Extract Function" on all but the return statement of this `findLongestLegOver`.
@@ -304,8 +329,13 @@ fun longestLegOver(legs: List<Leg>, duration: Duration): Leg? {
     return result
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.5/src/main/java/travelator/Legs.kt#foo">nullability.5:src/main/java/travelator/Legs.kt#foo</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.5/src/main/java/travelator/Legs.kt#foo">
+        nullability.5:src/main/java/travelator/Legs.kt#foo
+    </a>
+</div>
+++++
 // end-insert
 
 The refactoring has left a vestigial `result` variable in `findLongestLegOver`.
@@ -322,8 +352,13 @@ fun findLongestLegOver(
     return Optional.ofNullable(longestLegOver(legs, duration))
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.6/src/main/java/travelator/Legs.kt#foo">nullability.6:src/main/java/travelator/Legs.kt#foo</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.6/src/main/java/travelator/Legs.kt#foo">
+        nullability.6:src/main/java/travelator/Legs.kt#foo
+    </a>
+</div>
+++++
 // end-insert
 
 Now we have two versions of our interface, one defined in terms of the other.
@@ -352,8 +387,13 @@ fun is_absent_when_no_legs_long_enough() {
     )
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.6/src/test/java/travelator/LongestLegOverTests.kt#absent">nullability.6:src/test/java/travelator/LongestLegOverTests.kt#absent</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.6/src/test/java/travelator/LongestLegOverTests.kt#absent">
+        nullability.6:src/test/java/travelator/LongestLegOverTests.kt#absent
+    </a>
+</div>
+++++
 // end-insert
 
 So we change them to `assertNull(longestLegOver(...)`:
@@ -371,8 +411,13 @@ fun `is absent when no legs long enough`() {
     assertNull(longestLegOver(legs, oneDay))
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.7/src/test/java/travelator/LongestLegOverTests.kt#absent">nullability.7:src/test/java/travelator/LongestLegOverTests.kt#absent</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.7/src/test/java/travelator/LongestLegOverTests.kt#absent">
+        nullability.7:src/test/java/travelator/LongestLegOverTests.kt#absent
+    </a>
+</div>
+++++
 // end-insert
 
 Note that we've changed the test names to use \`backtick quoted identifiers`.
@@ -401,8 +446,13 @@ fun is_longest_leg_when_more_than_one_match() {
     )
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.6/src/test/java/travelator/LongestLegOverTests.kt#present">nullability.6:src/test/java/travelator/LongestLegOverTests.kt#present</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.6/src/test/java/travelator/LongestLegOverTests.kt#present">
+        nullability.6:src/test/java/travelator/LongestLegOverTests.kt#present
+    </a>
+</div>
+++++
 // end-insert
 
 The Kotlin equivalent of `Optional.orElseThrow()` (aka `get()` pre-Java 10) is the `!!` (bang-bang or dammit) operator.
@@ -431,8 +481,13 @@ fun `is longest leg when more than one match`() {
     )
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.8/src/test/java/travelator/LongestLegOverTests.kt#present">nullability.8:src/test/java/travelator/LongestLegOverTests.kt#present</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.8/src/test/java/travelator/LongestLegOverTests.kt#present">
+        nullability.8:src/test/java/travelator/LongestLegOverTests.kt#present
+    </a>
+</div>
+++++
 // end-insert
 
 We've converted the first of the non-null-returning tests (`is longest leg when one match`) with the `!!` operator.
@@ -503,8 +558,13 @@ object Legs {
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.9/src/main/java/travelator/Legs.kt">nullability.9:src/main/java/travelator/Legs.kt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.9/src/main/java/travelator/Legs.kt">
+        nullability.9:src/main/java/travelator/Legs.kt
+    </a>
+</div>
+++++
 // end-insert
 
 The functions are contained in an `object` because our Java methods were static, and so the conversion needed somewhere to put them.
@@ -532,8 +592,13 @@ fun longestLegOver(
 private fun isLongerThan(leg: Leg, duration: Duration) =
     leg.plannedDuration.compareTo(duration) > 0
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.10/src/main/java/travelator/Legs.kt">nullability.10:src/main/java/travelator/Legs.kt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.10/src/main/java/travelator/Legs.kt">
+        nullability.10:src/main/java/travelator/Legs.kt
+    </a>
+</div>
+++++
 // end-insert
 
 You may have noticed that `isLongerThan` has lost its braces and return statement.
@@ -562,8 +627,13 @@ fun longestLegOver(
 private fun Leg.isLongerThan(duration: Duration) =
     plannedDuration.compareTo(duration) > 0
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.11/src/main/java/travelator/Legs.kt">nullability.11:src/main/java/travelator/Legs.kt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.11/src/main/java/travelator/Legs.kt">
+        nullability.11:src/main/java/travelator/Legs.kt
+    </a>
+</div>
+++++
 // end-insert
 
 So far, our changes have all been structural, changing where code is defined and how we call it.
@@ -599,8 +669,13 @@ fun longestLegOver(
         return null
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.12/src/main/java/travelator/Legs.kt">nullability.12:src/main/java/travelator/Legs.kt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.12/src/main/java/travelator/Legs.kt">
+        nullability.12:src/main/java/travelator/Legs.kt
+    </a>
+</div>
+++++
 // end-insert
 
 That passes the tests, but those multiple returns are ugly.
@@ -620,8 +695,13 @@ fun longestLegOver(
         null
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.13/src/main/java/travelator/Legs.kt">nullability.13:src/main/java/travelator/Legs.kt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.13/src/main/java/travelator/Legs.kt">
+        nullability.13:src/main/java/travelator/Legs.kt
+    </a>
+</div>
+++++
 // end-insert
 
 Now, Kotlin's nullability support allows several ways to refactor this, depending on your tastes.
@@ -644,8 +724,13 @@ fun longestLegOver(
         null
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.14/src/main/java/travelator/Legs.kt">nullability.14:src/main/java/travelator/Legs.kt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.14/src/main/java/travelator/Legs.kt">
+        nullability.14:src/main/java/travelator/Legs.kt
+    </a>
+</div>
+++++
 // end-insert
 
 We could go with a single `?.let` expression.
@@ -665,8 +750,13 @@ fun longestLegOver(
             null
     }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.15/src/main/java/travelator/Legs.kt">nullability.15:src/main/java/travelator/Legs.kt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.15/src/main/java/travelator/Legs.kt">
+        nullability.15:src/main/java/travelator/Legs.kt
+    </a>
+</div>
+++++
 // end-insert
 
 So inside the `let`, `longestLeg` cannot be `null`.
@@ -688,8 +778,13 @@ fun longestLegOver(
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.17/src/main/java/travelator/Legs.kt">nullability.17:src/main/java/travelator/Legs.kt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.17/src/main/java/travelator/Legs.kt">
+        nullability.17:src/main/java/travelator/Legs.kt
+    </a>
+</div>
+++++
 // end-insert
 
 In order to simplify further, we need a trick that Duncan (who is writing this) has so far failed to internalise.
@@ -708,8 +803,13 @@ fun longestLegOver(
         longestLeg.plannedDuration > duration
     }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.16/src/main/java/travelator/Legs.kt">nullability.16:src/main/java/travelator/Legs.kt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.16/src/main/java/travelator/Legs.kt">
+        nullability.16:src/main/java/travelator/Legs.kt
+    </a>
+</div>
+++++
 // end-insert
 
 Depending on our team's experience with Kotlin, that may be too subtle.
@@ -730,8 +830,13 @@ fun List<Leg>.longestOver(duration: Duration): Leg? {
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.18/src/main/java/travelator/Legs.kt">nullability.18:src/main/java/travelator/Legs.kt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.18/src/main/java/travelator/Legs.kt">
+        nullability.18:src/main/java/travelator/Legs.kt
+    </a>
+</div>
+++++
 // end-insert
 
 Just before we finish this chapter, take the time to compare this version with the original.
@@ -763,8 +868,13 @@ public class Legs {
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.0/src/main/java/travelator/Legs.java">nullability.0:src/main/java/travelator/Legs.java</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.0/src/main/java/travelator/Legs.java">
+        nullability.0:src/main/java/travelator/Legs.java
+    </a>
+</div>
+++++
 // end-insert
 
 Usually we would say "it depends," but in this case we think that the new version is better on pretty much every front.
@@ -797,8 +907,13 @@ public class Legs {
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.1/src/main/java/travelator/Legs.java">nullability.1:src/main/java/travelator/Legs.java</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.1/src/main/java/travelator/Legs.java">
+        nullability.1:src/main/java/travelator/Legs.java
+    </a>
+</div>
+++++
 // end-insert
 
 Actually, that isn't bad, but compared with the Kotlin version you can see how `Optional` adds noise to pretty much every line of the method.
@@ -817,8 +932,13 @@ public static Optional<Leg> findLongestLegOver(
         .filter(leg -> isLongerThan(leg, duration));
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.2/src/main/java/travelator/Legs.java#foo">nullability.2:src/main/java/travelator/Legs.java#foo</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/nullability.2/src/main/java/travelator/Legs.java#foo">
+        nullability.2:src/main/java/travelator/Legs.java#foo
+    </a>
+</div>
+++++
 // end-insert
 
 

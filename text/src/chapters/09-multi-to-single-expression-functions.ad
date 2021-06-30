@@ -16,7 +16,6 @@ fun add(a: Int, b: Int): Int {
     return a + b
 }
 ----
-
 // end-insert
 
 If the top level of the code is a single expression though, we can optionally drop the result type, and define the code with an equals sign `=` and the expression:
@@ -26,7 +25,6 @@ If the top level of the code is a single expression though, we can optionally dr
 ----
 fun addToo(a: Int, b: Int): Int = a + b
 ----
-
 // end-insert
 
 We can read this as, the result of function `add` equals `a + b`.
@@ -41,7 +39,6 @@ fun max(a: Int, b: Int): Int =
         else -> b
     }
 ----
-
 // end-insert
 
 This interpretation makes less sense for functions that have side effects, especially those that perform IO or write to mutable state.
@@ -52,7 +49,6 @@ For instance:
 ----
 fun printTwice(s: String): Unit = println("$s\n$s")
 ----
-
 // end-insert
 
 We can't read this as the result of `printTwice` equals `println(..)` as `println` doesn't have a result, or at least it doesn't return one.
@@ -104,8 +100,13 @@ data class EmailAddress(
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.0/src/main/java/travelator/EmailAddress.kt">single-expressions.0:src/main/java/travelator/EmailAddress.kt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.0/src/main/java/travelator/EmailAddress.kt">
+        single-expressions.0:src/main/java/travelator/EmailAddress.kt
+    </a>
+</div>
+++++
 // end-insert
 
 The `toString` method is already a nice simple single expression.
@@ -137,8 +138,13 @@ fun parse(value: String): EmailAddress {
     )
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.1/src/main/java/travelator/EmailAddress.kt#parse">single-expressions.1:src/main/java/travelator/EmailAddress.kt#parse</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.1/src/main/java/travelator/EmailAddress.kt#parse">
+        single-expressions.1:src/main/java/travelator/EmailAddress.kt#parse
+    </a>
+</div>
+++++
 // end-insert
 
 <1> Assigning to `atIndex` is statement.
@@ -166,8 +172,13 @@ fun parse(value: String): EmailAddress {
     )
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.2/src/main/java/travelator/EmailAddress.kt#parse">single-expressions.2:src/main/java/travelator/EmailAddress.kt#parse</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.2/src/main/java/travelator/EmailAddress.kt#parse">
+        single-expressions.2:src/main/java/travelator/EmailAddress.kt#parse
+    </a>
+</div>
+++++
 // end-insert
 
 This version won't produce the same bytecode, nor run as fast (probably, it's notoriously difficult to second guess HotSpot), but it will return the same result.
@@ -197,8 +208,13 @@ private fun emailAddress(value: String, atIndex: Int): EmailAddress {
     )
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.3/src/main/java/travelator/EmailAddress.kt#parse">single-expressions.3:src/main/java/travelator/EmailAddress.kt#parse</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.3/src/main/java/travelator/EmailAddress.kt#parse">
+        single-expressions.3:src/main/java/travelator/EmailAddress.kt#parse
+    </a>
+</div>
+++++
 // end-insert
 
 Now we can inline the `atIndex` variable in `parse`, as the `atIndex` parameter has captured its value for us:
@@ -220,8 +236,13 @@ private fun emailAddress(value: String, atIndex: Int): EmailAddress {
     )
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.4/src/main/java/travelator/EmailAddress.kt#parse">single-expressions.4:src/main/java/travelator/EmailAddress.kt#parse</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.4/src/main/java/travelator/EmailAddress.kt#parse">
+        single-expressions.4:src/main/java/travelator/EmailAddress.kt#parse
+    </a>
+</div>
+++++
 // end-insert
 
 Now `parse` is a single expression, but `emailAddress(...)` isn't, so we can't declare victory just yet.
@@ -246,8 +267,13 @@ private fun emailAddress(value: String, atIndex: Int): EmailAddress {
     )
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.5/src/main/java/travelator/EmailAddress.kt#emailAddress">single-expressions.5:src/main/java/travelator/EmailAddress.kt#emailAddress</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.5/src/main/java/travelator/EmailAddress.kt#emailAddress">
+        single-expressions.5:src/main/java/travelator/EmailAddress.kt#emailAddress
+    </a>
+</div>
+++++
 // end-insert
 
 There's an awful lot of redundancy that we can remove here.
@@ -269,8 +295,13 @@ private fun emailAddress(value: String, atIndex: Int): EmailAddress {
     )
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.6/src/main/java/travelator/EmailAddress.kt#emailAddress">single-expressions.6:src/main/java/travelator/EmailAddress.kt#emailAddress</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.6/src/main/java/travelator/EmailAddress.kt#emailAddress">
+        single-expressions.6:src/main/java/travelator/EmailAddress.kt#emailAddress
+    </a>
+</div>
+++++
 // end-insert
 
 Now we can introduce an `else` to see the structure:
@@ -291,8 +322,13 @@ private fun emailAddress(value: String, atIndex: Int): EmailAddress {
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.7/src/main/java/travelator/EmailAddress.kt#emailAddress">single-expressions.7:src/main/java/travelator/EmailAddress.kt#emailAddress</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.7/src/main/java/travelator/EmailAddress.kt#emailAddress">
+        single-expressions.7:src/main/java/travelator/EmailAddress.kt#emailAddress
+    </a>
+</div>
+++++
 // end-insert
 
 At this point we have a function with two statements chosen by an `if`.
@@ -314,8 +350,13 @@ private fun emailAddress(value: String, atIndex: Int): EmailAddress {
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.8/src/main/java/travelator/EmailAddress.kt#emailAddress">single-expressions.8:src/main/java/travelator/EmailAddress.kt#emailAddress</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.8/src/main/java/travelator/EmailAddress.kt#emailAddress">
+        single-expressions.8:src/main/java/travelator/EmailAddress.kt#emailAddress
+    </a>
+</div>
+++++
 // end-insert
 
 There it is -- our single expression.
@@ -336,8 +377,13 @@ private fun emailAddress(value: String, atIndex: Int): EmailAddress =
         )
     }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.9/src/main/java/travelator/EmailAddress.kt#emailAddress">single-expressions.9:src/main/java/travelator/EmailAddress.kt#emailAddress</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.9/src/main/java/travelator/EmailAddress.kt#emailAddress">
+        single-expressions.9:src/main/java/travelator/EmailAddress.kt#emailAddress
+    </a>
+</div>
+++++
 // end-insert
 
 When we're defining a function as a single expression, `when` is often clearer than `if`.
@@ -362,8 +408,13 @@ private fun emailAddress(value: String, atIndex: Int): EmailAddress =
         )
     }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.10/src/main/java/travelator/EmailAddress.kt#parse">single-expressions.10:src/main/java/travelator/EmailAddress.kt#parse</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.10/src/main/java/travelator/EmailAddress.kt#parse">
+        single-expressions.10:src/main/java/travelator/EmailAddress.kt#parse
+    </a>
+</div>
+++++
 // end-insert
 
 For comparison, here is the original:
@@ -382,8 +433,13 @@ fun parse(value: String): EmailAddress {
     )
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.11/src/main/java/travelator/EmailAddress.kt#parse">single-expressions.11:src/main/java/travelator/EmailAddress.kt#parse</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.11/src/main/java/travelator/EmailAddress.kt#parse">
+        single-expressions.11:src/main/java/travelator/EmailAddress.kt#parse
+    </a>
+</div>
+++++
 // end-insert
 
 Are we happy with the result?
@@ -420,8 +476,13 @@ fun parse(value: String): EmailAddress {
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.12/src/main/java/travelator/EmailAddress.kt#parse">single-expressions.12:src/main/java/travelator/EmailAddress.kt#parse</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.12/src/main/java/travelator/EmailAddress.kt#parse">
+        single-expressions.12:src/main/java/travelator/EmailAddress.kt#parse
+    </a>
+</div>
+++++
 // end-insert
 
 Note that you can't actually use `let` this way in a top-level function, as it needs a receiver.
@@ -445,8 +506,13 @@ fun parse(value: String): EmailAddress {
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.13/src/main/java/travelator/EmailAddress.kt#parse">single-expressions.13:src/main/java/travelator/EmailAddress.kt#parse</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.13/src/main/java/travelator/EmailAddress.kt#parse">
+        single-expressions.13:src/main/java/travelator/EmailAddress.kt#parse
+    </a>
+</div>
+++++
 // end-insert
 
 Currently, `atIndex` in the `let` block refers to the local that we are trying to remove.
@@ -468,8 +534,13 @@ fun parse(value: String): EmailAddress {
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.14/src/main/java/travelator/EmailAddress.kt#parse">single-expressions.14:src/main/java/travelator/EmailAddress.kt#parse</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.14/src/main/java/travelator/EmailAddress.kt#parse">
+        single-expressions.14:src/main/java/travelator/EmailAddress.kt#parse
+    </a>
+</div>
+++++
 // end-insert
 
 <1> `Warning Name shadowed: atIndex` - which is the point.
@@ -491,8 +562,13 @@ fun parse(value: String): EmailAddress {
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.15/src/main/java/travelator/EmailAddress.kt#parse">single-expressions.15:src/main/java/travelator/EmailAddress.kt#parse</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.15/src/main/java/travelator/EmailAddress.kt#parse">
+        single-expressions.15:src/main/java/travelator/EmailAddress.kt#parse
+    </a>
+</div>
+++++
 // end-insert
 
 Now Alt-Enter on the return lets us "Convert to expression body":
@@ -511,8 +587,13 @@ fun parse(value: String): EmailAddress =
         )
     }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.16/src/main/java/travelator/EmailAddress.kt#parse">single-expressions.16:src/main/java/travelator/EmailAddress.kt#parse</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.16/src/main/java/travelator/EmailAddress.kt#parse">
+        single-expressions.16:src/main/java/travelator/EmailAddress.kt#parse
+    </a>
+</div>
+++++
 // end-insert
 
 We've reached the point of no return!
@@ -548,8 +629,13 @@ fun parse(value: String): EmailAddress {
     )
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.17/src/main/java/travelator/EmailAddress.kt#parse">single-expressions.17:src/main/java/travelator/EmailAddress.kt#parse</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.17/src/main/java/travelator/EmailAddress.kt#parse">
+        single-expressions.17:src/main/java/travelator/EmailAddress.kt#parse
+    </a>
+</div>
+++++
 // end-insert
 
 This time we'll concentrate not on `atIndex`, but those `substring` calls.
@@ -571,8 +657,13 @@ fun parse(value: String): EmailAddress {
     )
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.18/src/main/java/travelator/EmailAddress.kt#parse">single-expressions.18:src/main/java/travelator/EmailAddress.kt#parse</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.18/src/main/java/travelator/EmailAddress.kt#parse">
+        single-expressions.18:src/main/java/travelator/EmailAddress.kt#parse
+    </a>
+</div>
+++++
 // end-insert
 
 Now, one more time with feeling, we can extract a function of all but the return statement:
@@ -598,8 +689,13 @@ private fun split(value: String): Pair<String, String> {
     return Pair(leftPart, rightPart)
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.19/src/main/java/travelator/EmailAddress.kt#parse">single-expressions.19:src/main/java/travelator/EmailAddress.kt#parse</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.19/src/main/java/travelator/EmailAddress.kt#parse">
+        single-expressions.19:src/main/java/travelator/EmailAddress.kt#parse
+    </a>
+</div>
+++++
 // end-insert
 
 IntelliJ turns out to be really quite clever there, making the result a `Pair` as it has two values to return.
@@ -629,8 +725,13 @@ private fun String.split(divider: Char): Pair<String, String> {
     return Pair(leftPart, rightPart)
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.20/src/main/java/travelator/EmailAddress.kt#parse">single-expressions.20:src/main/java/travelator/EmailAddress.kt#parse</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.20/src/main/java/travelator/EmailAddress.kt#parse">
+        single-expressions.20:src/main/java/travelator/EmailAddress.kt#parse
+    </a>
+</div>
+++++
 // end-insert
 
 Now we can introduce of `let` as we did previously to get:
@@ -643,8 +744,13 @@ fun parse(value: String): EmailAddress =
         EmailAddress(leftPart, rightPart)
     }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.21/src/main/java/travelator/EmailAddress.kt#parse">single-expressions.21:src/main/java/travelator/EmailAddress.kt#parse</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.21/src/main/java/travelator/EmailAddress.kt#parse">
+        single-expressions.21:src/main/java/travelator/EmailAddress.kt#parse
+    </a>
+</div>
+++++
 // end-insert
 
 This, finally, is a single-expression function that feels worth the effort!
@@ -679,8 +785,13 @@ private fun String.splitAroundLast(divider: Char): Pair<String, String> =
         substring(0, index) to substring(index + 1)
     }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.22/src/main/java/travelator/EmailAddress.kt">single-expressions.22:src/main/java/travelator/EmailAddress.kt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/single-expressions.22/src/main/java/travelator/EmailAddress.kt">
+        single-expressions.22:src/main/java/travelator/EmailAddress.kt
+    </a>
+</div>
+++++
 // end-insert
 
 `splitAroundLast` felt like a better name which doesn't clash with the standard `String.split`, and hints that both sides of the split must be non-empty.

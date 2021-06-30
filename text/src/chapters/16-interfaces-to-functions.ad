@@ -22,7 +22,6 @@ data class Email(
     val body: String
 )
 ----
-
 // end-insert
 
 Given an `Email`, client code would _like_ to call the simplest possible function to send it, which is:
@@ -34,7 +33,6 @@ fun send(email: Email) {
     ...
 }
 ----
-
 // end-insert
 
 Of course when we come to implement this function, we discover that, to actually send email, we require all sorts of other information.
@@ -54,7 +52,6 @@ fun sendEmail(
     ...
 }
 ----
-
 // end-insert
 
 As a client, things have just become a lot less convenient.
@@ -84,7 +81,6 @@ class EmailSender(
     }
 }
 ----
-
 // end-insert
 
 Now when we want to send email, we need access to an `EmailSender` (rather than the static function).
@@ -112,7 +108,6 @@ fun sendThanks() {
     )
 }
 ----
-
 // end-insert
 
 In general, the place where we know the configuration, and the place where we want to send an email, will be separated in our code, often by many layers.
@@ -146,7 +141,6 @@ class Rescuing(
     }
 }
 ----
-
 // end-insert
 
 Often we will extract an interface:
@@ -158,7 +152,6 @@ interface ISendEmail {
     fun send(email: Email)
 }
 ----
-
 // end-insert
 
 // begin-insert: src/main/java/encapsulation/EmailSender.kt#impl
@@ -177,7 +170,6 @@ class EmailSender(
     }
 }
 ----
-
 // end-insert
 
 If our client code depends on the `ISendEmail` interface rather than the `EmailSender` class, we can configure our tests to use a fake implementation of `ISendEmail` which doesn't actually send emails, but instead allows us to check what would be sent if it did.
@@ -207,7 +199,6 @@ fun createEmailSender(
             )
     }
 ----
-
 // end-insert
 
 Why might we want to do this?
@@ -237,7 +228,6 @@ fun createEmailSender(
     )
 }
 ----
-
 // end-insert
 
 Again, the lambda here is a closure, capturing the values of the parameters of its enclosing function.
@@ -255,7 +245,6 @@ fun send(email: Email) {
     ...
 }
 ----
-
 // end-insert
 
 But we actually need all this information to send the message:
@@ -272,7 +261,6 @@ fun sendEmail(
     ...
 }
 ----
-
 // end-insert
 
 In functional terms, this is an example of https://en.wikipedia.org/wiki/Partial_application[_partial application_] -- fixing some of the arguments to a function to yield a function with fewer arguments.
@@ -291,7 +279,6 @@ fun createEmailSender(
     ...
 }
 ----
-
 // end-insert
 
 <1> The return type of our function is itself a function, that takes an `Email` and returns `Unit`.
@@ -321,7 +308,6 @@ fun createEmailSender(
     return ::result
 }
 ----
-
 // end-insert
 
 We can then make the result a lambda expression:
@@ -347,7 +333,6 @@ fun createEmailSender(
     return result
 }
 ----
-
 // end-insert
 
 If we inline `result` and convert the whole function to a single expression we are left with this functional definition:
@@ -369,7 +354,6 @@ fun createEmailSender(
         )
     }
 ----
-
 // end-insert
 
 So `createEmailSender` is a function that returns a lambda that calls `sendEmail` combining the lambda's single `Email` argument with the configuration from its own parameters.
@@ -399,7 +383,6 @@ fun sendThanks() {
     )
 }
 ----
-
 // end-insert
 
 <1> There is an implicit `invoke` call hidden here.
@@ -420,7 +403,6 @@ fun sendThanks() {
     )
 }
 ----
-
 // end-insert
 
 In the unlikely event that you're joining us from JavaScript, or Clojure, the functional form will be familiar, but if you came to Kotlin from Java, this solution probably feels quite alien.
@@ -462,7 +444,6 @@ public void sendThanks() {
     );
 }
 ----
-
 // end-insert
 
 <1> Accept is the name of the single abstract method on the `Consumer` interface.
@@ -485,7 +466,6 @@ static Consumer<Email> createEmailSender(
     );
 }
 ----
-
 // end-insert
 
 This is equivalent to creating an anonymous implementation of the interface, a technique that will be very familiar to those of us who programmed in Java before Java 8:
@@ -511,7 +491,6 @@ static Consumer<Email> createEmailSender(
     };
 }
 ----
-
 // end-insert
 
 We say "equivalent to creating an anonymous implementation of the interface," but under the hood, the implementation is more complex to avoid unnecessarily defining classes and instantiating objects.
@@ -533,7 +512,6 @@ val sender: (Email) -> Unit = createEmailSender(
     "password"
 )
 ----
-
 // end-insert
 
 We can't just assign `sender` to `Consumer<Email`:
@@ -543,7 +521,6 @@ We can't just assign `sender` to `Consumer<Email`:
 ----
 val consumer: Consumer<Email> = sender // Doesn't compile <1>
 ----
-
 // end-insert
 
 <1> `Type mismatch. Required: Consumer<Email> Found:(Email) -> Unit`
@@ -557,7 +534,6 @@ val consumer: Consumer<Email> = Consumer<Email> { email ->
     sender(email)
 }
 ----
-
 // end-insert
 
 There is a situation where we don't have to convert, which is calling a Java method that takes a SAM parameter, for example, this constructor:
@@ -574,7 +550,6 @@ class Rescuing {
     ...
 }
 ----
-
 // end-insert
 
 Here, the compiler _is_ able to convert `(Email) -> Unit` to `Consumer<Email>`, because Kotlin will convert parameters automatically, so that we can say:
@@ -584,7 +559,6 @@ Here, the compiler _is_ able to convert `(Email) -> Unit` to `Consumer<Email>`, 
 ----
 Rescuing(sender)
 ----
-
 // end-insert
 
 === Mix and Match
@@ -622,7 +596,6 @@ public class EmailSender
     }
 }
 ----
-
 // end-insert
 
 <1> Declare
@@ -651,7 +624,6 @@ class EmailSender(
     }
 }
 ----
-
 // end-insert
 
 <1> Declare
@@ -682,7 +654,6 @@ fun sendThanks() {
     )
 }
 ----
-
 // end-insert
 
 <1> There is an implicit `invoke` here.
@@ -714,7 +685,6 @@ class EmailSender(
     }
 }
 ----
-
 // end-insert
 
 In reality, we would probably call `EmailSenderFunction`, `EmailSender`.
@@ -754,7 +724,6 @@ class EmailSender(
     }
 }
 ----
-
 // end-insert
 
 We can convert an instance of `EmailSender` to a function type with a lambda:
@@ -769,7 +738,6 @@ val instance = EmailSender(
 )
 val sender: (Email) -> Unit = { instance.send(it) }
 ----
-
 // end-insert
 
 or just use a method reference:
@@ -779,7 +747,6 @@ or just use a method reference:
 ----
 val sender: (Email) -> Unit = instance::send
 ----
-
 // end-insert
 
 Whilst we've shown these conversions in Kotlin, they also work in Java (with a slightly different syntax).
@@ -803,7 +770,6 @@ val sender: ISendEmail = object : ISendEmail {
     }
 }
 ----
-
 // end-insert
 
 If we had used a Kotlin 1.4 `fun interface`, we could again remove some boilerplate:
@@ -817,7 +783,6 @@ fun interface ISendEmail {
 
 val sender = ISendEmail { function(it) }
 ----
-
 // end-insert
 
 === Comparing the Approaches
@@ -844,7 +809,6 @@ class EmailSender(
     }
 }
 ----
-
 // end-insert
 
 Then we create instances and call methods:
@@ -871,7 +835,6 @@ fun sendThanks() {
     )
 }
 ----
-
 // end-insert
 
 In functional land we don't have to define a type, because `(Email) -> Unit` just exists (which is to say, is provided by the runtime), so we can just say:
@@ -898,7 +861,6 @@ fun sendThanks() {
     )
 }
 ----
-
 // end-insert
 
 <1> With or without the `invoke`.
@@ -919,7 +881,6 @@ interface EmailSystem {
     fun move(email: Email, to: Folder)
 }
 ----
-
 // end-insert
 
 To achieve this functionally would require either passing individual functions around, or some sort of map of name to function, maybe an instance of a class itself:
@@ -934,7 +895,6 @@ class EmailSystem(
     val move: (email: Email, to: Folder) ->  Unit
 )
 ----
-
 // end-insert
 
 Given such an object, clients could treat it very much like an implementation of the interface:
@@ -953,7 +913,6 @@ fun sendThanks(sender: EmailSystem) {
     )
 }
 ----
-
 // end-insert
 
 But this is not the same as the OO code.
@@ -973,7 +932,6 @@ fun sendThanks(sender: EmailSystem) {
     )
 }
 ----
-
 // end-insert
 
 The code may read the same, but it generates very different, and fundamentally incompatible, bytecode.
@@ -1031,7 +989,6 @@ interface EmailSystem {
     fun move(email: Email, to: Folder)
 }
 ----
-
 // end-insert
 
 We shouldn't needlessly couple our client to this interface when the function type will do:
@@ -1050,7 +1007,6 @@ class Organiser(
 val emailSystem: EmailSystem = ...
 val organiser = Organiser(emailSystem::list)
 ----
-
 // end-insert
 
 Depending on the wider interface misses the opportunity to communicate precisely which operations we require, and forces clients to provide an implementation of the whole interface.
@@ -1079,7 +1035,6 @@ val organiser = Organiser(
     emailSystem::delete
 )
 ----
-
 // end-insert
 
 Only at the point where the client requires three related operations does it feel like a multi-method interface should be the default:
@@ -1103,7 +1058,6 @@ class Organiser(
 
 val organiser = Organiser(emailSystem)
 ----
-
 // end-insert
 
 Even here, it might be better for the client to accept an object that only supports the desired operations.
@@ -1146,7 +1100,6 @@ val organiser = Organiser(object : Organiser.Dependencies {
     }
 })
 ----
-
 // end-insert
 
 That's pretty irritating though, maybe this is a place where a class of functions would be better:
@@ -1182,7 +1135,6 @@ val organiser = Organiser(
     )
 )
 ----
-
 // end-insert
 
 So, until it becomes hard work, we should default to expressing our client's needs as function types.
@@ -1235,8 +1187,13 @@ public class Recommendations {
     ...
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.0/src/main/java/travelator/recommendations/Recommendations.java#setup">interfaces-to-funs.0:src/main/java/travelator/recommendations/Recommendations.java#setup</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.0/src/main/java/travelator/recommendations/Recommendations.java#setup">
+        interfaces-to-funs.0:src/main/java/travelator/recommendations/Recommendations.java#setup
+    </a>
+</div>
+++++
 // end-insert
 
 The `FeaturedDestinations` interface has a few methods, grouping functionality that accesses a remote service:
@@ -1253,8 +1210,13 @@ public interface FeaturedDestinations {
     void update(FeaturedDestination destination);
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.0/src/main/java/travelator/destinations/FeaturedDestinations.java">interfaces-to-funs.0:src/main/java/travelator/destinations/FeaturedDestinations.java</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.0/src/main/java/travelator/destinations/FeaturedDestinations.java">
+        interfaces-to-funs.0:src/main/java/travelator/destinations/FeaturedDestinations.java
+    </a>
+</div>
+++++
 // end-insert
 
 It looks like we've already converted the `DistanceCalculator` interface to Kotlin.
@@ -1275,8 +1237,13 @@ interface DistanceCalculator {
     ): Int
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.0/src/main/java/travelator/domain/DistanceCalculator.kt">interfaces-to-funs.0:src/main/java/travelator/domain/DistanceCalculator.kt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.0/src/main/java/travelator/domain/DistanceCalculator.kt">
+        interfaces-to-funs.0:src/main/java/travelator/domain/DistanceCalculator.kt
+    </a>
+</div>
+++++
 // end-insert
 
 Despite taking a dependency on a total of seven methods, `Recommendations` only actually uses two of them in its implementation:
@@ -1315,8 +1282,13 @@ public List<FeaturedDestinationSuggestion> recommendationsFor(
         ).collect(toList());
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.0/src/main/java/travelator/recommendations/Recommendations.java#recommendationsFor">interfaces-to-funs.0:src/main/java/travelator/recommendations/Recommendations.java#recommendationsFor</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.0/src/main/java/travelator/recommendations/Recommendations.java#recommendationsFor">
+        interfaces-to-funs.0:src/main/java/travelator/recommendations/Recommendations.java#recommendationsFor
+    </a>
+</div>
+++++
 // end-insert
 
 <1> Method on `FeaturedDestinations`
@@ -1340,8 +1312,13 @@ public class RecommendationsTests {
     ...
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.0/src/test/java/travelator/recommendations/RecommendationsTests.java#setup">interfaces-to-funs.0:src/test/java/travelator/recommendations/RecommendationsTests.java#setup</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.0/src/test/java/travelator/recommendations/RecommendationsTests.java#setup">
+        interfaces-to-funs.0:src/test/java/travelator/recommendations/RecommendationsTests.java#setup
+    </a>
+</div>
+++++
 // end-insert
 
 The tests specify the expected interactions with the mocks are using two methods: `givenFeaturedDestinationsFor` and `givenADistanceBetween`, which we won't bore you with:
@@ -1378,8 +1355,13 @@ public void returns_recommendations_for_multi_location() {
     );
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.0/src/test/java/travelator/recommendations/RecommendationsTests.java#test1">interfaces-to-funs.0:src/test/java/travelator/recommendations/RecommendationsTests.java#test1</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.0/src/test/java/travelator/recommendations/RecommendationsTests.java#test1">
+        interfaces-to-funs.0:src/test/java/travelator/recommendations/RecommendationsTests.java#test1
+    </a>
+</div>
+++++
 // end-insert
 
 ==== Introduce Functions
@@ -1430,8 +1412,13 @@ private fun List<FeaturedDestinationSuggestion>.deduplicated() =
 private fun List<FeaturedDestinationSuggestion>.closestToJourneyLocation() =
     minByOrNull { it.distanceMeters } ?: error("Unexpected empty group")
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.3/src/main/java/travelator/recommendations/Recommendations.kt">interfaces-to-funs.3:src/main/java/travelator/recommendations/Recommendations.kt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.3/src/main/java/travelator/recommendations/Recommendations.kt">
+        interfaces-to-funs.3:src/main/java/travelator/recommendations/Recommendations.kt
+    </a>
+</div>
+++++
 // end-insert
 
 In order to see how the internals of `Recommendations` would use a function rather than the interface, without having to change its interface yet, we can add a property initialised from an interface method.
@@ -1466,8 +1453,13 @@ class Recommendations(
             }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.4/src/main/java/travelator/recommendations/Recommendations.kt#excerpt">interfaces-to-funs.4:src/main/java/travelator/recommendations/Recommendations.kt#excerpt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.4/src/main/java/travelator/recommendations/Recommendations.kt#excerpt">
+        interfaces-to-funs.4:src/main/java/travelator/recommendations/Recommendations.kt#excerpt
+    </a>
+</div>
+++++
 // end-insert
 
 <1> Extract a function from the interface.
@@ -1487,8 +1479,13 @@ class Recommendations(
         featuredDestinations::findCloseTo
 ) {
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.5/src/main/java/travelator/recommendations/Recommendations.kt#excerpt">interfaces-to-funs.5:src/main/java/travelator/recommendations/Recommendations.kt#excerpt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.5/src/main/java/travelator/recommendations/Recommendations.kt#excerpt">
+        interfaces-to-funs.5:src/main/java/travelator/recommendations/Recommendations.kt#excerpt
+    </a>
+</div>
+++++
 // end-insert
 
 This is, once again, the _expand_ in <<expand-contract>>.
@@ -1504,8 +1501,13 @@ private final Recommendations recommendations = new Recommendations(
     featuredDestinations::findCloseTo
 );
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.5/src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt">interfaces-to-funs.5:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.5/src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt">
+        interfaces-to-funs.5:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt
+    </a>
+</div>
+++++
 // end-insert
 
 Now nothing in `Recommendations` uses the `featuredDestinations` property, so we can remove it (contract):
@@ -1518,8 +1520,13 @@ class Recommendations(
     private val destinationFinder: (Location) -> List<FeaturedDestination>
 ) {
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.6/src/main/java/travelator/recommendations/Recommendations.kt#excerpt">interfaces-to-funs.6:src/main/java/travelator/recommendations/Recommendations.kt#excerpt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.6/src/main/java/travelator/recommendations/Recommendations.kt#excerpt">
+        interfaces-to-funs.6:src/main/java/travelator/recommendations/Recommendations.kt#excerpt
+    </a>
+</div>
+++++
 // end-insert
 
 The places in our code that create `Recommendations` now look like this:
@@ -1532,8 +1539,13 @@ private final Recommendations recommendations = new Recommendations(
     featuredDestinations::findCloseTo
 );
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.6/src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt">interfaces-to-funs.6:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.6/src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt">
+        interfaces-to-funs.6:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt
+    </a>
+</div>
+++++
 // end-insert
 
 If you're used to refactoring tests with mocks, it may surprise you that the tests have continued to pass through this refactoring.
@@ -1565,8 +1577,13 @@ class Recommendations(
             }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.7/src/main/java/travelator/recommendations/Recommendations.kt#excerpt">interfaces-to-funs.7:src/main/java/travelator/recommendations/Recommendations.kt#excerpt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.7/src/main/java/travelator/recommendations/Recommendations.kt#excerpt">
+        interfaces-to-funs.7:src/main/java/travelator/recommendations/Recommendations.kt#excerpt
+    </a>
+</div>
+++++
 // end-insert
 
 <1> Calling the new function.
@@ -1581,8 +1598,13 @@ private final Recommendations recommendations = new Recommendations(
     distanceCalculator::distanceInMetersBetween
 );
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.7/src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt">interfaces-to-funs.7:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/interfaces-to-funs.7/src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt">
+        interfaces-to-funs.7:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt
+    </a>
+</div>
+++++
 // end-insert
 
 Note that a little thought around what to call functional variables can go a long way to making them seem natural in use, although that does sometimes make them a little cryptic where they are defined.

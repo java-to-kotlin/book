@@ -49,8 +49,13 @@ public static int sufferScoreFor(List<Journey> route) {
     return sufferScore(longestJourneys, start);
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/collections.0/src/main/java/travelator/Suffering.java#sufferScoreFor">collections.0:src/main/java/travelator/Suffering.java#sufferScoreFor</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/collections.0/src/main/java/travelator/Suffering.java#sufferScoreFor">
+        collections.0:src/main/java/travelator/Suffering.java#sufferScoreFor
+    </a>
+</div>
+++++
 // end-insert
 
 That `start` local variable doesn't add much, so we decide to inline it:
@@ -63,8 +68,13 @@ public static int sufferScoreFor(List<Journey> route) {
     return sufferScore(longestJourneys, getDepartsFrom(route));
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/collections.1/src/main/java/travelator/Suffering.java#sufferScoreFor">collections.1:src/main/java/travelator/Suffering.java#sufferScoreFor</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/collections.1/src/main/java/travelator/Suffering.java#sufferScoreFor">
+        collections.1:src/main/java/travelator/Suffering.java#sufferScoreFor
+    </a>
+</div>
+++++
 // end-insert
 
 Our tests pass, we push to production, but we get bug reports that suggest that all is not well.
@@ -77,8 +87,13 @@ public static Location getDepartsFrom(List<Journey> route) {
     return route.get(0).getDepartsFrom();
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/collections.0/src/main/java/travelator/Routes.java#getDepartsFrom">collections.0:src/main/java/travelator/Routes.java#getDepartsFrom</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/collections.0/src/main/java/travelator/Routes.java#getDepartsFrom">
+        collections.0:src/main/java/travelator/Routes.java#getDepartsFrom
+    </a>
+</div>
+++++
 // end-insert
 
 // begin-insert: collections.0:src/main/java/travelator/Suffering.java#longestJourneysIn
@@ -93,8 +108,13 @@ public static List<Journey> longestJourneysIn(
     return journeys.subList(0, actualLimit);
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/collections.0/src/main/java/travelator/Suffering.java#longestJourneysIn">collections.0:src/main/java/travelator/Suffering.java#longestJourneysIn</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/collections.0/src/main/java/travelator/Suffering.java#longestJourneysIn">
+        collections.0:src/main/java/travelator/Suffering.java#longestJourneysIn
+    </a>
+</div>
+++++
 // end-insert
 
 <1> `journeys` parameter mutated by `sort`.
@@ -169,7 +189,6 @@ A little compiler magic allows Kotlin code to accept a `java.util.List` as a `ko
 val aList: List<String> = SomeJavaCode.mutableListOfStrings("0", "1")
 aList.removeAt(1) // doesn't compile
 ----
-
 // end-insert
 
 That magic also allows Kotlin to accept the Java `List` as a `kotlin.collections.MutableList`:
@@ -181,7 +200,6 @@ val aMutableList: MutableList<String> = SomeJavaCode.mutableListOfStrings("0", "
 aMutableList.removeAt(1)
 assertEquals(listOf("0"), aMutableList)
 ----
-
 // end-insert
 
 In fact, because the Java `List` is actually mutable here, we could (but almost always shouldn't) downcast to Kotlin's `MutableList` and mutate:
@@ -194,7 +212,6 @@ val aMutableList: MutableList<String> = aList as MutableList<String>
 aMutableList.removeAt(1)
 assertEquals(listOf("0"), aMutableList)
 ----
-
 // end-insert
 
 In the other direction, the compiler will allow both a `kotlin.collections.MutableList` and a `kotlin.collections.List` where a `java.util.List` is needed.
@@ -205,7 +222,6 @@ In the other direction, the compiler will allow both a `kotlin.collections.Mutab
 val aMutableList: MutableList<String> = mutableListOf("0", "1")
 SomeJavaCode.needsAList(aMutableList)
 ----
-
 // end-insert
 
 // begin-insert: src/test/java/collections/ListInteropTest.kt#javaAcceptList
@@ -214,7 +230,6 @@ SomeJavaCode.needsAList(aMutableList)
 val aList: List<String> = listOf("0", "1")
 SomeJavaCode.needsAList(aList)
 ----
-
 // end-insert
 
 At face-value, so far everything has been very plausible.
@@ -229,7 +244,6 @@ In some ways it's worse in Kotlin, because we can convert a `MutableList` to a `
 val aMutableList = mutableListOf("0", "1")
 val aList: List<String> = aMutableList
 ----
-
 // end-insert
 
 Now lets say that we accept a `List<String>` somewhere, and take its immutabilty at face value:
@@ -243,7 +257,6 @@ class AValueType(
     val first: String? = strings.firstOrNull()
 }
 ----
-
 // end-insert
 
 Everything seems fine:
@@ -254,7 +267,6 @@ Everything seems fine:
 val holdsState = AValueType(aList)
 assertEquals(holdsState.first, holdsState.strings.first())
 ----
-
 // end-insert
 
 But wait, don't we still have a reference to a `MutableList`?
@@ -265,7 +277,6 @@ But wait, don't we still have a reference to a `MutableList`?
 aMutableList[0] = "banana"
 assertEquals(holdsState.first, holdsState.strings.first()) // <1>
 ----
-
 // end-insert
 
 <1> Expected "0", actual "banana"
@@ -318,7 +329,6 @@ inline fun <T, R> Iterable<T>.map(transform: (T) -> R): List<R> {
     return result
 }
 ----
-
 // end-insert
 
 Here the list is built in place by mutation, and then returned as read-only.
@@ -377,8 +387,13 @@ public class Suffering {
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/collections.0/src/main/java/travelator/Suffering.java">collections.0:src/main/java/travelator/Suffering.java</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/collections.0/src/main/java/travelator/Suffering.java">
+        collections.0:src/main/java/travelator/Suffering.java
+    </a>
+</div>
+++++
 // end-insert
 
 <1> `longestJourneysIn` breaks our rule by mutating its parameter.
@@ -427,8 +442,13 @@ public static <E> List<E> sorted(
     return Arrays.asList(result);
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/collections.3/src/main/java/travelator/Collections.java#sorted">collections.3:src/main/java/travelator/Collections.java#sorted</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/collections.3/src/main/java/travelator/Collections.java#sorted">
+        collections.3:src/main/java/travelator/Collections.java#sorted
+    </a>
+</div>
+++++
 // end-insert
 
 Before we go on, it's worth considering how we can be confident that this code is correct.
@@ -461,8 +481,13 @@ public static List<Journey> longestJourneysIn(
     return journeys.subList(0, actualLimit);
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/collections.2/src/main/java/travelator/Suffering.java#longestJourneysIn">collections.2:src/main/java/travelator/Suffering.java#longestJourneysIn</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/collections.2/src/main/java/travelator/Suffering.java#longestJourneysIn">
+        collections.2:src/main/java/travelator/Suffering.java#longestJourneysIn
+    </a>
+</div>
+++++
 // end-insert
 
 Our new `sorted` function allows us to write:
@@ -481,8 +506,13 @@ static List<Journey> longestJourneysIn(
     ).subList(0, actualLimit);
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/collections.3/src/main/java/travelator/Suffering.java#longestJourneysIn">collections.3:src/main/java/travelator/Suffering.java#longestJourneysIn</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/collections.3/src/main/java/travelator/Suffering.java#longestJourneysIn">
+        collections.3:src/main/java/travelator/Suffering.java#longestJourneysIn
+    </a>
+</div>
+++++
 // end-insert
 
 Now `sufferScoreFor` won't be subject to the side effect in `longestJourneysIn`, we can inline its local variables:
@@ -496,8 +526,13 @@ public static int sufferScoreFor(List<Journey> route) {
         getDepartsFrom(route));
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/collections.4/src/main/java/travelator/Suffering.java#sufferScoreFor">collections.4:src/main/java/travelator/Suffering.java#sufferScoreFor</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/collections.4/src/main/java/travelator/Suffering.java#sufferScoreFor">
+        collections.4:src/main/java/travelator/Suffering.java#sufferScoreFor
+    </a>
+</div>
+++++
 // end-insert
 
 Inlining local variables might not seem much of a payoff, but it's a small example of a bigger theme.
@@ -518,8 +553,13 @@ private static void removeUnbearableRoutes(List<List<Journey>> routes) {
     routes.removeIf(route -> sufferScoreFor(route) > 10);
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/collections.4/src/main/java/travelator/Suffering.java#routesToShowFor">collections.4:src/main/java/travelator/Suffering.java#routesToShowFor</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/collections.4/src/main/java/travelator/Suffering.java#routesToShowFor">
+        collections.4:src/main/java/travelator/Suffering.java#routesToShowFor
+    </a>
+</div>
+++++
 // end-insert
 
 Hmmm, that's so pathologically mutating that it might have been written as an example in a book!
@@ -542,8 +582,13 @@ private static List<List<Journey>> removeUnbearableRoutes
     return routes;
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/collections.5/src/main/java/travelator/Suffering.java#routesToShowFor">collections.5:src/main/java/travelator/Suffering.java#routesToShowFor</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/collections.5/src/main/java/travelator/Suffering.java#routesToShowFor">
+        collections.5:src/main/java/travelator/Suffering.java#routesToShowFor
+    </a>
+</div>
+++++
 // end-insert
 
 This time we'll use streams and `filter` to replace the mutation in `removeUnbearableRoutes`.
@@ -566,8 +611,13 @@ private static List<List<Journey>> bearable
         .collect(toUnmodifiableList());
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/collections.6/src/main/java/travelator/Suffering.java#routesToShowFor">collections.6:src/main/java/travelator/Suffering.java#routesToShowFor</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/collections.6/src/main/java/travelator/Suffering.java#routesToShowFor">
+        collections.6:src/main/java/travelator/Suffering.java#routesToShowFor
+    </a>
+</div>
+++++
 // end-insert
 
 Note how it is now easier to find a nice short name for our function - `removeUnbearableRoutes` becomes `bearable`.
@@ -592,8 +642,13 @@ private static List<List<Journey>> bearable
         .collect(toUnmodifiableList());
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/collections.7/src/main/java/travelator/Suffering.java#routesToShowFor">collections.7:src/main/java/travelator/Suffering.java#routesToShowFor</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/collections.7/src/main/java/travelator/Suffering.java#routesToShowFor">
+        collections.7:src/main/java/travelator/Suffering.java#routesToShowFor
+    </a>
+</div>
+++++
 // end-insert
 
 ==== Convert to Kotlin
@@ -644,8 +699,13 @@ object Suffering {
     } 
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/collections.8/src/main/java/travelator/Suffering.kt">collections.8:src/main/java/travelator/Suffering.kt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/collections.8/src/main/java/travelator/Suffering.kt">
+        collections.8:src/main/java/travelator/Suffering.kt
+    </a>
+</div>
+++++
 // end-insert
 
 We have also reformatted and tidied some imports.
@@ -661,8 +721,13 @@ On the plus side, the Java code calling our Kotlin hasn't had to change - here f
     );
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/collections.8/src/test/java/travelator/LongestJourneyInTests.java#foo">collections.8:src/test/java/travelator/LongestJourneyInTests.java#foo</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/collections.8/src/test/java/travelator/LongestJourneyInTests.java#foo">
+        collections.8:src/test/java/travelator/LongestJourneyInTests.java#foo
+    </a>
+</div>
+++++
 // end-insert
 
 Returning to the Kotlin, we can now take advantage of the many utilities available on Kotlin collections to simplify the code.
@@ -684,8 +749,13 @@ fun longestJourneysIn(
     ).subList(0, actualLimit)
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/collections.8/src/main/java/travelator/Suffering.kt#longestJourneysIn">collections.8:src/main/java/travelator/Suffering.kt#longestJourneysIn</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/collections.8/src/main/java/travelator/Suffering.kt#longestJourneysIn">
+        collections.8:src/main/java/travelator/Suffering.kt#longestJourneysIn
+    </a>
+</div>
+++++
 // end-insert
 
 
@@ -698,8 +768,13 @@ Replacing `sorted` with `sortedByDescending`, and `subList` with `take` gives:
 fun longestJourneysIn(journeys: List<Journey>, limit: Int): List<Journey> =
     journeys.sortedByDescending { it.duration }.take(limit)
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/collections.9/src/main/java/travelator/Suffering.kt#longestJourneysIn">collections.9:src/main/java/travelator/Suffering.kt#longestJourneysIn</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/collections.9/src/main/java/travelator/Suffering.kt#longestJourneysIn">
+        collections.9:src/main/java/travelator/Suffering.kt#longestJourneysIn
+    </a>
+</div>
+++++
 // end-insert
 
 Now if we convert `longestJourneysIn` to an extension function (see <<functions-to-extension-functions>>) we can simplify its name to `longestJourneys`:
@@ -711,8 +786,13 @@ Now if we convert `longestJourneysIn` to an extension function (see <<functions-
 fun List<Journey>.longestJourneys(limit: Int): List<Journey> =
     sortedByDescending { it.duration }.take(limit)
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/collections.10/src/main/java/travelator/Suffering.kt#longestJourneysIn">collections.10:src/main/java/travelator/Suffering.kt#longestJourneysIn</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/collections.10/src/main/java/travelator/Suffering.kt#longestJourneysIn">
+        collections.10:src/main/java/travelator/Suffering.kt#longestJourneysIn
+    </a>
+</div>
+++++
 // end-insert
 
 Because `longestJourneys` doesn't modify its parameter we've made it a single-expression function (<<multi-to-single-expression-functions>>).
@@ -729,8 +809,13 @@ fun sufferScoreFor(route: List<Journey>): Int {
     )
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/collections.10/src/main/java/travelator/Suffering.kt#sufferScoreFor">collections.10:src/main/java/travelator/Suffering.kt#sufferScoreFor</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/collections.10/src/main/java/travelator/Suffering.kt#sufferScoreFor">
+        collections.10:src/main/java/travelator/Suffering.kt#sufferScoreFor
+    </a>
+</div>
+++++
 // end-insert
 
 <1> Named argument
@@ -746,8 +831,13 @@ private fun bearable(routes: List<List<Journey>>): List<List<Journey>> {
         .collect(Collectors.toUnmodifiableList())
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/collections.10/src/main/java/travelator/Suffering.kt#bearable">collections.10:src/main/java/travelator/Suffering.kt#bearable</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/collections.10/src/main/java/travelator/Suffering.kt#bearable">
+        collections.10:src/main/java/travelator/Suffering.kt#bearable
+    </a>
+</div>
+++++
 // end-insert
 
 Here we can use the techniques in <<streams-to-sequences>> to convert the `Stream` to Kotlin.
@@ -760,8 +850,13 @@ Then we don't need the terminal `toUnmodifiableList`, because Kotlin `filter` re
 private fun bearable(routes: List<List<Journey>>): List<List<Journey>> =
     routes.filter { sufferScoreFor(it) <= 10 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/collections.11/src/main/java/travelator/Suffering.kt#bearable">collections.11:src/main/java/travelator/Suffering.kt#bearable</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/collections.11/src/main/java/travelator/Suffering.kt#bearable">
+        collections.11:src/main/java/travelator/Suffering.kt#bearable
+    </a>
+</div>
+++++
 // end-insert
 
 Interestingly this is a place where the result is potentially more mutable than our Java was.
@@ -798,8 +893,13 @@ object Suffering {
     ): Int = SOME_COMPLICATED_RESULT()
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/collections.11/src/main/java/travelator/Suffering.kt">collections.11:src/main/java/travelator/Suffering.kt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/collections.11/src/main/java/travelator/Suffering.kt">
+        collections.11:src/main/java/travelator/Suffering.kt
+    </a>
+</div>
+++++
 // end-insert
 
 We say final, but in practice we probably wouldn't finish this refactoring at this point.

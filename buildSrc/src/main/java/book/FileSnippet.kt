@@ -13,7 +13,6 @@ data class FileSnippet(
             "----",
             codeLines().joinToString("\n"),
             "----",
-            "",
             codeFile.toTag(fragment)
         ).filterNotNull().joinToString("\n")
 
@@ -38,7 +37,14 @@ data class FileSnippet(
 
 private fun CodeFile.toTag(fragment: String?): String? =
     when (this) {
-        is GitFile -> """pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/$version/$relativePath${fragment.toFragment()}">$version:$relativePath${fragment.toFragment()}</a>]"""
+        is GitFile -> """
+            ++++
+            <div class="coderef">
+                <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/$version/$relativePath${fragment.toFragment()}">
+                    $version:$relativePath${fragment.toFragment()}
+                </a>
+            </div>
+            ++++""".trimIndent()
         else -> null
     }
 

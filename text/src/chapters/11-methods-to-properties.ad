@@ -87,7 +87,6 @@ public class PersonWithPublicFields {
     }
 }
 ----
-
 // end-insert
 
 Or, we can write our own accessor:
@@ -116,7 +115,6 @@ public class PersonWithAccessors {
     ...
 }
 ----
-
 // end-insert
 
 In Kotlin, we only have properties:
@@ -131,7 +129,6 @@ data class PersonWithProperties(
 ) {
 }
 ----
-
 // end-insert
 
 This declaration will generate private fields `givenName`, `familyName` and `dateOfBirth`, accessor methods `getGivenName()` etc, and a constructor to initialise all the fields.
@@ -153,7 +150,6 @@ public static String callKotlinAccessor(PersonWithProperties person) {
     return person.getGivenName();
 }
 ----
-
 // end-insert
 
 In Kotlin, we can access visible fields  (from Java classes) directly, or call accessors as if they were fields:
@@ -170,7 +166,6 @@ fun callAccessor(person: PersonWithAccessors): String =
 fun callKotlinAccessor(person: PersonWithProperties): String =
     person.givenName
 ----
-
 // end-insert
 
 Properties are a convenience backed by some compiler magic.
@@ -197,7 +192,6 @@ public class PersonWithPublicFields {
     }
 }
 ----
-
 // end-insert
 
 If we use direct-field-access in Java, there is now a difference between the way that we access the stored and computed properties:
@@ -211,7 +205,6 @@ public static String fieldAndAccessor(PersonWithPublicFields person) {
         person.getFullName();
 }
 ----
-
 // end-insert
 
 This isn't the case in Kotlin, even when accessing the Java fields and methods, which is nice:
@@ -223,7 +216,6 @@ fun fieldAndAccessor(person: PersonWithPublicFields) =
     person.givenName + " " +
     person.fullName
 ----
-
 // end-insert
 
 In Kotlin, we define computed properties outside the constructor:
@@ -239,7 +231,6 @@ data class PersonWithProperties(
     val fullName get() = "$givenName $familyName"
 }
 ----
-
 // end-insert
 
 So, in Java, we _can_ define classes that give direct access to fields, but _should_ generally use accessors, which are just methods named (by convention but not always) with a `get` or `set` prefix.
@@ -275,7 +266,6 @@ data class PersonWithProperties(
     fun age() = Period.between(dateOfBirth, LocalDate.now()).years
 }
 ----
-
 // end-insert
 
 What about a cryptographic hash of all the other properties of the object?
@@ -294,7 +284,6 @@ data class PersonWithProperties(
         someSlowHashOf(givenName, familyName, dateOfBirth.toString())
 }
 ----
-
 // end-insert
 
 We could make a property by calculating it up-front and storing it in a field:
@@ -311,7 +300,6 @@ data class PersonWithProperties(
         someSlowHashOf(givenName, familyName, dateOfBirth.toString())
 }
 ----
-
 // end-insert
 
 This has the disadvantage of making every instance slow to create, whether or not its `hash` is ever accessed.
@@ -330,7 +318,6 @@ data class PersonWithProperties(
     }
 }
 ----
-
 // end-insert
 
 In a limited scope this would be fine, but if the class was more widely used, we should at least hint at the potential first-invocation performance issue by hiding the computed property behind a function.
@@ -349,7 +336,6 @@ data class PersonWithProperties(
     fun hash() = hash
 }
 ----
-
 // end-insert
 
 In this particular case, we might consider an extension property.
@@ -414,8 +400,13 @@ public class CampSite {
     ...
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/methods-to-properties.0/src/main/java/travelator/CampSite.java#excerpt">methods-to-properties.0:src/main/java/travelator/CampSite.java#excerpt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/methods-to-properties.0/src/main/java/travelator/CampSite.java#excerpt">
+        methods-to-properties.0:src/main/java/travelator/CampSite.java#excerpt
+    </a>
+</div>
+++++
 // end-insert
 
 This is typical of a domain class that has grown over the years.
@@ -443,8 +434,13 @@ public class CampSites {
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/methods-to-properties.0/src/main/java/travelator/CampSites.java">methods-to-properties.0:src/main/java/travelator/CampSites.java</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/methods-to-properties.0/src/main/java/travelator/CampSites.java">
+        methods-to-properties.0:src/main/java/travelator/CampSites.java
+    </a>
+</div>
+++++
 // end-insert
 
 Let's convert `Campsite` to Kotlin with IntelliJ (and then make it a data class):
@@ -468,8 +464,13 @@ data class CampSite(
     ...
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/methods-to-properties.1/src/main/java/travelator/CampSite.kt#excerpt">methods-to-properties.1:src/main/java/travelator/CampSite.kt#excerpt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/methods-to-properties.1/src/main/java/travelator/CampSite.kt#excerpt">
+        methods-to-properties.1:src/main/java/travelator/CampSite.kt#excerpt
+    </a>
+</div>
+++++
 // end-insert
 
 Our field-backed properties have become constructor properties, and the computed `countryCode` a computed property.
@@ -485,8 +486,13 @@ val region: String
         return address.region
     }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/methods-to-properties.2/src/main/java/travelator/CampSite.kt#excerpt">methods-to-properties.2:src/main/java/travelator/CampSite.kt#excerpt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/methods-to-properties.2/src/main/java/travelator/CampSite.kt#excerpt">
+        methods-to-properties.2:src/main/java/travelator/CampSite.kt#excerpt
+    </a>
+</div>
+++++
 // end-insert
 
 As with most computed properties, this is better as a single expression (see <<multi-to-single-expression-functions>>):
@@ -496,8 +502,13 @@ As with most computed properties, this is better as a single expression (see <<m
 ----
 val region: String get() = address.region
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/methods-to-properties.3/src/main/java/travelator/CampSite.kt#excerpt">methods-to-properties.3:src/main/java/travelator/CampSite.kt#excerpt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/methods-to-properties.3/src/main/java/travelator/CampSite.kt#excerpt">
+        methods-to-properties.3:src/main/java/travelator/CampSite.kt#excerpt
+    </a>
+</div>
+++++
 // end-insert
 
 Changing the Kotlin `region` method to a property means that the accessor method will now be named `getRegion` - thankfully IntelliJ is smart enough to fix up our clients for us:
@@ -518,8 +529,13 @@ public static Set<CampSite> sitesInRegion(
         .collect(toUnmodifiableSet());
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/methods-to-properties.3/src/main/java/travelator/CampSites.java#excerpt">methods-to-properties.3:src/main/java/travelator/CampSites.java#excerpt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/methods-to-properties.3/src/main/java/travelator/CampSites.java#excerpt">
+        methods-to-properties.3:src/main/java/travelator/CampSites.java#excerpt
+    </a>
+</div>
+++++
 // end-insert
 
 <1> `campsite.region()` has been replaced by `campsite.getRegion()`.
@@ -544,8 +560,13 @@ object CampSites {
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/methods-to-properties.4/src/main/java/travelator/CampSites.kt">methods-to-properties.4:src/main/java/travelator/CampSites.kt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/methods-to-properties.4/src/main/java/travelator/CampSites.kt">
+        methods-to-properties.4:src/main/java/travelator/CampSites.kt
+    </a>
+</div>
+++++
 // end-insert
 
 <1> `campsite.getRegion()` is now invoked by `campsite.region`.
@@ -567,8 +588,13 @@ fun Set<CampSite>.sitesInRegion(
         .collect(Collectors.toUnmodifiableSet())
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/methods-to-properties.5/src/main/java/travelator/CampSites.kt">methods-to-properties.5:src/main/java/travelator/CampSites.kt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/methods-to-properties.5/src/main/java/travelator/CampSites.kt">
+        methods-to-properties.5:src/main/java/travelator/CampSites.kt
+    </a>
+</div>
+++++
 // end-insert
 
 Streams to Iterables to Sequences (<<streams-to-sequences>>) and Multi to Single-Expression Functions (<<multi-to-single-expression-functions>>) will show how to finish the job to:
@@ -585,8 +611,13 @@ fun Iterable<CampSite>.sitesInRegion(
             site.region.equals(region, ignoreCase = true)
     }.toSet()
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/methods-to-properties.6/src/main/java/travelator/CampSites.kt">methods-to-properties.6:src/main/java/travelator/CampSites.kt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/methods-to-properties.6/src/main/java/travelator/CampSites.kt">
+        methods-to-properties.6:src/main/java/travelator/CampSites.kt
+    </a>
+</div>
+++++
 // end-insert
 
 Due to the excellent tooling and interop around methods, accessors and properties, this has been a mercifully short refactor. So we crave your indulgence while we add just one more tweak.
@@ -611,8 +642,13 @@ fun CampSite.isIn(countryISO: String, region: String) =
     countryCode == countryISO &&
         this.region.equals(region, ignoreCase = true)
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/methods-to-properties.7/src/main/java/travelator/CampSites.kt">methods-to-properties.7:src/main/java/travelator/CampSites.kt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/methods-to-properties.7/src/main/java/travelator/CampSites.kt">
+        methods-to-properties.7:src/main/java/travelator/CampSites.kt
+    </a>
+</div>
+++++
 // end-insert
 
 Now we have `Campsite.isIn(...)`, maybe `sitesInRegion` could be inlined into the places that call it, as the code is now really quite self-explanatory.
@@ -629,8 +665,13 @@ fun CampSite.isIn(countryISO: String, region: String? = null) =
             region.equals(this.region, ignoreCase = true)
     }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/methods-to-properties.8/src/main/java/travelator/CampSites.kt#excerpt">methods-to-properties.8:src/main/java/travelator/CampSites.kt#excerpt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/methods-to-properties.8/src/main/java/travelator/CampSites.kt#excerpt">
+        methods-to-properties.8:src/main/java/travelator/CampSites.kt#excerpt
+    </a>
+</div>
+++++
 // end-insert
 
 Nat prefers the same, but with an Elvis operator:
@@ -642,8 +683,13 @@ fun CampSite.isIn(countryISO: String, region: String? = null) =
     countryCode == countryISO &&
         region?.equals(this.region, ignoreCase = true) ?: true
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/methods-to-properties.9/src/main/java/travelator/CampSites.kt#excerpt">methods-to-properties.9:src/main/java/travelator/CampSites.kt#excerpt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/methods-to-properties.9/src/main/java/travelator/CampSites.kt#excerpt">
+        methods-to-properties.9:src/main/java/travelator/CampSites.kt#excerpt
+    </a>
+</div>
+++++
 // end-insert
 
 Duncan likes a good Elvis, but thinks the code is clearer his way.

@@ -34,8 +34,13 @@ data class Itinerary(
     ...
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.17/src/main/java/travelator/itinerary/Itinerary.kt#excerpt">accumulator.17:src/main/java/travelator/itinerary/Itinerary.kt#excerpt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/accumulator.17/src/main/java/travelator/itinerary/Itinerary.kt#excerpt">
+        accumulator.17:src/main/java/travelator/itinerary/Itinerary.kt#excerpt
+    </a>
+</div>
+++++
 // end-insert
 
 Since then, we have added more features to the application and hence more types of item to the itinerary.
@@ -50,8 +55,13 @@ data class Itinerary(
     val items: List<ItineraryItem>
 ) : Iterable<ItineraryItem> by items
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.0/src/main/java/travelator/itinerary/Itinerary.kt#itinerary">open-to-sealed-2.0:src/main/java/travelator/itinerary/Itinerary.kt#itinerary</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.0/src/main/java/travelator/itinerary/Itinerary.kt#itinerary">
+        open-to-sealed-2.0:src/main/java/travelator/itinerary/Itinerary.kt#itinerary
+    </a>
+</div>
+++++
 // end-insert
 
 `ItineraryItem` is an interface, implemented by the concrete item types we saw before: `Journey` and  `Accommodation`; and new types `RestaurantBooking` and `Attraction`:
@@ -67,8 +77,13 @@ interface ItineraryItem {
     ... and other methods
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.0/src/main/java/travelator/itinerary/ItineraryItem.kt#item">open-to-sealed-2.0:src/main/java/travelator/itinerary/ItineraryItem.kt#item</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.0/src/main/java/travelator/itinerary/ItineraryItem.kt#item">
+        open-to-sealed-2.0:src/main/java/travelator/itinerary/ItineraryItem.kt#item
+    </a>
+</div>
+++++
 // end-insert
 
 Operations on `Itinerary` don't depend on the concrete type of its items.
@@ -84,8 +99,13 @@ val Itinerary.mapOverlay
         id = id,
         elements = items.map { it.mapOverlay })
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.0/src/main/java/travelator/itinerary/Itinerary.kt#mapOverlay">open-to-sealed-2.0:src/main/java/travelator/itinerary/Itinerary.kt#mapOverlay</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.0/src/main/java/travelator/itinerary/Itinerary.kt#mapOverlay">
+        open-to-sealed-2.0:src/main/java/travelator/itinerary/Itinerary.kt#mapOverlay
+    </a>
+</div>
+++++
 // end-insert
 
 This polymorphism makes it very easy to add new types of `ItineraryItem` to the system without having to change the parts of the application that use the `Itinerary` type.
@@ -128,8 +148,13 @@ if (item instanceof Journey) {
     throw new IllegalStateException("should never happen");
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.0/src/main/java/travelator/itinerary/ItineraryItems.java#type_switch">open-to-sealed-2.0:src/main/java/travelator/itinerary/ItineraryItems.java#type_switch</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.0/src/main/java/travelator/itinerary/ItineraryItems.java#type_switch">
+        open-to-sealed-2.0:src/main/java/travelator/itinerary/ItineraryItems.java#type_switch
+    </a>
+</div>
+++++
 // end-insert
 
 That `IllegalStateException` shows that this approach is risky.
@@ -166,7 +191,6 @@ When none of those options apply, you can use the following utility function to 
 ----
 val <T> T.exhaustive get() = this
 ----
-
 // end-insert
 
 When used like this, it will prevent compilation when `when` is not exhaustive:
@@ -179,7 +203,6 @@ when (instanceOfSealedClass) {
     is SubclassB -> println("B")
 }.exhaustive
 ----
-
 // end-insert
 ====
 
@@ -245,8 +268,13 @@ data class Accommodation(
 
 ... and other subclasses
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.2/src/main/java/travelator/itinerary/ItineraryItem.kt#sealed">open-to-sealed-2.2:src/main/java/travelator/itinerary/ItineraryItem.kt#sealed</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.2/src/main/java/travelator/itinerary/ItineraryItem.kt#sealed">
+        open-to-sealed-2.2:src/main/java/travelator/itinerary/ItineraryItem.kt#sealed
+    </a>
+</div>
+++++
 // end-insert
 
 <1> We declare `ItineraryItem` as a `sealed class` instead of an `interface`.
@@ -296,8 +324,13 @@ fun ItineraryItem.toCalendarEvent(): CalendarEvent? = when (this) {
     )
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.3/src/main/java/travelator/calendar/ItineraryToCalendar.kt#toCalendarEvent">open-to-sealed-2.3:src/main/java/travelator/calendar/ItineraryToCalendar.kt#toCalendarEvent</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.3/src/main/java/travelator/calendar/ItineraryToCalendar.kt#toCalendarEvent">
+        open-to-sealed-2.3:src/main/java/travelator/calendar/ItineraryToCalendar.kt#toCalendarEvent
+    </a>
+</div>
+++++
 // end-insert
 
 [TIP]
@@ -362,8 +395,13 @@ data class Accommodation(
     ... and other methods
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.4/src/main/java/travelator/itinerary/ItineraryItem.kt#item">open-to-sealed-2.4:src/main/java/travelator/itinerary/ItineraryItem.kt#item</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.4/src/main/java/travelator/itinerary/ItineraryItem.kt#item">
+        open-to-sealed-2.4:src/main/java/travelator/itinerary/ItineraryItem.kt#item
+    </a>
+</div>
+++++
 // end-insert
 
 <1> The IDE removed the mapOverlay method from the `ItineraryItem` class ...
@@ -383,8 +421,13 @@ val ItineraryItem.mapOverlay: MapOverlay get() = when (this) {
     is RestaurantBooking -> mapOverlay
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.5/src/main/java/travelator/itinerary/ItineraryItem.kt#mapOverlay">open-to-sealed-2.5:src/main/java/travelator/itinerary/ItineraryItem.kt#mapOverlay</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.5/src/main/java/travelator/itinerary/ItineraryItem.kt#mapOverlay">
+        open-to-sealed-2.5:src/main/java/travelator/itinerary/ItineraryItem.kt#mapOverlay
+    </a>
+</div>
+++++
 // end-insert
 
 The `when` expression will not compile until we have covered all the subclasses of `ItineraryItem`.
@@ -409,8 +452,13 @@ data class Accommodation(
         )
     ...
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.5/src/main/java/travelator/itinerary/ItineraryItem.kt#accommodation">open-to-sealed-2.5:src/main/java/travelator/itinerary/ItineraryItem.kt#accommodation</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.5/src/main/java/travelator/itinerary/ItineraryItem.kt#accommodation">
+        open-to-sealed-2.5:src/main/java/travelator/itinerary/ItineraryItem.kt#accommodation
+    </a>
+</div>
+++++
 // end-insert
 
 We can solve this problem by converting the `mapOverlay` properties with "Convert member to extension":
@@ -432,8 +480,13 @@ val Accommodation.mapOverlay
         icon = StandardIcons.HOTEL
     )
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.6/src/main/java/travelator/itinerary/ItineraryItem.kt#accommodation">open-to-sealed-2.6:src/main/java/travelator/itinerary/ItineraryItem.kt#accommodation</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.6/src/main/java/travelator/itinerary/ItineraryItem.kt#accommodation">
+        open-to-sealed-2.6:src/main/java/travelator/itinerary/ItineraryItem.kt#accommodation
+    </a>
+</div>
+++++
 // end-insert
 
 Now `ItineraryItem.mapOverlay` doesn't appear to have changed at all:
@@ -448,8 +501,13 @@ val ItineraryItem.mapOverlay: MapOverlay get() = when (this) {
     is RestaurantBooking -> mapOverlay
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.6/src/main/java/travelator/itinerary/ItineraryItem.kt#mapOverlay">open-to-sealed-2.6:src/main/java/travelator/itinerary/ItineraryItem.kt#mapOverlay</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.6/src/main/java/travelator/itinerary/ItineraryItem.kt#mapOverlay">
+        open-to-sealed-2.6:src/main/java/travelator/itinerary/ItineraryItem.kt#mapOverlay
+    </a>
+</div>
+++++
 // end-insert
 
 Look closer though (well, hover in IntelliJ), and we can see that those property accesses are now extension properties, not method calls -- `Accommodation` etc no longer depend on `MapOverlay`.
@@ -480,8 +538,13 @@ private val Accommodation.mapOverlay
 
  ... Attraction.mapOverlay etc
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.7/src/main/java/travelator/geo/ItineraryToMapOverlay.kt#mapOverlay">open-to-sealed-2.7:src/main/java/travelator/geo/ItineraryToMapOverlay.kt#mapOverlay</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.7/src/main/java/travelator/geo/ItineraryToMapOverlay.kt#mapOverlay">
+        open-to-sealed-2.7:src/main/java/travelator/geo/ItineraryToMapOverlay.kt#mapOverlay
+    </a>
+</div>
+++++
 // end-insert
 
 We can do the same with the other members of `ItineraryItem`, until the sealed class declares only the fundamental properties of the type.
@@ -509,8 +572,13 @@ val ItineraryItem.description: String
         is RestaurantBooking -> location.userReadableName
     }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.8/src/main/java/travelator/itinerary/ItineraryDescription.kt">open-to-sealed-2.8:src/main/java/travelator/itinerary/ItineraryDescription.kt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.8/src/main/java/travelator/itinerary/ItineraryDescription.kt">
+        open-to-sealed-2.8:src/main/java/travelator/itinerary/ItineraryDescription.kt
+    </a>
+</div>
+++++
 // end-insert
 
 You'll have to make your own judgement call in your own code.
@@ -559,8 +627,13 @@ data class RestaurantBooking(
     val time: ZonedDateTime
 ) : ItineraryItem()
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.8/src/main/java/travelator/itinerary/ItineraryItem.kt">open-to-sealed-2.8:src/main/java/travelator/itinerary/ItineraryItem.kt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/open-to-sealed-2.8/src/main/java/travelator/itinerary/ItineraryItem.kt">
+        open-to-sealed-2.8:src/main/java/travelator/itinerary/ItineraryItem.kt
+    </a>
+</div>
+++++
 // end-insert
 
 Our `ItineraryItem` model is now a sealed class hierarchy of pure data classes.

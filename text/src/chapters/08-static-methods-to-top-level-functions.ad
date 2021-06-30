@@ -47,7 +47,6 @@ Like the methods from the `java.util.Collections` class for example:
 ----
 var max = Collections.max(list);
 ----
-
 // end-insert
 
 Amazingly the industry didn't really notice how much of a pain that `Collections.` prefix was for a while.
@@ -66,7 +65,6 @@ It's no accident then that Java 5 also brought the ability to `import static jav
 ----
 var m = max(list);
 ----
-
 // end-insert
 
 This is really only a convenience provided by the compiler, because the JVM still only actually supports static methods rather than true top-level functions.
@@ -143,8 +141,13 @@ public class Shortlists {
     ... and other comparators
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.0/src/main/java/travelator/Shortlists.java#functions">static-to-top-level.0:src/main/java/travelator/Shortlists.java#functions</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.0/src/main/java/travelator/Shortlists.java#functions">
+        static-to-top-level.0:src/main/java/travelator/Shortlists.java#functions
+    </a>
+</div>
+++++
 // end-insert
 
 .Convenience Functions
@@ -165,8 +168,13 @@ Spelled out longhand, this looks like:
 ----
 var reordered = Shortlists.sorted(items, Shortlists.byValue());
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.5/src/test/java/travelator/ShortlistsTest.java#example_usage">static-to-top-level.5:src/test/java/travelator/ShortlistsTest.java#example_usage</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.5/src/test/java/travelator/ShortlistsTest.java#example_usage">
+        static-to-top-level.5:src/test/java/travelator/ShortlistsTest.java#example_usage
+    </a>
+</div>
+++++
 // end-insert
 
 We usually `static import` the methods though, and they are named to read better that way:
@@ -176,8 +184,13 @@ We usually `static import` the methods though, and they are named to read better
 ----
 var reordered = sorted(items, byPriceLowToHigh());
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.5/src/test/java/travelator/ShortlistsTest.java#example_usage_imported">static-to-top-level.5:src/test/java/travelator/ShortlistsTest.java#example_usage_imported</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.5/src/test/java/travelator/ShortlistsTest.java#example_usage_imported">
+        static-to-top-level.5:src/test/java/travelator/ShortlistsTest.java#example_usage_imported
+    </a>
+</div>
+++++
 // end-insert
 
 Converting the Java to Kotlin with IntelliJ we get:
@@ -213,8 +226,13 @@ object Shortlists {
     ... and other comparators
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.5/src/main/java/travelator/Shortlists.kt#functions">static-to-top-level.5:src/main/java/travelator/Shortlists.kt#functions</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.5/src/main/java/travelator/Shortlists.kt#functions">
+        static-to-top-level.5:src/main/java/travelator/Shortlists.kt#functions
+    </a>
+</div>
+++++
 // end-insert
 
 Actually, that isn't quite true.
@@ -255,8 +273,13 @@ fun <T> removeItemAt(shortlist: List<T>, index: Int): List<T> {
 
 ... etc.
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.6/src/main/java/travelator/Shortlists.kt#excerpt">static-to-top-level.6:src/main/java/travelator/Shortlists.kt#excerpt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.6/src/main/java/travelator/Shortlists.kt#excerpt">
+        static-to-top-level.6:src/main/java/travelator/Shortlists.kt#excerpt
+    </a>
+</div>
+++++
 // end-insert
 
 This keeps our Java happy, but irritatingly, it breaks some Kotlin code that was calling the methods.
@@ -273,8 +296,13 @@ import travelator.Shortlists.byValue
 import travelator.Shortlists.removeItemAt
 import travelator.Shortlists.sorted
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.6/src/test/java/travelator/hotels/ShortlistScenarioTest.kt#imports">static-to-top-level.6:src/test/java/travelator/hotels/ShortlistScenarioTest.kt#imports</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.6/src/test/java/travelator/hotels/ShortlistScenarioTest.kt#imports">
+        static-to-top-level.6:src/test/java/travelator/hotels/ShortlistScenarioTest.kt#imports
+    </a>
+</div>
+++++
 // end-insert
 
 These were importing the static Java methods, but Kotlin can't import its own top-level functions in the same way, and so these lines fail with `Unresolved reference: Shortlists`.
@@ -303,8 +331,13 @@ fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>): List<T> {
         .collect(toUnmodifiableList())
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.7/src/main/java/travelator/Shortlists.kt#sorted">static-to-top-level.7:src/main/java/travelator/Shortlists.kt#sorted</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.7/src/main/java/travelator/Shortlists.kt#sorted">
+        static-to-top-level.7:src/main/java/travelator/Shortlists.kt#sorted
+    </a>
+</div>
+++++
 // end-insert
 
 Unfortunately it failed to remove the `@JvmStatic` annotation, so we have to delete that ourselves to get the code to compile.
@@ -316,8 +349,13 @@ Where we explicitly referenced the method in Java as `ShortLists.sorted` we now 
 ----
 var reordered = ShortlistsKt.sorted(items, Shortlists.byValue());
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.8/src/test/java/travelator/ShortlistsTest.java#example_usage">static-to-top-level.8:src/test/java/travelator/ShortlistsTest.java#example_usage</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.8/src/test/java/travelator/ShortlistsTest.java#example_usage">
+        static-to-top-level.8:src/test/java/travelator/ShortlistsTest.java#example_usage
+    </a>
+</div>
+++++
 // end-insert
 
 For some reason where we had a static import things have got worse:
@@ -327,8 +365,13 @@ For some reason where we had a static import things have got worse:
 ----
 var reordered = travelator.ShortlistsKt.sorted(items, byPriceLowToHigh());
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.8/src/test/java/travelator/ShortlistsTest.java#example_usage_imported">static-to-top-level.8:src/test/java/travelator/ShortlistsTest.java#example_usage_imported</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.8/src/test/java/travelator/ShortlistsTest.java#example_usage_imported">
+        static-to-top-level.8:src/test/java/travelator/ShortlistsTest.java#example_usage_imported
+    </a>
+</div>
+++++
 // end-insert
 
 We can fix that with Alt-Enter and "Add on demand static import...".
@@ -339,8 +382,13 @@ We have to do that once in each affected file -- we should have checked in befor
 ----
 var reordered = sorted(items, byPriceLowToHigh());
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.9/src/test/java/travelator/ShortlistsTest.java#example_usage_imported">static-to-top-level.9:src/test/java/travelator/ShortlistsTest.java#example_usage_imported</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.9/src/test/java/travelator/ShortlistsTest.java#example_usage_imported">
+        static-to-top-level.9:src/test/java/travelator/ShortlistsTest.java#example_usage_imported
+    </a>
+</div>
+++++
 // end-insert
 
 Compared to our previous manual approach of adding an `@file:JvmName("Shortlists")` annotation, our Java clients are now exposed to that icky `ShortlistsKt` name.
@@ -376,8 +424,13 @@ fun byPriceLowToHigh(): Comparator<HasPrice> {
 
 ... and other comparators
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.10/src/main/java/travelator/Shortlists.kt#functions">static-to-top-level.10:src/main/java/travelator/Shortlists.kt#functions</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.10/src/main/java/travelator/Shortlists.kt#functions">
+        static-to-top-level.10:src/main/java/travelator/Shortlists.kt#functions
+    </a>
+</div>
+++++
 // end-insert
 
 As we write this, the "Move to top level" refactor is limited to a single method at a time.
@@ -398,8 +451,13 @@ fun <T> sorted(shortlist: List<T>, ordering: Comparator<in T>): List<T> {
     return shortlist.sortedWith(ordering)
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.11/src/main/java/travelator/Shortlists.kt#sorted">static-to-top-level.11:src/main/java/travelator/Shortlists.kt#sorted</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.11/src/main/java/travelator/Shortlists.kt#sorted">
+        static-to-top-level.11:src/main/java/travelator/Shortlists.kt#sorted
+    </a>
+</div>
+++++
 // end-insert
 
 This makes a very logical extension function (<<functions-to-extension-functions>>):
@@ -411,8 +469,13 @@ fun <T> List<T>.sorted(ordering: Comparator<in T>): List<T> {
     return sortedWith(ordering)
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.12/src/main/java/travelator/Shortlists.kt#sorted">static-to-top-level.12:src/main/java/travelator/Shortlists.kt#sorted</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.12/src/main/java/travelator/Shortlists.kt#sorted">
+        static-to-top-level.12:src/main/java/travelator/Shortlists.kt#sorted
+    </a>
+</div>
+++++
 // end-insert
 
 Java still calls this as a static method:
@@ -422,8 +485,13 @@ Java still calls this as a static method:
 ----
 var reordered = sorted(items, byPriceLowToHigh());
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.12/src/test/java/travelator/ShortlistsTest.java#example_usage_imported">static-to-top-level.12:src/test/java/travelator/ShortlistsTest.java#example_usage_imported</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.12/src/test/java/travelator/ShortlistsTest.java#example_usage_imported">
+        static-to-top-level.12:src/test/java/travelator/ShortlistsTest.java#example_usage_imported
+    </a>
+</div>
+++++
 // end-insert
 
 Calling from Kotlin reads nicely too:
@@ -433,8 +501,13 @@ Calling from Kotlin reads nicely too:
 ----
 val hotelsByPrice = hotels.sorted(byPriceLowToHigh())
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.12/src/test/java/travelator/hotels/ShortlistScenarioTest.kt#usage">static-to-top-level.12:src/test/java/travelator/hotels/ShortlistScenarioTest.kt#usage</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.12/src/test/java/travelator/hotels/ShortlistScenarioTest.kt#usage">
+        static-to-top-level.12:src/test/java/travelator/hotels/ShortlistScenarioTest.kt#usage
+    </a>
+</div>
+++++
 // end-insert
 
 These Kotlin usages really aren't gaining us anything over the raw Kotlin API, so we can just inline them:
@@ -444,8 +517,13 @@ These Kotlin usages really aren't gaining us anything over the raw Kotlin API, s
 ----
 val hotelsByPrice = hotels.sortedWith(byPriceLowToHigh())
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.13/src/test/java/travelator/hotels/ShortlistScenarioTest.kt#usage">static-to-top-level.13:src/test/java/travelator/hotels/ShortlistScenarioTest.kt#usage</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.13/src/test/java/travelator/hotels/ShortlistScenarioTest.kt#usage">
+        static-to-top-level.13:src/test/java/travelator/hotels/ShortlistScenarioTest.kt#usage
+    </a>
+</div>
+++++
 // end-insert
 
 This leaves the `sorted` function for Java to call.
@@ -470,8 +548,13 @@ fun byPriceLowToHigh(): Comparator<HasPrice> =
 
 ... and other comparators
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.14/src/main/java/travelator/Shortlists.kt#functions">static-to-top-level.14:src/main/java/travelator/Shortlists.kt#functions</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/static-to-top-level.14/src/main/java/travelator/Shortlists.kt#functions">
+        static-to-top-level.14:src/main/java/travelator/Shortlists.kt#functions
+    </a>
+</div>
+++++
 // end-insert
 
 You may have noticed that we have renamed `removeItemAt` to `withoutItemAt`.

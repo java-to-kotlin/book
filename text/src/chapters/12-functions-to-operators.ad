@@ -76,8 +76,13 @@ class Money private constructor(
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/operators.0/src/main/java/travelator/money/Money.kt#money">operators.0:src/main/java/travelator/money/Money.kt#money</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/operators.0/src/main/java/travelator/money/Money.kt#money">
+        operators.0:src/main/java/travelator/money/Money.kt#money
+    </a>
+</div>
+++++
 // end-insert
 
 However, it still looks sort of "Java-ish", as does the Kotlin code that uses it.
@@ -138,8 +143,13 @@ class Money private constructor(
     ...
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/operators.2/src/main/java/travelator/money/Money.kt#money">operators.2:src/main/java/travelator/money/Money.kt#money</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/operators.2/src/main/java/travelator/money/Money.kt#money">
+        operators.2:src/main/java/travelator/money/Money.kt#money
+    </a>
+</div>
+++++
 // end-insert
 
 With this change, our Kotlin code can add `Money` values with the + operator, while the Java code calls `plus` as a method.
@@ -161,8 +171,13 @@ fun add(that: Money): Money {
     return Money(amount.add(that.amount), currency)
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/operators.3/src/main/java/travelator/money/Money.kt#add_method">operators.3:src/main/java/travelator/money/Money.kt#add_method</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/operators.3/src/main/java/travelator/money/Money.kt#add_method">
+        operators.3:src/main/java/travelator/money/Money.kt#add_method
+    </a>
+</div>
+++++
 // end-insert
 
 Now when we rename the method to `plus`, our Java code is unchanged, and marking it as an operator allows both Java and Kotlin code to call the method according to their respective language conventions:
@@ -178,8 +193,13 @@ operator fun plus(that: Money): Money {
     return Money(amount.add(that.amount), currency)
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/operators.4/src/main/java/travelator/money/Money.kt#plus_method">operators.4:src/main/java/travelator/money/Money.kt#plus_method</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/operators.4/src/main/java/travelator/money/Money.kt#plus_method">
+        operators.4:src/main/java/travelator/money/Money.kt#plus_method
+    </a>
+</div>
+++++
 // end-insert
 
 Is this desirable?
@@ -216,8 +236,13 @@ operator fun plus(that: Money): Money {
     return Money(amount.add(that.amount), currency)
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/operators.6/src/main/java/travelator/money/Money.kt#extract_plus">operators.6:src/main/java/travelator/money/Money.kt#extract_plus</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/operators.6/src/main/java/travelator/money/Money.kt#extract_plus">
+        operators.6:src/main/java/travelator/money/Money.kt#extract_plus
+    </a>
+</div>
+++++
 // end-insert
 
 Using IntelliJ's automatic refactoring, we make `this` explicit in the call to `plus`:
@@ -229,8 +254,13 @@ fun add(that: Money): Money {
     return this.plus(that)
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/operators.7/src/main/java/travelator/money/Money.kt#add">operators.7:src/main/java/travelator/money/Money.kt#add</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/operators.7/src/main/java/travelator/money/Money.kt#add">
+        operators.7:src/main/java/travelator/money/Money.kt#add
+    </a>
+</div>
+++++
 // end-insert
 
 From this form, IntelliJ's lets us automatically refactor from method call to operator:
@@ -242,8 +272,13 @@ fun add(that: Money): Money {
     return this + that
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/operators.8/src/main/java/travelator/money/Money.kt#add">operators.8:src/main/java/travelator/money/Money.kt#add</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/operators.8/src/main/java/travelator/money/Money.kt#add">
+        operators.8:src/main/java/travelator/money/Money.kt#add
+    </a>
+</div>
+++++
 // end-insert
 
 Finally we can transform the `add` method to single-expression form.
@@ -260,8 +295,13 @@ operator fun plus(that: Money): Money {
     return Money(amount.add(that.amount), currency)
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/operators.9/src/main/java/travelator/money/Money.kt#extract_plus">operators.9:src/main/java/travelator/money/Money.kt#extract_plus</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/operators.9/src/main/java/travelator/money/Money.kt#extract_plus">
+        operators.9:src/main/java/travelator/money/Money.kt#extract_plus
+    </a>
+</div>
+++++
 // end-insert
 
 We now have two methods for addition.
@@ -295,8 +335,13 @@ operator fun plus(that: Money): Money {
     return Money(this.amount + that.amount, currency)
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/operators.11/src/main/java/travelator/money/Money.kt#plus_method">operators.11:src/main/java/travelator/money/Money.kt#plus_method</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/operators.11/src/main/java/travelator/money/Money.kt#plus_method">
+        operators.11:src/main/java/travelator/money/Money.kt#plus_method
+    </a>
+</div>
+++++
 // end-insert
 
 Our code continues to compile.
@@ -389,8 +434,13 @@ class Money private constructor(
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/operators.12/src/main/java/travelator/money/Money.kt#money">operators.12:src/main/java/travelator/money/Money.kt#money</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/operators.12/src/main/java/travelator/money/Money.kt#money">
+        operators.12:src/main/java/travelator/money/Money.kt#money
+    </a>
+</div>
+++++
 // end-insert
 
 Then make `invoke` a public operator method:
@@ -408,8 +458,13 @@ operator fun invoke(amount: BigDecimal, currency: Currency) =
         currency
     )
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/operators.13/src/main/java/travelator/money/Money.kt#delegation">operators.13:src/main/java/travelator/money/Money.kt#delegation</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/operators.13/src/main/java/travelator/money/Money.kt#delegation">
+        operators.13:src/main/java/travelator/money/Money.kt#delegation
+    </a>
+</div>
+++++
 // end-insert:
 
 We can now call the `Money` companion object as a function that looks like a constructor.
@@ -427,8 +482,13 @@ To make existing Kotlin code use the new syntax, we need to first make the compa
 fun of(amount: BigDecimal, currency: Currency) =
     this(amount, currency)
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/operators.14/src/main/java/travelator/money/Money.kt#call_this">operators.14:src/main/java/travelator/money/Money.kt#call_this</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/operators.14/src/main/java/travelator/money/Money.kt#call_this">
+        operators.14:src/main/java/travelator/money/Money.kt#call_this
+    </a>
+</div>
+++++
 // end-insert:
 
 Then, we inline the `of` method into our Kotlin code.
@@ -451,8 +511,13 @@ interface ExchangeRates {
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/operators.16/src/main/java/travelator/money/ExchangeRates.kt">operators.16:src/main/java/travelator/money/ExchangeRates.kt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/operators.16/src/main/java/travelator/money/ExchangeRates.kt">
+        operators.16:src/main/java/travelator/money/ExchangeRates.kt
+    </a>
+</div>
+++++
 // end-insert:
 
 After the inline refactoring, it looks like this:
@@ -472,8 +537,13 @@ interface ExchangeRates {
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/operators.17/src/main/java/travelator/money/ExchangeRates.kt">operators.17:src/main/java/travelator/money/ExchangeRates.kt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/operators.17/src/main/java/travelator/money/ExchangeRates.kt">
+        operators.17:src/main/java/travelator/money/ExchangeRates.kt
+    </a>
+</div>
+++++
 // end-insert:
 
 We're left with a class that is conventional and convenient, whether we're using it from Kotlin or Java.

@@ -242,8 +242,13 @@ public class CurrentTripsHandler {
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.0/src/main/java/travelator/handlers/CurrentTripsHandler.java">actions.0:src/main/java/travelator/handlers/CurrentTripsHandler.java</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/actions.0/src/main/java/travelator/handlers/CurrentTripsHandler.java">
+        actions.0:src/main/java/travelator/handlers/CurrentTripsHandler.java
+    </a>
+</div>
+++++
 // end-insert
 
 Actions are code that is sensitive to time, so words like _current_ in `CurrentTripsHandler` are a dead give-away.
@@ -278,8 +283,13 @@ class Tracking implements ITrackTrips {
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.0/src/main/java/travelator/Tracking.java">actions.0:src/main/java/travelator/Tracking.java</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/actions.0/src/main/java/travelator/Tracking.java">
+        actions.0:src/main/java/travelator/Tracking.java
+    </a>
+</div>
+++++
 // end-insert
 
 Using the _current_ rule `Tracking.currentTripFor` is evidently an action too, as is `Trips.currentTripsFor`.
@@ -299,8 +309,13 @@ public class InMemoryTrips implements Trips {
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.0/src/test/java/travelator/InMemoryTrips.java#foo">actions.0:src/test/java/travelator/InMemoryTrips.java#foo</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/actions.0/src/test/java/travelator/InMemoryTrips.java#foo">
+        actions.0:src/test/java/travelator/InMemoryTrips.java#foo
+    </a>
+</div>
+++++
 // end-insert
 
 The conversion from `Set<Trip>` (the result of `Trips.currentTripsFor`) and to `Optional<Trip>` (returned from `Tracking.currentTripFor`) seems to be because there is some business rule around there being only one active trip at any time that is not enforced in the persistence layer.
@@ -332,8 +347,13 @@ public Set<Trip> currentTripsFor(String customerId) {
         .collect(toSet());
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.1/src/test/java/travelator/InMemoryTrips.java#foo">actions.1:src/test/java/travelator/InMemoryTrips.java#foo</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/actions.1/src/test/java/travelator/InMemoryTrips.java#foo">
+        actions.1:src/test/java/travelator/InMemoryTrips.java#foo
+    </a>
+</div>
+++++
 // end-insert
 
 That's still in the middle of the expression, let's move it up (and convert to a `var` on the way):
@@ -349,8 +369,13 @@ public Set<Trip> currentTripsFor(String customerId) {
         .collect(toSet());
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.2/src/test/java/travelator/InMemoryTrips.java#foo">actions.2:src/test/java/travelator/InMemoryTrips.java#foo</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/actions.2/src/test/java/travelator/InMemoryTrips.java#foo">
+        actions.2:src/test/java/travelator/InMemoryTrips.java#foo
+    </a>
+</div>
+++++
 // end-insert
 
 This simple act has allowed us to realise that we were previously comparing every trip against a slightly different time!
@@ -397,8 +422,13 @@ public class TrackingTests {
     ...
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.0/src/test/java/travelator/TrackingTests.java#foo">actions.0:src/test/java/travelator/TrackingTests.java#foo</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/actions.0/src/test/java/travelator/TrackingTests.java#foo">
+        actions.0:src/test/java/travelator/TrackingTests.java#foo
+    </a>
+</div>
+++++
 // end-insert
 
 In order to give predictable results we have had to use a fake clock, injected into `InMemoryTrips`.
@@ -438,8 +468,13 @@ public interface Trips {
     Set<Trip> currentTripsFor(String customerId);
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.0/src/main/java/travelator/Trips.java#foo">actions.0:src/main/java/travelator/Trips.java#foo</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/actions.0/src/main/java/travelator/Trips.java#foo">
+        actions.0:src/main/java/travelator/Trips.java#foo
+    </a>
+</div>
+++++
 // end-insert
 
 We use IntelliJ's "Change Signature" refactoring to add the parameter, calling it `at`.
@@ -457,8 +492,13 @@ public interface Trips {
     Set<Trip> currentTripsFor(String customerId, Instant at);
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.3/src/main/java/travelator/Trips.java#foo">actions.3:src/main/java/travelator/Trips.java#foo</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/actions.3/src/main/java/travelator/Trips.java#foo">
+        actions.3:src/main/java/travelator/Trips.java#foo
+    </a>
+</div>
+++++
 // end-insert
 
 Here is the method being called:
@@ -486,8 +526,13 @@ class Tracking implements ITrackTrips {
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.3/src/main/java/travelator/Tracking.java#foo">actions.3:src/main/java/travelator/Tracking.java#foo</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/actions.3/src/main/java/travelator/Tracking.java#foo">
+        actions.3:src/main/java/travelator/Tracking.java#foo
+    </a>
+</div>
+++++
 // end-insert
 
 <1> IntelliJ introduced `null` as the argument value.
@@ -507,8 +552,13 @@ public Optional<Trip> currentTripFor(String customerId, Instant at) { // <1>
         ...
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.4/src/main/java/travelator/Tracking.java#foo">actions.4:src/main/java/travelator/Tracking.java#foo</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/actions.4/src/main/java/travelator/Tracking.java#foo">
+        actions.4:src/main/java/travelator/Tracking.java#foo
+    </a>
+</div>
+++++
 // end-insert
 
 <1> Our new `Instant` parameter.
@@ -534,8 +584,13 @@ public Response handle(Request request) {
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.4/src/main/java/travelator/handlers/CurrentTripsHandler.java#foo">actions.4:src/main/java/travelator/handlers/CurrentTripsHandler.java#foo</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/actions.4/src/main/java/travelator/handlers/CurrentTripsHandler.java#foo">
+        actions.4:src/main/java/travelator/handlers/CurrentTripsHandler.java#foo
+    </a>
+</div>
+++++
 // end-insert
 
 <1> `null` argument value.
@@ -568,8 +623,13 @@ public void returns_single_active_booked_trip() {
     );
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.4/src/test/java/travelator/TrackingTests.java#foo">actions.4:src/test/java/travelator/TrackingTests.java#foo</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/actions.4/src/test/java/travelator/TrackingTests.java#foo">
+        actions.4:src/test/java/travelator/TrackingTests.java#foo
+    </a>
+</div>
+++++
 // end-insert
 
 <1> `null` argument value.
@@ -593,8 +653,13 @@ public class InMemoryTrips implements Trips {
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.4/src/test/java/travelator/InMemoryTrips.java#foo">actions.4:src/test/java/travelator/InMemoryTrips.java#foo</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/actions.4/src/test/java/travelator/InMemoryTrips.java#foo">
+        actions.4:src/test/java/travelator/InMemoryTrips.java#foo
+    </a>
+</div>
+++++
 // end-insert
 
 Now we have the time as a parameter, we can use that rather than asking the `clock`:
@@ -613,8 +678,13 @@ public class InMemoryTrips implements Trips {
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.5/src/test/java/travelator/InMemoryTrips.java#foo">actions.5:src/test/java/travelator/InMemoryTrips.java#foo</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/actions.5/src/test/java/travelator/InMemoryTrips.java#foo">
+        actions.5:src/test/java/travelator/InMemoryTrips.java#foo
+    </a>
+</div>
+++++
 // end-insert
 
 This causes the tests that use `InMemoryTrips` to fail with a `NullPointerException`, because the method is now using the value of the parameter, and the tests are passing in `null`:
@@ -645,8 +715,13 @@ public void returns_single_active_booked_trip() {
     );
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.5/src/test/java/travelator/TrackingTests.java#foo">actions.5:src/test/java/travelator/TrackingTests.java#foo</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/actions.5/src/test/java/travelator/TrackingTests.java#foo">
+        actions.5:src/test/java/travelator/TrackingTests.java#foo
+    </a>
+</div>
+++++
 // end-insert
 
 <1> These `nulls` are now being dereferenced inside `InMemoryTrips`.
@@ -680,8 +755,13 @@ public void returns_single_active_booked_trip() {
     );
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.6/src/test/java/travelator/TrackingTests.java#foo">actions.6:src/test/java/travelator/TrackingTests.java#foo</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/actions.6/src/test/java/travelator/TrackingTests.java#foo">
+        actions.6:src/test/java/travelator/TrackingTests.java#foo
+    </a>
+</div>
+++++
 // end-insert
 
 This gets our tests to pass, because we are now passing the correct time as the argument, albeit via setting and immediately reading a field in the `StoppedClock`.
@@ -721,8 +801,13 @@ public class TrackingTests {
     ...
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.8/src/test/java/travelator/TrackingTests.java#foo">actions.8:src/test/java/travelator/TrackingTests.java#foo</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/actions.8/src/test/java/travelator/TrackingTests.java#foo">
+        actions.8:src/test/java/travelator/TrackingTests.java#foo
+    </a>
+</div>
+++++
 // end-insert
 
 This is pattern we often see as we refactor towards more functional code.
@@ -754,8 +839,13 @@ public Response handle(Request request) {
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.8/src/main/java/travelator/handlers/CurrentTripsHandler.java#foo">actions.8:src/main/java/travelator/handlers/CurrentTripsHandler.java#foo</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/actions.8/src/main/java/travelator/handlers/CurrentTripsHandler.java#foo">
+        actions.8:src/main/java/travelator/handlers/CurrentTripsHandler.java#foo
+    </a>
+</div>
+++++
 // end-insert
 
 <1> We're still passing `null`
@@ -794,8 +884,13 @@ public class CurrentTripsHandler {
     }
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.9/src/main/java/travelator/handlers/CurrentTripsHandler.java">actions.9:src/main/java/travelator/handlers/CurrentTripsHandler.java</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/actions.9/src/main/java/travelator/handlers/CurrentTripsHandler.java">
+        actions.9:src/main/java/travelator/handlers/CurrentTripsHandler.java
+    </a>
+</div>
+++++
 // end-insert
 
 <1> Now our action is at the application entry point.
@@ -841,8 +936,13 @@ class InMemoryTrips : Trips {
             .toSet()
 }
 ----
-
-pass:[<a class="orm:hideurl coderef" href="https://github.com/refactoring-to/kotlin-code/blob/actions.10/src/test/java/travelator/InMemoryTrips.kt">actions.10:src/test/java/travelator/InMemoryTrips.kt</a>]
+++++
+<div class="coderef">
+    <a class="orm:hideurl" href="https://github.com/refactoring-to/kotlin-code/blob/actions.10/src/test/java/travelator/InMemoryTrips.kt">
+        actions.10:src/test/java/travelator/InMemoryTrips.kt
+    </a>
+</div>
+++++
 // end-insert
 
 That `MutableMap` of ++MutableSet++s is a sign that something can change over time.
