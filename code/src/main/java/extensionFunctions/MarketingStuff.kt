@@ -1,3 +1,3 @@
 package extensionFunctions
 
-fun Customer.nameForMarketing() = "${familyName.toUpperCase()}, $givenName}"
+fun Customer.nameForMarketing() = "${familyName.uppercase()}, $givenName}"

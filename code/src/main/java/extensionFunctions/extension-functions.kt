@@ -132,13 +132,13 @@ object CounterFactuals {
         val familyName: String
     ) {
         val fullName get() = "$givenName $familyName"
-        fun nameForMarketing() = "${familyName.toUpperCase()}, $givenName}"
+        fun nameForMarketing() = "${familyName.uppercase()}, $givenName}"
     }
     /// end: postalName
 
     /// begin: nameForMarketing
     fun nameForMarketing(customer: Customer) =
-        "${customer.familyName.toUpperCase()}, $customer.givenName}"
+        "${customer.familyName.uppercase()}, $customer.givenName}"
     /// end: nameForMarketing
 
     val Customer.fullName get() = "$givenName $familyName"
@@ -148,7 +148,7 @@ object CounterFactuals {
     }
 
     /// begin: nameForMarketingProp
-    val Customer.nameForMarketing get() = "${familyName.toUpperCase()}, $givenName}"
+    val Customer.nameForMarketing get() = "${familyName.uppercase()}, $givenName}"
     /// end: nameForMarketingProp
 
 }
