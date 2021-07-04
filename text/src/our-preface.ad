@@ -1,0 +1,145 @@
+
+Hello, this is Duncan and Nat.
+As you're reading this introduction, you're probably trying to decide whether to invest some hours into reading the rest of this book.
+So let's cut to the chase:
+
+****
+This book won't teach you to program computers in Kotlin.
+****
+
+We started writing a book that would, but it soon became clear that Kotlin is a large language, and so the book was going to take longer to write than we wanted.
+There are also already some great books in that space, and we don't like competing against great.
+
+We decided instead to make our lives easier by concentrating on teaching Kotlin to Java developers, based on a workshop that we run called Refactoring to Kotlin.
+This teaches the Kotlin language by converting existing code, and is (according to our marketing material) designed for Java teams wanting to leverage their existing knowledge to accelerate their Kotlin adoption.
+
+We started writing _that_ book, but it soon became clear that Kotlin is _still_ a large language, and so we would _still_ be writing for a long time.
+We also found that motivated and experienced Java developers can pick up most of Kotlin very quickly.
+It felt patronising to plough our way through language features that our target readers will probably just appreciate and adopt as soon as they see them.
+So we abandoned that idea, and as a result:
+
+****
+This book won't teach you the Kotlin language.
+****
+
+So why should you read it?
+Because we have written the book we wish was available when we first adopted Kotlin.
+We are experienced programmers who know Java and the Java ecosystem well.
+We hope you are too.
+Like us, you probably have experience in a number of other languages.
+You've learned the basics of Kotlin, and you recognise that to get the best out of the language you will need to design your systems differently.
+You have found that some things that are cumbersome in Java are much easier in Kotlin, and that some features, such as checked exceptions, are not there at all.
+You don't want to end up merely writing Java code in Kotlin syntax.
+
+Perhaps you have skin in the game.
+Maybe you're in a technical leadership position, or have successfully convinced your team to adopt Kotlin.
+You might have spent some political capital to get Kotlin into the project.
+Now you need to ensure that the transition goes smoothly.
+
+You may be responsible for a Java codebase and want to ensure that introducing Kotlin won't destabilise its existing, business-critical code.
+Or you may be starting a Kotlin project from scratch but realise your design instincts turn more readily to Java and objects than to Kotlin and functions.
+
+If this is you, as it was us, then you've come to the right place.
+This book will help you adapt your thinking and designs to take advantage of Kotlin.
+That's not enough though, because you have existing code that you need to maintain and enhance.
+So we also show how to migrate that code from Java to Kotlin syntax, and from Java to Kotlin thinking, incrementally and safely, using the automated refactoring tools built into the IntelliJ IDE.
+
+=== How This Book is Organised
+
+This book is about how to transition from Java to Kotlin, mainly focused on code, but touching on projects and organisations.
+Each chapter addresses an aspect of this transition, looking at some aspect of typical Java projects that can be improved on the journey.
+They are named in the pattern _Java Way_ to _Kotlin Way_, where we recommend that you prefer the latter over the former.
+Maybe Kotlin makes easier an approach that was difficult in Java, or Kotlin discourages an approach that is common in Java, to guide design in a direction that is less error prone, more concise, and more tool-friendly.
+
+We don't just _recommend_ you adopt the Kotlin way though; the chapters also show how to make the transformation.
+Not by just re-writing the Java, but by gradually refactoring it to Kotlin it in a way that is safe and allows us to maintain a mixed language codebase.
+
+=== How Did We Choose the Topics?
+
+We began by analyzing Java and Kotlin developers' use of their respective languages and conducting interviews to identify areas of difference and confusion.
+This was backed by a machine learning analysis of 33,459 open source Java and Kotlin codebases.
+These identified candidates that we labelled in the thing-to-another-thing form before ranking them according to frequency and developer-pain-quotient in order to establish which should make the cut.
+Finally, we ordered the surviving topics by ...
+
+...
+it's no good, we can't lie to you.
+
+The truth is that we started by choosing topics that we wanted to write about, and that we felt would be interesting and informative. <<encapsulated-collections-to-typealiases>> <<multi-to-single-expression-functions>>, and <<performing-io-to-passing-data>> are typical of these chapters.
+We also looked for places where the grain of Kotlin and Java differ significantly, because those were the places where we found we learned most by asking why they were different.
+This lead to chapters like <<optional-to-nullable>>, <<java-to-kotlin-collections>>, and <<static-methods-to-top-level-functions>>.
+
+As we wrote those chapters other topics presented themselves and were added to the list.
+In particular, as we wrote the refactoring steps for a chapter, we often found ourselves making changes to code that we felt deserved their own chapter. <<streams-to-sequences>>, <<functions-to-extension-functions>>, and <<methods-to-properties>> are examples of these.
+
+The result of this process is by no means exhaustive.
+If you have already skimmed the table of contents or index, you will find important topics unaddressed.
+Take co-routines for example: this paragraph is the only reference to this huge subject, because your authors have found that they haven't changed the way that we write server-side code, so we didn't want to write about them.
+There are also topics that we would like to have covered if only we had space and time including:
+builders,
+domain-specific languages,
+reflection,
+dependency injection frameworks,
+transactions,
+... the list goes on!
+
+We hope that what we _have_ written about is interesting to you.
+It is largely a book of tactics rather than strategies, concentrating on the small battles that we can win from our place in the trenches, rather than what might be achieved by directing whole divisions.
+As larger themes emerge, we will try to connect them though, and to bring things together in the final chapter, <<continuing-the-journey>>, where we talk about what we have learned during the writing process.
+
+=== Complexity
+
+How should we judge the internal quality of our software?
+Assuming that it does what our customers want or need it to do, how can we compare two potential implementations, or decide whether a change makes one better or worse?
+The answer that your authors choose is complexity.
+Other things being equal, we favour simple designs that yield predictable behaviour.
+
+Of course to some extent simplicity and complexity are in the eye of the beholder.
+Nat and Duncan do have slightly different personal preferences and so sometimes disagree over whether one implementation or another is better.
+Where that happens, we sometimes explore the alternatives in the relevant chapter.
+However, we do both have a shared belief in the power of functional programming to reduce the complexity of our systems, especially when combined with object-oriented message passing.
+
+Java has been moving in this direction over the years.
+Scala ran towards functional programming but away from OO.
+We find that the grain of Kotlin lets us mix functional and object programming in a way that reduces complexity and brings out the best in mere-mortal developers.
+
+=== Perfect Code
+
+On the subject of mere-mortals, we should address code quality.
+It is sorely tempting to aim for perfection when committing code to a book.
+We know that you will be judging us by the code here, and like many developers, a great deal of our own self-worth is tied up in the quality of the work we produce.
+
+At the same time, we are engineers not artists.
+Our job is to balance scope, schedule and cost for our customers.
+No-one but us really cares about the quality of the code except when it affects one of these three higher values.
+
+So in our examples we have tried to show realistic production code.
+The starting points are sometimes not as good as we might like -- we are, after all, trying to show ways of improving them.
+Often refactorings will make things worse before they get better, so definitely don't judge us by code in the middle of a chapter.
+By the end of a chapter, our aim is to have code that is good enough, but not so perfect that we could be accused of wasting Travelator's money.
+
+That said, we have a policy of applying cost-effective changes to tidy up, even once we have covered the topic we set out to illustrate, and more than once we have invented a topic, and written a chapter, just in order to leave the code in a state that we're happy with.
+In the end, we are artists as well as engineers.
+
+=== Code Formatting
+
+Our code follows (our interpretation of) the standard coding conventions of Java and Kotlin where possible.
+
+The practical line length for printed code samples is much shorter than the 120 characters we usually use in an IDE these days, so we have had to split lines more often than usual to make the code fit in the page width.
+Our production code might have 4 or 5 parameters or arguments on a line - in this book we will often only have one.
+Through formatting the examples for the page, we have come to like the more vertical style.
+We find that Kotlin naturally seems to want to take more vertical space than Java, but even Java readability seems improved by shorter lines, more breaks and more visual alignment.
+Certainly scrolling sideways is almost as inconvenient in an IDE as a book, and our pairing sessions are improved by less scrolling and more side-by-side windows.
+One line per parameter also greatly improves diffs between code versions.
+We hope that at the very least you don't find it too painful to read, and if you don't, then try it for your own code.
+
+We will sometimes hide code that isn't relevant to the discussion.
+A line that starts with an ellipsis of three dots indicates that we have omitted some code for clarity or brevity.
+For example:
+
+[source,kotlin]
+----
+fun Money(amount: String, currency: Currency) =
+    Money(BigDecimal(amount), currency)
+
+... and other convenience overloads
+----
