@@ -907,7 +907,7 @@ fun main() {
 // end-insert
 
 This is perhaps overkill for this application, but it shows the pattern of catching and dealing with the exceptions that we _expect_ (printing a relatively friendly message for `IOException`) but allowing all others to leak and quit the application.
-If we follow the strategy from <<throwing-to-returning>>, _unexpected_ exceptions are either unrecoverable environment errors or programmer errors -- in both cases the default JVM behaviour of  quitting the process after printing a stack trace gives us a fighting chance of diagnosing the issue.
+If we follow the strategy from <<throwing-to-returning>>, _unexpected_ exceptions are either unrecoverable environment errors or programmer errors -- in both cases the default JVM behavior of  quitting the process after printing a stack trace gives us a fighting chance of diagnosing the issue.
 When we convert this to an unattended server job, we will similarly process expected errors in our top-level handler function.
 We might abort on `IOException`, or retry the whole interaction if we think the problem may be transient.
 We know that retrying won't help with parse errors, so we will have to log these, and/or send notifications somewhere.

@@ -11,7 +11,7 @@ Everything in a Smalltalk system is overrideable, and methods are always polymor
 In C++, methods are statically bound by default - you have to add a `virtual` modifier in order for the runtime type of the object to select which implementation is called.
 In the battle of the genes, virtual won, and Java's (non-static) methods are always polymorphic - sending a message to an object always invokes the version of a method according to its runtime type, not the declared type of the reference.
 
-The ability for a subclass to inherit behaviour from a superclass, but selectively override it, is amazingly powerful.
+The ability for a subclass to inherit behavior from a superclass, but selectively override it, is amazingly powerful.
 Let's look at some of the ways that we make use of it in Java.
 
 === Inheriting from Object
@@ -31,19 +31,19 @@ Collections are also general enough that our clients may want to implement them 
 APIs in turn often define interfaces in order to specify the shape that their clients have to be, in order to be compatible with some feature of the API.
 For example, a client has to implement the `Comparable` interface in order to be sorted.
 
-=== Building Behaviour
+=== Building Behavior
 
 Staying with collections, `AbstractList` is an example of a class that will provide an implementation of the whole of the `List` interface, provided that we tell it how to answer two questions, `size` and `getItem(int)`, by implementing those (abstract) methods.
 (Actually, the resulting list will throw if you try to add items to it, but that's not necessarily a bad thing, see <<java-to-kotlin-collections>>.)
-All the other list operations are defined in terms of the two behaviours we define, so that we get much more functionality out than we put in.
+All the other list operations are defined in terms of the two behaviors we define, so that we get much more functionality out than we put in.
 
 These days this case is more likely to be covered by default methods in interfaces, but it remains a key OO pattern.
 So fundamental, in fact, that it doesn't even seem to have a name.
 
-=== Refining Behaviour
+=== Refining Behavior
 
 `AbstractList` is, well, abstract - it can't do anything until we override its two abstract methods.
-Often though, a class will work out of the box, but we can still override a method to refine its behaviour.
+Often though, a class will work out of the box, but we can still override a method to refine its behavior.
 
 Sometimes the class comes with a protected method specifically designed for subclasses to override.
 An example from the Java standard library is `ThreadLocal.initialValue`:
@@ -66,11 +66,11 @@ Duncan in particular remembers wondering how on earth this could actually work, 
 Why would the Kotlin language designers want to hobble us?
 
 Even in Java's case the mixing of the genes led to the `final` keyword.
-Marking a method `final` doesn't technically override polymorphic behaviour; it just prevents subclasses from redefining a method, which mostly amounts to the same thing.
+Marking a method `final` doesn't technically override polymorphic behavior; it just prevents subclasses from redefining a method, which mostly amounts to the same thing.
 In addition, we can use `final` to  mark a class, which prevents any other class using it as a parent.
 
 Final was introduced because the Java language designers knew that the ability to control the overriding of methods and classes is important to our ability to write correct software.
-We carefully craft our objects to only represent valid states - how can we maintain that if subclasses can come along and redefine any behaviour?
+We carefully craft our objects to only represent valid states - how can we maintain that if subclasses can come along and redefine any behavior?
 Imagine how few Java APIs would continue to work if passed strings that we had overriden to be mutable!
 As with many aspects of software, within our own code bases we can be laissez-faire, but more rigour and discipline are required as teams and systems get bigger.
 As we expand into libraries written by one team for consumption by another, we have to strike a balance between flexibility and safety.
@@ -83,22 +83,22 @@ By making classes and methods final by default, the Kotlin language designers fo
 Let's consider the uses of subclassing listed above through this lens.
 
 Inheriting from Object::
-All Kotlin types inherit from `Object` (aka `Any`) - this is still desirable behaviour.
+All Kotlin types inherit from `Object` (aka `Any`) - this is still desirable behavior.
 In fact Kotlin's otherwise primitive types (Int, Double etc) also inherit from `Any`, and so gain the three magic methods (although they can't actually be methods).
 
 Implementing an Interface::
 This is the standard way that API designers should specify extensions and customisation.
 Function types fall into this category (see <<interfaces-to-functions>>).
 
-Building Behaviour::
+Building Behavior::
 This is another planned use of subclassing - the designers of the API deliberately leave methods unimplemented.
 Public abstract classes are a good way to give our clients a means to implement interfaces.
 
-Refining Behaviour::
+Refining Behavior::
 This is the problematic case, for the reasons discussed previously.
 Actually, overriding a protected method deliberately provided as an extension point is fine - deliberate being the important word here.
-It's overriding public methods to refine the behaviour of a class which is problematic, as it is unlikely that the providers of the API planned for this case.
-Can we find better ways to allow our clients to refine the behaviour of our types than allowing them to override public methods?
+It's overriding public methods to refine the behavior of a class which is problematic, as it is unlikely that the providers of the API planned for this case.
+Can we find better ways to allow our clients to refine the behavior of our types than allowing them to override public methods?
 
 
 Something about delegation by `by`
@@ -114,7 +114,7 @@ Striking a balance between correctness and extensibilty
 
 Closed by default classes change the way that we design systems.
 Data classes are to damn handy, but we can't extend from them.
-So we end up varying behaviour by delegating to functions rather than subclasses.
+So we end up varying behavior by delegating to functions rather than subclasses.
 
 === Refactoring Subclasses to Composition
 
