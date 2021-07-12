@@ -1,12 +1,13 @@
 [[java-to-kotlin-classes]]
 == Java to Kotlin Classes
 
-****
-The class is the basic unit of code organisation in Java.
-How do we convert our Java classes to Kotlin, and what differences will we see when we have?
-****
+++++
+<blockquote data-type="epigraph">
+<p>The class is the basic unit of code organization in Java. How do we convert our Java classes to Kotlin, and what differences will we see when we have?</p>
+</blockquote>
+++++
 
-In this book, we'll work together on the code in Travelator, our fictional trip-planning webapp.
+In this book, we'll work together on the code in Travelator, our fictional trip-planning web app.
 Imagine that we have a feature to implement, but we want to take the opportunity to make our code a little better before we do.
 You're pairing with one of Nat or Duncan (choose your favorite, just don't let Nat know).
 The pair is the _we_ in our refactoring discussions; not just your author, but also you as part of the team working on Travelator.
@@ -15,11 +16,11 @@ Welcome aboard!
 .Source Code
 ****
 We have published the source code we show here in a public Git repository.
-Details are on the book's website: https://java-to-kotlin.dev
+Details are on https://java-to-kotlin.dev[the book's website].
 
-A single snapshot of the code isn't helpful though, because this book is about refactoring.
+A single snapshot of the code isn't helpful, though, because this book is about refactoring.
 The important details are the changes, both between single commits and over longer intervals.
-In order to follow along in Git, you need to check out the repository and then step through the commits.
+To follow along in Git, you need to check out the repository and then step through the commits.
 If you want to do that, we provide instructions on the book's website.
 However, we have tried to show everything you need to make sense of the code here in print.
 It helps to imagine that the last code sample shown is in the active editor pane as we talk about the changes we are about to make.
@@ -91,31 +92,31 @@ public class EmailAddress {
 ++++
 // end-insert
 
-This class is very simple -- it does nothing more than wrap two strings and provides no operations of its own.
+This class is very simple; it does nothing more than wrap two strings and provides no operations of its own.
 Even so, it has a lot of code:
 
 <1> Values are immutable, so the class declares its fields as final.
-<2> There is a static factory method to `parse` an `EmailAddress` from a string - this calls the primary constructor.
-<3> The fields are initialised in a constructor.
+<2> There is a static factory method to `parse` an `EmailAddress` from a string; this calls the primary constructor.
+<3> The fields are initialized in a constructor.
 <4> The accessor methods of its properties follow the JavaBean naming conventions.
 <5> The class implements the `equals` and `hashCode` methods to ensure that two `EmailAddress` values with equal fields compare as equal.
 <6> `toString` returns the canonical form.
 
-Your authors come from the school of Java that assumes that everything we pass, store or return is not null unless explicitly indicated otherwise.
+Your authors come from the school of Java that assumes that everything we pass, store, or return is not null unless explicitly indicated otherwise.
 You can't see that convention, because it results in an absence of `@Nullable` annotations or null checks of parameters (<<optional-to-nullable>> discusses nullability).
 What you _can_ see is the amount of boilerplate code required to express a value composed of two other values.
-Happily our IDE generated the `equals` and `hashCode` methods for us, but we have to remember to delete and regenerate those methods if we change the fields of the class to avoid confusing bugs.
+Happily, our IDE generated the `equals` and `hashCode` methods for us, but we have to remember to delete and regenerate those methods if we change the fields of the class to avoid confusing bugs.
 
 So much for the Java; we're here for the Kotlin.
 How do we convert?
-Helpfully IntelliJ has an action called "Convert Java file to Kotlin File".
+Helpfully, IntelliJ has an action called "Convert Java file to Kotlin File".
 When we invoke it, IntelliJ offers to change other files if necessary to keep things consistent.
-As the conversion can potentially modify files throughout the project, its best to say yes.
+Because the conversion can potentially modify files throughout the project, it's best to say yes.
 
-TIP: Make sure you have no uncommitted changes before converting Java source to Kotlin so that you can easily see the impact of the conversion on the rest of your codebase, and revert the conversion if it does something you didn't expect.
+TIP: Make sure you have no uncommitted changes before converting Java source to Kotlin so that you can easily see the impact of the conversion on the rest of your codebase and revert the conversion if it does something you didn't expect.
 
-In this case IntelliJ, doesn't have to change any other files.
-It has though replaced our `EmailAddress.java` file with `EmailAddress.kt` in the same directory:
+In this case, IntelliJ doesn't have to change any other files.
+It has replaced our `EmailAddress.java` file with `EmailAddress.kt` in the same directory, though:
 
 // begin-insert: classes.2:src/main/java/travelator/EmailAddress.kt
 [source,kotlin]
@@ -160,8 +161,8 @@ class EmailAddress(val localPart: String, val domain: String) {
 ++++
 // end-insert
 
-The Kotlin class is noticeably more succinct because it declares its properties in the primary constructor - the parameters after the class name.
-Parameters marked `val` are considered properties, and so stand in for all this Java:
+The Kotlin class is noticeably more succinct because it declares its properties in the primary constructor: the parameters after the class name.
+Parameters marked `val` are considered properties and so stand in for all this Java:
 
 // begin-insert: classes.1:src/main/java/travelator/EmailAddress.java#replaced_by_primary_constructor
 [source,java]
@@ -191,18 +192,18 @@ public String getDomain() {
 ++++
 // end-insert
 
-The primary constructor syntax is convenient, but it does interfere with the "scanability" of the class.
-Java classes that follow the standard coding conventions always define their elements in the same order: class name, superclass, interfaces, then, within the class body, fields, constructors, and methods.
+The primary constructor syntax is convenient, but it does interfere with the scanability of the class.
+Java classes that follow the standard coding conventions always define their elements in the same order: class name, superclass, interfaces, and then, within the class body, fields, constructors, and methods.
 This makes it easy to skim-read the class and quickly locate the features you're interested in.
 
 It's not quite so easy to find the parts of a Kotlin class.
-A Kotlin class definition has a header part with the class name, primary constructor (which can contain parameters and/or property definitions), superclass (which may also be the call to the superclass' constructor) and interfaces
-Then within the class body, there are more properties, more constructors, methods, and companion objects.
+A Kotlin class definition has a header part with the class name, primary constructor (which can contain parameters and/or property definitions), superclass (which may also be the call to the superclass's constructor), and interfaces.
+Then, within the class body, there are more properties and more constructors, methods, and companion objects.
 
 Coming from Java, Nat and Duncan definitely found it harder to read classes at first, and although we got used to it eventually, we still find it hard at times to format classes for maximum readability, especially if there is a lot going on in the header part.
 One easy fix is to lay out the constructor parameter list line by line.
 With the cursor inside the parameter list, we can do that with Alt-Enter and "Put parameters on separate lines".
-Sometimes a blank line after the header part helps too.
+Sometimes a blank line after the header part helps, too:
 
 // begin-insert: classes.3:src/main/java/travelator/EmailAddress.kt
 [source,kotlin]
@@ -251,11 +252,11 @@ class EmailAddress(
 ++++
 // end-insert
 
-One place where Kotlin is noticeably less succinct than Java is that it uses companion objects to host static state and methods - in this case `parse()`.
+One place where Kotlin is noticeably less succinct than Java is where it uses companion objects to host static state and methods, in this case `parse()`.
 In Kotlin, we often prefer top-level state and functions to these class-scoped members.
 <<static-methods-to-top-level-functions>> discusses the pros and cons.
 
-We currently have Java code that uses the static method, for example the tests:
+We currently have Java code that uses the static method, for example, the tests:
 
 // begin-insert: classes.0:src/test/java/travelator/EmailAddressTests.java#foo
 [source,java]
@@ -294,8 +295,8 @@ public class EmailAddressTests {
 The companion object, combined with the `@JVMStatic` annotation, means this didn't have to change when we converted the class to Kotlin, so we'll leave `parse` as it is for now.
 We'll discuss how to refactor to top-level functions in <<static-methods-to-top-level-functions>>.
 
-If you're new to Kotlin you may wonder what happened to the `getLocalPart()` and `getDomain()` accessor methods.
-Declaring the `domain` property causes the compiler to generate a private `domain` field and a `getDomain()` method, so that Java code can still call it.
+If you're new to Kotlin, you may wonder what happened to the `getLocalPart()` and `getDomain()` accessor methods.
+Declaring the `domain` property causes the compiler to generate a private `domain` field and a `getDomain()` method so that Java code can still call it.
 Here is a little throw-away code to support a marketing plan:
 
 // begin-insert: classes.3:src/main/java/travelator/Marketing.java
@@ -323,7 +324,7 @@ We'll discuss properties in more detail in <<methods-to-properties>>.
 
 So far, converting our class to Kotlin has saved us 14 lines of code, but we aren't done yet.
 Value types like this are so useful, but so tedious to get right and keep right, that Kotlin supports them at a language level.
-If we mark the class with the `data` modifier the compiler generates any undefined `equals`, `hashCode` and `toString` methods for us.
+If we mark the class with the `data` modifier, the compiler generates any undefined `equals`, `hashCode`, and `toString` methods for us.
 That reduces the `EmailAddress` class to:
 
 // begin-insert: classes.4:src/main/java/travelator/EmailAddress.kt
@@ -364,14 +365,14 @@ data class EmailAddress(
 
 <1>  We don't want the generated `toString()` method, so we define the one we do want.
 
-Frankly, that `parse` method still rankles - it's taking up a disproportionate amount of space for the work it is doing.
+Frankly, that `parse` method still rankles; it's taking up a disproportionate amount of space for the work it is doing.
 We'll finally relieve this tension in <<multi-to-single-expression-functions>>.
-For now though, we're done with converting our `EmailAddress` Java class to Kotlin.
+For now, though, we're done with converting our `EmailAddress` Java class to Kotlin.
 
 === The Limitations of Data Classes
 
 A drawback of data classes is that they offer no encapsulation.
-We saw how the compiler generates `equals`, `hashCode` and `toString` methods for data classes, but didn't mention that it also generates a `copy` method that creates a new copy of the value with different values for one or more of its properties.
+We saw how the compiler generates `equals`, `hashCode`, and `toString` methods for data classes but didn't mention that it also generates a `copy` method that creates a new copy of the value with different values for one or more of its properties.
 
 For example, the following code creates a copy of an `EmailAddress` with a `localPart` of "postmaster" and the same domain:
 
@@ -379,7 +380,7 @@ For example, the following code creates a copy of an `EmailAddress` with a `loca
 val postmasterEmail = customerEmail.copy(localPart = "postmaster")
 ----
 
-For many types this is very convenient.
+For many types, this is very convenient.
 However, when a class abstracts its internal representation or maintains invariants between its properties, that `copy` method allows client code direct access to the internal state of a value, which can break its invariants.
 
 Let's look at an abstract data type in the Travelator application: the `Money` class:
@@ -452,11 +453,11 @@ public class Money {
 
 <1> The constructor is private.
 Other classes obtain `Money` values by calling the static `Money.of` method, which guarantees that the scale of the amount is consistent with the number of minor units of the currency.
-Most currencies have 100 minor units (two digits), but some have fewer, and some more. For example, the Japanese Yen has no minor units, and the Jordanian Dinar is made up of one thousand fils.
+Most currencies have one hundred minor units (two digits), but some have fewer and some more. For example, the Japanese yen has no minor units, and the Jordanian dinar is made up of one thousand fils.
 +
 // TODO - cut for space?
 The `of` method follows a coding convention of <<modern-java-style,Modern Java>> that draws a distinction in the source between objects with identity, which are constructed by the new operator, and values, which are obtained from static methods.
-This convention is followed by the Java time API (for example `LocalDate.of(2020,8,17)`) and recent additions to the collections API (for example, `List.of(1,2,3)` creates an immutable list)
+This convention is followed by the Java time API (for example, `LocalDate.of(2020,8,17)`) and recent additions to the collections API (for example, `List.of(1,2,3)` creates an immutable list).
 +
 The class provides some convenient overloads of the `of` method for String or int amounts.
 <2> A `Money` value exposes its amount and currency properties using JavaBean conventions, even though it is not actually a JavaBean.
@@ -475,11 +476,11 @@ The method `BigDecimal.setScale` is confusing.
 Although named like a JavaBean setter, it does not actually mutate the BigDecimal object.
 Like our `EmailAddress` and `Money` classes, `BigDecimal` is an immutable value type, so `setScale` returns a new `BigDecimal` value with the specified scale.
 
-Sun added the BigDecimal class to the standard library in Java 1.1. This release also included the first version of the JavaBeans API. The hype around the Beans API popularised the JavaBeans coding conventions, and they were widely adopted, even for classes that, like `BigDecimal`, were not JavaBeans (see <<bean-java-style>>).
+Sun added the `BigDecimal` class to the standard library in Java 1.1. This release also included the first version of the JavaBeans API. The hype around the Beans API popularized the JavaBeans coding conventions, and they were widely adopted, even for classes that, like `BigDecimal`, were not JavaBeans (see <<bean-java-style>>).
 There were no Java conventions for value types.
 
-Today, we avoid the "set" prefix for methods that do not mutate their receiver and instead use names that emphasise when the method returns a transformation of the receiver.
-A common convention is to use the prefix "with" for transformations that affect a single property, which would make the code in our Money class read as:
+Today, we avoid the "set" prefix for methods that do not mutate their receiver and instead use names that emphasize when the method returns a transformation of the receiver.
+A common convention is to use the prefix "with" for transformations that affect a single property, which would make the code in our `Money` class read as:
 
 [source,kotlin]
 ----
@@ -487,7 +488,7 @@ A common convention is to use the prefix "with" for transformations that affect 
 ----
 
 In Kotlin we can write extension functions to fix such historical accidents.
-If we were writing a lot of code that calculated with BigDecimals, it might be worth doing so to improve the clarity of the code:
+If we were writing a lot of code that calculated with `BigDecimal`s, it might be worth doing so to improve the clarity of the code:
 
 [source,kotlin]
 ----
@@ -496,7 +497,7 @@ inline fun BigDecimal.withScale(int scale, RoundingMode mode) =
 ----
 ====
 
-Converting Money to Kotlin produces the following code:
+Converting `Money` to Kotlin produces the following code:
 
 // begin-insert: values.5:src/main/java/travelator/money/Money.kt#money
 [source,kotlin]
@@ -578,7 +579,7 @@ Unlike `EmailAddress`, an abstract data type like the `Money` class cannot be im
 WARNING: Don't define a value type as a data class if it must maintain invariants between its properties.
 
 We can still make the class more concise and convenient with Kotlin features that we will encounter in later chapters.
-So we'll leave the `Money` class for now and come back to it in <<functions-to-operators>> to give it a thorough make-over.
+So we'll leave the `Money` class for now and come back to it in <<functions-to-operators>> to give it a thorough makeover.
 
 === Moving On
 
@@ -594,13 +595,13 @@ or to pivot data into temporary structures that make it easier to write applicat
 If our value types must maintain invariants or encapsulate their representation, data classes are not suitable.
 In that case we have to implement value semantics ourselves.
 
-We left both `EmailAddress` and `Money` still looking rather "Java-y" ... "Java-ish"? ... "Java-esque"? ... whatever.
-In the following chapters we will explore how to apply Kotlin idioms to make code more concise, more type safe, and easier to build code upon.
-<<multi-to-single-expression-functions>> looks at how we can make calculation functions and methods, such the `toString` method of both classes or `equals` and `hashCode` of `Money`, more concise by refactoring them to single expression form.
-In <<functions-to-operators>> we make the `Money` type more convenient to use in Kotlin by defining operators instead of methods.
+We left both `EmailAddress` and `Money` still looking rather Java-y...Java-ish?...Java-esque?...whatever.
+In the following chapters, we will explore how to apply Kotlin idioms to make code more concise, more type safe, and easier to build code upon.
+<<multi-to-single-expression-functions>> looks at how we can make calculation functions and methods, such as the `toString` method of both classes or `equals` and `hashCode` of `Money`, more concise by refactoring them to single expression form.
+In <<functions-to-operators>>, we make the `Money` type more convenient to use in Kotlin by defining operators instead of methods.
 
 Not all our Java classes are value types.
-The prevalent Java coding style favours mutable objects.
+The prevalent Java coding style favors mutable objects.
 In <<beans-to-values>>, we look at the advantages of using value types where Java would use mutable objects, and show how to refactor code from mutating objects to transforming values.
 
 Many classes in Java code exist to hold static utility methods.

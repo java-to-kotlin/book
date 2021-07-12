@@ -1,10 +1,11 @@
 [[optional-to-nullable]]
 == Optional to Nullable
 
-****
-Tony Hoare may consider the invention of null references his https://www.youtube.com/watch?v=ybrQvs4x0Ps[billion dollar mistake], but we still need to represent the absence of things in our software systems.
-How can we use Kotlin to embrace null, while still having safe software?
-****
+++++
+<blockquote data-type="epigraph">
+<p>Tony Hoare may consider the invention of null references his <a href="https://oreil.ly/Ue3Ct">billion dollar mistake</a>, but we still need to represent the absence of things in our software systems. How can we use Kotlin to embrace null while still having safe software?</p>
+</blockquote>
+++++
 
 === Representing Absence
 
@@ -14,43 +15,43 @@ This is another area where the grains of Java and Kotlin are different.
 Prior to Java 8, Java relied on convention, documentation, and intuition to distinguish between references that could or could not be null.
 We can deduce that methods that return an item from a collection must be able to return `null`, but can `addressLine3` be `null`, or do we use an empty string when there is no information?
 
-Over the years, your authors and their Java colleagues settled into a convention where Java references are assumed to be non-null, unless otherwise flagged.
+Over the years, your authors and their Java colleagues settled into a convention where Java references are assumed to be non-null unless otherwise flagged.
 So we might name a field `addressLine3OrNull`, or a method `previousAddressOrNull`.
-Within a codebase this works well enough (even if it is a little verbose, and requires eternal vigilance to avoid the scourge of ++NullPointerException++s).
+Within a codebase, this works well enough (even if it is a little verbose, and requires eternal vigilance to avoid the scourge of ++NullPointerException++s).
 
 Some codebases opted to use `@Nullable` and `@NotNullable` annotations instead, often supported by tools that would check for correctness.
 Java 8, released in 2014, enhanced support for annotations to the extent that tools like the https://checkerframework.org[Checker Framework] could statically check much more than just null safety.
 More crucially, though, Java 8 also introduced a standard `Optional` type.
 
-By this time many JVM developers had dabbled in Scala.
-They came to appreciate the advantages of using a _Optional_ type (named `Option` in Scala's standard library) when absence was possible, and plain references when it was not.
-Oracle muddied the waters by telling developers not to use their `Optional` for field or parameter values, but as with many features introduced in Java 8, it was good enough and was adopted into the mainstream usage of Java.
+By this time, many JVM developers had dabbled in Scala.
+They came to appreciate the advantages of using an _Optional_ type (named `Option` in Scala's standard library) when absence was possible, and plain references when it was not.
+Oracle muddied the waters by telling developers not to use its `Optional` for field or parameter values, but as with many features introduced in Java 8, it was good enough and was adopted into the mainstream usage of Java.
 
 Depending on its age, your Java code may use some or all of these strategies for dealing with absence.
 It is certainly possible to have a codebase in which `NullPointerExceptions` are practically never seen, but the reality is that this is hard work.
-Java is weighed down by null, and embarrassed by its half-hearted `Optional` type.
+Java is weighed down by null and embarrassed by its halfhearted `Optional` type.
 
 In contrast, Kotlin _embraces_ null.
-Making optionality a part of the type system, rather than the standard library, means that Kotlin codebases have refreshing uniformity in their treatment of missing values.
+Making optionality part of the type system rather than the standard library means that Kotlin codebases have refreshing uniformity in their treatment of missing values.
 It isn't all perfect: `Map<K, V>.get(key)` returns `null` if there is no value for `key`; but `List<T>.get(index)` throws `IndexOutOfBoundsException` when there is no value at `index`.
-Likewise `Iterable<T>.first()` throws `NoSuchElementException` rather than returning `null`.
-Such imperfections are generally caused by the desire for backwards compatibility with Java.
+Likewise, `Iterable<T>.first()` throws `NoSuchElementException` rather than returning `null`.
+Such imperfections are generally caused by the desire for backward compatibility with Java.
 
-Where Kotlin has its own APIs, they are generally good examples of how to safely use null to represent optional properties, parameters and return values, and we can learn a lot from studying them.
-After you’ve experienced first-class nullability, returning to languages without this support feels unsafe - you are acutely aware that you are always only a dereference away from a `NullPointerException`, and that you’re relying on convention to find the safe path through the minefield.
+Where Kotlin has its own APIs, they are generally good examples of how to safely use null to represent optional properties, parameters, and return values, and we can learn a lot from studying them.
+After you’ve experienced first-class nullability, returning to languages without this support feels unsafe; you are acutely aware that you are always only a dereference away from a `NullPointerException`, and that you’re relying on convention to find the safe path through the minefield.
 
-Functional programmers may advise you to use an Optional (also known as Maybe) type rather than nullability in Kotlin.
-We counsel against this, even though it will give you the option to use the same (monadic — there, we said it) tools to represent potential absence, errors, asynchrony, etc.
-One reason not to use `Optional` in Kotlin is that you will lose access to the language features designed specifically to support nullability — in this area the grain of Kotlin is different to the grain of, say, Scala.
+Functional programmers may advise you to use an optional (also known as maybe) type rather than nullability in Kotlin.
+We counsel against this, even though it will give you the option to use the same (monadic—there, we said it) tools to represent potential absence, errors, asynchrony, and so on.
+One reason not to use `Optional` in Kotlin is that you will lose access to the language features designed specifically to support nullability; in this area the grain of Kotlin is different from the grain of, say, Scala.
 
 Another reason not to use a wrapper type to represent optionality is subtle but important.
 In the Kotlin type system, `T` is a subtype of `T?`.
-If you have a `T` that cannot be null, you can always use it where a nullable `T` is required.
+If you have a `String` that cannot be null, you can always use it where a nullable `String` is required.
 In contrast, `T` is not a subtype of `Optional<T>`.
 If you have a `String` and want to assign it to an optional variable, you first have to wrap it in an `Optional`.
 Worse, if you have a function that returns an `Optional<String>` and later discover a way to always return a result, changing the return type to `String` will break all your clients.
-Had your return type been the nullable `String?`, then you could have strengthened it to `String` whilst maintaining compatibility.
-The same applies to properties of data structures: you can easily migrate from optional to non-optional with nullability - but not, ironically, with `Optional`.
+Had your return type been the nullable `String?`, you could have strengthened it to `String` while maintaining compatibility.
+The same applies to properties of data structures: you can easily migrate from optional to non-optional with nullability—but not, ironically, with `Optional`.
 
 Your authors love Kotlin's support for nullability, and have learned to lean on it to solve many problems.
 It takes a while to wean yourself off of avoiding nulls, but once you have, there is literally a whole new dimension of expressiveness to explore and exploit.
@@ -194,10 +195,10 @@ object Legs {
 ++++
 // end-insert
 
-The method parameters are as we might expect, with Kotlin `List<Leg>` transparently accepting a `java.util.List` (we'll examine Java and Kotlin collections more in <<java-to-kotlin-collections>>.
-It's worth mentioning here that, when a Kotlin function declares a non-nullable parameter (`legs` and `duration` here), the compiler inserts a null check before the function body.
-That way, if Java callers sneak in a `null`, we'll know straight away.
-Because of these defensive checks, Kotlin detects unexpected nulls as close as possible to their source - in contrast to Java, where a reference can be set to `null` a long way in time and space from where it finally explodes.
+The method parameters are as we might expect, with Kotlin `List<Leg>` transparently accepting a `java.util.List`. (We examine Java and Kotlin collections more in <<java-to-kotlin-collections>>.)
+It's worth mentioning here that when a Kotlin function declares a non-nullable parameter (`legs` and `duration` here), the compiler inserts a null check before the function body.
+That way, if Java callers sneak in a `null`, we'll know straightaway.
+Because of these defensive checks, Kotlin detects unexpected nulls as close as possible to their source, in contrast to Java, where a reference can be set to `null` a long way in time and space from where it finally explodes.
 
 // TODO cut _for_ space
 Returning to the example, the Kotlin `for` loop is very similar to Java's, except for the use of the `in` keyword rather than `:`, and similarly applies to any type that extends `Iterable`.
@@ -207,19 +208,19 @@ Returning to the example, the Kotlin `for` loop is very similar to Java's, excep
 Actually, we can use other types as well as `Iterable` in Kotlin `for` loops.
 The compiler will allow `for` to be used with anything:
 
-* That extends `Iterator`.
-* That has a method `iterator()` that returns an `Iterator`.
-* That has an in-scope extension function, `operator fun T.iterator()` returning an `Iterator`.
+* That extends `Iterator`
+* That has a method `iterator()` that returns an `Iterator`
+* That has an in-scope extension function, `operator fun T.iterator()` returning an `Iterator`
 
-Unfortunately this last wrinkle doesn't actually make other people's types `Iterable`, it just makes the `for` loop work.
-Which is a shame, because if we were to be able to retrospectively make types `Iterable` we could then apply `map`, `reduce` etc to them, as these are operations defined as extension functions on `Iterable<T>`.
+Unfortunately, this last wrinkle doesn't actually make other people's types `Iterable`; it just makes the `for` loop work.
+Which is a shame, because if we were to be able to retrospectively make types `Iterable` we could then apply `map`, `reduce`, etc. to them, because these are operations defined as extension functions on `Iterable<T>`.
 ****
 
 The converted `findLongestLegOver` code is not very idiomatic Kotlin.
 (Arguably, since the introduction of streams, it isn't very idiomatic Java either.)
-Instead of a `for` loop we should look for something more intention-revealing, but let's park that for now because our primary mission is to migrate from `Optional` to nullable.
+Instead of a `for` loop, we should look for something more intention-revealing, but let's park that for now because our primary mission is to migrate from `Optional` to nullable.
 We'll illustrate that by converting our tests one by one, so that we have a mix, as we would in a codebase that we were migrating.
-In order for us to make use of nullability in our clients they have to be Kotlin, so let's convert the tests:
+To make use of nullability in our clients, they have to be Kotlin, so let's convert the tests:
 
 // begin-insert: nullability.4:src/test/java/travelator/LongestLegOverTests.kt#foo
 [source,kotlin]
@@ -272,7 +273,7 @@ class LongestLegOverTests {
 ++++
 // end-insert
 
-Now to migrate gradually, we're going to need two versions of `findLongestLegOver`: the existing `Optional<Leg>`-returning one, and a new one that returns `Leg?`.
+Now to migrate gradually, we'll need two versions of `findLongestLegOver`: the existing `Optional<Leg>`-returning one, and a new one that returns `Leg?`.
 We can do that by extracting the guts of the current implementation.
 This is currently:
 
@@ -304,7 +305,7 @@ fun findLongestLegOver(
 // end-insert
 
 We "Extract Function" on all but the return statement of this `findLongestLegOver`.
-We can't give it the same name, so we use `longestLegOver` - we make it public because this is our new interface:
+We can't give it the same name, so we use `longestLegOver`; we make it public because this is our new interface:
 
 // begin-insert: nullability.5:src/main/java/travelator/Legs.kt#foo
 [source,kotlin]
@@ -362,8 +363,8 @@ fun findLongestLegOver(
 // end-insert
 
 Now we have two versions of our interface, one defined in terms of the other.
-We can leave our Java clients consuming the `Optional` from `findLongestLegOver`, and convert our Kotlin clients to call the nullable-returning `longestLegOver`.
-Let's show the conversion with our tests:
+We can leave our Java clients consuming the `Optional` from `findLongestLegOver` and convert our Kotlin clients to call the nullable-returning `longestLegOver`.
+Let's show the conversion with our tests.
 
 We'll do the absent ones first.
 They currently call `assertEquals(Optional.empty<Any>(), findLongestLegOver...)`:
@@ -456,8 +457,8 @@ fun is_longest_leg_when_more_than_one_match() {
 // end-insert
 
 The Kotlin equivalent of `Optional.orElseThrow()` (aka `get()` pre-Java 10) is the `!!` (bang-bang or dammit) operator.
-Both the Java `orElseThrow` and the Kotlin `!!` return the value, or throw an exception if there isn't one.
-Kotlin logically throws a `NullPointerException`, Java equally logically throws a `NoSuchElementExecption`, they just think of absence in different ways!
+Both the Java `orElseThrow` and the Kotlin `!!` return the value or throw an exception if there isn't one.
+Kotlin logically throws a `NullPointerException`. Java equally logically throws a `NoSuchElementExecption`; they just think of absence in different ways!
 Provided we haven't relied on the type of the exception, we can replace `findLongestLegOver(...).orElseThrow()` with `longestLegOver(...)!!`:
 
 // begin-insert: nullability.8:src/test/java/travelator/LongestLegOverTests.kt#present
@@ -491,9 +492,9 @@ fun `is longest leg when more than one match`() {
 // end-insert
 
 We've converted the first of the non-null-returning tests (`is longest leg when one match`) with the `!!` operator.
-If it was to fail (which it doesn't, but we like to plan for these things) it would fail with a thrown `NullPointerException` rather than a nice diagnostic.
-In the second case we've solved that problem with the safe call operator `?.`, which continues evaluation only if its receiver is not `null`.
-This means that if the leg _is_ `null` the error will read as follows, which is much nicer:
+If it were to fail (which it doesn't, but we like to plan for these things), it would fail with a thrown `NullPointerException` rather than with a nice diagnostic.
+In the second case, we've solved that problem with the safe call operator `?.`, which continues evaluation only if its receiver is not `null`.
+This means that if the leg _is_ `null`, the error will read as follows, which is much nicer:
 
 ----
 Expected :one day
@@ -508,24 +509,24 @@ Once we have converted all of them, we can delete the `Optional`-returning `find
 [[expand-contract]]
 .Expand-and-Contract Refactoring
 ****
-We will use this technique (also known as https://martinfowler.com/bliki/ParallelChange.html[Parallel Change]) for managing changes to interfaces (with a lower-case i) throughout this book.
-It's a simple concept - add the new interface, migrate uses of the old interface to the new one, and when there are no uses of the old one, delete it.
+We will use this technique (also known as https://oreil.ly/jxSPE[parallel change]) for managing changes to interfaces (with a lowercase i) throughout this book.
+It's a simple concept: add the new interface, migrate uses of the old interface to the new one, and when there are no uses of the old one, delete it.
 
 In this book we will often combine the refactoring with a conversion to Kotlin.
 Usually, as in this chapter, we will convert the definition and implementation(s) of the interface to Kotlin, then add the new interface to it.
-As we convert clients to use the new interface we take the opportunity to convert them to Kotlin as well.
+As we convert clients to use the new interface, we take the opportunity to convert them to Kotlin as well.
 
-While we migrate between interfaces and convert between languages as part of this process, we try not to do them both at once.
-Like climbers keeping 3 points of contact with the rock, don't let go with both hands at once!
+Although we migrate between interfaces and convert between languages as part of this process, we try not to do them both at once.
+Like climbers keeping three points of contact with the rock, don't let go with both hands at once!
 Make one move, make sure the tests pass, then go on to the next.
-If the change feels risky, now might be a good time to put in a some protection (run the pre-commit test suite, check-in, even deploy a canary release), so that we don't fall too far if things go wrong.
+If the change feels risky, now might be a good time to put in some protection (run the pre-commit test suite, check-in, even deploy a canary release) so that we don't fall too far if things go wrong.
 
 And finish the job.
 We refactor to make our code better, which almost always means simpler, and simpler rarely correlates with larger.
 We allow code to get worse (with two ways of doing the same thing) before it gets better (with everyone using the new interface), but don't get stuck having to maintain both versions.
-If we end up supporting two versions of an interface for an extended period then they might diverge, or both need testing to ensure that they don't, and the old version may gain new clients.
+If we end up supporting two versions of an interface for an extended period, they might diverge, or both need testing to ensure that they don't, and the old version may gain new clients.
 We could mark code as deprecated, but it's better to just get on and finish the job.
-That said, small shims to support legacy can be allowed to live - we love Kotlin, but we want to spend our time adding value rather than converting Java code that otherwise requires no attention.
+That said, small shims to support legacy can be allowed to live; we love Kotlin, but we want to spend our time adding value rather than converting Java code that otherwise requires no attention.
 ****
 
 === Refactoring to Idiomatic Kotlin
@@ -567,9 +568,9 @@ object Legs {
 ++++
 // end-insert
 
-The functions are contained in an `object` because our Java methods were static, and so the conversion needed somewhere to put them.
+The functions are contained in an `object` because our Java methods were static, so the conversion needed somewhere to put them.
 As we'll see in <<static-methods-to-top-level-functions>>, Kotlin doesn't need this extra level of namespace, so we can "Move to top level" on `longestLegOver`.
-At the time of writing, this doesn't work very well, as IntelliJ fails to bring `isLongerThan` with its calling function, leaving it in `Legs`.
+At the time of writing, this doesn't work very well, because IntelliJ fails to bring `isLongerThan` with its calling function, leaving it in `Legs`.
 The breakage is easy to fix though, leaving us with a top-level function and fixed-up references in existing code:
 
 // begin-insert: nullability.10:src/main/java/travelator/Legs.kt
@@ -604,8 +605,8 @@ private fun isLongerThan(leg: Leg, duration: Duration) =
 You may have noticed that `isLongerThan` has lost its braces and return statement.
 We'll talk though the pros and cons of single expression functions in <<multi-to-single-expression-functions>>.
 
-While we're here, there's something odd about the phrase `isLongerThan(leg, ...)` - it just doesn't read right in English.
-You'll no doubt get bored of our infatuation with extension functions (certainly by the end of <<functions-to-extension-functions>>), but while we still have your goodwill lets Alt-Enter on the `leg` parameter and "Convert parameter to receiver", so that we can write `leg.isLongerThan(...)`:
+While we're here, there's something odd about the phrase `isLongerThan(leg, ...)`. It just doesn't read right in English.
+You'll no doubt get bored of our infatuation with extension functions (certainly by the end of <<functions-to-extension-functions>>), but while we still have your goodwill, let's Alt-Enter on the `leg` parameter and "Convert parameter to receiver", so that we can write `leg.isLongerThan(...)`:
 
 // begin-insert: nullability.11:src/main/java/travelator/Legs.kt
 [source,kotlin]
@@ -638,19 +639,19 @@ private fun Leg.isLongerThan(duration: Duration) =
 
 So far, our changes have all been structural, changing where code is defined and how we call it.
 Structural refactors are inherently quite (as in mostly, rather than completely) safe.
-They can change the behavior of code that relies on polymorphism (either through methods or functions) or reflection, but otherwise if the code continues to compile, it probably behaves.
+They can change the behavior of code that relies on polymorphism (either through methods or functions) or reflection, but otherwise, if the code continues to compile, it probably behaves.
 
 Now we are going to turn our attention to the _algorithm_ in `longestLegOver`.
 Refactoring algorithms is more dangerous, especially ones like this that rely on mutation, because tool support for transforming them is not good.
 We have good tests though, and it's hard to work out what this does by reading it, so let's see what we can do.
 
 The only suggestion IntelliJ gives is to replace `compareTo` with `>`, so let's do that first.
-At this point Duncan at least has run out of refactoring talent (if we were actually pairing maybe you would have a suggestion?), so decides to rewrite the function from scratch.
+At this point, Duncan at least has run out of refactoring talent (if we were actually pairing maybe you would have a suggestion?) so decides to rewrite the function from scratch.
 
 To reimplement the functionality, we ask ourselves, "What is the code trying to do?"
 The answer is, helpfully, in the name of the function: `longestLegOver`.
-In order to implement this calculation, we can find the longest leg, and if it is longer than duration, return it, otherwise null.
-Typing `legs.` at the beginning of the function, we look at the suggestions and find `maxByOrNull`.
+To implement this calculation, we can find the longest leg, and if it is longer than duration, return it, otherwise `null`.
+After typing `legs.` at the beginning of the function, we look at the suggestions and find `maxByOrNull`.
 Our longest leg is going to be `legs.maxByOrNull(Leg::plannedDuration)`.
 This API helpfully returns `Leg?` (and includes the phrase `orNull`) to remind us that it can't give a result if `legs` is empty.
 Converting our algorithm "find the longest leg, and if it is longer than duration, return it, otherwise null" to code directly, we get:
@@ -679,7 +680,7 @@ fun longestLegOver(
 // end-insert
 
 That passes the tests, but those multiple returns are ugly.
-IntelliJ will helpfully offer to lift the `return` out of the `if`.
+IntelliJ will helpfully offer to lift the `return` out of the `if`:
 
 // begin-insert: nullability.13:src/main/java/travelator/Legs.kt
 [source,kotlin]
@@ -706,7 +707,7 @@ fun longestLegOver(
 
 Now, Kotlin's nullability support allows several ways to refactor this, depending on your tastes.
 
-We can use the Elvis operator `?:`, which evaluates to its left-hand side unless that is `null`, in which case it evaluates its right-hand side.
+We can use the Elvis operator `?:`, which evaluates to its lefthand side unless that is `null`, in which case it evaluates its righthand side.
 This lets us return early if we have no longest leg:
 
 // begin-insert: nullability.14:src/main/java/travelator/Legs.kt
@@ -734,7 +735,7 @@ fun longestLegOver(
 // end-insert
 
 We could go with a single `?.let` expression.
-The `?.` evaluates to `null` if fed a `null`, otherwise it pipes the longest leg into the `let` block for us:
+The `?.` evaluates to `null` if fed a `null`; otherwise, it pipes the longest leg into the `let` block for us:
 
 // begin-insert: nullability.15:src/main/java/travelator/Legs.kt
 [source,kotlin]
@@ -787,8 +788,8 @@ fun longestLegOver(
 ++++
 // end-insert
 
-In order to simplify further, we need a trick that Duncan (who is writing this) has so far failed to internalise.
-`takeIf` returns its receiver if a predicate is `true`, otherwise it returns `null`.
+To simplify further, we need a trick that Duncan (who is writing this) has so far failed to internalize:
+`takeIf` returns its receiver if a predicate is `true`; otherwise, it returns `null`.
 This is exactly the logic of our previous `let` block.
 So we can write:
 
@@ -916,7 +917,7 @@ public class Legs {
 ++++
 // end-insert
 
-Actually, that isn't bad, but compared with the Kotlin version you can see how `Optional` adds noise to pretty much every line of the method.
+Actually, that isn't bad, but compared with the Kotlin version, you can see how `Optional` adds noise to pretty much every line of the method.
 Because of this, a version using `Optional.filter` is probably preferable, even though it suffers from the same comprehension problems as the Kotlin `takeIf`.
 Which is to say, Duncan can't tell that it works without running the tests, but Nat prefers it.
 
@@ -947,9 +948,9 @@ public static Optional<Leg> findLongestLegOver(
 The absence or presence of information is inescapable in our code.
 By raising it to first-class status, Kotlin makes sure that we take account of absence when we have to and are not overwhelmed by it when we don't.
 In comparison, Java's `Optional` type feels clumsy.
-Luckily we can easily migrate from `Optional` to nullable, and support both simultaneously when we are not ready to convert all our code to Kotlin.
+Luckily, we can easily migrate from `Optional` to nullable and support both simultaneously when we are not ready to convert all our code to Kotlin.
 
-In <<functions-to-extension-functions>> we'll see how nullable types combine with other Kotlin language features -- the safe call and Elvis operators, and extension functions -- to form a grain that results in designs quite different to those we write in Java.
+In <<functions-to-extension-functions>> we'll see how nullable types combine with other Kotlin language features—the safe call and Elvis operators, and extension functions—to form a grain that results in designs quite different from those we write in Java.
 
 But that's getting ahead of ourselves.
 In the next chapter, we'll look at a typical Java class and translate it into a typical Kotlin class.
