@@ -1,47 +1,48 @@
 [[actions-to-calculations]]
 == Actions to Calculations
 
-****
-Neither Java nor Kotlin make any formal distinction between imperative and functional code, although Kotlin's emphasis on immutability and expressions generally lead to more functional programs.
-Can we improve our code by making more of it functional?
-****
+++++
+<blockquote data-type="epigraph">
+<p>Neither Java nor Kotlin makes any formal distinction between imperative and functional code, although Kotlin's emphasis on immutability and expressions generally lead to more functional programs. Can we improve our code by making more of it functional?</p>
+</blockquote>
+++++
 
 [[functions]]
 === Functions
 
-As an industry we have invented a lot of phrases to describe callable sub-programs within a larger program.
+As an industry, we have invented a lot of phrases to describe callable subprograms within a larger program.
 We have the very generic _subroutine_.
-Some languages (notable Pascal) distinguish between _functions_ that return a result, and _procedures_, which don't; but most developers use the terms interchangeably.
+Some languages (notably Pascal) distinguish between _functions_ that return a result, and _procedures_, which don't; but most developers use the terms interchangeably.
 Then there are _methods_, which are subroutines associated with an object (or a class, in the case of static methods).
 
-The C language calls them all functions, but has a special `void` type to represent the absence of a return value.
+The C language calls them all functions but has a special `void` type to represent the absence of a return value.
 This was carried forward into Java.
 Kotlin uses `Unit` in almost the same way, except that `Unit` is not the absence of a return value, but rather a singleton value that is returned instead.
 
-In this book we use the term _function_ to refer to both result-returning and non-result-returning subroutines, whether free-standing or associated with an object.
+In this book we use the term _function_ to refer to both result-returning and non-result-returning subroutines, whether freestanding or associated with an object.
 Where it's significant that they are associated with an object, we'll call them as methods.
 
-Whatever we call them, functions are one of fundamental building blocks of our software.
+Whatever we call them, functions are one of the fundamental building blocks of our software.
 We define them with some sort of notation, generally the programming language we are using.
-They are also generally fixed during a run of the program -- in static languages at least we don't usually redefine functions on the fly.
+They are also generally fixed during a run of the program; in static languages, at least, we don't usually redefine functions on the fly.
 
 This is in contrast to the other fundamental building block: data.
-We expect data to vary as we run our program and different data is bound to variables.
+We expect data to vary as we run our program, and different data is bound to variables.
 Variables are called variables because they are, wait for it, variable.
 Even when they are `final`, or `val`, they are usually bound to different data in different invocations of a function.
 
-We hinted earlier at a subdivision of functions into those that return a result, and those that do not.
-This might seem like a fundamental difference, but in practice there is a more useful way to divide functions - into _calculations_ and _actions_.
+We hinted earlier at a subdivision of functions into those that return a result and those that do not.
+This might seem like a fundamental difference, but in practice there is a more useful way to divide functions: into _calculations_ and _actions_.
 
-Actions are functions that depend on when or how many times they are run, calculations are functions that don't -- they are timeless.
-Most functions that we write are actions, as we have to take special care to write code that doesn't depend on when it is run.
+Actions are functions that depend on when or how many times they are run; calculations are functions that don't—they are timeless.
+Most functions that we write are actions, because we have to take special care to write code that doesn't depend on when it is run.
 How would we go about doing that?
 
 [[calculations]]
 === Calculations
 
-In order to be a calculation, a function must always return the same result given the same inputs.
-As the inputs to a function are its parameters, this means that a calculation always returns the same result when called with the same arguments.
+To be a calculation, a function must always return the same result given the same inputs.
+Because the inputs to a function are its parameters, a calculation always returns the same result when called with the same arguments.
 
 This function:
 
@@ -50,7 +51,7 @@ This function:
 fun fullName(customer: Customer) = "${customer.givenName} ${customer.familyName}"
 ----
 
-is a calculation, as it will always return the same value when supplied the same `Customer`.
+is a calculation; it will always return the same value when supplied the same `Customer`.
 This is true only if `Customer` is immutable, or at least `givenName` and `familyName` cannot change.
 To keep things simple, we'll say that calculations can only have parameters that are values, as defined in <<beans-to-values>>.
 
@@ -83,14 +84,14 @@ val Customer.fullName get() = "$givenName $familyName"
 .Computed Property or Function?
 ****
 You may have wondered when to define a computed property and when to have a function that returns a result.
-Computed properties are confusing if they return different results at different times, at least when defined on value types (and you'll be realising by now that your authors think that most of our types should be value types).
+Computed properties are confusing if they return different results at different times, at least when defined on value types (and you'll be realizing by now that your authors think that most of our types should be value types).
 So a good rule of thumb is to reserve computed properties for calculations.
 
 We expand on this topic in <<methods-to-properties>>.
 ****
 
 The result of a calculation may depend on data that is not passed as parameters, but only if that data does not change.
-Otherwise the function's result would be different before and after the change, which would make it an action.
+Otherwise, the function's result would be different before and after the change, which would make it an action.
 Even if a function always returns the same result for the same parameters, it may still be an action if it mutates something (either a parameter or an external resource such as a global variable or a database).
 For example:
 
@@ -109,9 +110,9 @@ It is an action.
 If we don't call it, nothing is output, which is different from calling it once, which is different from calling it twice.
 The order that we call `println` with different arguments also matters to the results we see on the console.
 
-We call `println` for its _side effect_ - the effect it has on its environment.
-Side effect is a bit of a misleading term, because, unlike drug side effects, they are often exactly the thing that we want to happen.
-Maybe _outside effect_ would be a better name, to emphasise that they are external to a function's parameters, local variables and return value.
+We call `println` for its _side effect_—the effect it has on its environment.
+Side effect is a bit of a misleading term because, unlike drug side effects, they are often exactly the thing that we want to happen.
+Maybe _outside effect_ would be a better name, to emphasize that they are external to a function's parameters, local variables, and return value.
 In any case, functions with observable side effects are actions not calculations.
 Functions returning `void` or `Unit` are almost always actions, because if they do anything, they have to do it by side effect.
 
@@ -131,12 +132,12 @@ class Customers {
 }
 ----
 
-Both `save` and `find` are actions.
+Both `save` and `find` are actions;
 `save` creates a new customer record in our database and returns it.
 This is an action because the state of our database depends on when we call it.
 The result of `find` is also time sensitive, because it depends on previous calls to `save`.
 
-Functions that have no parameters (this doesn't include methods or extension functions which can have implicit parameters accessed via `this`) must either be returning a constant, or be reading from some other source and so be categorised as actions.
+Functions that have no parameters (this doesn't include methods or extension functions, which can have implicit parameters accessed via `this`) must either be returning a constant or be reading from some other source and so be categorized as actions.
 Without looking at its source, we can deduce that a top-level function `requestRate` is almost certainly an action, reading from some global mutable state:
 
 [source,kotlin]
@@ -160,7 +161,7 @@ class Metrics(
 }
 ----
 
-We say probably, because in languages like Java or Kotlin that allow IO or accessing global mutable data from any code, there is no way to be sure if a function represents a calculation or action short of examining it, and all the functions that it calls.
+We say _probably_ because in languages like Java or Kotlin that allow I/O or accessing global mutable data from any code, there is no way to be sure whether a function represents a calculation or action short of examining it and all the functions that it calls.
 We'll return to that problem soon.
 
 === Why Should We Care?
@@ -168,14 +169,14 @@ We'll return to that problem soon.
 We should obviously pay special attention to some actions in our software.
 Sending the same email to every user twice is a bug, as is not sending it at all.
 We care exactly how many times it is sent.
-We may even care that it is sent at exactly 8:07am, so that our offer for a free first-class upgrade is at the top of our customer's inbox when they read their email over breakfast.
+We may even care that it is sent at exactly 8:07 a.m., so that our offer for a free first-class upgrade is at the top of our customer's inbox when they read their email over breakfast.
 
 Other seemingly innocuous actions may be more nocuous than we think.
 Changing the order of read and write actions causes concurrency bugs.
 Error handling is much more complicated if the second of two sequential actions fails after the first succeeded.
-Actions prevent us having free-rein to refactor our code, because doing so may change when or whether they are invoked.
+Actions prevent us from having free rein to refactor our code, because doing so may change when or whether they are invoked.
 
-Calculations on the other hand can be invoked at any time, with no consequences to calling them again and again with the same arguments except a waste of time and energy.
+Calculations, on the other hand, can be invoked at any time, with no consequences for calling them again and again with the same arguments except a waste of time and energy.
 If we are refactoring code and find that we don't need the result of a calculation, we can safely not invoke it.
 If it is an expensive calculation, we can safely cache its result; if it is inexpensive, we can safely recalculate it on demand if that simplifies things.
 It is this feeling of safety that puts the smug smile on the faces of functional programmers (well, that and knowing that a monad is just a monoid in the category of endofunctors).
@@ -185,8 +186,8 @@ If a function is referentially transparent, we can replace its call with its res
 .Procedural Code
 ****
 Nat and Duncan are both old enough to have learned to program in Sinclair BASIC on the ZX81.
-This dialect had no immutable data, and no support for subroutines parameters or local variables.
-It requires real discipline to program in such a system, because practically every line of code is an action, and hence potentially affects the functioning of every other statement.
+This dialect had no immutable data, and no support for subroutines, parameters, or local variables.
+It requires real discipline to program in such a system, because practically every line of code is an action and, hence, potentially affects the functioning of every other statement.
 
 This is in fact very close to the way that our computers actually work, with mutable values held in registers and global memory, manipulated by machine-code actions.
 The evolution of programming languages has been a process of restricting the ultimate flexibility of this model, so that humans can better reason with the code that they create.
@@ -195,23 +196,23 @@ The evolution of programming languages has been a process of restricting the ult
 === Why Prefer Calculations?
 
 We like calculations because they are so much easier to work with, but ultimately our software needs to have an effect on the world, which is an action.
-There is no overlap though, code can't be an action and a calculation, both timeless and time-dependent.
+There is no overlap, though; code can't be an action and a calculation, both timeless and time-dependent.
 If we take some code that is a calculation and have it invoke an action, then it becomes an action, because it will now depend on when or whether it is called.
 We can think of calculations as the purer code, where code inherits the most tainted level of all of its dependencies.
 We see the same thing with susceptibility to errors in <<throwing-to-returning>>.
-If we value purity (which in all these cases brings ease of reasoning and refactoring), we must strive to pull the boundary between impure and pure code to the outer layers of our system - those closest to the entry points.
-If we succeed, then a significant proportion of our code can be calculations, and hence easily tested, reasoned-with, and refactored.
+If we value purity (which in all these cases brings ease of reasoning and refactoring), we must strive to pull the boundary between impure and pure code to the outer layers of our system—those closest to the entry points.
+If we succeed, then a significant proportion of our code can be calculations and, hence, easily tested, reasoned with, and refactored.
 
-What if we don't succeed in keeping actions at the bottom of our call-stack?
+What if we don't succeed in keeping actions at the bottom of our call stack?
 Then we can fix things with refactoring!
 
 === Refactoring Actions to Calculations
 
-Let's have a look at recognising and refactoring actions in existing code.
+Let's have a look at recognizing and refactoring actions in existing code.
 
 ==== Existing Code
 
-There is an HTTP endpoint in Travelator that allows the client app to fetch information about the customers current trip:
+There is an HTTP endpoint in Travelator that allows the client app to fetch information about the customer's current trip:
 
 // begin-insert: actions.0:src/main/java/travelator/handlers/CurrentTripsHandler.java
 [source,java]
@@ -251,7 +252,7 @@ public class CurrentTripsHandler {
 ++++
 // end-insert
 
-Actions are code that is sensitive to time, so words like _current_ in `CurrentTripsHandler` are a dead give-away.
+Actions are code that is sensitive to time, so words like _current_ in `CurrentTripsHandler` are a dead giveaway.
 The `handle` method is an action, and that's OK: things on the edge of our systems often are.
 
 The handler delegates to some business logic, implemented in `Tracking`.
@@ -292,7 +293,7 @@ class Tracking implements ITrackTrips {
 ++++
 // end-insert
 
-Using the _current_ rule `Tracking.currentTripFor` is evidently an action too, as is `Trips.currentTripsFor`.
+Using the _current_ rule, `Tracking.currentTripFor` is evidently an action, too, as is `Trips.currentTripsFor`.
 Here is its implementation in `InMemoryTrips`, which is used for testing in place of a version implemented with database queries.
 
 // begin-insert: actions.0:src/test/java/travelator/InMemoryTrips.java#foo
@@ -320,11 +321,11 @@ public class InMemoryTrips implements Trips {
 
 The conversion from `Set<Trip>` (the result of `Trips.currentTripsFor`) and to `Optional<Trip>` (returned from `Tracking.currentTripFor`) seems to be because there is some business rule around there being only one active trip at any time that is not enforced in the persistence layer.
 
-Until we got here, we were relying on our knowledge of the meanings of words (in particular _current_) to deduce that Java methods represent actions rather than calculations.
-Here though there is a smoking gun.
+Until we got here, we were relying on our knowledge of the meanings of words (in particular, _current_) to deduce that Java methods represent actions rather than calculations.
+Here, though, there is a smoking gun.
 Can you spot it?
 
-Yes - `clock.instant()`.
+Yes: `clock.instant()`.
 That definitely depends on when we call it.
 (If you found another action, well done, but keep it to yourself for now.
 We'll come back to it.)
@@ -332,7 +333,7 @@ We'll come back to it.)
 Even if we chose not go on with the rest of this refactoring, there is one change that we should make now.
 We have discussed calculations and actions as applying to named blocks of code, but they also apply at the expression level.
 Once you start to differentiate actions from calculations, it makes sense not to throw a random action into an otherwise pure calculation.
-Let's pull the action out so that the remainder of the expression is pure - select `clock.instant()` and "Introduce Variable", calling it `now`:
+Let's pull the action out so that the remainder of the expression is pure: select `clock.instant()` and "Introduce Variable", calling it `now`:
 
 // begin-insert: actions.1:src/test/java/travelator/InMemoryTrips.java#foo
 [source,java]
@@ -356,7 +357,7 @@ public Set<Trip> currentTripsFor(String customerId) {
 ++++
 // end-insert
 
-That's still in the middle of the expression, let's move it up (and convert to a `var` on the way):
+That's still in the middle of the expression, so let's move it up (and convert to a `var` on the way):
 
 // begin-insert: actions.2:src/test/java/travelator/InMemoryTrips.java#foo
 [source,java]
@@ -378,10 +379,10 @@ public Set<Trip> currentTripsFor(String customerId) {
 ++++
 // end-insert
 
-This simple act has allowed us to realise that we were previously comparing every trip against a slightly different time!
+This simple act has allowed us to realize that we were previously comparing every trip against a slightly different time!
 Was that a problem?
 Probably not here, but you may have worked on systems where it would be.
-Duncan for one has recently finished diagnosing an issue where half of a banking transaction could be accounted for in one day, and the other half in the next.
+Duncan, for one, has recently finished diagnosing an issue where half of a banking transaction could be accounted for in one day, and the other half in the next.
 
 As well as making it harder to refactor our code, actions make it harder to test too.
 Let's see how that is manifested:
@@ -431,13 +432,13 @@ public class TrackingTests {
 ++++
 // end-insert
 
-In order to give predictable results we have had to use a fake clock, injected into `InMemoryTrips`.
+To give predictable results, we have had to use a fake clock, injected into `InMemoryTrips`.
 Having previously said that `clock.instant()` depends on when we call it; in our tests it doesn't (at least, not in the same way).
-We could instead have set up trips relative to the time that the tests are being run - this makes our tests harder to understand and subject to failure if you run them around midnight.
+We could instead have set up trips relative to the time that the tests are being run. This makes our tests harder to understand and subject to failure if you run them around midnight.
 
-.2015 was the End of Time
+.2015 Was the End of Time
 ****
-Duncan and Nat returned to work after the Christmas holidays at the beginning of 2015 to find a slew of previously-passing unit tests now failing.
+Duncan and Nat returned to work after the Christmas holidays at the beginning of 2015 to find a slew of previously passing unit tests now failing.
 It turns out that 2015-01-01T00:00:00 had been used as a time that would always be in the future.
 When 2015 arrived, all the tests that relied on before and after relationships began failing.
 
@@ -453,12 +454,12 @@ It has also allowed us to avoid a rethink that might lead to ...
 
 What would a better design look like here?
 
-In order to make this code less time-dependant, we can supply the time as an argument to the method.
-Whilst this forces the _caller_ to know the time, it is as easy for our caller to ask the time as it is for this method.
-This is a special case of the way that we refactor to avoid dependencies on other global state -- instead of reading a value within a function, we pass the value into it.
+To make this code less time-dependant, we can supply the time as an argument to the method.
+Although this forces the _caller_ to know the time, it is as easy for our caller to ask the time as it is for this method.
+This is a special case of the way that we refactor to avoid dependencies on other global states; instead of reading a value within a function, we pass the value into it.
 
 The function we want to pass the time into overrides `Trips.currentTripsFor`, so we start by adding an `Instant` parameter to that.
-Before this was:
+Before, this was:
 
 // begin-insert: actions.0:src/main/java/travelator/Trips.java#foo
 [source,java]
@@ -478,9 +479,9 @@ public interface Trips {
 // end-insert
 
 We use IntelliJ's "Change Signature" refactoring to add the parameter, calling it `at`.
-When we add a parameter we need to tell IntelliJ what value it should use when updating the callers of our function.
-As we aren't using the value in the method yet (and this is Java), we should be able to use `null` without breaking anything.
-Running the tests shows that we are right -- they still pass.
+When we add a parameter, we need to tell IntelliJ what value it should use when updating the callers of our function.
+Because we aren't using the value in the method yet (and this is Java), we should be able to use `null` without breaking anything.
+Running the tests shows that we are right—they still pass.
 
 `Trips` now looks like this:
 
@@ -535,10 +536,10 @@ class Tracking implements ITrackTrips {
 ++++
 // end-insert
 
-<1> IntelliJ introduced `null` as the argument value.
+<1> IntelliJ introduced `null` as the argument value
 
-Remember that we aren't using the value of the time in our implementations of `Trips` yet, just trying to supply it on the outside of our system in order to convert as much code as possible to calculations.
-`Tracking` isn't the outside of our interaction, so we take select the `null` `Instant`, and "Introduce Parameter" to add it to the signature of `Tracking.currentTripFor`:
+Remember that we aren't using the value of the time in our implementations of `Trips` yet; we're just trying to supply it on the outside of our system to convert as much code as possible to calculations.
+`Tracking` isn't the outside of our interaction, so we select the `null` `Instant` and "Introduce Parameter" to add it to the signature of `Tracking.currentTripFor`:
 
 // begin-insert: actions.4:src/main/java/travelator/Tracking.java#foo
 [source,java]
@@ -561,7 +562,7 @@ public Optional<Trip> currentTripFor(String customerId, Instant at) { // <1>
 ++++
 // end-insert
 
-<1> Our new `Instant` parameter.
+<1> Our new `Instant` parameter
 
 When we "Introduce Parameter", IntelliJ moves the expression (`null` in this case) from the body of the method to the callers, so `CurrentTripsHandler` still compiles:
 
@@ -593,7 +594,7 @@ public Response handle(Request request) {
 ++++
 // end-insert
 
-<1> `null` argument value.
+<1> `null` argument value
 
 `TrackingTests` is similarly fixed up:
 
@@ -632,7 +633,7 @@ public void returns_single_active_booked_trip() {
 ++++
 // end-insert
 
-<1> `null` argument value.
+<1> `null` argument value
 
 At this point everything compiles and passes the tests, but we aren't actually using the (`null`) time that we are passing down from our handler.
 Let's fix that in `InMemoryTrips`, where we started.
@@ -662,7 +663,7 @@ public class InMemoryTrips implements Trips {
 ++++
 // end-insert
 
-Now we have the time as a parameter, we can use that rather than asking the `clock`:
+Now that we have the time as a parameter, we can use that rather than asking the `clock`:
 
 // begin-insert: actions.5:src/test/java/travelator/InMemoryTrips.java#foo
 [source,java]
@@ -810,7 +811,7 @@ public class TrackingTests {
 ++++
 // end-insert
 
-This is pattern we often see as we refactor towards more functional code.
+This is a pattern we often see as we refactor toward more functional code.
 As we reduce the scope of actions, our tests become simpler, because they can express more of their variation in parameters rather than preparing test state.
 We'll see this again in <<mocks-to-maps>>.
 
@@ -818,7 +819,7 @@ We'll see this again in <<mocks-to-maps>>.
 
 We're almost done now. (Refactoring is never completely done.)
 
-With all this focus on the tests, we were about to check in before we realised that we haven't completed our refactor in `CurrentTripsHandler`.
+With all this focus on the tests, we were about to check in before we realized that we haven't completed our refactor in `CurrentTripsHandler`.
 
 // begin-insert: actions.8:src/main/java/travelator/handlers/CurrentTripsHandler.java#foo
 [source,java]
@@ -850,7 +851,7 @@ public Response handle(Request request) {
 
 <1> We're still passing `null`
 
-Now that neither of our `currentTripFor` methods fetch the time, `CurrentTripHandler` is the only action - the place that we need to call `Instant.now()`.
+Now that neither of our `currentTripFor` methods fetch the time, `CurrentTripHandler` is the only action—the place that we need to call `Instant.now()`.
 We can fix things by inserting the call, leaving us with:
 
 // begin-insert: actions.9:src/main/java/travelator/handlers/CurrentTripsHandler.java
@@ -897,19 +898,19 @@ public class CurrentTripsHandler {
 
 Looking through our code, we find (scream) that we don't have any unit tests for the handler.
 If we want to add them, this is the level at which we would now inject a `Clock`, rather than into the individual services.
-Mocks or stubs allow us to test actions, but are rarely required to test calculations.
+Mocks or stubs allow us to test actions but are rarely required to test calculations.
 
-We won't show it, but we also have to consider the production implementation of `Trips` - the one that reads from our database.
-We are lucky and find that this passes the current time into its SQL query -- so now we can just pass the `at` in `Trips.currentTripsFor(String customerId, Instant at)`.
+We won't show it, but we also have to consider the production implementation of `Trips`, the one that reads from our database.
+We are lucky and find that this passes the current time into its SQL query, so now we can just pass the `at` in `Trips.currentTripsFor(String customerId, Instant at)`.
 It would have been more complicated if the SQL query was using the current time of the database server from a database-specific construct such as `CURRENT_TIMESTAMP` or `NOW`.
-As with non-SQL code, actions are so pervasive that this is quite a common practice even though it makes testing more complicated, and the code itself less versatile.
-If our query had used the database time, we would have to rewrite it to receive the time from our function as a parameter, and make a mental note not to read the time unless we have a very good reason not to.
+As with non-SQL code, actions are so pervasive that this is quite a common practice even though it makes testing more complicated and the code itself less versatile.
+If our query had used the database time, we would have to rewrite it to receive the time from our function as a parameter and make a mental note not to read the time unless we have a very good reason not to.
 
-That done, we review our changes, and find that we haven't converted any code to Kotlin!
+With that done, we review our changes and find that we haven't converted any code to Kotlin!
 
 This is quite significant.
 This way of thinking about calculations and actions doesn't depend on our language, and the grain of Java is becoming more functional with time.
-We find, though, that Kotlin's more natural support for immutable data and other functional constructs means that the costs of making the distinction are lower, and so the cost/benefit ratio looks more favourable.
+We find, though, that Kotlin's more natural support for immutable data and other functional constructs means that the costs of making the distinction are lower, and so the cost/benefit ratio looks more favorable.
 Note also that a lot of the refactoring steps taken in this chapter (and others) are safe only because we are moving around the invocation of calculations and not actions.
 
 Before we finish this chapter, what about the other action we hinted at?
@@ -947,34 +948,34 @@ class InMemoryTrips : Trips {
 
 That `MutableMap` of ++MutableSet++s is a sign that something can change over time.
 If they have the same customer, the result of `tripsFor` will be different after we have called `addTrip`.
-So `tripsFor` is an action not a calculation.
+So `tripsFor` is an action, not a calculation.
 If `tripsFor` is an action, then anything that calls it is an action, including our `currentTripsFor`.
 The same will obviously be true of the production version of `Trips` that reads and writes to the database.
 After all this work, we haven't actually promoted our action to a calculation after all!
 
 Should we be downhearted?
 No.
-Despite our previous assertion that functions are either calculations _or_ actions, the truth is that in practice action-ness is graduated, actions can be more or less susceptible to time.
+Despite our previous assertion that functions are either calculations _or_ actions, the truth is that in practice actionness is graduated, and actions can be more or less susceptible to time.
 In this case, unless other code _in this interaction_ is also going to fetch the trips for a customer and find an inconsistency, we can treat `Trips` as effectively immutable.
 So `tripsFor`, and by extension `currentTripsFor`, are effectively calculations.
-In this respect our `InMemoryTrips` is less safe than our database implementation, because if accessed on multiple threads it can mutate the collection returned by `tripsFor`, leading to potential `ConcurrentModificationExceptions` in the `filter` implementation.
-Categorising our code into calculations and actions has helped us see these issues, and given us a framework for deciding if they are important in context.
+In this respect our `InMemoryTrips` is less safe than our database implementation because, if accessed on multiple threads, it can mutate the collection returned by `tripsFor`, leading to potential `ConcurrentModificationExceptions` in the `filter` implementation.
+Categorizing our code into calculations and actions has helped us see these issues and given us a framework for deciding whether they are important in context.
 
-Lastly, note that Kotlin's preference for immutable data makes this categorisation easier.
-For example, when you see `List` in Java you have to find the places in which it is created or referenced in order to establish its mutability, and hence the likelihood that code accessing it can be an action.
-In Kotlin when you see `MutableList` you can infer an action, although as we have seen with `InMemoryTrips`, exposing a mutable collection with a read-only alias can lead to actions pretending to be calculations.
+Lastly, note that Kotlin's preference for immutable data makes this categorization easier.
+For example, when you see `List` in Java, you have to find the places in which it is created or referenced to establish its mutability and, hence, the likelihood that code accessing it can be an action.
+In Kotlin, when you see `MutableList` you can infer an action, although as we have seen with `InMemoryTrips`, exposing a mutable collection with a read-only alias can lead to actions pretending to be calculations.
 
 === Moving On
 
-Categorising code into calculations and actions (along with data) is a formalism introduced by Eric Normand in his book <<N_GSTCSWFT_2021,_Grokking Simplicity: Taming Complex Software with Functional Thinking_>>.
-As developers, we intuit the difference, and soon learn to rely on our intuition, but often without realising how or why.
+Categorizing code into calculations and actions (along with data) is a formalism introduced by Eric Normand in his book, <<N_GSTCSWFT_2021,_Grokking Simplicity: Taming Complex Software with Functional Thinking_>> (Manning Publications).
+As developers, we intuit the difference and soon learn to rely on our intuition, but often without realizing how or why.
 Giving names to the categories, and studying their qualities, allows us to reason at a more conscious and effective level.
 
-In <<beans-to-values>> we refactored from a mutable bean to an immutable value.
+In <<beans-to-values>>, we refactored from a mutable bean to an immutable value.
 Similarly, in <<java-to-kotlin-collections>> we refactored from mutable to immutable collections.
-In both cases we trade mutating an object for returning an amended copy -- converting an action into a calculation.
-In doing so, we gain the advantages we've seen in this chapter: better comprehension, easier testing and predictable refactoring.
-The more of our code is calculations, the better off we are.
+In both cases, we trade mutating an object for returning an amended copy, converting an action into a calculation.
+In doing so, we gain the advantages we've seen in this chapter: better comprehension, easier testing, and predictable refactoring.
+The more of our code that is calculations, the better off we are.
 
 We will return to the topic of moving from actions to calculations in <<accumulating-objects-to-transformations>>.
-In <<encapsulated-collections-to-typealiases>> we'll see how immutable data combines with Kotlin's extension functions and type aliases and lets us organize our code in ways not possible in Java.
+In <<encapsulated-collections-to-typealiases>>, we'll see how immutable data combines with Kotlin's extension functions and type aliases and lets us organize our code in ways not possible in Java.

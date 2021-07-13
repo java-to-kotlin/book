@@ -1,11 +1,11 @@
 [[functions-to-extension-functions]]
 == Functions to Extension Functions
 
-****
-Kotlin has a special form of function called an _extension function_, that is called like a method but is in fact (usually) a top-level function.
-It's easy to convert from a normal function to an extension function, and back.
-When should we prefer one to the other?
-****
+++++
+<blockquote data-type="epigraph">
+<p>Kotlin has a special kind of procedure called an _extension function_, which is called like a method but is in fact (usually) a top-level function. It's easy to convert from a normal function to an extension function and back. When should we prefer one to the other?</p>
+</blockquote>
+++++
 
 === Functions and Methods
 
@@ -13,15 +13,15 @@ Object-oriented programming is the art of solving problems by sending messages t
 Want to know the length of `myString`?
 Ask it by sending it a message `myString.length()`.
 Want to print that string to the console?
-Put the string in a message and ask another object representing the console to print it for you - `System.out.println(myString)`.
+Put the string in a message and ask another object representing the console to print it for you: `System.out.println(myString)`.
 In classic OO languages, we define how an object reacts to a message by defining methods on classes.
-Methods are bound to their class, and have access to the members (fields and other methods) associated with a particular instance.
-When we invoke a method, the runtime arranges for the correct version of a method to be called (depending on the runtime type of the object), and for it to have access to instance state.
+Methods are bound to their class and have access to the members (fields and other methods) associated with a particular instance.
+When we invoke a method, the runtime arranges for the correct version to be called (depending on the runtime type of the object), and for it to have access to instance state.
 
-In contrast, in functional programming we solve problems by calling functions with values.
+In contrast, in functional programming, we solve problems by calling functions with values.
 We find the length of `myString` by passing it to a function: `length(myString)`.
-We print to the console with `println(myString)`, and if we wanted to print somewhere else we would pass that to the function: `println(myString, System.err)`.
-Functions are not defined _on_ a type - function parameters and results _have_ a type.
+We print to the console with `println(myString)`, and if we wanted to print somewhere else, we would pass that to the function: `println(myString, System.err)`.
+Functions are not defined _on_ a type; function parameters and results _have_ a type.
 
 The paradigms have pros and cons, but for now let's just consider discoverability and extensibility.
 
@@ -40,9 +40,9 @@ data class Customer(
 ----
 // end-insert
 
-This is a class, so straight away we know that we can send messages to ask for the `id`, `givenName` and `familyName`.
+This is a class, so straightaway we know that we can send messages to ask for the `id`, `givenName`, and `familyName`.
 What about other operations?
-In a class-based system we only have to scroll down to see another message that we can send:
+In a class-based system, we only have to scroll down to see another message that we can send:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#customerFull
 [source,kotlin]
@@ -58,21 +58,21 @@ data class Customer(
 // end-insert
 
 Often we don't even get as far as looking at the definition.
-If we have a variable `val customer: Customer`, we can type `customer.` and our IDE will eagerly tell us that we can call `id`, `givenName`, `familyName` or `fullName`.
-In fact, this auto-complete is in many ways better than looking at the class definition, because it also shows us supertype and other operations (`equals`, `copy` etc) that are defined in other places or implicit in the language.
+If we have a variable `val customer: Customer`, we can type `customer.` and our IDE will eagerly tell us that we can call `id`, `givenName`, `familyName`, or `fullName`.
+In fact, this auto-complete is in many ways better than looking at the class definition, because it also shows us other operations (`equals`, `copy`, etc.) that are defined in supertypes or implicit in the language.
 
 In a functional decomposition, `fullName` would be a function, and, if we suspect it exists, we would have to search our codebase for it.
 In this case it will be a function where the only argument is of type `Customer`.
-It's surprisingly hard to get IntelliJ to help us - "Find Usages" grouped by parameter type will do the job, but it's hardly convenient.
+It's surprisingly hard to get IntelliJ to help us. "Find Usages" grouped by parameter type will do the job, but it's hardly convenient.
 In practice, we expect to find the definition of `Customer` and its fundamental operations close together in the source, perhaps in the same file or at least namespace, so we might navigate there and find the functions where we expect them, but our tools haven't been very helpful.
 
 Score one to OO for discoverability then.
 What about extensibility?
 What happens when we want to add an operation to `Customer`?
-Marketing would like to render the name reversed with the `familyName` in upper case for some report or other.
-(You may notice that whenever we need a simple but arbitrary example we blame marketing.)
+Marketing would like to render the name reversed with the `familyName` in uppercase for some report or other.
+(You may notice that whenever we need a simple but arbitrary example, we blame marketing.)
 
-If we own the code then we can just add a method:
+If we own the code, we can just add a method:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#postalName
 [source,kotlin]
@@ -88,7 +88,7 @@ data class Customer(
 ----
 // end-insert
 
-If we don't own the code, then we can't add a method, and so we have to fall back on a function.
+If we don't own the code, then we can't add a method, so we have to fall back on a function.
 In Java we might have a collection of these static functions in a class called `Marketing`, or `CustomerUtils`.
 In Kotlin we can make them top-level functions (see <<static-methods-to-top-level-functions>>), but the principle is the same:
 
@@ -101,26 +101,26 @@ fun nameForMarketing(customer: Customer) =
 // end-insert
 
 What of the functional solution?
-Well this is the functional solution too.
-So the functional solution is arguably better for extensibility, because extension operations are indistinguishable from those (like `fullName`) provided by the original authors, whereas the OO solution makes us look for two different types of implementation, methods and functions.
+Well, this is the functional solution, too.
+So the functional solution is arguably better for extensibility, because extension operations are indistinguishable from those (like `fullName`) provided by the original authors, whereas the OO solution makes us look for two different types of implementation, methods, and functions.
 
 Even if we _do_ own the code for the `Customer` class, we should be wary of adding methods like `nameForMarketing`.
-If the class `Customer` is a fundamental domain class in our application: lots of other code will depend on it.
+If the class `Customer` is a fundamental domain class in our application, lots of other code will depend on it.
 Adding a report for marketing shouldn't force us to recompile and retest everything, but it will if we add a method.
-So it's better that we keep `Customer` as small as possible and have non-core operations as external functions, even if this means they are not as discoverable as methods.
+So it's better that we keep `Customer` as small as possible and have noncore operations as external functions, even if this means they are not as discoverable as methods.
 
-In Kotlin, those functions don't have to be as hard to find as we've made out though -- they can be extension functions.
+In Kotlin, those functions don't have to be as hard to find as we've made out, though; they can be extension functions.
 
 === Extension Functions
 
 Kotlin's extension functions look like methods, but are in fact just functions.
-(As we saw in <<static-methods-to-top-level-functions>>, technically they are _also_ methods, because on the JVM all code has to be a defined in a method.
-In <<extension-functions-as-methods>> we'll see that extension functions can in fact also be non-static methods of another class.)
+(As we saw in <<static-methods-to-top-level-functions>>, technically they are _also_ methods, because on the JVM all code has to be defined in a method.
+In <<extension-functions-as-methods>>, we'll see that extension functions can in fact also be nonstatic methods of another class.)
 
 As their name implies, extension functions give us the ability to _extend_ the operations available on a type.
 They do this while supporting the intuitive, dot-means-send-a-message calling convention of methods, which allows them to be discoverable in the same Ctrl-Space way.
 
-So, we can define an extension function:
+So we can define an extension function:
 
 // begin-insert: src/main/java/extensionFunctions/MarketingStuff.kt
 [source,kotlin]
@@ -149,7 +149,7 @@ var s = MarketingStuffKt.nameForMarketing(customer);
 ----
 // end-insert
 
-`MarketingStuffKt` is the name of the class containing our top-level declarations as static methods - see <<static-methods-to-top-level-functions>>.
+`MarketingStuffKt` is the name of the class containing our top-level declarations as static methods; see <<static-methods-to-top-level-functions>>.
 
 Interestingly, we can't call the function in the same way from Kotlin:
 
@@ -165,14 +165,14 @@ This fails to compile, with the error:
 > `Unresolved reference. None of the following candidates is applicable because of receiver type mismatch:
 public fun Customer.nameForMarketing(): String ...`.
 
-_Receiver_, by the way, is the term that Kotlin uses for the object named `this` in an extension function (or normal method) -- the object that receives messages.
+_Receiver_, by the way, is the term that Kotlin uses for the object named `this` in an extension function (or normal method): the object that receives messages.
 
-Note that extension functions don't have any special access to the private members of the class that they are extending -- they only have the same privileges as normal functions in their scope.
+Note that extension functions don't have any special access to the private members of the class that they are extending; they only have the same privileges as normal functions in their scope.
 
 
 === Extensions and Function Types
 
-While we can't call extension functions as normal functions in Kotlin, we can assign them to normal function references. So the following compiles:
+Although we can't call extension functions as normal functions in Kotlin, we can assign them to normal function references. So the following compiles:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#references
 [source,kotlin]
@@ -229,9 +229,9 @@ customer.extensionAsFunctionReference()
 Kotlin also supports extension properties.
 As we discuss in <<methods-to-properties>>, Kotlin property accessors are actually method calls.
 In the same way that extension functions are static functions that are called like methods, extension properties are static functions that are called like properties, which are in turn methods.
-Extension properties can't store any data because they don't really add fields to their class - their value  can only be computed.
+Extension properties can't store any data because they don't really add fields to their class—their value can only be computed.
 
-`nameForMarketing` could have been defined as an extension property:
+The `nameForMarketing` function could have been defined as an extension _property_:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#nameForMarketingProp
 [source,kotlin]
@@ -240,12 +240,12 @@ val Customer.nameForMarketing get() = "${familyName.uppercase()}, $givenName}"
 ----
 // end-insert
 
-In fact, it probably _should_ be a property, as it is a simple calculation ( <<calculations>>) and so always returns the same result.
+In fact, it probably _should_ be a property, as we will discuss in <<methods-to-properties>>.
 
 Most of what we have to say about extension functions applies to extension properties unless we specifically distinguish between them.
 
 [WARNING]
-.Extensions are Not Polymorphic
+.Extensions Are Not Polymorphic
 ====
 Although invoking an extension function looks like a method call, it is not, in fact, sending a message to an object.
 For polymorphic method calls, Kotlin uses the dynamic type of the receiver at runtime to select the method to execute.
@@ -256,7 +256,7 @@ If we need to use extensions in a polymorphic way, we can often achieve this by 
 
 === Conversions
 
-So far we have seen extension functions adding operations to a type.
+So far, we have seen extension functions adding operations to a type.
 Conversions from one type to another are a common case.
 Travelator needs to convert customer details to and from JSON and XML.
 How should we convert from `JsonNode` to `Customer`?
@@ -289,7 +289,7 @@ static Customer customerFrom(JsonNode node) {
 
 .Naming Conversions
 ****
-A function converting a `JsonNode` to a `Customer` might be called `nodeToCustomer`, `createCustomer`, `toCustomer`, `customerFrom` or `customerFor`.
+A function converting a `JsonNode` to a `Customer` might be called `nodeToCustomer`, `createCustomer`, `toCustomer`, `customerFrom`, or `customerFor`.
 Why should we pick `customerFrom`?
 
 [TODO - Production: can we talk about formatting this list please!]
@@ -308,7 +308,7 @@ This is OK, but the repetition of `node` is irritating.
 var customer = createCustomer(node)
 ----
 
-This is better, but doesn't hint at the relationship between `node` and `customer`.
+This is better but doesn't hint at the relationship between `node` and `customer`.
 
 [source,java]
 ----
@@ -335,7 +335,7 @@ _For_ implies a lookup operation: `phoneNumberFor(customer)`, or composition: `w
 Do these distinctions actually matter?
 Mostly no, and we should be wary of leaning on the subtleties of English when our teammates and clients may not be native speakers.
 But there is no point in not using the bestest words that we can.
-Compared to `createCustomer(node)`, the use of `customerFrom(node)` may help a reader to understand what is happening in one pass rather than two, or prevent an incorrect assumption that leads to an error.
+Compared to `createCustomer(node)`, the use of `customerFrom(node)` may help a reader understand what is happening in one pass rather than two, or prevent an incorrect assumption that leads to an error.
 We can make small but significant improvements by optimizing how our code reads in context.
 ****
 
@@ -349,7 +349,7 @@ var marketingName = nameForMarketing(customer);
 ----
 // end-insert
 
-If we need to combine functions though, things start to go awry:
+If we need to combine functions, though, things start to go awry:
 
 // begin-insert: src/main/java/extensionFunctions/SomeJava.java#chaining
 [source,java]
@@ -377,8 +377,8 @@ Ahh ... that's much more readable.
 === Nullable Parameters
 
 Extensions really come into their own when we work with optional data.
-When we are sending messages to a potentially `null` object we can use the safe-call operator `?.` that we saw in <<optional-to-nullable>>.
-That doesn't help with parameters though -- to pass a nullable reference as an argument to a function that takes a non-null parameter, we have to wrap the call in conditional logic:
+When we are sending messages to a potentially `null` object, we can use the safe-call operator `?.` that we saw in <<optional-to-nullable>>.
+That doesn't help with parameters, though; to pass a nullable reference as an argument to a function that takes a nonnull parameter, we have to wrap the call in conditional logic:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#single_if
 [source,kotlin]
@@ -391,7 +391,7 @@ val greeting: String? = when (customer) {
 ----
 // end-insert
 
-Kotlin's _scoping functions_, such as `let`, `apply` and `also`, can help here.
+Kotlin's _scoping functions_, such as `let`, `apply`, and `also`, can help here.
 In particular, `let` converts its receiver into a lambda parameter:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#single_let
@@ -403,9 +403,9 @@ val greeting: String? = customer?.let { greetingForCustomer(it) }
 // end-insert
 
 Here the `?.` ensures that `let` is only called when the customer is not `null`, meaning that the lambda parameter, `it`, is never null, and can be passed to the function within the lambda body.
-You can think of `?.let` as a safe call operator for (single) arguments.
+You can think of `?.let` as a safe-call operator for (single) arguments.
 
-If a function returns a nullable result, and we must pass that result to another function that expects a non-null parameter, the scoping functions start to get cumbersome:
+If a function returns a nullable result, and we must pass that result to another function that expects a nonnull parameter, the scoping functions start to get cumbersome:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#nested_lets
 [source,kotlin]
@@ -449,26 +449,26 @@ val reminder: String? = customer
 // end-insert
 
 When Nat and Duncan first adopted Kotlin, they soon found that extensions and nullability form a virtuous circle.
-It was easier to process optional data with extension functions, so they extracted extensions private to the file, or refactored functions into extensions where it made logic easier to write.
+It was easier to process optional data with extension functions, so they extracted extensions private to the file or refactored functions into extensions where it made logic easier to write.
 They found that the names of these extensions could be more concise than that of an equivalent function without obscuring intent.
 As a result, they wrote more extensions to make their application logic concise.
 Private extensions often proved to be useful elsewhere, so they moved them into common modules where they could easily be shared.
-This made it easier to use optional data in other parts of the application, which led them to write more extensions, which made application logic more concise... and so on.
+This made it easier to use optional data in other parts of the application, which led them to write more extensions, which made application logic more concise...and so on.
 
-Although extensions are promoted as a way to extend third-party types; the concise naming they allow, and nullability in the type system, encourage us to define extensions on our own types as well.
-Part of the grain of Kotlin is the way that these features interact to smooth our way.
+Although extensions are promoted as a way to extend third-party types, the concise naming they allow, and nullability in the type system, encourage us to define extensions on our own types as well.
+Part of the grain of Kotlin is the way these features interact to smooth our way.
 
 === Nullable Receivers
 
 One major difference between invoking a method and calling a function is in the treatment of `null` references.
-If we have a reference that is `null`, we can't send a message to it, because there is nothing to send a message to -- the JVM throws a `NullPointerException` if we try.
+If we have a reference that is `null`, we can't send a message to it, because there is nothing to send a message to—the JVM throws a `NullPointerException` if we try.
 In contrast, we are able to have `null` _parameters_.
 We may not know what to do with them, but they don't prevent the runtime from finding code to invoke.
 
 Because the receiver in an extension function is actually a parameter, it _can_ be `null`.
-So whilst `anObject.method()` and `anObject.extensionFunction()` look like equivalent calls, `method` can never be called if `anObject` is `null`, whereas `extensionFunction` can be called with `null`, if the receiver is nullable.
+So while `anObject.method()` and `anObject.extensionFunction()` look like equivalent calls, `method` can never be called if `anObject` is `null`, whereas `extensionFunction` can be called with `null`, if the receiver is nullable.
 
-We could use this to extract out the steps that generate the reminder in the pipeline above, into an extension on `Trip?`:
+We could use this to extract out the steps that generate the reminder in the previous pipeline, into an extension on `Trip?`:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#nullable_trip_receiver
 [source,kotlin]
@@ -480,8 +480,8 @@ fun Trip?.reminderAt(currentTime: ZonedDateTime): String? =
 ----
 // end-insert
 
-Note that we have to use the safe call operator to dereference `this` inside the extension.
-While `this` is never `null` inside a method, it can be inside an extension of a nullable type.
+Note that we have to use the safe-call operator to dereference `this` inside the extension.
+Although `this` is never `null` inside a method, it can be inside an extension of a nullable type.
 A `null` `this` can be surprising if you're coming from Java, where it can never happen, but for extensions, Kotlin treats `this` as just another nullable parameter.
 
 We can call this function on a nullable `Trip` without the noise of the `?.`:
@@ -493,9 +493,9 @@ val reminder: String? = customer.nextTrip().reminderAt(currentTime)
 ----
 // end-insert
 
-On the other hand, we've made the flow of nullability in the calling function harder to understand, because, although type-checked, it is not visible in the code of the pipelines that calls the extension.
+On the other hand, we've made the flow of nullability in the calling function harder to understand, because although type-checked, it is not visible in the code of the pipelines that calls the extension.
 
-`Trip?.reminderAt` has another, more obtrusive, drawback: the return type is always the nullable `String?` even if called on a non-nullable `Trip`.
+`Trip?.reminderAt` has another, more obtrusive, drawback: the return type is always the nullable `String?` even if called on a nonnullable `Trip`.
 In that case we will find ourselves writing code like:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#should_never_happen
@@ -509,10 +509,10 @@ val reminder: String = trip.reminderAt(currentTime) ?: error("Should never happe
 This a bug waiting to happen when code around it changes, because we've made it impossible for the type checker to detect an incompatible change.
 
 TIP: Don't write extensions on nullable types that return `null` if the receiver is `null`.
-Write an extension on the non-nullable type and use the safe call operator to invoke it.
+Write an extension on the nonnullable type and use the safe-call operator to invoke it.
 
-Extensions on nullable types can be useful though, when they return a non-nullable result.
-They act as an "escape" from the realm of nullable values back to the realm of non-nullable values, terminating a pipeline of safe calls.
+Extensions on nullable types can be useful though, when they return a nonnullable result.
+They act as an escape route from the realm of nullable values back to the realm of nonnullable values, terminating a pipeline of safe calls.
 For example, we can make the `reminderAt` extension return some meaningful text even when the customer doesn't have a next trip:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#escaping_trip_extension
@@ -527,7 +527,7 @@ fun Trip?.reminderAt(currentTime: ZonedDateTime): String =
 // end-insert
 
 Similarly, here are two extension functions that we probably should have introduced in <<optional-to-nullable>>.
-The first is defined on any nullable type, but always returns a non-null result:
+The first is defined on any nullable type, but always returns a nonnull result:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#as_optional
 [source,kotlin]
@@ -563,7 +563,7 @@ val marketingLength = jsonNode.toCustomer().nameForMarketing().length
 ----
 // end-insert
 
-If we need to see the value of the customer for debugging we would normally need to pull out a variable:
+If we need to see the value of the customer for debugging, we would normally need to pull out a variable:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#printed3
 [source,kotlin]
@@ -574,7 +574,7 @@ val marketingLength = customer.nameForMarketing().length
 ----
 // end-insert
 
-With `printed` we have a function that prints the value of the receiver and returns it unchanged, so that we can write:
+With `printed`, we have a function that prints the value of the receiver and returns it unchanged, so that we can write:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#printed4
 [source,kotlin]
@@ -583,7 +583,7 @@ val marketingLength = jsonNode.toCustomer().printed().nameForMarketing().length
 ----
 // end-insert
 
-which is much less disruption, and easy to search for before we check in.
+which is much less disruption and easy to search for before we check in.
 
 Note that even if we had been able to add a method to `Any?`, there is no way for a method to say that it returns the same type as its receiver.
 Had we written:
@@ -596,9 +596,9 @@ class Any {
 
 ----
 
-the return type would have been `Any`, and so we could not then invoke `nameForMarketing()` etc on the result.
+the return type would have been `Any`, so we could not then invoke `nameForMarketing()` etc. on the result.
 
-We can also define extension functions for specialised generic types, for example `Iterable<Customer>`:
+We can also define extension functions for specialized generic types, for example, `Iterable<Customer>`:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#familyNames
 [source,kotlin]
@@ -608,9 +608,9 @@ fun Iterable<Customer>.familyNames(): Set<String> =
 ----
 // end-insert
 
-This extension function is applicable to any `Collection<Customer>`, but not to collections of other types.
-This allows us to use collections to represent domain concepts rather than defining our own types -- see <<encapsulated-collections-to-typealiases>>.
-We can also extract parts of collections pipelines into named operations -- see <<extracting-part-of-a-pipeline>>.
+This extension function is applicable to any `Collection<Customer>` but not to collections of other types.
+This allows us to use collections to represent domain concepts rather than defining our own types as we will see in <<encapsulated-collections-to-typealiases>>.
+We can also extract parts of collections pipelines into named operations; see <<extracting-part-of-a-pipeline>>.
 
 
 [[extension-functions-as-methods]]
@@ -618,7 +618,7 @@ We can also extract parts of collections pipelines into named operations -- see 
 
 We normally define extension functions as top-level functions.
 They can, though, be defined _inside_ a class definition.
-In this case they can access the members of their own class, and 'extend' another type.
+In this case they can access the members of their own class and 'extend' another type.
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#jsonWriter
 [source,kotlin]
@@ -632,7 +632,7 @@ class JsonWriter(
 // end-insert
 
 Here `Customer.toJson` has access to two values of `this`.
-It can refer to the `Customer` receiver of the extension function, or the `JsonWriter` instance of the method.
+It can refer to the `Customer` receiver of the extension function or the `JsonWriter` instance of the method.
 In longhand, the function is:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#this
@@ -652,9 +652,9 @@ In particular, it allows DSLs to hide details (like the `ObjectMapper`) that cli
 The actual mechanics of converting a static method to an extension function are simple, but we have to hone a sense for where an extension function will make things better.
 Let's work our way through a part of Travelator and see how we do.
 
-Those clever people in marketing have come up with a spreadsheet that gives customers a score according to how valuable they are to the company -- their expected future spending.
-They're constantly tweaking the algorithm, so they don't want to us to automate that.
-Instead, they export a tab-separated file of customer data, score and spend, and we produce a summary report from that file.
+Those clever people in marketing have come up with a spreadsheet that gives customers a score according to how valuable they are to the company: their expected future spending.
+They're constantly tweaking the algorithm, so they don't want us to automate that.
+Instead, they export a tab-separated file of customer data, score, and spend, and we produce a summary report from that file.
 Here are our tests:
 
 // begin-insert: extensions.0:src/test/java/travelator/marketing/HighValueCustomersReportTests.java
@@ -722,7 +722,7 @@ class HighValueCustomersReportTests {
 ++++
 // end-insert
 
-You can see that we haven't gone to town on these, as marketing do have habit of changing their minds, but in essence the report needs to list the customers who have a score of ten or more, sorted by spend, with a final total line.
+You can see that we haven't gone to town on these, because marketing people do have a habit of changing their minds, but in essence the report needs to list the customers who have a score of 10 or more, sorted by spend, with a final total line.
 
 Here is the code:
 
@@ -835,7 +835,7 @@ This isn't trying to represent everything about a customer, just the data we car
 I doubt we (erm, whoever wrote it) would even have bothered with `equals` and `hashCode` had it not been for the `emptySpendIs0` test.
 That `double` for spend looks suspicious too, but it hasn't caused us any problems yet, so we'll suspend our disbelief and just convert the whole thing to a Kotlin data class (see <<beans-to-values>>) before we go on.
 
-Normally that would be a really simple job because of the excellent interop, but it turns out that (at the time of writing) the converter cannot believe that anyone would stoop to raw field access. So it doesn't update Java that accesses, for example `customerData.score`, to call `customerData.getScore()` (the Kotlin property), resulting in a slew of compile failures.
+Normally, that would be a really simple job because of the excellent interop, but it turns out that (at the time of writing) the converter cannot believe that anyone would stoop to raw field access. So it doesn't update Java that accesses, for example, `customerData.score` to call `customerData.getScore()` (the Kotlin property), resulting in a slew of compile failures.
 Rather than fixing those, we revert, and use the "Encapsulate Fields" refactor to convert all the fields and field accesses in `Customer` to getters.
 
 // begin-insert: extensions.1:src/main/java/travelator/marketing/CustomerData.java#foo
@@ -889,7 +889,7 @@ private static String lineFor(CustomerData customer) {
 // end-insert
 
 The getters allow us to convert `CustomerData` to a Kotlin data class without breaking the Java.
-"Convert Java file to Kotlin File", followed by adding the `data` modifier and deleting the `equals` and `hashCode` overrides gives us:
+"Convert Java file to Kotlin File", followed by adding the `data` modifier and deleting the `equals` and `hashCode` overrides, gives us:
 
 // begin-insert: extensions.2:src/main/java/travelator/marketing/CustomerData.kt
 [source,kotlin]
@@ -911,7 +911,7 @@ data class CustomerData(
 ++++
 // end-insert
 
-Now we can go ahead and convert `HighValueCustomerReport` to Kotlin too -- it's entirely self-contained.
+Now we can go ahead and convert `HighValueCustomerReport` to Kotlin, too; it's entirely self-contained.
 That doesn't go brilliantly, because `customerDataFrom` doesn't compile after the conversion:
 
 // begin-insert: extensions.3:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFrom
@@ -946,7 +946,7 @@ object HighValueCustomersReport {
 <2> Odd formatting.
 
 The converter hasn't been smart enough to know that Kotlin doesn't coerce the integer 0 to double, leading to a compile error.
-Let's help IntelliJ out by clicking on the error and Alt-Entering to fix it, in the hope that it will return the favour when the machines rule the world.
+Let's help IntelliJ out by clicking the error and Alt-Entering to fix it, in the hope that it will return the favor when the machines rule the world.
 After a reformat, this gives us:
 
 // begin-insert: extensions.4:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFrom
@@ -978,9 +978,9 @@ object HighValueCustomersReport {
 ++++
 // end-insert
 
-As we discussed in <<static-methods-to-top-level-functions>>, the conversion has placed the functions into an `object HighValueCustomersReport`, so that Java code can still find them.
-If we try to convert them to top level functions using the techniques in that chapter, we find that dependencies between the methods mean that the code doesn't compile at times.
-We can solve the problem either by moving the private methods first, or by just ignoring the compiler until the `HighValueCustomersReport` is emptied and removed.
+As we discussed in <<static-methods-to-top-level-functions>>, the conversion has placed the functions into an `object HighValueCustomersReport` so that Java code can still find them.
+If we try to convert them to top-level functions using the techniques in that chapter, we find that dependencies between the methods mean that the code doesn't compile at times.
+We can solve the problem either by moving the private methods first or by just ignoring the compiler until the `HighValueCustomersReport` is emptied and removed.
 
 // begin-insert: extensions.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#all
 [source,kotlin]
@@ -1047,7 +1047,7 @@ private fun marketingNameFor(customer: CustomerData): String {
 
 OK, it's time to look for places where extension functions can improve the code.
 At the end is the `marketingNameFor` that we saw (a slightly different version of) earlier.
-If we Alt-Enter on the `customer` parameter IntelliJ will offer to "Convert parameter to receiver".
+If we Alt-Enter on the `customer` parameter, IntelliJ will offer to "Convert parameter to receiver".
 This gives:
 
 // begin-insert: extensions.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#marketingNameFor
@@ -1072,8 +1072,8 @@ private fun CustomerData.marketingNameFor(): String {
 ++++
 // end-insert
 
-That `For` in `marketingNameFor` is confusing now we've moved the parameter to be the receiver, because the `For` doesn't have a subject.
-Let's "Convert function to property" named `marketingName` (<<methods-to-properties>> explains how and why), then "Convert to expression body".
+That `For` in `marketingNameFor` is confusing now that we've moved the parameter to be the receiver, because the `For` doesn't have a subject.
+Let's "Convert function to property" named `marketingName` (<<methods-to-properties>> explains how and why) and then "Convert to expression body".
 Oh, and "Convert concatenation to template" on both strings!
 Phew, that flurry of Alt-Entering gives:
 
@@ -1155,9 +1155,9 @@ private fun Any?.formattedAs(format: String) = String.format(format, this)
 ++++
 // end-insert
 
-It now feels like a good candidate for moving into our library of generally-useful Kotlin functions.
+It now feels like a good candidate for moving into our library of generally useful Kotlin functions.
 
-Next `customerDataFrom` is in our sights.
+Next, `customerDataFrom` is in our sights.
 It is currently:
 
 // begin-insert: extensions.11:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor
@@ -1184,7 +1184,7 @@ fun customerDataFrom(line: String): CustomerData {
 ++++
 // end-insert
 
-Before we go on, let's observe that `CharSequence.split()`, `String.toRegex()`, `Collection<T>.toTypedArray()`, `String.toDouble()` and `String.toInt()` are all extension functions provided by the Kotlin standard library.
+Before we go on, let's observe that `CharSequence.split()`, `String.toRegex()`, `Collection<T>.toTypedArray()`, `String.toDouble()`, and `String.toInt()` are all extension functions provided by the Kotlin standard library.
 
 There's a lot we can tidy up before we address the signature of `customerDataFrom`.
 Kotlin has a `CharSequence.split(delimiters)` that we can use in place of the regex.
@@ -1213,8 +1213,8 @@ fun customerDataFrom(line: String): CustomerData {
 ++++
 // end-insert
 
-<<multi-to-single-expression-functions>> argues in favour of single-expression functions.
-This certainly doesn't _need_ to be a single-expression, but let's practice anyway:
+<<multi-to-single-expression-functions>> argues in favor of single-expression functions.
+This certainly doesn't _need_ to be a single expression, but let's practice anyway:
 
 // begin-insert: extensions.13:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor
 [source,kotlin]
@@ -1240,7 +1240,7 @@ fun customerDataFrom(line: String): CustomerData =
 // end-insert
 
 At last, we can get around to converting to an extension function.
-Again we change the name (to `toCustomerData`) to make sense at the call-site:
+Again we change the name (to `toCustomerData`) to make sense at the call site:
 
 // begin-insert: extensions.14:src/main/java/travelator/marketing/HighValueCustomersReport.kt#customerDataFor
 [source,kotlin]
@@ -1308,7 +1308,7 @@ private fun summaryFor(valuableCustomers: List<CustomerData>): String {
 ++++
 // end-insert
 
-That destructuring is odd, but we can get rid of it by hand-converting the stream to Kotlin - this isn't a thing that IntelliJ can do when we wrote this, but we give guidance in <<streams-to-sequences>>.
+That destructuring is odd, but we can get rid of it by hand-converting the stream to Kotlin. This isn't a thing that IntelliJ can do when we wrote this, but we give guidance in <<streams-to-sequences>>.
 We'll remove the string concatenation while we're there:
 
 // begin-insert: extensions.16:src/main/java/travelator/marketing/HighValueCustomersReport.kt#summaryFor
@@ -1328,7 +1328,7 @@ private fun summaryFor(valuableCustomers: List<CustomerData>): String {
 ++++
 // end-insert
 
-Now the familiar combination of converting to an appropriately-named single-expression extension function:
+Now the familiar combination of converting to an appropriately named single-expression extension function:
 
 // begin-insert: extensions.17:src/main/java/travelator/marketing/HighValueCustomersReport.kt#summaryFor
 [source,kotlin]
@@ -1347,7 +1347,7 @@ private fun List<CustomerData>.summarised(): String =
 ++++
 // end-insert
 
-At this stage only `generate` is left unimproved:
+At this stage, only `generate` is left unimproved:
 
 // begin-insert: extensions.18:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
@@ -1403,8 +1403,6 @@ fun generate(reader: Reader, writer: Writer) {
 </div>
 ++++
 // end-insert
-
-Note here that every link in that transformation chain is an extension function not a method, which is why it reads so easily.
 
 `Appendable.appendLine()` is another extension function that allows us to simplify the output stage:
 
@@ -1464,7 +1462,7 @@ private fun withoutHeader(list: List<String>) = list.drop(1)
 ++++
 // end-insert
 
-We've lost the nice pipeline flow from left to right, top to bottom - `withoutHeader` comes before the `readLines` in the text but after it in execution order.
+We've lost the nice pipeline flow from left to right, top to bottom: `withoutHeader` comes before the `readLines` in the text but after it in execution order.
 Alt-Enter on the `list` parameter in `withoutHeader` and "Convert Parameter to Receiver" restores the flow:
 
 // begin-insert: extensions.22:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
@@ -1593,21 +1591,20 @@ private val CustomerData.marketingName: String
 // end-insert
 
 Note that every function except the entry point is a single-expression extension function.
-We haven't made `generate` an extension function because there isn't a natural parameter to make the receiver - it doesn't feel like a natural operation on `Reader` or `Writer`.
-That may change when we continue refactoring this code in <<performing-io-to-passing-data>> -- let's see shall we?
+We haven't made `generate` an extension function because there isn't a natural parameter to make the receiver; it doesn't feel like a natural operation on `Reader` or `Writer`.
+That may change when we continue refactoring this code in <<performing-io-to-passing-data>>. Let's see, shall we?
 
 === Moving On
 
 Extension functions and properties are the unsung heroes of the Kotlin language.
-The canonical use of extension functions is to add methods to types we don't own and cannot modify ourselves.
+Their canonical use is to add operations to types we cannot modify ourselves.
 
-However, Kotlin language features and tooling combine to encourage us -- quite insistently -- to write extension functions for our _own_ types as well.
-Kotlin's safe call operator makes it more convenient to call an extension function through a potentially null reference than to pass the reference to a function as a parameter when it is non-null.
-The type of a free-standing generic extension can express relationships between the receiver and its result that cannot be expressed by open methods.
+However, Kotlin language features and tooling combine to encourage us—quite insistently—to write extension functions for our _own_ types as well.
+Kotlin's safe call operator makes it more convenient to call an extension function through a potentially null reference than to pass the reference to a function as a parameter when it is nonnull.
+The type of a freestanding generic extension can express relationships between the receiver and its result that cannot be expressed by open methods.
 Autocompletion in IntelliJ includes extension functions along with the methods that can call on a value, but it does not show you functions that you can pass the value to as a parameter.
 
-As a result, extension functions allow us to write code that is more easily discovered, understood and maintained.
-Many of the other techniques presented in this book build on extension functions, as we will see in
-<<encapsulated-collections-to-typealiases>>,
-<<open-to-sealed-classes>> and
-<<multi-to-single-expression-functions>>.
+As a result, extension functions allow us to write code that is more easily discovered, understood, and maintained.
+Many of the other techniques presented in this book build on extension functions, as we will see in Chapters
+<<encapsulated-collections-to-typealiases,15>>,
+<<open-to-sealed-classes,18>>, and others.
