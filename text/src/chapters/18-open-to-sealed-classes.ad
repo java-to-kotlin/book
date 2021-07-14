@@ -1,27 +1,27 @@
 [[open-to-sealed-classes]]
 == Open to Sealed Classes
 
-****
-Our systems are composed of types and operations, nouns and verbs.
-In Java, nouns are expressed as classes and interfaces, verbs as methods; but Kotlin adds sealed class hierarchies and free-standing functions.
-What do they bring to the party?
-****
+++++
+<blockquote data-type="epigraph">
+<p>Our systems are composed of types and operations, nouns and verbs. In Java, nouns are expressed as classes and interfaces, verbs as methods; but Kotlin adds sealed class hierarchies and freestanding functions. What do they bring to the party?</p>
+</blockquote>
+++++
 
 Change is a constant challenge in designing software.
 The more people use our software, the more they think of things they want it to do.
-To support new use cases we need to add new functions that work with existing data types, and new data types that work with existing functions.
-If our design is well aligned with the way the software has to evolve, then we can add new features by adding new code and making few, localised changes to our existing code.
-If it isn't well aligned, then we will have to change many functions when we add a new data type, or change many data types when we need to add a function.
+To support new use cases, we need to add new functions that work with existing data types, and new data types that work with existing functions.
+If our design is well-aligned with the way the software has to evolve, we can add new features by adding new code and making few, localized changes to our existing code.
+If it isn't well-aligned, we will have to change many functions when we add a new data type, or change many data types when we need to add a function.
 
 We feel this tension between the variability of data types and of functions most keenly in the core entities of our domain model.
-For example, the traveller's itinerary is a core entity of our Travelator application.
-Many features of the application present views of, alter the contents of, or calculate information about, itineraries.
+For example, the traveler's itinerary is a core entity of our Travelator application.
+Many features of the application present views of, alter the contents of, or calculate information about itineraries.
 It's no surprise then that many of the feature requests from our users affect our `Itinerary` type.
-Our travellers want to include more kinds of things in their itineraries: not just journeys and accommodation, as we saw in <<functions-to-extension-functions>>; but now restaurant bookings and attractions along the route.
+Our travelers want to include more kinds of things in their itineraries: not just journeys and accommodation, as we saw in <<functions-to-extension-functions>>, but now restaurant bookings and attractions along the route.
 They also want to do more things with their itineraries.
-In <<accumulating-objects-to-transformations>> we saw how we estimate their cost, but our customers also want to compare them by cost, time or comfort, view them on a map, import them into their calendar, share them with their friends... their imagination is endless.
+In <<accumulating-objects-to-transformations>>, we saw how we estimate their cost, but our customers also want to compare them by cost, time, or comfort, view them on a map, import them into their calendar, share them with their friends...their imagination is endless.
 
-When we last looked at the `Itinerary` class, in <<accumulating-objects-to-transformations>>, we were modelling an itinerary as a data class, with a property for the route and another for the accommodation required along the route:
+When we last looked at the `Itinerary` class, in <<accumulating-objects-to-transformations>>, we were modeling an itinerary as a data class, with a property for the route and another for the accommodation required along the route:
 
 // begin-insert: accumulator.17:src/main/java/travelator/itinerary/Itinerary.kt#excerpt
 [source,kotlin]
@@ -43,7 +43,7 @@ data class Itinerary(
 ++++
 // end-insert
 
-Since then, we have added more features to the application and hence more types of item to the itinerary.
+Since then, we have added more features to the application and, hence, more types of items to the itinerary.
 We found it increasingly cumbersome to hold each type of itinerary item in a separate collection, because too much of our code involved combining those collections or applying the same filters and transforms to separate collections.
 So we decided that an `Itinerary` would maintain a single collection of `ItineraryItem` rather than keep each type of item in a separate collection:
 
@@ -64,7 +64,7 @@ data class Itinerary(
 ++++
 // end-insert
 
-`ItineraryItem` is an interface, implemented by the concrete item types we saw before: `Journey` and  `Accommodation`; and new types `RestaurantBooking` and `Attraction`:
+`ItineraryItem` is an interface, implemented by the concrete item types we saw before: `Journey` and  `Accommodation` and new types `RestaurantBooking` and `Attraction`:
 
 // begin-insert: open-to-sealed-2.0:src/main/java/travelator/itinerary/ItineraryItem.kt#item
 [source,kotlin]
@@ -87,7 +87,7 @@ interface ItineraryItem {
 // end-insert
 
 Operations on `Itinerary` don't depend on the concrete type of its items.
-For example, to display the itinerary on a map, we create a `MapOverlay` that will be rendered on top of map tiles in the front-end.
+For example, to display the itinerary on a map, we create a `MapOverlay` that will be rendered on top of map tiles on the frontend.
 The overlay for an `Itinerary` is the group of the overlays for all the items it contains.
 The `Itinerary` class and its clients don't know, or need to know, how each item represents itself as a map overlay.
 
@@ -110,11 +110,11 @@ val Itinerary.mapOverlay
 
 This polymorphism makes it very easy to add new types of `ItineraryItem` to the system without having to change the parts of the application that use the `Itinerary` type.
 
-For a while now though we haven't had to do that.
-Recently we find that most of the new functionality we add to Travelator involves adding new operations to `Itinerary` and `ItineraryItem`, rather than new types of `ItineraryItem`.
+For a while now, though, we haven't had to do that.
+Recently, we find that most of the new functionality we add to Travelator involves adding new operations to `Itinerary` and `ItineraryItem` rather than new types of `ItineraryItem`.
 Changes to the `ItineraryItem` interface and its implementations are a common source of merge conflicts between team members who are working on different features.
 With every new feature, the `ItineraryItem` gets larger.
-It seems to attract behavior to support distantly related parts of the application, with properties to support rendering, cost estimation, ranking by comfort, drawing maps, and more hidden beyond that `... and other methods`.
+It seems to attract behavior to support distantly related parts of the application, with properties to support rendering, cost estimation, ranking by comfort, drawing maps, and more hidden beyond that `...and other methods`.
 Paradoxically, in the core of our application, object-oriented polymorphism is _increasing_ coupling!
 
 // Reference the collections to type aliases example where we discuss coupling?
@@ -124,12 +124,12 @@ Paradoxically, in the core of our application, object-oriented polymorphism is _
 // Not to be confused with refactoring - changing code to get it to the place where a feature can be implemented as an addition.
 
 Object-oriented polymorphism enables variability of data types with an infrequently changing set of operations.
-For a while that was what our codebase needed, but now it has stabilised we need the opposite: variability of operations applied to an infrequently changing set of data types.
+For a while, that was what our codebase needed, but now that it has stabilized, we need the opposite: variability of operations applied to an infrequently changing set of data types.
 
 If we were writing in Java (at least up to Java 16), there is no language feature to help us cope with variability in this dimension.
 Java's principal feature to support variability is object-oriented polymorphism, and that doesn't help when operations change more frequently than the set of data types.
 
-We could use the https://wiki.c2.com/?DoubleDispatch[Double Dispatch] pattern, but it involves a lot of boilerplate code and, because it does not play well with checked exceptions, is not widely used in Java.
+We could use the https://oreil.ly/8m2HL[double dispatch] pattern, but it involves a lot of boilerplate code and, because it does not play well with checked exceptions, is not widely used in Java.
 Instead, Java programmers often resort to runtime type checks, using the `instanceof` and downcast operators to run different code for different classes of object:
 
 // begin-insert: open-to-sealed-2.0:src/main/java/travelator/itinerary/ItineraryItems.java#type_switch
@@ -158,31 +158,31 @@ if (item instanceof Journey) {
 // end-insert
 
 That `IllegalStateException` shows that this approach is risky.
-While the compiler can type check our calls to polymorphic methods, our hand-coded runtime type checks and casts are explicitly circumventing compile-time checks.
-The type checker cannot tell if our casts are correct or if our conditional statement is _exhaustive_ -- whether it applies to all possible subclasses.
-If returning a value from the method, we have to write an `else` clause to return a dummy value or throw an exception, even if we have branches for every subclass of `ItineraryItem`, and the else clause "cannot possibly be executed™".
+Whereas the compiler can type check our calls to polymorphic methods, our hand-coded runtime type checks and casts are explicitly circumventing compile-time checks.
+The type checker cannot tell whether our casts are correct or our conditional statement is _exhaustive_—whether it applies to all possible subclasses.
+If returning a value from the method, we have to write an `else` clause to return a dummy value or throw an exception, even if we have branches for every subclass of `ItineraryItem`, and the else clause "cannot possibly be executed™."
 
 Even if we cover all the subtypes of `ItineraryItem` when we write the code, if we later add new types, we have to find all such code and update it.
-It turns out that we didn't do that here -- so if we add an `Attraction` to an `Itinerary`, this code will fail with an `IllegalArgumentException`.
-OO solves this problem, but we circumvented the solution because we were tired having to update lots of classes when we add an operation.
+It turns out that we didn't do that here, so if we add an `Attraction` to an `Itinerary`, this code will fail with an `IllegalArgumentException`.
+OO solves this problem, but we circumvented the solution because we were tired of having to update lots of classes when we add an operation.
 
-Type checking and downcasting are possible in Kotlin too, and carry the same overheads and risks.
-However, Kotlin has another mechanism for organising classes and behavior that makes runtime type checks safe and convenient: _sealed classes_.
+Type checking and downcasting are possible in Kotlin, too, and carry the same overheads and risks.
+However, Kotlin has another mechanism for organizing classes and behavior that makes runtime type checks safe and convenient: _sealed classes_.
 A sealed class is an abstract class with a fixed set of direct subclasses.
 We must define the sealed class and its subclasses in the same compilation unit and package; the compiler prevents us from extending the sealed class elsewhere.
 Thanks to this restriction, runtime type checks on sealed class hierarchies do not have the same problem as runtime type checks in Java.
 The static type checker can guarantee that `when` expressions that perform runtime type checks for a subtype of a sealed class cover all possible cases and only the possible cases.
 
 [WARNING]
-.When Statements are not checked for exhaustiveness
+.When Statements Are Not Checked for Exhaustiveness
 ====
-The compiler checks `when` expressions for exhaustiveness but does not check `when` _statements_.
+The compiler checks `when` expressions for exhaustiveness but does not check `when` _statements_;
 `when` becomes is a statement if the value of the entire `when` expression is not used.
 You can force the compiler to check for exhaustiveness by using the result of the `when`, even though it is of type `Unit`.
 
 If the `when` is the only statement in the body of a function, you can refactor the function to single-expression form.
-If `when` is the last statement in a multi-statement function, you can explicitly use its value with the `return` keyword.
-When the `when` is in the middle of the function body extracting it to its own function might make sense.
+If `when` is the last statement in a multistatement function, you can explicitly use its value with the `return` keyword.
+When the `when` is in the middle of the function body, extracting it to its own function might make sense.
 
 When none of those options apply, you can use the following utility function to force an exhaustiveness check:
 
@@ -215,16 +215,16 @@ Some languages have mechanisms that let us vary types _and_ operations without m
 Haskell has type classes, Scala has implicit parameters, Rust has traits, Swift has protocols, and Clojure and Common Lisp have polymorphic functions that dispatch on the classes of multiple arguments.
 
 Kotlin doesn't have any equivalent.
-When we're designing in Kotlin, we have to choose between object-oriented polymorphism or sealed classes based on the dimension -- types or operations -- we expect to vary most frequently as the program evolves.
-Object-oriented polymorphism is preferable when the set of data types varies more frequently than the set of operations on those data types; sealed class hierarchies when the set of operations varies more frequently than the set of data types they apply to.
+When we're designing in Kotlin, we have to choose between object-oriented polymorphism or sealed classes based on the dimension—types or operations—we expect to vary most frequently as the program evolves.
+Object-oriented polymorphism is preferable when the set of data types varies more frequently than the set of operations on those data types, and sealed class hierarchies when the set of operations varies more frequently than the set of data types they apply to.
 
-=== Converting An Interface to a Sealed Class
+=== Converting an Interface to a Sealed Class
 
-We're about to add another feature that involves itineraries and itinerary items -- making the `Itinerary` appear in the traveller's calendar app.
+We're about to add another feature that involves itineraries and itinerary items: making the `Itinerary` appear in the traveler's calendar app.
 We don't want to add more methods to the already bloated `ItineraryItem` interface and couple the core classes of our application's domain to the needs of another peripheral module.
-It's time to bite the bullet and convert `ItineraryItem` from an interface of polymorphic methods to a sealed class hierarchy and free-standing functions, and move those free-standing functions into the modules that use them.
+It's time to bite the bullet and convert `ItineraryItem` from an interface of polymorphic methods to a sealed class hierarchy and freestanding functions, and move those freestanding functions into the modules that use them.
 
-We're still using Kotlin 1.4, so a sealed class and all its direct subclasses must be defined in the same file.
+Kotlin 1.4 was current when we wrote this, so we have to define a sealed class and its direct subclasses in the same file.
 Our first step, then, is to use the IDE's "Move Class" refactoring to move the implementations of `ItineraryItem` into the same file as the interface.
 Once we've done that, we can turn the interface and its implementations into a sealed class hierarchy.
 IntelliJ does not have an automated refactoring for this, so we have to do it by manually editing the class definitions.
@@ -280,15 +280,15 @@ data class Accommodation(
 <1> We declare `ItineraryItem` as a `sealed class` instead of an `interface`.
 
 <2> Because it is now a class, we have to explicitly mark its methods as `abstract`.
-If the interface had any methods with a default implementation, we would have have had to declare them as `open` so that subclasses could still override them.
+If the interface had any methods with a default implementation, we would have had to declare them as `open` so that subclasses could still override them.
 
 <3> We replace the declaration of the interface in the concrete item classes with a call to the superclass constructor.
 
 NOTE: Kotlin 1.5 (released as we completed this book) supports sealed _interfaces_, which make this refactoring easier.
-It's unnecessary to move the subclasses into the same file, or to call the constructor.
+It's unnecessary to move the subclasses into the same file or to call the constructor.
 
 `ItineraryItem` is now a sealed class.
-Its operations are still polymorphic methods, but we can add _new_ operations that without changing the `ItineraryItem` classes, by writing extension functions that use a `when` expression to safely dispatch on the concrete item type.
+Its operations are still polymorphic methods, but we can add _new_ operations without changing the `ItineraryItem` classes, by writing extension functions that use a `when` expression to safely dispatch on the concrete item type.
 
 First we'll write the extension functions that we need to translate an `Itinerary` to a calendar.
 When we're done, we'll continue refactoring to make the other operations on `ItineraryItem` work the same way.
@@ -334,7 +334,7 @@ fun ItineraryItem.toCalendarEvent(): CalendarEvent? = when (this) {
 // end-insert
 
 [TIP]
-.Only typecast down a sealed class hierarchy
+.Only Typecast Down a Sealed Class Hierarchy
 ====
 Only use typecasts to cast from the root of a sealed class hierarchy to one of the children in an exhaustive `when` expression.
 Otherwise, it is risky to cast away from the static type.
@@ -342,8 +342,8 @@ The actual class used to implement a value may have operations that violate the 
 
 For example, as we saw in <<java-to-kotlin-collections>>, the static type `List` prevents mutation, but Kotlin's higher-order functions return lists that can be mutated if you downcast from `List` to `MutableList`.
 A function that downcasts a list argument from `List` to `MutableList` and mutates it is likely to introduce bugs in code, because it violates the expectations of its callers.
-It could introduce aliasing errors that are very hard to find, because the possibility of "spooky action at a distance" is not explicit in the type declarations of the function's signature.
-If a future version of the Kotlin standard library returned immutable lists from its higher-order functions, the function will continue to compile successfully but crash at runtime.
+It could introduce aliasing errors that are very hard to find, because the possibility of spooky action at a distance is not explicit in the type declarations of the function's signature.
+If a future version of the Kotlin standard library returned immutable lists from its higher-order functions, the function would continue to compile successfully but crash at runtime.
 
 Just because you _can_ cast from a super type to a subtype doesn’t mean you are intended to. The possibility is likely to be a mere implementation detail.
 A sealed class hierarchy signals that downcasting is intended, supported, and made safe by the compiler's exhaustiveness checks.
@@ -404,8 +404,8 @@ data class Accommodation(
 ++++
 // end-insert
 
-<1> The IDE removed the mapOverlay method from the `ItineraryItem` class ...
-<2> ... and replaced it with an extension function. Unfortunately the extension function only contains a `TODO` that throws `UnsupportedOperationException`.
+<1> The IDE removed the `mapOverlay` method from the `ItineraryItem` class...
+<2> ...and replaced it with an extension function. Unfortunately, the extension function only contains a `TODO` that throws `UnsupportedOperationException`.
 <3> The IDE left `override` modifiers on the `mapOverlay` properties in the subclasses, which no longer have a method in the superclass to override.
 
 We can get the code compiling again by removing the `override` modifiers in the subclasses.
@@ -434,7 +434,7 @@ The `when` expression will not compile until we have covered all the subclasses 
 IntelliJ also highlights each read of the subclass `mapOverlay` properties to show that the compiler's flow-sensitive typing is smart casting the implicit `this` reference from `ItineraryItem` to the correct subclass.
 
 Now the point of this refactor was to prevent every implementation of `ItineraryItem` from having to know about map overlays.
-At present each still does, because each has its own `mapOverlay` property -- the one that was originally overriding the property in the interface:
+At present each still does, because each has its own `mapOverlay` property—the one that was originally overriding the property in the interface:
 
 // begin-insert: open-to-sealed-2.5:src/main/java/travelator/itinerary/ItineraryItem.kt#accommodation
 [source,kotlin]
@@ -510,8 +510,8 @@ val ItineraryItem.mapOverlay: MapOverlay get() = when (this) {
 ++++
 // end-insert
 
-Look closer though (well, hover in IntelliJ), and we can see that those property accesses are now extension properties, not method calls -- `Accommodation` etc no longer depend on `MapOverlay`.
-And now that `ItineraryItem.mapOverlay`, and all the subclass properties are extensions, they don't need to be defined in the same file as the sealed classes.
+Look closer, though (well, hover in IntelliJ), and we can see that those property accesses are now extension properties, not method calls—`Accommodation` and so on no longer depend on `MapOverlay`.
+And now that `ItineraryItem.mapOverlay` and all the subclass properties are extensions, they don't need to be defined in the same file as the sealed classes.
 We can move them to the module or package where they are used, and they won't clutter our core domain abstraction.
 
 // begin-insert: open-to-sealed-2.7:src/main/java/travelator/geo/ItineraryToMapOverlay.kt#mapOverlay
@@ -548,10 +548,10 @@ private val Accommodation.mapOverlay
 // end-insert
 
 We can do the same with the other members of `ItineraryItem`, until the sealed class declares only the fundamental properties of the type.
-For `ItineraryItem` at the moment, only the `id` property is truly fundamental -- declaring `id` as an abstract property on the sealed class to forces every subclass to have an identifier.
+For `ItineraryItem` at the moment, only the `id` property is truly fundamental: declaring `id` as an abstract property on the sealed class forces every subclass to have an identifier.
 
 Of the other properties, some are clearly there just to support specific features of the application, like `mapOverlay` and `toCalendar`.
-Others, like `description`, are in a grey area: they support many features of the application, but are not a fundamental property of an `ItineraryItem`.
+Others, like `description`, are in a gray area: they support many features of the application, but are not a fundamental property of an `ItineraryItem`.
 For example, each subtype derives its description from its fundamental properties.
 Nat prefers to define properties like these as extensions, while Duncan prefers to define them as members of the class.
 Nat is writing this example, so we'll make `description` an extension:
@@ -582,7 +582,7 @@ val ItineraryItem.description: String
 // end-insert
 
 You'll have to make your own judgment call in your own code.
-That leaves the sealed `ItineraryItem` class declaring only the `id` property, and its subclasses declaring their fundamental properties.
+That leaves the sealed `ItineraryItem` class declaring only the `id` property and its subclasses declaring their fundamental properties.
 The whole hierarchy looks like this:
 
 // begin-insert: open-to-sealed-2.8:src/main/java/travelator/itinerary/ItineraryItem.kt
@@ -642,7 +642,7 @@ Only the `id` property remains as a polymorphic `val`, because it is a fundament
 
 === Moving On
 
-As our software evolves we have to add new data types and new operations to our system.
+As our software evolves, we have to add new data types and new operations to our system.
 In Kotlin, as in Java, object-oriented polymorphism lets us easily add new data types without changing the code of existing functions.
 We can also use sealed classes and safe runtime type checks to easily add new functions over existing data types without changing the code that defines those types.
 Which we choose depends on what we expect to vary most frequently as the code evolves: data types or operations.
