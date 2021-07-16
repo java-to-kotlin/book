@@ -1,18 +1,17 @@
 [[continuing-the-journey]]
 == Continuing the Journey
 
-****
-We've arrived at the end of the book -- thank you for coming on the journey.
-Duncan and Nat are privileged to have worked with, and learned from, many great developers, and now you are on that list.
-Even if you skipped a couple of chapters, or zoned out in the middle of the odd refactoring, it's been good to have someone to talk to.
-We can't pair on improving Travelator anymore, but what have we learned from our travels?
-****
+++++
+<blockquote data-type="epigraph">
+<p>We've arrived at the end of the book. Thank you for coming on the journey. Duncan and Nat are privileged to have worked with, and learned from, many great developers, and now you are on that list. Even if you skipped a couple of chapters or zoned out in the middle of the odd refactoring, it's been good to have someone to talk to. We can't pair on improving Travelator anymore, but what have we learned from our travels?</p>
+</blockquote>
+++++
 
-When O’Reilly asked us if we would like to write a book on Kotlin, we had to think about what we wanted to write, and about what enough people might want to read.
-We knew that we had been on a journey adopting the language, and that we are comfortable at the destination, but we also knew that our starting point was not that of the typical Java developer.
-We saw that most existing books taught Kotlin as if it were just another syntax for Java, one that could achieve more with less typing, but didn't require a change in approach.
-That wasn't our experience -- we found that Kotlin's sweet spot required more functional thinking than Java.
-Books on functional programming in Kotlin though seem to ask the reader to leave behind all that they know about programming with objects and join a new cult.
+When O’Reilly asked us if we would like to write a book on Kotlin, we had to think about what we wanted to write and about what enough people might want to read.
+We knew that we had been on a journey adopting the language and that we are comfortable at the destination, but we also knew that our starting point was not that of the typical Java developer.
+We saw that most existing books taught Kotlin as if it were just another syntax for Java, one that could achieve more with less typing but didn't require a change in approach.
+That wasn't our experience; we found that Kotlin's sweet spot required more functional thinking than Java.
+Books on functional programming in Kotlin, though, seem to ask the reader to leave behind all that they know about programming with objects and join a new cult.
 We weren't comfortable with this either.
 Classes and objects are a humane way of expressing behavior, especially compared to many functional idioms.
 Why remove tools from our box when there is plenty of room?
@@ -21,14 +20,14 @@ Can't we just have more tools and pick the right one for the job?
 === Grain
 
 This thinking led Nat to come up with the metaphor that programming languages have a grain that influences the design of the programs we write in them.
-The grain makes certain design styles easy to apply, and makes others arduous or risky.
+The grain makes certain design styles easy to apply and makes others arduous or risky.
 
-The grain of Kotlin is different to that of Java.
-Java's grain favours mutable objects and reflection, at the cost of composability and type safety.
-Compared to Java, Kotlin favours the transformation of immutable values, free-standing functions, and has a type system that is unobtrusive and helpful.
-Whilst it is easy to convert Java to Kotlin with IntelliJ, we end up with Java in Kotlin syntax rather than taking advantage of all that the new language could offer if we changed our thinking too.
+The grain of Kotlin is different from that of Java.
+Java's grain favors mutable objects and reflection at the cost of composability and type safety.
+Compared to Java, Kotlin favors the transformation of immutable values and freestanding functions, and has a type system that is unobtrusive and helpful.
+Although it is easy to convert Java to Kotlin with IntelliJ, we end up with Java in Kotlin syntax rather than taking advantage of all that the new language could offer if we changed our thinking, too.
 
-Java and Kotlin can coexist in the same codebase, and the interop boundary is almost seamless, but there are some risks when you pass information from the strictly-typed world of Kotlin to the more loosely typed world of Java.
+Java and Kotlin can coexist in the same codebase, and the interop boundary is almost seamless, but there are some risks when you pass information from the strictly typed world of Kotlin to the more loosely typed world of Java.
 With care, we find that we can transform code from idiomatic Java to idiomatic Kotlin in small, safe steps, using automated refactoring tools where possible and editing text as a last resort.
 We can also support the conventions of both languages at the same time when we must maintain Java code while we are converting code it depends on to Kotlin.
 
@@ -36,7 +35,7 @@ We can also support the conventions of both languages at the same time when we m
 
 As we've seen in some of our history lessons, the grain of Java was formed in the 1990s, when we believed that object-oriented programming was the mythical silver bullet.
 When OO turned out not to solve all our problems, mainstream programming languages, and even Java itself, began to adopt ideas from functional programming.
-Kotlin was born from Java in this age, and, like our children are better equipped for the future than we are, Kotlin is more suited to modern programming than Java.
+Kotlin was born from Java in this age, and, like our children are better equipped for the future than we are, Kotlin is more suited to modern programming than Java is.
 
 What do we mean by functional thinking?
 
@@ -45,9 +44,9 @@ Our understanding is in turn ultimately limited by the complexity of the softwar
 Functional programmers have learned that the easiest way to tame that complexity is simply to have things _happen_ a lot less.
 They call things happening an _effect_: a change that is observable in some scope.
 
-Mutating a variable or a collection _inside_ a function is an effect, but unless that variable is shared _outside_ the function it doesn't _affect_ any other code.
+Mutating a variable or a collection _inside_ a function is an effect, but unless that variable is shared _outside_ the function, it doesn't _affect_ any other code.
 When the scope of an effect is local to a function, we don't have to consider it when reasoning about what our system does.
-As soon as we mutate shared state (a parameter to the function perhaps, or a global variable, or a file or network socket) our local effect becomes an effect in whatever scope can see the shared thing, and that quickly increases complexity and makes understanding more difficult.
+As soon as we mutate shared state (a parameter to the function, perhaps, or a global variable, or a file or network socket), our local effect becomes an effect in whatever scope can see the shared thing, and that quickly increases complexity and makes understanding more difficult.
 
 It isn't enough that a function doesn't _actually_ mutate shared state.
 If there is a possibility that a function _could_ mutate shared state, we have to examine the source of the function and, recursively, every function that it calls, to understand what our system does.
@@ -59,37 +58,37 @@ Sometimes they program in languages (like Clojure and Haskell) that enforce cont
 Otherwise, they work by convention.
 If we adopt these conventions in more general languages, we gain more ability to reason with our code.
 Kotlin chooses not to enforce the control of effects, but the language and its runtime come with some built-in conventions to nudge us in the right direction.
-Compared to Java we have, for example: an immutable `val` declaration rather than an optional `final` modifier; read-only views of collections; and concise data classes to encourage copy-on-write rather than mutation.
-Many of this book's chapters describe more subtle conventions with the same aim.
-<<beans-to-values>>, <<java-to-kotlin-collections>>, <<actions-to-calculations>>, <<accumulating-objects-to-transformations>> and <<performing-io-to-passing-data>>.
+Compared to Java, we have, for example, an immutable `val` declaration rather than an optional `final` modifier, read-only views of collections, and concise data classes to encourage copy-on-write rather than mutation.
+Many of this book's chapters describe more subtle conventions with the same aim:
+<<beans-to-values>>, <<java-to-kotlin-collections>>, <<actions-to-calculations>>, <<accumulating-objects-to-transformations>>, and <<performing-io-to-passing-data>>.
 [TODO - Production: this many cross-references reads poorly when rendered with O'Reilly's default formatting. Is there a way to include the chapter titles instead of chapter numbers?]
 
-There is of course much more to functional programming than simply not mutating shared state.
-But, if we just focus on solving problems without mutation (or where mutation is the point, we minimise its scope), our systems become easier to understand and to change.
-Like https://en.wikipedia.org/wiki/Don%27t_repeat_yourself[Don't Repeat Yourself] (aka https://wiki.c2.com/?OnceAndOnlyOnce[Once and Only Once]) assiduous application of a simple rule has profound effects.
-Both "Don't mutate shared state" and "Once and Only Once" share another property though -- if we aren't careful, applying the rules can increase complexity faster than they reduce it.
-We need to learn techniques that allow us to manage mutation (and remove duplication, and facilitate testing, and so on) without making our code even harder to understand, and to recognise these techniques for what they are when we see them.
-These techniques will tend to be different in different languages, environments and domains, and are the craft of our profession.
+There is, of course, much more to functional programming than simply not mutating shared state.
+But if we just focus on solving problems without mutation (or where mutation is the point, we minimize its scope), our systems become easier to understand and change.
+Like https://oreil.ly/HSaLs["Don't repeat yourself"] (aka https://oreil.ly/5HKxy["Once and only once"]), assiduous application of a simple rule has profound effects.
+Both "Don't mutate shared state" and "Once and only once" share another property though—if we aren't careful, applying the rules can increase complexity faster than they reduce it.
+We need to learn techniques that allow us to manage mutation (and remove duplication, facilitate testing, and so on) without making our code even harder to understand, and to recognize these techniques for what they are when we see them.
+These techniques will tend to be different in different languages, environments, and domains, and are the craft of our profession.
 
-As you research functional techniques, you will come across a lot of anti-object sentiment.
+If you research functional techniques, you will come across a lot of anti-object sentiment.
 This seems to be rooted in a perception that OO is all about mutable objects, but we shouldn't throw the message-passing baby out with the mutable bathwater.
-Whilst we can use OO to manage shared mutable state, in practice these days we generally use objects to encapsulate immutable state, or to represent services and their dependencies.
+Although we can use OO to manage shared mutable state, in practice, these days we generally use objects to encapsulate immutable state, or to represent services and their dependencies.
 We saw in <<interfaces-to-functions>> that we can use both functions with closure, and classes with properties, to encapsulate data.
-Both can also hide code details, and allow a client to work with different implementations.
-We need these points of inflection to build flexible, robust and testable systems.
-Where in Java we traditionally reach for subclassing as tool; Kotlin, with its default-closed classes, encourages a more compositional style.
+Both can also hide code details and allow a client to work with different implementations.
+We need these points of inflection to build flexible, robust, and testable systems.
+Where in Java we traditionally reach for subclassing as tool, Kotlin, with its default-closed classes, encourages a more compositional style.
 Instead of overriding a protected method, we have a function-typed property representing a strategy or a collaborator.
-We should favour this style, but not be embarrassed to define class and sub-class hierarchies where they simplify our implementation.
+We should favor this style but not be embarrassed to define class and subclass hierarchies where they simplify our implementation.
 Similarly, extension functions <<functions-to-extension-functions>> are all very well, and they can work wonders to reduce coupling between disparate concerns in our codebases, but they are no substitute for polymorphic methods when that is what we need.
 
 In the end, one of the attractions of programming is its combination of the human and the mathematical.
-Objects and classes are, to your authors at least, a more human way of modelling the world, and that is often a fine starting point.
-When we need rigour (which is often, but not as often as muggles might think), functional programming is there for us.
+Objects and classes are, to your authors at least, a more human way of modeling the world, and that is often a fine starting point.
+When we need rigor (which is often, but not as often as muggles might think), functional programming is there for us.
 We see no reason to have to choose one camp or the other when we can have two tents and move between them both, and Kotlin allows us to do that better than any other language we have found.
 
 === Simple Design
 
-If complexity is the limiting factor in our software, and functional thinking is a tool for reducing complexity, how does that fit with other maxims: in particular, Kent Beck's Rules of Simple Design (<<B_EPEEC_1999,_Extreme Programming Explained: Embrace Change_>>)?
+If complexity is the limiting factor in our software, and functional thinking is a tool for reducing complexity, how does that fit with other maxims—in particular, Kent Beck's Rules of Simple Design (<<B_EPEEC_1999,_Extreme Programming Explained: Embrace Change_>>)?
 These have served us well for two decades, and say that a simple design:
 
 * Passes the tests
@@ -97,55 +96,55 @@ These have served us well for two decades, and say that a simple design:
 * Has no duplication
 * Has fewest elements
 
-Of these, "Reveals intention" is the most open to interpretation, so let's pull on that thread.
+Of these, "reveals intention" is the most open to interpretation, so let's pull on that thread.
 
-An intention is "an aim or plan" -- it implies change.
+An intention is "an aim or plan": it implies change.
 It implies action.
-By differentiating between actions and calculations in our code, we show where we expect things to happen and where we don't; which things may be affected by other things, and which things won't.
+By differentiating between actions and calculations in our code, we show where we expect things to happen and where we don't: which things may be affected by other things and which things won't.
 When the majority of our code is in the form of calculations, we can be explicit about which functions are actions, better revealing our intent.
 
-As we saw in <<actions-to-calculations>> and <<performing-io-to-passing-data>>, our main technique to disentangle calculations from actions is moving the actions out to the entry points of our interactions, so that they contaminate the least code.
-This is neither easy nor a panacea, but we find that it does produce designs that are simpler, and code that is less complex.
+As we saw in Chapters <<actions-to-calculations,7>> and <<performing-io-to-passing-data,20>>, our main technique to disentangle calculations from actions is moving the actions out to the entry points of our interactions, so that they contaminate the least code.
+This is neither easy nor a panacea, but we find that it does produce designs that are simpler and code that is less complex.
 
 === Functional Programming and Textual Reasoning
 
-When we finished this book, we realised -- to our surprise -- that we had not included any software design diagrams.
+When we finished this book, we realized—to our surprise—that we had not included any software design diagrams.
 
 Partly, frankly, this was laziness.
-It's hard enough to manage the multiple versions of the example code as is passes through refactorings without having to worry about other views.
+It's hard enough to manage the multiple versions of the example code as it passes through refactorings without having to worry about other views.
 But we also make it a habit to try to express ourselves in just the programming language that we have.
-If we can achieve enough comprehension in just the raw text then, in our day jobs, we won't be forced to switch contexts to view a diagram that may or may not be in sync with the code.
+If we can achieve enough comprehension in just the raw text, then in our day jobs, we won't be forced to switch contexts to view a diagram that may or may not be in sync with the code.
 
-When we've written about object-oriented design, we've relied on diagrams to show the dynamic structure and behavior of the software, and how changes to the source affect its dynamic behavior.
-In object-oriented software, that dynamic structure -- the graph of objects and how messages flow between them -- is largely implicit.
-This makes it hard to relate what you see in the source to what will happen at runtime, so visualisation is a vital part of object-oriented programming.
-Through the 1980's and 1990's, software design luminaries created a variety of diagram notations to visualise object-oriented software.
-In the mid 1990's, the designers of the most popular notations, Grady Booch, Ivar Jacobson and James Rumbaugh, combined their efforts into the _Unified Modelling Language_ (UML).
+When we've written about object-oriented design, we've relied on diagrams to show the dynamic structure and behavior of the software and how changes to the source affect its dynamic behavior.
+In object-oriented software, that dynamic structure—the graph of objects and how messages flow between them—is largely implicit.
+This makes it hard to relate what you see in the source to what will happen at runtime, so visualization is a vital part of object-oriented programming.
+Through the 1980s and 1990s, software design luminaries created a variety of diagram notations to visualize object-oriented software.
+In the mid 1990s, the designers of the most popular notations, Grady Booch, Ivar Jacobson, and James Rumbaugh, combined their efforts into the _Unified Modeling Language_ (UML).
 
-The functional programming community doesn't have such a focus on diagrams and visualisation.
+The functional programming community doesn't have such a focus on diagrams and visualization.
 The goal of functional programming is _algebraic reasoning_: reasoning about the behavior of a program by manipulating its textual expressions.
-Referential transparency and static types allow us to reason about our programs solely using the syntax of the source code.
+Referential transparency and static types allow us to reason about our programs solely by using the syntax of the source code.
 This results in a much closer correspondence between source code and runtime.
-As our code becomes more functional, we find that we can _read_ our system's behavior without having to think hard about mechanisms that are not immediately apparent in the source, and have to be visualised to be understood.
+As our code becomes more functional, we find that we can _read_ our system's behavior without having to think hard about mechanisms that are not immediately apparent in the source and have to be visualized to be understood.
 
 === Refactoring
 
 Along with the pragmatic functional programming, refactoring is the other key tenet of this book.
-Refactoring plays an important part in our professional lives because, if we don't know enough about the eventual form of our system to get its design right the first time, we are going to have to transform what we have into what we need.
+Refactoring plays an important part in our professional lives because, if we don't know enough about the eventual form of our system to get its design right the first time, we will have to transform what we have into what we need.
 Your authors, at least, have never known enough about the eventual form of a system to get its design right the first time.
 Even those applications where we started with detailed requirements ended up very different from those specifications by the time they were delivered.
 
 Late in a project and against schedule pressure is no time to learn how to refactor your code.
 Instead, we take every opportunity to practice refactoring.
-As we saw in <<classes-to-functions>>, even when writing code from scratch we will often hard-code values to get a test to pass, and then refactor to remove duplication between the tests and production code.
+As we saw in <<classes-to-functions>>, even when writing code from scratch we will often hard-code values to get a test to pass and then refactor to remove duplication between the tests and production code.
 We are always looking for new ways to get tests passing quickly and then refactor our way into code that looks like we planned it that way.
-Sometimes we discover a new automated refactoring built into IntelliJ, other times we find a way to combine existing refactorings to achieve our aims.
+Sometimes we discover a new automated refactoring built into IntelliJ; other times, we find a way to combine existing refactorings to achieve our aims.
 
-When the scope of a change is small, we can get away with hand-editing a definition and then its uses to match, or sometimes more usefully the other way around.
-This becomes tedious and error-prone when a change affects many files though, so practicing using the tools to achieve even small changes will equip us when faced with larger refactoring challenges.
-Where we do have a multi-stage refactor, or where we have to manually apply changes in multiple places, <<expand-contract>> refactoring allows us to keep the system building and working throughout the process.
+When the scope of a change is small, we can get away with hand-editing a definition and then its uses to match, or sometimes, more usefully, the other way around.
+This becomes tedious and error prone when a change affects many files though, so practicing using the tools to achieve even small changes will equip us when faced with larger refactoring challenges.
+Where we do have a multistage refactor, or where we have to manually apply changes in multiple places, <<expand-contract>> allows us to keep the system building and working throughout the process.
 This is vital when a change may take multiple days or even weeks, because it allows us to continually merge our work with other changes in the system.
-Once you've thrown away a month of work because a big-bang merge at the end proved impossible, you come to appreciate the value of this technique, and want to practice it even when it isn't strictly necessary.
+Once you've thrown away a month of work because a big-bang merge at the end proved impossible, you come to appreciate the value of this technique and want to practice it even when it isn't strictly necessary.
 
 We hope that the refactorings in this book expand your ambition.
 Your authors have been lucky enough to work with some world-class practitioners, the sort of people who tut if you cause a compile error during a refactoring.
@@ -154,16 +153,16 @@ The transformations we have shown may not be optimal (and even if they were, the
 === Refactoring and Functional Thinking
 
 As we've seen on our tour, there is a relationship between functional thinking and refactoring.
-Refactoring is a rearrangement of our code, and where that code represents actions (<<actions>>) -- code that depends on when you run it -- the rearrangement may change when actions run, and so the functioning of the software.
-In contrast, calculations (<<calculations>>) are safe to rearrange, but ultimately impotent (without reading and writing our code is simply generating heat).
-Functional thinking encourages us to recognise and control actions, and by doing so, makes refactoring much safer.
+Refactoring is a rearrangement of our code, and where that code represents actions (<<actions>>)—code that depends on when you run it—the rearrangement may change when actions run, and so the functioning of the software.
+In contrast, calculations (<<calculations>>) are safe to rearrange but are ultimately impotent. (Without reading and writing, our code is simply generating heat.)
+Functional thinking encourages us to recognize and control actions and, by doing so, makes refactoring much safer.
 
 Your authors learned this the hard way.
 We learned to refactor in the days of mutable objects, and introduced bugs when we failed to predict the consequences.
 This could have led us to abandon refactoring, but we still weren't clever enough to design our systems right in the first place.
-Instead, we discovered that a certain style of programming -- object orientation but with immutable objects -- was expressive and understandable, refactorable and safe.
-When we adopted that style in our Java code it was often working against the grain, but despite this it was much more productive than the alternatives.
-Discovering Kotlin, we realised that this is the sweet spot for us.
+Instead, we discovered that a certain style of programming—object orientation but with immutable objects—was expressive and understandable, refactorable and safe.
+When we adopted that style in our Java code, it was often working against the grain, but despite this, it was much more productive than the alternatives.
+Discovering Kotlin, we realized that this is the sweet spot for us.
 Now we can use a modern language where functional thinking is part of the design, objects are still well-supported, and refactoring tooling is not an afterthought.
 
 As Kent Beck put it: "Make the change easy, then make the easy change."

@@ -1,19 +1,20 @@
 [[exceptions-to-values]]
 == Exceptions to Values
 
-****
-In <<throwing-to-returning>> we looked at error-handling strategies for Kotlin, and how to refactor from exceptions in Java to more functional techniques.
-The truth is that most code ignores errors in the hope that they won't happen -- can we do better?
-****
+++++
+<blockquote data-type="epigraph">
+<p>In <a data-type="xref" href="#throwing-to-returning">#throwing-to-returning</a> we looked at error-handling strategies for Kotlin, and how to refactor from exceptions in Java to more functional techniques. The truth is that most code ignores errors in the hope that they won't happen. Can we do better?</p>
+</blockquote>
+++++
 
-Someone new in marketing has taken to tweaking the spreadsheet that we last saw in <<performing-io-to-passing-data>> - the one that generates the high-value customer scores.
-We don't know what they are doing in detail, but they keep on exporting files that break our parsing, and then asking us to explain what a stack trace is.
+Someone new in marketing has taken to tweaking the spreadsheet that we last saw in <<performing-io-to-passing-data>>—the one that generates the high-value customer scores.
+We don't know what they are doing in detail, but they keep on exporting files that break our parsing and then asking us to explain what a stack trace is.
 It's getting a bit embarrassing on both sides of the relationship, so the cake has begun to dry up.
 Could there be any more incentive?
 
 Well yes, there could.
-We've also been asked to write an unattended job so that marketing can save their file onto a server, and 'we' will automatically write the summarised version.
-Without a person in the loop to interpret those stack traces, it looks like we're going to have to find a way to report errors properly.
+We've also been asked to write an unattended job so that marketing folks can save their file onto a server, and 'we' will automatically write the summarized version.
+Without a person in the loop to interpret those stack traces, it looks like we'll have to find a way to report errors properly.
 
 === Identifying What Can Go Wrong
 
@@ -71,10 +72,10 @@ private val CustomerData.marketingName: String
 ++++
 // end-insert
 
-If we're to do a thorough job of error handling, the first thing we have to do is to establish what might go wrong.
+If we're to do a thorough job of error handling, the first thing we have to do is establish what might go wrong.
 As we saw in <<throwing-to-returning>>, in Kotlin we don't have checked exceptions to give us clues, but these were so badly used in most Java code that in this respect there isn't much of a difference between the languages.
-Unless code has been written to communicate the ways that it can fail, we are going to have to rely on examination, intuition, and experience to work it out.
-In this case, experience tells us that the failures we actually get are due to missing fields, so we can concentrate there, but we should still do due-diligence on all aspects of the code.
+Unless code has been written to communicate the ways that it can fail, we'll have to rely on examination, intuition, and experience to work it out.
+In this case, experience tells us that the failures we actually get are due to missing fields, so we can concentrate there, but we should still do due diligence on all aspects of the code.
 Let's work our way up the functions from the bottom of the listing, looking for potential errors.
 
 `CustomerData.marketingName` looks benign:
@@ -94,7 +95,7 @@ private val CustomerData.marketingName: String
 ++++
 // end-insert
 
-If `CustomerData` were implemented in Java we might find `familyName` resolving to `null` and hence throwing when we try `toUpperCase()`, but in Kotlin it can't, so it won't.
+If `CustomerData` were implemented in Java, we might find `familyName` resolving to `null` and, hence, throwing when we try `toUpperCase()`, but in Kotlin it can't, so it won't.
 As with all code, the function is subject to subclasses of `Error` (such as `OutOfMemoryError`) being thrown, but it should be generally safe.
 From here on we'll count throwing `Error` as extraordinary and not consider it in our analysis.
 
@@ -116,9 +117,9 @@ private fun Any?.formattedAs(format: String) = String.format(format, this)
 
 `String.format(format, this)` is implemented as `java.lang.String::format`, which is documented to throw `IllegalFormatException` if the `format` is not compatible with its other input.
 This is a https://en.wikipedia.org/wiki/Partial_function[partial function]: one that only returns a result for some of the possible values of its parameters.
-In this case it can return a result for all values of `Double`, but only when we use very specific values of `format`.
-Luckily we are only feeding it one particular `format`, the value `%#.2f`, which we know works, so this, and its only caller, `Double.toMoneyString()`, should not fail.
-If they do fail, it's because our analysis is incorrect (or its assumptions are no longer true), and runtime errors are a reasonable way of signalling this programmer error.
+In this case, it can return a result for all values of `Double`, but only when we use very specific values of `format`.
+Luckily, we are only feeding it one particular `format`, the value `%#.2f`, which we know works, so this and its only caller, `Double.toMoneyString()`, should not fail.
+If they do fail, it's because our analysis is incorrect (or its assumptions are no longer true), and runtime errors are a reasonable way of signaling this programmer error.
 
 Next we have:
 
@@ -167,8 +168,8 @@ internal fun String.toCustomerData(): CustomerData =
 ++++
 // end-insert
 
-OK, this is another partial function -- almost no values of the `String` receiver will lead to this function being able to return a result.
-Luckily almost all the ones that we are getting in practice are OK, which is why error handling is only now becoming a priority.
+OK, this is another partial function: almost no values of the `String` receiver will lead to this function being able to return a result.
+Luckily, almost all the ones that we are getting in practice are OK, which is why error handling is only now becoming a priority.
 What could go wrong though?
 
 Starting from the top of the function, `String.split` may behave oddly if we pass it an empty delimiter, but we aren't.
@@ -181,7 +182,7 @@ Which leads to two follow-on questions: "Should we abort?" and "How can we impro
 
 As we saw in <<throwing-to-returning>>, we shouldn't use exceptions to abort on predictable errors.
 The lack of checked exceptions in Kotlin (and their lack of use in Java) means that if we do, we lose the opportunity to communicate that the code is susceptible to failure.
-The callers of our code then have to do what we are currently doing - reason with every line of code in an implementation.
+The callers of our code then have to do what we are currently doing: reason with every line of code in an implementation.
 Even after then, the implementation might change, silently invalidating the findings.
 
 If we aren't to throw an exception, then the cheapest change (provided our callers are all Kotlin) is to return `null` when we fail.
@@ -215,7 +216,7 @@ internal fun String.toCustomerData(): CustomerData? =
 // end-insert
 
 We could have chosen to simply wrap the whole implementation in a `try` block and return `null` from the `catch`, but here we have been more proactive than reactive.
-This means that the code will still throw if the relevant fields cannot be converted to `Int` or `Double` -- we'll get to that.
+This means that the code will still throw if the relevant fields cannot be converted to `Int` or `Double`. We'll get to that.
 
 This change breaks `toHighValueCustomerReport`, which is now forced to consider the possibility of failure:
 
@@ -243,7 +244,7 @@ fun Sequence<String>.toHighValueCustomerReport(): Sequence<String> {
 ++++
 // end-insert
 
-<1> Doesn't compile, as `it` is nullable.
+<1> Doesn't compile because `it` is nullable.
 
 Now if we want to just ignore badly formed input lines, we can get everything running again with `filterNotNull`:
 
@@ -310,7 +311,7 @@ Now that this code represents all reasonable errors with `null`, we can go back 
 We could abort on the first error, but it seems worth the extra effort to collect all the problem lines and report them somehow.
 _Somehow_ is a bit vague, but funnily enough it has a type: `(String) -> Unit` in this case.
 Which is to say, we can delegate the what-to-do to a function that accepts the errant line and doesn't affect the result.
-We allude to this technique in <<errors-invoking-a-function>>. In order to illustrate this, let's add a test:
+We allude to this technique in <<errors-invoking-a-function>>. To illustrate this, let's add a test:
 
 // begin-insert: exceptions-to-values.4:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#error
 [source,kotlin]
@@ -428,23 +429,23 @@ fun main() {
 ++++
 // end-insert
 
-This is one of the few places in this book that we have fallen back on a mutable `List`.
+This is one of the few places in this book where we have fallen back on a mutable `List`.
 Why here?
 For example, we could have changed `toHighValueCustomerReport` to return `Pair<Sequence<String>, List<String>>`, where the second of the pairs is the errors.
 The main advantage of this scheme is that it allows the caller to abort early by throwing an exception in `onErrorLine`.
-For maximum flexibility we could even have an error-handling strategy with signature `(String) -> CustomerData?`, so that the caller could supply a substitute, allowing recovery from errors in any particular line.
+For maximum flexibility, we could even have an error-handling strategy with signature `(String) -> CustomerData?` so that the caller could supply a substitute, allowing recovery from errors in any particular line.
 
-In <<performing-io-to-passing-data>> we went out of our way to convert `toHighValueCustomerReport` from an action to a calculation.
+In <<performing-io-to-passing-data>>, we went out of our way to convert `toHighValueCustomerReport` from an action to a calculation.
 We then relaxed the purity a little by reading and writing from and to a `Sequence`.
-Here we have introduced an error handling function returning `Unit` -- a sure sign that we have introduced an action.
+Here we have introduced an error-handling function returning `Unit`, a sure sign that we have introduced an action.
 Provided that action's scope is confined to error handling, and any side effects are, as in this `main`, restricted to local variables, this is another reasonable compromise.
-This is an expedient error handling solution that is flexible and communicates well, but pure it isn't.
+This is an expedient error-handling solution that is flexible and communicates well, but pure it isn't.
 
 === Representing Errors
 
 Now that we are communicating _that_ our parsing can fail (by returning a nullable type), and _where_ it has failed (with a callback passing the line), can we better communicate _why_ it has failed?
 
-Returning a result type rather than a nullable type allows us to specify what failure modes there are, and provide details when they happen.
+Returning a result type rather than a nullable type allows us to specify what failure modes there are and provide details when they happen.
 Let's change `String.toCustomerData()` to return a `Result` rather than nullable:
 
 // begin-insert: exceptions-to-values.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#toCustomerData
@@ -497,8 +498,8 @@ data class SpendIsNotADoubleFailure(override val line: String) : ParseFailure(li
 ++++
 // end-insert
 
-To be honest this is overkill in this situation (a single data class carrying the failing line and a string reason would do here), but we are exemplifying excellence in error engineering.
-We can fix up the callers of `toCustomerData` by invoking `onErrorLine` with the data held in the `ParseFailure` and then yielding `null` when we have an `Error` - this passes the current tests:
+To be honest, this is overkill in this situation (a single data class carrying the failing line and a string reason would do here), but we are exemplifying excellence in error engineering.
+We can fix up the callers of `toCustomerData` by invoking `onErrorLine` with the data held in the `ParseFailure` and then yielding `null` when we have an `Error`. This passes the current tests:
 
 // begin-insert: exceptions-to-values.5:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
@@ -532,8 +533,8 @@ fun Sequence<String>.toHighValueCustomerReport(
 ++++
 // end-insert
 
-What we really want though, is to expose the `ParseFailure`.
-Let change the test first to collect the ++ParseFailure++'s instead of lines with errors:
+What we really want, though, is to expose the `ParseFailure`.
+Let's change the test first to collect the ++ParseFailure++'s instead of lines with errors:
 
 // begin-insert: exceptions-to-values.6:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#excerpt
 [source,kotlin]
@@ -623,12 +624,12 @@ if (errorLines.isNotEmpty()) {
 We might not have used the runtime type of the `ParseFailure` to process errors differently, but we have used its name in the error message, so we are at least getting some value from our little sealed class hierarchy.
 If the resulting error messages aren't enough to allow marketing to fix their input, then we can use a `when` expression on the sealed class to differentiate between the types of failure, as we saw in <<error-layers>>.
 
-At this point everything is compiling, and our tests pass, so all is good in this little part of the world at least.
-Had we had more client code calling this API, or our changes were to ripple though more layers of code, we might have picked a more sophisticated refactoring strategy than changing code in one file and fixing the broken things.
-Often though it isn't worth the effort when we can get the code compiling and passing the tests in a couple of minutes at most.
+At this point, everything is compiling and our tests pass, so all is good in this little part of the world at least.
+Had we had more client code calling this API, or our changes were to ripple through more layers of code, we might have picked a more sophisticated refactoring strategy than changing code in one file and fixing the broken things.
+Often, though, it isn't worth the effort when we can get the code compiling and passing the tests in a couple of minutes at most.
 If we do find out that we have bitten off more than we can chew, it's easy to revert and take a more considered approach.
 
-Now the tests are passing we should go back and make sure everything is as tidy and expressive as it can be.
+Now that the tests are passing, we should go back and make sure everything is as tidy and expressive as it can be.
 In particular, we did the quickest thing we could to get everything to work again in `toHighValueCustomerReport`:
 
 // begin-insert: exceptions-to-values.6:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
@@ -663,9 +664,9 @@ fun Sequence<String>.toHighValueCustomerReport(
 ++++
 // end-insert
 
-There's something about yielding `null` from the `recover` block and then skipping these with `filterNotNull` that is a little unsatisfactory -- it doesn't communicate how it works directly, and gets in the way of the happy path.
+There's something about yielding `null` from the `recover` block and then skipping these with `filterNotNull` that is a little unsatisfactory. It doesn't communicate how it works directly, and gets in the way of the happy path.
 We would like to be able to find a nicer formulation of the `valuableCustomers` expression, but the truth is that everything else is a bit worse in your authors` eyes.
-If you do find a nice simple way then please let us know.
+If you do find a nice simple way, then please let us know.
 
 Similarly, the early returns in `toCustomerData` look a bit ugly:
 
@@ -743,12 +744,12 @@ internal fun String.toCustomerData(): Result<CustomerData, ParseFailure> =
 // end-insert
 
 Your authors like a single expression even more than most people, but not if this is the `Result` (pun intended).
-We could obviously simplify here by introducing more functions (`asResultOr ... flatMap` looks like it is a concept trying to get out for example).
-Some other result libraries would let us abuse coroutines or exceptions to get the same effect as the previous early returns, but without better language support to avoid the indent-per-statement, the grain of Kotlin favours early returns in these cases.
+We could obviously simplify here by introducing more functions (`asResultOr ... flatMap` looks like it is a concept trying to get out, for example).
+Some other result libraries would let us abuse coroutines or exceptions to get the same effect as the previous early returns, but without better language support to avoid the indent-per-statement, the grain of Kotlin favors early returns in these cases.
 We haven't addressed it specifically in this book, but the fact that lambdas can be compiled inline and so support returns from their enclosing function encourages us to use imperative code in situations like this.
 For us then, the early returns will do.
 
-Finally, returning to `main` on our final check before checkin:
+Finally, returning to `main` on our final check before check-in:
 
 // begin-insert: exceptions-to-values.6:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
 [source,kotlin]
@@ -787,7 +788,7 @@ fun main() {
 // end-insert
 
 Those three levels of nested `use` obfuscate the actual structure, and that `exitProcess` from deep in the bowels of the function is also a bit iffy.
-We can define our own `using` overload to address the former, and pass out an exit code to solve the latter (an example of using data rather than control flow to address errors.)
+We can define our own `using` overload to address the former and pass out an exit code to solve the latter (an example of using data rather than control flow to address errors).
 We can extract an extension function to print the errors too:
 
 // begin-insert: exceptions-to-values.8:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
@@ -846,24 +847,23 @@ private fun List<ParseFailure>.writeTo(error: OutputStreamWriter) {
 ++++
 // end-insert
 
-=== What About IO?
+=== What About I/O?
 
 That's very nearly good enough.
-Before we go though, we should think about IO errors.
-Since we introduced ++List++s and then ++Sequence++s, our report generation code does not have to worry about writing failing, as it is the calling code's responsibility to iterate over the result lines and actually perform the write.
+Before we go, though, we should think about I/O errors.
+Since we introduced ++List++s and then ++Sequence++s, our report generation code does not have to worry about writing failing, because it is the calling code's responsibility to iterate over the result lines and actually perform the write.
 The `main` function in this case makes the reasonable assumption that `System.out` will always be there, but when we implement the unattended job that motivated this refactor, we will have to deal with the possibility that the file or network socket may disappear even if it was open when we started.
 
 There is a similar situation reading.
 We are now iterating over each `String` in a `Sequence`.
-In the test code these are in memory, but in production they are being fetched from a file (via `System.in`).
+In the test code, these are in memory, but in production they are being fetched from a file (via `System.in`).
 So our `Sequence` operations are subject to failure with `IOExceptions` that the report generation is blissfully unaware of.
 
 There is little that `toHighValueCustomerReport()` can or should do in these cases.
-There is no practical way of recovering from IO errors once we have started reading in this case -- aborting the whole operation is the sensible thing to do.
-Helpfully now the onus is entirely on the caller - `main` here.
-`toHighValueCustomerReport` signals the errors that it knows about (failure to parse), and how they are represented (subclasses of `ParseFailure`) through its `onErrorLine` parameter.
+There is no practical way of recovering from I/O errors once we have started reading in this case—aborting the whole operation is the sensible thing to do.
+Helpfully, now the onus is entirely on the caller—`main` here—`toHighValueCustomerReport` signals the errors that it knows about (failure to parse) and how they are represented (subclasses of `ParseFailure`) through its `onErrorLine` parameter.
 ++IOException++s are not its responsibility.
-It is `main` that is passing an IO-backed `Sequence` into `toHighValueCustomerReport`, so `main` should be aware that `toHighValueCustomerReport` can therefore fail with an `IOException` and deal with it accordingly.
+It is `main` that is passing an I/O-backed `Sequence` into `toHighValueCustomerReport`, so `main` should be aware that `toHighValueCustomerReport` can therefore fail with an `IOException` and deal with it accordingly.
 Let's add that code:
 
 // begin-insert: exceptions-to-values.9:src/main/java/travelator/marketing/HighValueCustomersMain.kt#main
@@ -907,23 +907,23 @@ fun main() {
 // end-insert
 
 This is perhaps overkill for this application, but it shows the pattern of catching and dealing with the exceptions that we _expect_ (printing a relatively friendly message for `IOException`) but allowing all others to leak and quit the application.
-If we follow the strategy from <<throwing-to-returning>>, _unexpected_ exceptions are either unrecoverable environment errors or programmer errors -- in both cases the default JVM behavior of  quitting the process after printing a stack trace gives us a fighting chance of diagnosing the issue.
+If we follow the strategy from <<throwing-to-returning>>, _unexpected_ exceptions are either unrecoverable environment errors or programmer errors. In both cases, the default JVM behavior of quitting the process after printing a stack trace gives us a fighting chance of diagnosing the issue.
 When we convert this to an unattended server job, we will similarly process expected errors in our top-level handler function.
-We might abort on `IOException`, or retry the whole interaction if we think the problem may be transient.
-We know that retrying won't help with parse errors, so we will have to log these, and/or send notifications somewhere.
+We might abort on `IOException` or retry the whole interaction if we think the problem may be transient.
+We know that retrying won't help with parse errors, so we will have to log these and/or send notifications somewhere.
 Unexpected errors in handler functions are normally allowed to leak to generic exception-handling code, which will log them and send an internal server error status before returning the thread to its pool.
 
 === Moving On
 
-Very often in engineering we have to make compromises.
+Very often in engineering, we have to make compromises.
 In particular, attempts to make one thing simpler often complicate another.
-IO complicates our software in two ways.
+I/O complicates our software in two ways.
 It is an action, so we can't just ignore whether or when it happens as we refactor; and it is subject to errors, which we have to deal with if we want a robust system.
-These errors may be simple environmental failures to read or write, or because the things that we are reading don't meet our expectations -- when marketing corrupt their file in some way.
+These errors may be simple environmental failures to read or write or because the things that we are reading don't meet our expectations—when marketing personnel corrupt their file in some way.
 
-Both actions and errors taint their callers, and the solution in both cases is the same, move the code closer to the entry points so that it taints less of our system.
-This then is an area where, rather than having to compromise, we can kill two birds with one stone.
-By moving IO to the outside of our systems, we can reduce the ways that both actions and errors complicate our code.
+Both actions and errors taint their callers, and the solution in both cases is the same: move the code closer to the entry points so that it taints less of our system.
+This, then, is an area where, rather than having to compromise, we can kill two birds with one stone.
+By moving I/O to the outside of our systems, we can reduce the ways that both actions and errors complicate our code.
 
 
 
