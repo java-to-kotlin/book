@@ -3,7 +3,8 @@
 
 ++++
 <blockquote data-type="epigraph">
-<p>Java programs usually rely heavily on mutable state because it is so arduous in Java to define value types and transform values, even with the Streams API. What is the best way to translate Java code that relies upon mutable objects and side effects to Kotlin code that transforms immutable values?</p>
+<p>Java programs usually rely heavily on mutable state because it is so arduous in Java to define value types and transform values, even with the Streams API.
+What is the best way to translate Java code that relies upon mutable objects and side effects to Kotlin code that transforms immutable values?</p>
 </blockquote>
 ++++
 
@@ -86,7 +87,9 @@ The benefit of this design is that we can use the calculator to summarize the co
 The object is responsible for adding its costs to the calculator and passing the calculator to its children so that they can add _their_ costs.
 This decouples the code that needs the costs from the code that provides the costs, allowing us to evolve them independently.
 
-For example, a `Route` contains a list of `Journey`, each of which has a cost, and `Accommodation` has a room rate, a number of nights, and additional costs such as meals and hotel services.  The `Itinerary` doesn't have to know or care how these objects are structured or how to collect their respective costs. That knowledge is encapsulated in the `Route` and `Accommodation` classes.
+For example, a `Route` contains a list of `Journey`, each of which has a cost, and `Accommodation` has a room rate, a number of nights, and additional costs such as meals and hotel services.
+The `Itinerary` doesn't have to know or care how these objects are structured, or how to collect their respective costs.
+That knowledge is encapsulated in the `Route` and `Accommodation` classes.
 
 However, our use of mutable state has two significant disadvantages.
 
@@ -894,7 +897,8 @@ The `CostSummaryCalculator` also has to perform currency conversions on individu
 If we extract that functionality as a public method, which we can call `toUserCurrency`, we can initialize the hotel room browser with a `CostSummaryCalculator` instead of passing it both the exchange rates and preferred currency.
 We can also remove the currency conversion calculation—that we now see is duplicated code—from the hotel room browser.
 
-At that point, the class is no longer a calculator of cost summaries. It holds the context for any pricing we do for an individual traveler.
+At that point, the class is no longer a calculator of cost summaries.
+It holds the context for any pricing we do for an individual traveler.
 So let's rename it to reflect its newfound responsibility.
 At the moment, we can't think of a better name than `PricingContext`, which leaves our class looking like this:
 
@@ -972,7 +976,8 @@ It duplicated logic from the standard library and introduced the risk of aliasin
 By the end of the chapter, we had refactored the same calculation to a transformation of immutable data.
 
 To do so, we moved mutation out of our code in two directions, outward and inward.
-Outward was obvious: we made the `CostSummaryCalculator` treat the `CostSummary` class as an immutable value type and then made `CostSummary` immutable. Then we made users of `CostSummaryCalculator` treat it as an immutable context to a calculation and then made `CostSummaryCalculator` immutable.
+Outward was obvious: we made the `CostSummaryCalculator` treat the `CostSummary` class as an immutable value type and then made `CostSummary` immutable.
+Then we made users of `CostSummaryCalculator` treat it as an immutable context to a calculation and then made `CostSummaryCalculator` immutable.
 But inward?
 We replaced the imperative code that mutated collections and fields with calls to standard higher-order functions, like `groupingBy`, `fold`, and `reduce`.
 Under the hood, those functions may mutate state, but they hide that mutation from their callers.
