@@ -3,7 +3,8 @@
 
 ++++
 <blockquote data-type="epigraph">
-<p>Neither Java nor Kotlin makes any formal distinction between imperative and functional code, although Kotlin's emphasis on immutability and expressions generally lead to more functional programs. Can we improve our code by making more of it functional?</p>
+<p>Neither Java nor Kotlin makes any formal distinction between imperative and functional code, although Kotlin's emphasis on immutability and expressions generally lead to more functional programs.
+Can we improve our code by making more of it functional?</p>
 </blockquote>
 ++++
 
@@ -42,16 +43,17 @@ How would we go about doing that?
 === Calculations
 
 To be a calculation, a function must always return the same result given the same inputs.
-Because the inputs to a function are its parameters, a calculation always returns the same result when called with the same arguments.
+The inputs to a function are its parameters, which are bound to arguments when the function is called.
+So a calculation always returns the same result when called with the same arguments.
 
-This function:
+Take a `fullName` function:
 
 [source,kotlin]
 ----
 fun fullName(customer: Customer) = "${customer.givenName} ${customer.familyName}"
 ----
 
-is a calculation; it will always return the same value when supplied the same `Customer`.
+`fullName` is a calculation: it will always return the same value when supplied the same `Customer`.
 This is true only if `Customer` is immutable, or at least `givenName` and `familyName` cannot change.
 To keep things simple, we'll say that calculations can only have parameters that are values, as defined in <<beans-to-values>>.
 
@@ -132,8 +134,7 @@ class Customers {
 }
 ----
 
-Both `save` and `find` are actions;
-`save` creates a new customer record in our database and returns it.
+Both `save` and `find` are actions; `save` creates a new customer record in our database and returns it.
 This is an action because the state of our database depends on when we call it.
 The result of `find` is also time sensitive, because it depends on previous calls to `save`.
 
@@ -161,7 +162,7 @@ class Metrics(
 }
 ----
 
-We say _probably_ because in languages like Java or Kotlin that allow I/O or accessing global mutable data from any code, there is no way to be sure whether a function represents a calculation or action short of examining it and all the functions that it calls.
+We say _probably_ because in languages like Java or Kotlin that allow input, output, or accessing global mutable data from any code, there is no way to be sure whether a function represents a calculation or action short of examining it and all the functions that it calls.
 We'll return to that problem soon.
 
 === Why Should We Care?
@@ -187,7 +188,7 @@ If a function is referentially transparent, we can replace its call with its res
 ****
 Nat and Duncan are both old enough to have learned to program in Sinclair BASIC on the ZX81.
 This dialect had no immutable data, and no support for subroutines, parameters, or local variables.
-It requires real discipline to program in such a system, because practically every line of code is an action and, hence, potentially affects the functioning of every other statement.
+It requires real discipline to program in such a system, because practically every line of code is an action and so potentially affects the functioning of every other statement.
 
 This is in fact very close to the way that our computers actually work, with mutable values held in registers and global memory, manipulated by machine-code actions.
 The evolution of programming languages has been a process of restricting the ultimate flexibility of this model, so that humans can better reason with the code that they create.
@@ -196,7 +197,7 @@ The evolution of programming languages has been a process of restricting the ult
 === Why Prefer Calculations?
 
 We like calculations because they are so much easier to work with, but ultimately our software needs to have an effect on the world, which is an action.
-There is no overlap, though; code can't be an action and a calculation, both timeless and time-dependent.
+There is no overlap though; code can't be an action and a calculation, both timeless and time-dependent.
 If we take some code that is a calculation and have it invoke an action, then it becomes an action, because it will now depend on when or whether it is called.
 We can think of calculations as the purer code, where code inherits the most tainted level of all of its dependencies.
 We see the same thing with susceptibility to errors in <<throwing-to-returning>>.
@@ -293,7 +294,7 @@ class Tracking implements ITrackTrips {
 ++++
 // end-insert
 
-Using the _current_ rule, `Tracking.currentTripFor` is evidently an action, too, as is `Trips.currentTripsFor`.
+Using the _current_ rule, `Tracking.currentTripFor` is evidently an action too, as is `Trips.currentTripsFor`.
 Here is its implementation in `InMemoryTrips`, which is used for testing in place of a version implemented with database queries.
 
 // begin-insert: actions.0:src/test/java/travelator/InMemoryTrips.java#foo
@@ -321,7 +322,7 @@ public class InMemoryTrips implements Trips {
 
 The conversion from `Set<Trip>` (the result of `Trips.currentTripsFor`) and to `Optional<Trip>` (returned from `Tracking.currentTripFor`) seems to be because there is some business rule around there being only one active trip at any time that is not enforced in the persistence layer.
 
-Until we got here, we were relying on our knowledge of the meanings of words (in particular, _current_) to deduce that Java methods represent actions rather than calculations.
+Until we got here, we were relying on our knowledge of the meanings of words (in particular _current_) to deduce that Java methods represent actions rather than calculations.
 Here, though, there is a smoking gun.
 Can you spot it?
 
@@ -434,7 +435,7 @@ public class TrackingTests {
 
 To give predictable results, we have had to use a fake clock, injected into `InMemoryTrips`.
 Having previously said that `clock.instant()` depends on when we call it; in our tests it doesn't (at least, not in the same way).
-We could instead have set up trips relative to the time that the tests are being run. This makes our tests harder to understand and subject to failure if you run them around midnight.
+We could instead have set up trips relative to the time that the tests are being run, but this would make our tests harder to understand, and subject to failure if you run them around midnight.
 
 .2015 Was the End of Time
 ****
@@ -456,7 +457,7 @@ What would a better design look like here?
 
 To make this code less time-dependant, we can supply the time as an argument to the method.
 Although this forces the _caller_ to know the time, it is as easy for our caller to ask the time as it is for this method.
-This is a special case of the way that we refactor to avoid dependencies on other global states; instead of reading a value within a function, we pass the value into it.
+This is a special case of the way that we refactor to avoid dependencies on other global state; instead of reading a value within a function, we pass the value into it.
 
 The function we want to pass the time into overrides `Trips.currentTripsFor`, so we start by adding an `Instant` parameter to that.
 Before, this was:
@@ -767,7 +768,7 @@ public void returns_single_active_booked_trip() {
 
 This gets our tests to pass, because we are now passing the correct time as the argument, albeit via setting and immediately reading a field in the `StoppedClock`.
 To fix that, we replace the `clock.now` reads with the values from the `clock.now` writes.
-Then the `clock` is unused and we can delete it:
+Then the `clock` is unused, and we can delete it:
 
 // begin-insert: actions.8:src/test/java/travelator/TrackingTests.java#foo
 [source,java]
@@ -898,7 +899,7 @@ public class CurrentTripsHandler {
 
 Looking through our code, we find (scream) that we don't have any unit tests for the handler.
 If we want to add them, this is the level at which we would now inject a `Clock`, rather than into the individual services.
-Mocks or stubs allow us to test actions but are rarely required to test calculations.
+Mocks or stubs allow us to test actions, but are rarely required to test calculations.
 
 We won't show it, but we also have to consider the production implementation of `Trips`, the one that reads from our database.
 We are lucky and find that this passes the current time into its SQL query, so now we can just pass the `at` in `Trips.currentTripsFor(String customerId, Instant at)`.
@@ -908,8 +909,8 @@ If our query had used the database time, we would have to rewrite it to receive 
 
 With that done, we review our changes and find that we haven't converted any code to Kotlin!
 
-This is quite significant.
-This way of thinking about calculations and actions doesn't depend on our language, and the grain of Java is becoming more functional with time.
+This is significant.
+This way of thinking about calculations and actions doesn't depend on our implementation language, and the grain of Java is becoming more functional with time.
 We find, though, that Kotlin's more natural support for immutable data and other functional constructs means that the costs of making the distinction are lower, and so the cost/benefit ratio looks more favorable.
 Note also that a lot of the refactoring steps taken in this chapter (and others) are safe only because we are moving around the invocation of calculations and not actions.
 
