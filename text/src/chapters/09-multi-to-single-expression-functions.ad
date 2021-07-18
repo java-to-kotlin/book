@@ -3,7 +3,8 @@
 
 ++++
 <blockquote data-type="epigraph">
-<p>Nat and Duncan both love Kotlin's single-expression function definitions. When should we use this form, why might we prefer it, and what Kotlin features can we use to make more functions single expressions?</p>
+<p>Nat and Duncan both love Kotlin's single-expression function definitions.
+When should we use this form, why might we prefer it, and what Kotlin features can we use to make more functions single expressions?</p>
 </blockquote>
 ++++
 
@@ -149,7 +150,7 @@ fun parse(value: String): EmailAddress {
 // end-insert
 
 <1> Assigning to `atIndex` is a statement.
-<2> `require` is a statement.
+<2> The call to `require` is a statement.
 <3> Creating the `EmailAddress` is a single expression, depending on `value` and `atIndex`.
 
 The first statement is the assignment to `atIndex`.
@@ -457,7 +458,7 @@ Instead though, let's revert and try a third approach, informed by the experienc
 
 === Take 3: Let
 
-The reason we extracted the `emailAddress` function was to give us a scope where the `atIndex` value is defined throughout the block rather than having to be assigned to a local variable.
+The reason we extracted the `emailAddress` function was to give us a scope where the `atIndex` value is defined throughout the block; rather than having to be assigned to a local variable.
 Where we only have one variable we need to replace, a `let` block gives us this facility without having to define a function.
 We can get there in baby steps by first surrounding the code after the assignment with a `let`:
 
@@ -486,10 +487,7 @@ fun parse(value: String): EmailAddress {
 ++++
 // end-insert
 
-Note that you can't actually use `let` this way in a top-level function, because it needs a receiver.
-In this case, `parse` is a method on our companion object, and the compiler will bind to that for now.
-
-Now we can lift the return out of the `let`; unfortunately, IntelliJ doesn't offer to help us this time:
+Now we can lift the return out of the `let`; unfortunately IntelliJ doesn't offer to help us this time:
 
 // begin-insert: single-expressions.13:src/main/java/travelator/EmailAddress.kt#parse
 [source,kotlin]
@@ -803,9 +801,9 @@ We've spent enough time for today though, so we'll make a mental note that we ha
 
 .What Should Parse Return?
 ****
-Before we leave this example, note that this refactoring would have been easier had `parse` not thrown an exception on error;
-`throw` is an expression that returns `Nothing`. It doesn't complete, and so doesn't sit well when we are trying to decompose into expressions.
-<<throwing-to-returning>> talks about this in detail, but had we written `EmailAddress` from scratch in Kotlin, we would probably have returned `EmailAddress?` from `parse`, with null on failure.
+Before we leave this example, note that this refactoring would have been easier had `parse` not thrown an exception on error.
+`throw` is an expression that returns `Nothing`--it doesn't complete--and so doesn't sit well when we are trying to decompose into expressions.
+<<throwing-to-returning>> talks about this in detail, but had we written `EmailAddress` from scratch in Kotlin, we would probably have returned `EmailAddress?` from `parse`, with `null` on failure.
 That doesn't sit well with Java clients, where the type system doesn't warn about nullability.
 So we would probably end up with two parsing methods, one for legacy code and one for Kotlin, removing the exception version when there were no Java clients left.
 We explore how to support both languages' conventions during a gradual conversion from Kotlin to Java in <<functions-to-operators>>.
