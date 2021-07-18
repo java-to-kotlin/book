@@ -3,7 +3,9 @@
 
 ++++
 <blockquote data-type="epigraph">
-<p>Java uses checked and unchecked exceptions to represent and handle errors. Kotlin supports exceptions, but doesn't build checked exceptions into the language in the same way. Why did Kotlin reject Java's approach, and what should we use instead?</p>
+<p>Java uses checked and unchecked exceptions to represent and handle errors.
+Kotlin supports exceptions, but doesn't build checked exceptions into the language in the same way.
+Why did Kotlin reject Java's approach, and what should we use instead?</p>
 </blockquote>
 ++++
 
@@ -93,7 +95,7 @@ Returning a special value::
 Returning a special value to signify an error can be a useful technique.
 For example, a function can return `-1` instead of an index when an item is not found in a list.
 +
-This technique can only be used when not all of the range of return values are valid results for a function.
+This technique cannot be used when all return values are valid results for a function.
 It can also be dangerous, because the caller has to know (and remember) the convention.
 If we try to calculate the distance between two items in a list by subtracting their indices, when one of them is not found and returns -1, our calculation will be incorrect unless we explicitly handle the special case.
 We can't lean on the type checker to help us avoid errors.
@@ -157,7 +159,7 @@ Errors::
 Subclasses of `java.lang.Error` are reserved for failures so severe that the JVM can no longer guarantee the correct functioning of the runtime.
 Maybe a class cannot be loaded, or the system runs out of memory.
 These conditions can happen at any point in the execution of a program, and so could cause any function to fail.
-Because any method could fail in this way, there is no value in including them in every method signature, so `Errors` do not have to be declared.
+Because any method could fail in this way, there is no value in including them in every method signature, so ++Error++s do not have to be declared.
 
 RuntimeExceptions::
 Subclasses of `RuntimeException` represent other errors.
@@ -173,8 +175,7 @@ If they represent a programmer error, we should probably assume that we have jus
 Otherwise, we might try to recover, especially if our system has been designed to limit the damage that can be done to persistent state.
 
 Your authors both really liked checked exceptions, but it seems they were in the minority, because checked exceptions fell out of favor in Java over the years.
-Checked exceptions were hampered from the start by the odd decision to make the unchecked `RuntimeException`
-a subclass of the otherwise checked `Exception`, so that code that wanted to handle all checked exceptions found itself catching unchecked ones as well, hiding programming errors.
+Checked exceptions were hampered from the start by the odd decision to make the unchecked `RuntimeException` a subclass of the otherwise checked `Exception`, so that code that wanted to handle all checked exceptions found itself catching unchecked ones as well, hiding programming errors.
 They were also not helped by the fact that the Java APIs used them inconsistently.
 Take extracting data from a string for example: the `URL` constructor `URL(String)` throws the _checked_ `MalformedURLException`, while `Integer.parseInt(String)` throws the _unchecked_ `NumberFormatException`.
 
@@ -445,9 +446,9 @@ It is designed for coroutines, is restricted to an `Exception` (actually `Throwa
 This would be reasonable if it wasn't published in the `kotlin` package.
 It is, though, so if you try to use a more useful type called `Result`, you get strange error messages until you remember that the compiler is assuming that `Result` refers to the `kotlin.Result` type that you aren't supposed to use.
 
-Plenty of other `Result` types are available, but for this book we will use https://github.com/fork-handles/forkhandles/tree/trunk/result4k[Result4k], not coincidentally written by Nat.
+Plenty of other result types are available, but for this book we will use https://github.com/fork-handles/forkhandles/tree/trunk/result4k[Result4k], not coincidentally written by Nat.
 Compared to the generic `Either` type we introduced earlier, Result4k defines `Result<SuccessType, FailureType>`, with subtypes `Success` and `Failure` rather than `Left` and `Right`.
-Because          it is specialized for representing errors, Result4k reverses the `Either` convention by having the success type as the first of the generic parameters.
+Because it is specialized for representing errors, Result4k reverses the `Either` convention by having the success type as the first of the generic parameters.
 It can also offer operations, such as `onFailure` and `recover`, that would not make sense on `Either`.
 We'll see some of these operations as we refactor.
 
@@ -648,7 +649,7 @@ Then we will convert those callers to use the `Result` version and then remove t
 That's right, it's our old friend <<expand-contract>>.
 
 What should we call the method that works like `Customers::add` but returns a `Result`?
-We can't call it `add`, too, because both have the same parameters, so we call it `addToo` for now.
+We can't name it `add` too, because both have the same parameters, so we call it `addToo` for now.
 If the new method delegates to `add`, we can make it a default method so that it is available to all implementations:
 
 // begin-insert: errors.5:src/main/java/travelator/Customers.kt
@@ -891,7 +892,7 @@ override fun register(data: RegistrationData): Customer {
 ++++
 // end-insert
 
-Finally, that nesting is too confusing for comfort, so let's simplify it by using "Replace 'if' with 'when'”, "Replace return with 'when' expression", and "Remove braces from all 'when' entries".
+Finally, that nesting is too confusing for comfort, so let's simplify it by using "Replace 'if' with 'when'”, "Replace return with 'when' expression", and "Remove braces from all 'when' entries". TODO PRODUCTION THIS FORMATTING IS STILL NOT RIGHT. SHOULD BE SINGLE-QUOTED NOT ITALIC.
 Alt-Enter all the things!
 
 // begin-insert: errors.12:src/main/java/travelator/CustomerRegistration.kt#foo
