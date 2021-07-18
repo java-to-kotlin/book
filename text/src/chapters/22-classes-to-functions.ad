@@ -3,7 +3,9 @@
 
 ++++
 <blockquote data-type="epigraph">
-<p>Object-oriented programmers are adept at solving problems by creating types. Functional programmers tend to augment existing types with functions. How far can we go without defining new types?</p>
+<p>Object-oriented programmers are adept at solving problems by creating types.
+Functional programmers tend to augment existing types with functions.
+How far can we go without defining new types?</p>
 </blockquote>
 ++++
 
@@ -810,7 +812,7 @@ All our tests still pass, so we're quietly confident that we haven't broken anyt
 
 Where are we going with this?
 Our plan is to have the new `readTableWithHeader` read the header line to create a `headerProvider` to pass to `parseLine`.
-Sitting between `readTableWithHeader` and `parseLine` is the call to our old `readTable`, so it needs a `headerProvider` parameter, too, so that it can relay the value.
+Sitting between `readTableWithHeader` and `parseLine` is the call to our old `readTable`, so it needs a `headerProvider` parameter too, so that it can relay the value.
 So it's "Introduce Parameter" (with "Introduce Default Value") again, this time on `Int::toString` in `readTable`:
 
 // begin-insert: table-reader.22:src/main/java/travelator/tablereader/table-reading.kt#excerpt
@@ -1592,7 +1594,7 @@ We are able to define an API that takes and returns collection types without wor
 Value types may make for APIs composed of predictable calculations, but they can bring their own problems.
 Our naïve API suffers from the same issue as we saw in <<performing-io-to-passing-data>>: it works on a `List<String>` loaded into memory and produces a `List<Map<String, String>>` also in memory.
 Even discounting the cost of the data structures, the memory footprint of `readTable` is twice the number of bytes of the input, which is (probably) twice the size of a UTF-8 encoded file containing the data.
-To process large files, it would be nice to work in terms of sequences rather than in lists, since if-necessary sequences can keep only one item in each stage of a pipeline in memory at a time.
+To process large files, it would be nice to work in terms of sequences rather than in terms of lists, since if-necessary sequences can keep only one item in each stage of a pipeline in memory at a time.
 
 As we saw in <<streams-to-sequences>>, we can convert a `Sequence` to a `List` and back (with some caveats) very easily, so we could implement `Sequence` functions by delegating to our existing `List` API.
 This wouldn't reduce our memory footprint though, so instead we'll write the `Sequence` versions and delegate the `List` versions to them.
@@ -2007,7 +2009,7 @@ Our unit tests were all starting from a `List` of all the file lines; those sequ
 
 To use our `Sequence` interface on data in files, we will either have to load it all into memory or find a way to fetch the first and rest of a `Sequence` without trying to read it twice.
 Given that we introduced the `Sequence` specifically to avoid loading all the data into memory at once, we choose the latter.
-All we need to do then is check whether a `Sequence` has any items without consuming it.
+All we need to do then is to check whether a `Sequence` has any items without consuming it.
 Can you see how?
 
 Ah, that one was a trick question.
