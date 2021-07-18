@@ -167,7 +167,7 @@ The intention was that these would be reserved for problems caused by programmer
 In both these cases the programmer could have been more careful.
 Again though, every piece of code is subject to programmer error, so `RuntimeExceptions` are also exempted from having to be declared.
 
-This scheme forces developers to deal with operations that can fail due to IO or other things that are out of their control (the checked exceptions), allowing defensive programming where it is economical.
+This scheme forces developers to deal with operations that can fail due to I/O errors or other things that are out of their control (the checked exceptions), allowing defensive programming where it is economical.
 At the other extreme, if an `Error` is thrown, the best default approach is exit the process as quickly as possible, before any more damage can be done to persistent state.
 
 ++RuntimeException++s are a middle ground.
@@ -434,7 +434,7 @@ You won't be fired for using exceptions as your default strategy.
 The lack of type checking makes it hard to communicate what code is subject to what failure, though, which in turn makes it hard to build reliable systems.
 Adding insult to this injury, you will lose the benefits of referential transparency, making it harder to refactor and fix your unreliable system.
 
-Our preference is to return an `Either` type from those operations that would have thrown a checked exception in Java, either because of IO problems, or because, like `parseInt`, they cannot give a result for all inputs.
+Our preference is to return an `Either` type from those operations that would have thrown a checked exception in Java, either because of I/O problems, or because, like `parseInt`, they cannot give a result for all inputs.
 This allows us to reserve the use of exceptions for more pernicious problems.
 `Errors` are still appropriate for unrecoverable program errors: in this case we should design our systems so that the program exits and is restarted by some other process.
 `RuntimeExceptions` are still good for signaling when we have made an error as programmers: `IndexOutOfBounds` and the like.
