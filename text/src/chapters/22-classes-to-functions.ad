@@ -912,7 +912,8 @@ fun headerProviderFrom(header: String): (Int) -> String {
 
 This is a function that needs to return a function type.
 We can implement the return value with a lambda that takes an `Int` index and returns a `String`.
-The `String` we need to return is the header field at that index. We can use our `splitFields` again here:
+The `String` we need to return is the header field at that index.
+We can use our `splitFields` again here:
 
 // begin-insert: table-reader.25:src/main/java/travelator/tablereader/table-reading.kt#headerProviderFrom
 [source,kotlin]
@@ -1043,9 +1044,11 @@ fun readTable(
 ++++
 // end-insert
 
-This is nice. Our clients now can read with or without a header row.
+This is nice.
+Our clients now can read with or without a header row.
 But wait!
-Looking at the code, we realize that if they want to specify their own field names for `readTable`, they can do this by overriding the default `headerProvider` in `readTable`. We have a feature for free!
+Looking at the code, we realize that if they want to specify their own field names for `readTable`, they can do this by overriding the default `headerProvider` in `readTable`.
+We have a feature for free!
 Let's write a test to demonstrate it:
 
 // begin-insert: table-reader.27:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
@@ -1429,7 +1432,8 @@ val splitOnComma: (String) -> List<String> = { line ->
 ++++
 // end-insert
 
-You can see the pattern here. Now we make a parameter from the `splitOnComma` reference, again with a default to avoid breaking existing clients:
+You can see the pattern here.
+Now we make a parameter from the `splitOnComma` reference, again with a default to avoid breaking existing clients:
 
 // begin-insert: table-reader.35:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
@@ -1456,7 +1460,8 @@ fun readTableWithHeader(
 // end-insert
 
 Finally, in `readTableWithHeader`, we are calling `readTable` without providing a `splitter`, so it will use its default (`splitOnComma`).
-We don't want this, so we pass the parameter down. The header and body should be using the same splitter, so we pass it from `readTableWithHeader` to the inner `readTable`:
+We don't want this, so we pass the parameter down.
+The header and body should be using the same splitter, so we pass it from `readTableWithHeader` to the inner `readTable`:
 
 // begin-insert: table-reader.36:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
@@ -1677,7 +1682,8 @@ fun readTable(
 // end-insert
 
 This gives us a `Sequence` version of `readTable` that the `List` version calls, and the `List` version is well tested.
-Now for the outer `readTableWithHeader`. It looks like this:
+Now for the outer `readTableWithHeader`.
+It looks like this:
 
 // begin-insert: table-reader.42:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
@@ -1838,7 +1844,8 @@ fun readTableWithHeader(
 
 At this point, we have two versions of `readTable` and `readTableWithHeader`: a `List` and a `Sequence` version of each.
 Given how easy it is to convert a `List` argument to a `Sequence`, and a `Sequence` result to a `List`, maybe the `List` variants aren't paying their way?
-Let's just move their definitions into the tests while we don't have any production uses. That way, the tests can use them to stay simple, and the production code is kept minimal.
+Let's just move their definitions into the tests while we don't have any production uses.
+That way, the tests can use them to stay simple, and the production code is kept minimal.
 
 Here, then, is the entire public interface to our table parser:
 
