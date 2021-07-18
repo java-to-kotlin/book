@@ -3,7 +3,9 @@
 
 ++++
 <blockquote data-type="epigraph">
-<p>Kotlin has a special kind of procedure called an _extension function_, which is called like a method but is in fact (usually) a top-level function. It's easy to convert from a normal function to an extension function and back. When should we prefer one to the other?</p>
+<p>Kotlin has a special kind of procedure called an _extension function_, that is called like a method but is in fact (usually) a top-level function.
+It's easy to convert from a normal function to an extension function and back.
+When should we prefer one to the other?</p>
 </blockquote>
 ++++
 
@@ -59,7 +61,7 @@ data class Customer(
 
 Often we don't even get as far as looking at the definition.
 If we have a variable `val customer: Customer`, we can type `customer.` and our IDE will eagerly tell us that we can call `id`, `givenName`, `familyName`, or `fullName`.
-In fact, this auto-complete is in many ways better than looking at the class definition, because it also shows us other operations (`equals`, `copy`, etc.) that are defined in supertypes or implicit in the language.
+In fact, this auto-complete is in many ways better than looking at the class definition, because it also shows us other operations (`equals`, `copy`, and so on) that are defined in supertypes or implicit in the language.
 
 In a functional decomposition, `fullName` would be a function, and, if we suspect it exists, we would have to search our codebase for it.
 In this case it will be a function where the only argument is of type `Customer`.
@@ -103,7 +105,7 @@ fun nameForMarketing(customer: Customer) =
 
 What of the functional solution?
 Well, this is the functional solution, too.
-So the functional solution is arguably better for extensibility, because extension operations are indistinguishable from those (like `fullName`) provided by the original authors, whereas the OO solution makes us look for two different types of implementation, methods, and functions.
+So the functional solution is arguably better for extensibility, because extension operations are indistinguishable from those (like `fullName`) provided by the original authors, whereas the OO solution makes us look for two different types of implementation: methods and functions.
 
 Even if we _do_ own the code for the `Customer` class, we should be wary of adding methods like `nameForMarketing`.
 If the class `Customer` is a fundamental domain class in our application, lots of other code will depend on it.
@@ -379,7 +381,7 @@ Ahh ... that's much more readable.
 
 Extensions really come into their own when we work with optional data.
 When we are sending messages to a potentially `null` object, we can use the safe-call operator `?.` that we saw in <<optional-to-nullable>>.
-That doesn't help with parameters, though; to pass a nullable reference as an argument to a function that takes a nonnull parameter, we have to wrap the call in conditional logic:
+That doesn't help with parameters though; to pass a nullable reference as an argument to a function that takes a nonnull parameter, we have to wrap the call in conditional logic:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#single_if
 [source,kotlin]
@@ -610,7 +612,7 @@ fun Iterable<Customer>.familyNames(): Set<String> =
 // end-insert
 
 This extension function is applicable to any `Collection<Customer>` but not to collections of other types.
-This allows us to use collections to represent domain concepts rather than defining our own types as we will see in <<encapsulated-collections-to-typealiases>>.
+This allows us to use collections to represent domain concepts rather than defining our own types, as we will see in <<encapsulated-collections-to-typealiases>>.
 We can also extract parts of collections pipelines into named operations; see <<extracting-part-of-a-pipeline>>.
 
 
@@ -723,7 +725,7 @@ class HighValueCustomersReportTests {
 ++++
 // end-insert
 
-You can see that we haven't gone to town on these, because marketing people do have a habit of changing their minds, but in essence the report needs to list the customers who have a score of 10 or more, sorted by spend, with a final total line.
+You can see that we haven't gone to town on these, because marketing do have a habit of changing their minds, but in essence the report needs to list the customers who have a score of 10 or more, sorted by spend, with a final total line.
 
 Here is the code:
 
