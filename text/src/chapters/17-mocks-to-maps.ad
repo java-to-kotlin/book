@@ -3,14 +3,15 @@
 
 ++++
 <blockquote data-type="epigraph">
-<p>Mocks are a common technique to decouple object-oriented code from its production dependencies. Are better solutions available in Kotlin?</p>
+<p>Mocks are a common technique to decouple object-oriented code from its production dependencies.
+Are better solutions available in Kotlin?</p>
 </blockquote>
 ++++
 
 This is a short bonus chapter, following on from <<interfaces-to-functions>>.
 In that chapter, we saw that our tests used mocks because they had to implement two multimethod interfaces, even though most of those methods were not used.
 We left the refactoring, having replaced dependencies on multimethod interfaces with a dependency on just the two operations that were actually required to perform the task.
-The tests, though, still mock the whole interface and then pass a reference to the required methods to the subject under test (`Recommendations`):
+The tests, though, still mock the whole interface, and then pass a reference to the required methods to the subject under test (`Recommendations`):
 
 // begin-insert: interfaces-to-funs.7:src/test/java/travelator/recommendations/RecommendationsTests.java#setup
 [source,java]
@@ -100,10 +101,9 @@ private void givenADistanceBetween(
 ****
 David Heinemeier Hansson coined the term https://oreil.ly/8vgJU[test-induced design damage] to refer to harm caused to systems in the name of testability.
 In practice, your authors don't recognize this as much of a problem; we find that systems are usually _improved_ by the decoupling required to test them well.
-We _do_ often see tests ruined by mocks though, so much so that mocks have become a bit of a dirty word in our circles.
-This despite the fact that these circles spawned the technique and wrote the book (<<FP_GOOSGBT_2009,_Growing Object-Oriented Software Guided By Tests_>>).
+We _do_ often see tests ruined by mocks though, so much so that mocking has fallen out of favour in our circles.
 
-The problem seems to be that, as well as implementing interfaces, mock frameworks allow us to specify the expected invocations of their methods and what should be returned in those cases.
+The problem is that, as well as implementing interfaces, mock frameworks allow us to specify the expected invocations of their methods and what should be returned in those cases.
 Often, though, expected calls and their results don't make for a human-readable description, as we'll see if we look at the inlined version of the last expectations:
 
 // begin-insert: interfaces-to-funs.1:src/test/java/travelator/recommendations/RecommendationsTests.java#excerpt
@@ -146,7 +146,7 @@ Defining methods like `givenADistanceBetween` allows us to express the relations
 In practice, though, very few developers take this step, leading to cryptic tests that are blamed on the use of mocking.
 ****
 
-Nat is keen to point out that the mocks that he and Steve Freeman wrote about (<<FP_GOOSGBT_2009,_Growing Object-Oriented Software Guided by Tests_>>) were never supposed to be used to implement query functionality like `findCloseTo` and `distanceInMetersBetween`, but only to abstract methods that change state.
+Nat is keen to point out that the mocks that he and Steve Freeman wrote about (<<FP_GOOSGBT_2009,_Growing Object-Oriented Software Guided by Tests_>>) were never supposed to be used to implement query functionality like `findCloseTo` and `distanceInMetersBetween`, but only methods that change state.
 Duncan doesn't remember noticing that and is personally not against using mocks in this way, because they are still a nice way to specify what we expect of collaborators when practicing outside-in test-driven development, whether reading-from or writing-to.
 In the end, maybe it doesn't matter, because in both of our experiences, most Java codebases have mocks that are used in this way, and most Kotlin codebases would be better off without them.
 
@@ -209,8 +209,7 @@ private fun givenFeaturedDestinationsFor(
 // end-insert
 
 To see how to remove the mocking, it helps to view a function type as a mapping between its input parameters (as a tuple) and its result.
-So `destinationFinder` is a mapping between a single `Location` and a `List<FeaturedDestination>`;
-`distanceInMetersBetween` is a mapping between `Pair<Location, Location>` and `Int`.
+So `destinationFinder` is a mapping between a single `Location` and a `List<FeaturedDestination>`, and `distanceInMetersBetween` is a mapping between `Pair<Location, Location>` and `Int`.
 The `Map` data structure is our way of expressing a set of mappings—the name isn't accidental.
 So we can fake a function by populating a `Map` with parameter keys and result values, and replacing the function call with a lookup of the supplied parameters.
 You may have used this trick to cache the result of expensive calculations.
