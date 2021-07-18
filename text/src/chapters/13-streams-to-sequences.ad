@@ -3,7 +3,9 @@
 
 ++++
 <blockquote data-type="epigraph">
-<p>Java and Kotlin both allow us to transform and reduce collections. They have different design goals and implementations, though. What does Kotlin use instead of Java streams, when should we convert, and how?</p>
+<p>Java and Kotlin both allow us to transform and reduce collections.
+They have different design goals and implementations, though.
+What does Kotlin use instead of Java streams, when should we convert, and how?</p>
 </blockquote>
 ++++
 
@@ -280,7 +282,8 @@ This would lead `strings.count()` to return `0`, resulting in `averageNonBlankLe
 This sort of behavior is, erm, _undesirable_, so sequences wrapping iterators are deliberately hobbled with `Sequence.constrainOnce()` to prevent this.
 It is `constrainOnce()` that throws the `IllegalStateException` if we try to consume twice.
 
-The other canonical example of a `Sequence` that cannot be consumed more than once is one backed by reading from an external resource, such as a file or network socket. In such cases we can't in general just go back and replay input to iterate again.
+The other canonical example of a `Sequence` that cannot be consumed more than once is one backed by reading from an external resource, such as a file or network socket.
+In such cases we can't in general just go back and replay input to iterate again.
 
 Unfortunately, the difference between the two types of `Sequence` is not reflected in the type system, so we will only discover any incompatibility between our algorithm and our input at runtime.
 As we will see in <<performing-io-to-passing-data>>, this is exacerbated by the common technique of using `sequenceOf(...)` or `List.asSequence()` as our test data; these sequences _do_ support multiple iterations and won't warn us of the problem.
