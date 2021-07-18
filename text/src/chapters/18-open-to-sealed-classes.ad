@@ -3,7 +3,9 @@
 
 ++++
 <blockquote data-type="epigraph">
-<p>Our systems are composed of types and operations, nouns and verbs. In Java, nouns are expressed as classes and interfaces, verbs as methods; but Kotlin adds sealed class hierarchies and freestanding functions. What do they bring to the party?</p>
+<p>Our systems are composed of types and operations, nouns and verbs.
+In Java, nouns are expressed as classes and interfaces, verbs as methods; but Kotlin adds sealed class hierarchies and freestanding functions.
+What do they bring to the party?</p>
 </blockquote>
 ++++
 
@@ -114,7 +116,7 @@ For a while now, though, we haven't had to do that.
 Recently, we find that most of the new functionality we add to Travelator involves adding new operations to `Itinerary` and `ItineraryItem` rather than new types of `ItineraryItem`.
 Changes to the `ItineraryItem` interface and its implementations are a common source of merge conflicts between team members who are working on different features.
 With every new feature, the `ItineraryItem` gets larger.
-It seems to attract behavior to support distantly related parts of the application, with properties to support rendering, cost estimation, ranking by comfort, drawing maps, and more hidden beyond that `...and other methods`.
+It seems to attract behavior to support distantly related parts of the application, with properties to support rendering, cost estimation, ranking by comfort, maps drawing and more hidden beyond that `...and other methods`.
 Paradoxically, in the core of our application, object-oriented polymorphism is _increasing_ coupling!
 
 // Reference the collections to type aliases example where we discuss coupling?
@@ -159,7 +161,7 @@ if (item instanceof Journey) {
 
 That `IllegalStateException` shows that this approach is risky.
 Whereas the compiler can type check our calls to polymorphic methods, our hand-coded runtime type checks and casts are explicitly circumventing compile-time checks.
-The type checker cannot tell whether our casts are correct or our conditional statement is _exhaustive_—whether it applies to all possible subclasses.
+The type checker cannot tell whether our casts are correct or our conditional statement is _exhaustive_: whether it applies to all possible subclasses.
 If returning a value from the method, we have to write an `else` clause to return a dummy value or throw an exception, even if we have branches for every subclass of `ItineraryItem`, and the else clause "cannot possibly be executed™."
 
 Even if we cover all the subtypes of `ItineraryItem` when we write the code, if we later add new types, we have to find all such code and update it.
