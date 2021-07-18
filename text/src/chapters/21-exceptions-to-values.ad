@@ -3,7 +3,9 @@
 
 ++++
 <blockquote data-type="epigraph">
-<p>In <a data-type="xref" href="#throwing-to-returning">#throwing-to-returning</a> we looked at error-handling strategies for Kotlin, and how to refactor from exceptions in Java to more functional techniques. The truth is that most code ignores errors in the hope that they won't happen. Can we do better?</p>
+<p>In <a data-type="xref" href="#throwing-to-returning">#throwing-to-returning</a> we looked at error-handling strategies for Kotlin, and how to refactor from exceptions in Java to more functional techniques.
+The truth is that most code ignores errors in the hope that they won't happen.
+Can we do better?</p>
 </blockquote>
 ++++
 
@@ -13,7 +15,7 @@ It's getting a bit embarrassing on both sides of the relationship, so the cake h
 Could there be any more incentive?
 
 Well yes, there could.
-We've also been asked to write an unattended job so that marketing folks can save their file onto a server, and 'we' will automatically write the summarized version.
+We've also been asked to write an unattended job so that marketing can save the file onto a server, and 'we' will automatically write the summarized version.
 Without a person in the loop to interpret those stack traces, it looks like we'll have to find a way to report errors properly.
 
 === Identifying What Can Go Wrong
@@ -311,7 +313,8 @@ Now that this code represents all reasonable errors with `null`, we can go back 
 We could abort on the first error, but it seems worth the extra effort to collect all the problem lines and report them somehow.
 _Somehow_ is a bit vague, but funnily enough it has a type: `(String) -> Unit` in this case.
 Which is to say, we can delegate the what-to-do to a function that accepts the errant line and doesn't affect the result.
-We allude to this technique in <<errors-invoking-a-function>>. To illustrate this, let's add a test:
+We allude to this technique in <<errors-invoking-a-function>>.
+To illustrate this, let's add a test:
 
 // begin-insert: exceptions-to-values.4:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#error
 [source,kotlin]
@@ -860,8 +863,9 @@ In the test code, these are in memory, but in production they are being fetched 
 So our `Sequence` operations are subject to failure with `IOExceptions` that the report generation is blissfully unaware of.
 
 There is little that `toHighValueCustomerReport()` can or should do in these cases.
-There is no practical way of recovering from I/O errors once we have started reading in this case—aborting the whole operation is the sensible thing to do.
-Helpfully, now the onus is entirely on the caller—`main` here—`toHighValueCustomerReport` signals the errors that it knows about (failure to parse) and how they are represented (subclasses of `ParseFailure`) through its `onErrorLine` parameter.
+There is no practical way of recovering from I/O errors once we have started reading here—aborting the whole operation is the sensible thing to do.
+Helpfully, now the onus is entirely on the caller (in this case `main`).
+`toHighValueCustomerReport` signals the errors that it knows about (failure to parse) and how they are represented (subclasses of `ParseFailure`) through its `onErrorLine` parameter.
 ++IOException++s are not its responsibility.
 It is `main` that is passing an I/O-backed `Sequence` into `toHighValueCustomerReport`, so `main` should be aware that `toHighValueCustomerReport` can therefore fail with an `IOException` and deal with it accordingly.
 Let's add that code:
@@ -919,7 +923,7 @@ Very often in engineering, we have to make compromises.
 In particular, attempts to make one thing simpler often complicate another.
 I/O complicates our software in two ways.
 It is an action, so we can't just ignore whether or when it happens as we refactor; and it is subject to errors, which we have to deal with if we want a robust system.
-These errors may be simple environmental failures to read or write or because the things that we are reading don't meet our expectations—when marketing personnel corrupt their file in some way.
+These errors may be simple environmental failures to read or write, or because the things that we are reading don't meet our expectations—when the marketing file ends badly formatted for example.
 
 Both actions and errors taint their callers, and the solution in both cases is the same: move the code closer to the entry points so that it taints less of our system.
 This, then, is an area where, rather than having to compromise, we can kill two birds with one stone.
