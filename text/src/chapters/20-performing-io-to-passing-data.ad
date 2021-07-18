@@ -3,7 +3,10 @@
 
 ++++
 <blockquote data-type="epigraph">
-<p>Input and output are problematic in code. Our program is subject to errors talking to the outside world when files disappear or network sockets fail. I/O is also an action and so limits our ability to reason with and refactor our code. How can we limit the scope of the problems that I/O causes?</p>
+<p>Input and output are problematic in code.
+Our program is subject to errors talking to the outside world when files disappear or network sockets fail.
+I/O is also an action and so limits our ability to reason with and refactor our code.
+How can we limit the scope of the problems that I/O causes?</p>
 </blockquote>
 ++++
 
@@ -138,7 +141,7 @@ We know it does, because that's what we are checking."
 
 So the tests are telling us that the fundamental signature of `generate` is `generate(lines: List<String>): List<String>`.
 If _this_ was the signature, then it would not have to declare that it throws `IOException` either, because all the I/O would happen outside the function.
-IO has to happen somewhere, but, in common with other actions, the closer to the entry points of our system we can move it, the more we can deal in nice easy calculations.
+I/O has to happen somewhere, but, in common with other actions, the closer to the entry points of our system we can move it, the more we can deal in nice easy calculations.
 
 Shall we refactor toward this goal?
 You're right, that was a rhetorical question.
@@ -501,11 +504,11 @@ We're quite pleased with this refactor.
 It has simplified our tests and the production code, and we have moved from mixing I/O and logic to a simpler calculation with no side effects.
 
 For a while, all is fine in production too, but with the easing of COVID-19 travel restrictions, Travelator becomes the roaring success that we all knew it would be.
-Eventually, though, those lovely marketing folks start complaining that the report generation is failing with an `OutOfMemoryError`.
+Eventually, though, the lovely people in marketing start complaining that the report generation is failing with an `OutOfMemoryError`.
 Could we look into it?
 
 (Apart from running out of memory, we have had two other issues with errors in this code in living memory.
-Both these times, the input file turned out to have been malformed, but marketing folks sit next door and just call us over to help if these occur.
+Both these times, the input file turned out to have been malformed, but marketing sit next door and just call us over to help if these occur.
 They feed us cake in these cases, so we're hardly incentivized to do a better job of error handling for now (but see <<exceptions-to-values>>).
 If we can fix the `OutOfMemoryError` quickly, we think we saw some crumpets...)
 
@@ -564,7 +567,7 @@ We're reading the whole of the input into memory (`readLines()`), processing it,
 
 We sometimes run into problems like these with functional decomposition.
 In this case the original `Reader` and `Writer` code did not have this issue, so we have brought it on ourselves in the name of good style.
-We could quickly revert our changes and go and see if there are any crumpets left, or we could find a more functional solution.
+We could quickly revert our changes and go and see whether there are any crumpets left, or we could find a more functional solution.
 
 Let's go back to `generate` and see what leeway we have:
 
@@ -737,11 +740,11 @@ fun Writer.appendLines(lines: Sequence<CharSequence>): Writer {
 ++++
 // end-insert
 
-Note that although the definition of `Writer::appendLines` is a single expression, we agreed in <<multi-to-single-expression-functions>> to use long form where functions are actions, and `appendLines` is definitely that.
+Note that although the definition of `Writer::appendLines` is a single expression, we agreed in <<multi-to-single-expression-functions>> to use the long form where functions are actions, and `appendLines` is definitely that.
 
 Now that we are here, we realize that we could have postponed our memory crisis by just iterating over the original result `List` in `main`, writing each line individually, as we are doing now with the `Sequence`.
 This solution will use even less memory, though, so we'll commit it, having bought ourselves lots of headroom with few changes and earned our crumpets.
-Do the marketing folks have any jam?
+Is there any butter?
 
 === Efficient Reading
 
@@ -865,7 +868,7 @@ The simplest fix is to resolve the `Sequence` with a `.toList()` call.
 // end-insert
 
 This terminates the sequence (and hence ultimately reads the whole file) in that statement, but at least we run the pipeline only once, and the memory for each line can be discarded as soon as it is parsed `toCustomerData`.
-We will in fact have to read through the whole input in this function anyway, because `Sequence.sortedBy` needs to read every item to perform the sort—its returning a `Sequence` is a lie.
+We will in fact have to read through the whole input in this function anyway, because `Sequence.sortedBy` needs to read every item to perform the sort—it may return a `Sequence`, but it isn't lazy.
 
 Now we can replay the "Introduce parameter" refactoring we used at the beginning of this chapter.
 There we converted a `Reader` parameter into a `List`; now we convert the `List` to a `Sequence`.
@@ -1043,10 +1046,10 @@ That was all well and good, but calculations take and return values, and forming
 
 To solve this problem, we resorted to converting our ++List++s to ++Sequence++s.
 Sequences have state and are not values, but with a little care we can treat them like lazy values—lazy in that they don't require or return all their contents up front, but can read or supply them on demand.
-They aren't as simple as ++List+s, but their compatible Kotlin API allows something of the best of both worlds.
+They aren't as simple as lists, but their compatible Kotlin API allows something of the best of both worlds.
 
 Our original `Reader` to `Writer` version of `generate` had to worry about I/O errors, whereas the `List` to `List` version moved all I/O to its callers.
 The `Sequence` version is in a middle ground.
 It doesn't worry about I/O errors because they are hidden from it by the `Sequence` abstractions wrapping the `Reader` and `Writer`.
 That doesn't mean that they can't happen, just that `generate` isn't responsible for them.
-We'll take a break to see if our friends in marketing have any more batter-based rewards before addressing that topic in <<exceptions-to-values>>.
+We'll take a break to see whether our colleagues in marketing have any more batter-based rewards before addressing that topic in <<exceptions-to-values>>.
