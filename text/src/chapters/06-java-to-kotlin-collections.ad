@@ -3,7 +3,8 @@
 
 ++++
 <blockquote data-type="epigraph">
-<p>On the face of it, Java and Kotlin have very similar collections libraries; they certainly interoperate suspiciously seamlessly. What are the differences, what motivates them, and where do we have to take care as we move from Java to Kotlin collections?</p>
+<p>On the face of it, Java and Kotlin have very similar collections libraries; they certainly interoperate suspiciously seamlessly.
+What are the differences, what motivates them, and where do we have to take care as we move from Java to Kotlin collections?</p>
 </blockquote>
 ++++
 
@@ -152,8 +153,8 @@ When code that we don't own does not respect this convention, we can use copies 
 ****
 
 This strategy doesn't stop us from creating mutable collections and populating them within a function, but code should only change a collection that it has just created.
-As soon as we return a reference as a result, we should treat it as immutable—create, don't mutate.
-We might occasionally enforce this immutability by wrapping with `Collections.unmodifiableList(...)` etc, but in an aligned development team this is unnecessary, because no one would treat a shared collection as mutable.
+As soon as we return a reference as a result, we should treat it as immutable—_create, don't mutate_.
+We might occasionally enforce this immutability by wrapping with `Collections.unmodifiableList(...)` etc., but in an aligned development team this is unnecessary, because no one would treat a shared collection as mutable.
 
 There will of course be exceptions to the rule, places where, usually for reasons of efficiency, we want to share a collection as a mutable collection.
 In these cases we can get dispensation by naming (`accumulator` is a good start) and by limiting the scope of the sharing as much as possible.
@@ -171,8 +172,8 @@ However, smooth interoperation with Java was a key goal, and Java has mutable co
 Scala had tried introducing its own sophisticated persistent (immutable but data-sharing) collections, but this forced developers to copy information between collections on the interop boundary, which was both inefficient and annoying.
 How could Kotlin square the circle and have immutable collections interoperate seamlessly with Java?
 
-The Kotlin developers removed the mutation methods from the Jave collections interfaces and published them in the `kotlin.collections` package as `Collection<E>`, `List<E>` etc.
-These were then extended by `MutableCollection<E>`, `MutableList<E>` etc, which add back in the Java mutation methods.
+The Kotlin developers removed the mutation methods from the Jave collections interfaces and published them in the `kotlin.collections` package as `Collection<E>`, `List<E>` and so on.
+These were then extended by `MutableCollection<E>`, `MutableList<E>` etc., which add back in the Java mutation methods.
 So in Kotlin we have `MutableList`, which is a subtype of `List`, which is a subtype of `Collection`.
 `MutableList` also implements `MutableCollection`.
 
@@ -279,7 +280,7 @@ assertEquals(holdsState.first, holdsState.strings.first()) // <1>
 ----
 // end-insert
 
-<1> Expected "0", actual "banana"
+<1> `Expected "0", actual "banana"`.
 
 `AValueType` turns out to be mutable after all!
 Because of this, `first`, which is initialized on construction, can get out of date.
