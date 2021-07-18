@@ -3,7 +3,9 @@
 
 ++++
 <blockquote data-type="epigraph">
-<p>In Java, we use interfaces to specify a contract between code that defines some functionality and code that needs it. Those interfaces couple the two parties together, which can make our software harder to maintain. How do function types help solve this problem?</p>
+<p>In Java, we use interfaces to specify a contract between code that defines some functionality and code that needs it.
+Those interfaces couple the two parties together, which can make our software harder to maintain.
+How do function types help solve this problem?</p>
 </blockquote>
 ++++
 
@@ -283,7 +285,8 @@ fun createEmailSender(
 
 <1> The return type of our function is itself a function that takes an `Email` and returns `Unit`.
 
-Thus, `createEmailSender` is a constructor, not a class constructor, but a function taking the same role.
+Thus, `createEmailSender` is a constructor.
+Not a class constructor, but a function taking the same role.
 Both `createEmailSender` and `::EmailSender` are functions that return an object that knows how to send a message.
 
 To see how this works in functions, we can write this in longhand first by defining an inner function that captures the arguments it requires from the parent:
@@ -938,11 +941,11 @@ The code may read the same, but it generates very different, and fundamentally i
 
 === Coupling
 
-An easy to overlook difference between expressing a dependency as an implementation of `ISendEmail` and expressing an implementation of the function type `(Email) -> Unit` is the coupling between the client and the implementation, in particular when they are in different code modules.
+A subtle difference between expressing a dependency as either an implementation of `ISendEmail`, or as an implementation of the function type `(Email) -> Unit`, is the coupling between the client and the implementation, in particular when they are in different code modules.
 
 `ISendEmail` has to be defined somewhere.
-The client can't define it, because the implementor will depend on the interface and the client on the implementation, leading to a circular dependency.
-So the interface has to be defined either with the implementation or in a separate place (package or JAR file) depended on by both implementation and its clients.
+The client can't define it, because the implementor will depend on the interface, and the client on the implementation, leading to a circular dependency.
+So the interface has to be defined either with the implementation, or in a separate place (package or JAR file) depended on by both implementation and its clients.
 The latter (an application of the https://oreil.ly/AcrWj[dependency inversion principle]) is in theory preferable but in practice more work and thus often neglected.
 
 With or without dependency inversion, the result is the client and implementation being coupled by the interface in ways that can make systems hard to reason with and refactor.
@@ -1012,7 +1015,7 @@ val organiser = Organiser(emailSystem::list)
 Depending on the wider interface misses the opportunity to communicate precisely which operations we require and forces clients to provide an implementation of the whole interface.
 This is particularly irritating in tests, where we will have to introduce fake objects just to get our test code to compile.
 
-The drives of communication and reduced coupling are so strong that even if our client needs to send and delete email, and in practice these will be supplied by a single `EmailSystem`, it should probably depend on two functions rather than the interface:
+The drives of communication and reduced coupling are so strong that even if our client needs to send and delete email, and in practice these will be supplied by a single `EmailSystem`, the client should probably depend on two functions rather than the interface:
 
 // begin-insert: src/main/java/encapsulation/narrowing.kt#two_methods
 [source,kotlin]
@@ -1147,7 +1150,7 @@ Although we said earlier that "our runtime defines all the functions types", tha
 Because of this, legacy Java code usually expresses dependencies with the same multimethod interfaces that we would use to group them by subsystem (like `EmailSystem`), even when only one of those methods is required to implement the functionality.
 This leads to the coupling problems described earlier.
 It also leads to a need for mocking (or, more pedantically, faking) frameworks to create test implementations of broad interfaces where in practice only one method will be called.
-These fakes then sprout the functionality to fail early if you call a method that you didn't mean to call, a problem that would be solved at compiletime if a single function expressed the dependency.
+These fakes then sprout the functionality to fail early if you call a method that you didn't mean to call, a problem that would be solved at compile time if a single function expressed the dependency.
 
 Once we have introduced a mocking framework into our codebase (or, more usually, two or three mocking frameworks to cater to different tastes), they allow us to solve problems, like generating implementations for unused methods and stubbing out interactions with external systems.
 Usually, though, our code would be improved by restructuring to avoid the need for mocks.
@@ -1159,7 +1162,7 @@ Expressing dependencies as function types is one example; another is moving the 
 There is a downside to expressing dependencies with function types, and it is a common issue with adding a layer of indirection.
 If we use IntelliJ to find the callers of `EmailSystem.send`, the trail goes cold at the point where `EmailSystem::send` is converted to `(Email) -> Unit`.
 The IDE doesn't know that invocations of the function are actually calling the method.
-It's like our hero enters a river, and the posse tracking them has to scour both banks upstream and downstream to find where she gets out.
+It's like our hero enters a river, and the posse tracking her has to scour both banks upstream and downstream to find where she gets out.
 
 This is a price we pay for indirection with method calls too, but our tooling is wise to these and can at least find all places where a particular method is implemented, and where an implementation is called through an interface.
 As with using unencapsulated collections (<<encapsulated-collections-to-typealiases>>), the price that we pay for decoupling and generality is that tooling, and developers, have less context to hang analysis on.
