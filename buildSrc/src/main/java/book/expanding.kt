@@ -1,6 +1,6 @@
 package book
 
-import com.natpryce.*
+import com.natpryce.recover
 import java.io.File
 import kotlin.text.RegexOption.DOT_MATCHES_ALL
 import kotlin.text.RegexOption.MULTILINE
@@ -26,7 +26,15 @@ fun processFiles(
     kotlinVersion: String
 ) {
     inputRoot.walkTopDown()
-        .filter { it.name.endsWith(".ad") }
+        .filter { it.name.endsWith(".ad") || it.name.endsWith(".asciidoc") }
+        .toList()
+        .also {
+            if (it.isEmpty()) {
+                throw IllegalStateException("no asciidoc files found!")
+            }
+
+            println("expanding ${it.size} asciidoc files")
+        }
         .forEach { file ->
             processFile(
                 file,
