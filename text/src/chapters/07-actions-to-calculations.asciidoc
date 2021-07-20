@@ -11,12 +11,12 @@ Can we improve our code by making more of it functional?</p>
 [[functions]]
 === Functions
 
-As an industry, we have invented a lot of phrases to describe callable subprograms within a larger program.
+As((("actions to calculations", "functions")))((("functions", "defined")))((("subroutines")))((("procedures")))((("methods"))) an industry, we have invented a lot of phrases to describe callable subprograms within a larger program.
 We have the very generic _subroutine_.
 Some languages (notably Pascal) distinguish between _functions_ that return a result, and _procedures_, which don't; but most developers use the terms interchangeably.
 Then there are _methods_, which are subroutines associated with an object (or a class, in the case of static methods).
 
-The C language calls them all functions but has a special `void` type to represent the absence of a return value.
+The((("void type"))) C language calls them all functions but has a special `void` type to represent the absence of a return value.
 This was carried forward into Java.
 Kotlin uses `Unit` in almost the same way, except that `Unit` is not the absence of a return value, but rather a singleton value that is returned instead.
 
@@ -27,7 +27,7 @@ Whatever we call them, functions are one of the fundamental building blocks of o
 We define them with some sort of notation, generally the programming language we are using.
 They are also generally fixed during a run of the program; in static languages, at least, we don't usually redefine functions on the fly.
 
-This is in contrast to the other fundamental building block: data.
+This((("variables"))) is in contrast to the other fundamental building block: data.
 We expect data to vary as we run our program, and different data is bound to variables.
 Variables are called variables because they are, wait for it, variable.
 Even when they are `final`, or `val`, they are usually bound to different data in different invocations of a function.
@@ -42,7 +42,7 @@ How would we go about doing that?
 [[calculations]]
 === Calculations
 
-To be a calculation, a function must always return the same result given the same inputs.
+To((("functions", "calculations")))((("calculations", "defined")))((("actions to calculations", "calculations defined"))) be a calculation, a function must always return the same result given the same inputs.
 The inputs to a function are its parameters, which are bound to arguments when the function is called.
 So a calculation always returns the same result when called with the same arguments.
 
@@ -71,7 +71,7 @@ data class Customer(
 }
 ----
 
-For a method or extension, the receiver `this`, and any property accessed via `this`, is also an input.
+For((("this keyword"))) a method or extension, the receiver `this`, and any property accessed via `this`, is also an input.
 So both `upperCaseGivenName` and `fullName` are calculations because `givenName` and `familyName` are both values.
 
 An extension function or property can also be a calculation if the data it depends on is a value:
@@ -85,7 +85,7 @@ val Customer.fullName get() = "$givenName $familyName"
 
 .Computed Property or Function?
 ****
-You may have wondered when to define a computed property and when to have a function that returns a result.
+You((("computed properties")))((("functions", "versus computed properties", secondary-sortas="computed properties"))) may have wondered when to define a computed property and when to have a function that returns a result.
 Computed properties are confusing if they return different results at different times, at least when defined on value types (and you'll be realizing by now that your authors think that most of our types should be value types).
 So a good rule of thumb is to reserve computed properties for calculations.
 
@@ -108,11 +108,11 @@ It is an action.
 [[actions]]
 === Actions
 
-`println` is an action because it _does_ depend on when and how many times it is run.
+`println` is((("println")))((("functions", "actions")))((("actions to calculations", "actions defined"))) an action because it _does_ depend on when and how many times it is run.
 If we don't call it, nothing is output, which is different from calling it once, which is different from calling it twice.
 The order that we call `println` with different arguments also matters to the results we see on the console.
 
-We call `println` for its _side effect_—the effect it has on its environment.
+We((("side effects")))((("outside effects"))) call `println` for its _side effect_—the effect it has on its environment.
 Side effect is a bit of a misleading term because, unlike drug side effects, they are often exactly the thing that we want to happen.
 Maybe _outside effect_ would be a better name, to emphasize that they are external to a function's parameters, local variables, and return value.
 In any case, functions with observable side effects are actions not calculations.
@@ -167,7 +167,7 @@ We'll return to that problem soon.
 
 === Why Should We Care?
 
-We should obviously pay special attention to some actions in our software.
+We((("actions to calculations", "importance of each")))((("calculations", "versus actions", secondary-sortas="actions"))) should obviously pay special attention to some actions in our software.
 Sending the same email to every user twice is a bug, as is not sending it at all.
 We care exactly how many times it is sent.
 We may even care that it is sent at exactly 8:07 a.m., so that our offer for a free first-class upgrade is at the top of our customer's inbox when they read their email over breakfast.
@@ -181,7 +181,7 @@ Calculations, on the other hand, can be invoked at any time, with no consequence
 If we are refactoring code and find that we don't need the result of a calculation, we can safely not invoke it.
 If it is an expensive calculation, we can safely cache its result; if it is inexpensive, we can safely recalculate it on demand if that simplifies things.
 It is this feeling of safety that puts the smug smile on the faces of functional programmers (well, that and knowing that a monad is just a monoid in the category of endofunctors).
-Those functional programmers also have a term for the property of a function that makes it a calculation: _referential transparency_.
+Those((("referential transparency"))) functional programmers also have a term for the property of a function that makes it a calculation: _referential transparency_.
 If a function is referentially transparent, we can replace its call with its result, and we can only do that if it doesn't matter when or if we call it.
 
 .Procedural Code
@@ -196,7 +196,7 @@ The evolution of programming languages has been a process of restricting the ult
 
 === Why Prefer Calculations?
 
-We like calculations because they are so much easier to work with, but ultimately our software needs to have an effect on the world, which is an action.
+We((("actions to calculations", "benefits of calculations")))((("calculations", "benefits of"))) like calculations because they are so much easier to work with, but ultimately our software needs to have an effect on the world, which is an action.
 There is no overlap though; code can't be an action and a calculation, both timeless and time-dependent.
 If we take some code that is a calculation and have it invoke an action, then it becomes an action, because it will now depend on when or whether it is called.
 We can think of calculations as the purer code, where code inherits the most tainted level of all of its dependencies.
@@ -209,7 +209,7 @@ Then we can fix things with refactoring!
 
 === Refactoring Actions to Calculations
 
-Let's have a look at recognizing and refactoring actions in existing code.
+Let's((("calculations", "refactoring actions to calculations", id="Cref07")))((("actions to calculations", "refactoring actions to calculations", id="ACref07")))((("refactoring", "actions to calculations", id="Ractcalc07"))) have a look at recognizing and refactoring actions in existing code.
 
 ==== Existing Code
 
@@ -479,7 +479,7 @@ public interface Trips {
 ++++
 // end-insert
 
-We use IntelliJ's "Change Signature" refactoring to add the parameter, calling it `at`.
+We((("IntelliJ IDE", "Change Signature refactoring"))) use IntelliJ's "Change Signature" refactoring to add the parameter, calling it `at`.
 When we add a parameter, we need to tell IntelliJ what value it should use when updating the callers of our function.
 Because we aren't using the value in the method yet (and this is Java), we should be able to use `null` without breaking anything.
 Running the tests shows that we are right—they still pass.
@@ -964,7 +964,7 @@ Categorizing our code into calculations and actions has helped us see these issu
 
 Lastly, note that Kotlin's preference for immutable data makes this categorization easier.
 For example, when you see `List` in Java, you have to find the places in which it is created or referenced to establish its mutability and, hence, the likelihood that code accessing it can be an action.
-In Kotlin, when you see `MutableList` you can infer an action, although as we have seen with `InMemoryTrips`, exposing a mutable collection with a read-only alias can lead to actions pretending to be calculations.
+In Kotlin, when you see `MutableList` you can infer an action, although as we have seen with `InMemoryTrips`, exposing a mutable collection with a read-only alias can lead to actions pretending to be calculations.((("", startref="Cref07")))((("", startref="ACref07")))((("", startref="Ractcalc07")))
 
 === Moving On
 

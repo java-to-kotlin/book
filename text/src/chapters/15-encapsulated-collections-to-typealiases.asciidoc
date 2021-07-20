@@ -9,7 +9,7 @@ How would our designs be better without the encapsulation, and how do we get the
 </blockquote>
 ++++
 
-In <<java-to-kotlin-collections>> we looked at the differences between the grains of Java and Kotlin when it comes to collections.
+In((("Java", "versus Kotlin", secondary-sortas="Kotlin")))((("Kotlin", "versus Java", secondary-sortas="Java")))((("encapsulated collections to type aliases", "hiding collections inside another object", id="ECTAhid15"))) <<java-to-kotlin-collections>> we looked at the differences between the grains of Java and Kotlin when it comes to collections.
 Java's collection interfaces, in keeping with its object-oriented roots, are fundamentally mutable, whereas Kotlin treats collections as value types.
 As we saw, if we mutate shared collections, we can run into all sorts of trouble.
 We _could_ avoid that trouble by not mutating shared collections (<<dont-mutate-shared-collections>>), but in Java that's hard to do when those `add` and `set` methods are just an autocomplete away.
@@ -69,7 +69,7 @@ public class Route {
 
 .Defensive Copies
 ****
-To fully encapsulate the list, the `Route` constructor could take a defensive copy of the `journeys` parameter.
+To((("defensive copies")))((("aliasing errors"))) fully encapsulate the list, the `Route` constructor could take a defensive copy of the `journeys` parameter.
 However, we "know" that our system only creates `Route` objects in the JSON deserializer or in tests, neither of which holds onto the list of journeys after creating the `Route` that uses it.
 There is, therefore, no risk of https://martinfowler.com/bliki/AliasingBug.html[aliasing errors], and we can save the cost of a copy whenever we create a `Route`.
 
@@ -129,11 +129,11 @@ public void render(Route route) {
 If we encapsulate a collection, we _reduce_ the operations available for us to work with its contents to only those defined by the encapsulating class.
 When we want to process that data in a new way, the path of least resistance is to add new methods to the class.
 The more methods we add to the class, the more the class _increases_ the coupling between different parts of our application.
-Before we know it, adding an operation to support a new UI function ends up recompiling our data-access layer.
+Before we know it, adding an operation to support a new UI function ends up recompiling our data-access layer.((("", startref="ECTAhid15")))
 
 === Composing Domain Collections
 
-If we don't encapsulate the collection—if we make our domain model _be_ the appropriate data structure, rather than hiding it inside another class boundary—we _extend_ the operations available for us to work with the data.
+If((("encapsulated collections to type aliases", "imposing domain collections")))((("domain collections"))) we don't encapsulate the collection—if we make our domain model _be_ the appropriate data structure, rather than hiding it inside another class boundary—we _extend_ the operations available for us to work with the data.
 Then we have our application-specific operations _and_ all the operations defined for the collection.
 Client code can define the operations it needs in terms of the rich Collections API without having to add them to the class.
 
@@ -148,7 +148,7 @@ If we don't need to control access to a collection to prevent embarrassing mutat
 Well, it is giving a name to `List<Journey>`, and it is also giving a type to this `List<Journey>` that might distinguish it from another `List<Journey>`—those in reports about all the journeys our travelers have booked this week, for example.
 Apart from that, though, in some ways it actually gets in our way, as we will see in <<substitute-type-alias>>.
 
-Where differentiating between different types of lists of journeys is _not_ critical, Kotlin allows us to use type aliases to associate the name `Route` with `List<Journey>` rather than having to use a class to do this:
+Where((("type aliases"))) differentiating between different types of lists of journeys is _not_ critical, Kotlin allows us to use type aliases to associate the name `Route` with `List<Journey>` rather than having to use a class to do this:
 
 [source,kotlin]
 ----
@@ -161,7 +161,7 @@ Encapsulating immutable collections should be the exception rather than the rule
 
 === Collections with Other Properties
 
-Of course, we can't always just substitute type aliases for classes.
+Of((("encapsulated collections to type aliases", "collections with other properties"))) course, we can't always just substitute type aliases for classes.
 Take our `Itinerary` class for example:
 
 // begin-insert: encapsulated-collections.0:src/main/java/travelator/itinerary/Itinerary.kt#excerpt
@@ -192,7 +192,7 @@ We'll get to it in <<collections-with-properties>>.
 
 === Refactoring Encapsulated Collections
 
-One of the core services of our Travelator application is route planning.
+One((("encapsulated collections to type aliases", "refactoring encapsulated collections", id="ECTAref15")))((("refactoring", "encapsulated collections to type aliases", id="Rencap15"))) of the core services of our Travelator application is route planning.
 
 The `Route` that we saw earlier is a sequence of journeys that can take the traveler from one location to another.
 We'd like to add some functionality that will allow us to sell accommodation where a `Route` is split over days, but as a key domain abstraction, `Route` is collapsing under the weight of all the operations that we have already added to it and coupling disparate parts of the codebase together.
@@ -993,7 +993,7 @@ data class Itinerary(
 ++++
 // end-insert
 
-This allows us to create a transformed `Itinerary` almost as easily as we could create a transformed `Route`:
+This((("", startref="ECTAref15")))((("", startref="Rencap15"))) allows us to create a transformed `Itinerary` almost as easily as we could create a transformed `Route`:
 
 // begin-insert: encapsulated-collections.15:src/main/java/travelator/itinerary/itineraries.kt#excerpt
 [source,kotlin]

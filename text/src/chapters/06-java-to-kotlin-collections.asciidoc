@@ -11,7 +11,7 @@ What are the differences, what motivates them, and where do we have to take care
 [[java-collections]]
 === Java Collections
 
-In <<beans-to-values>> we saw how Java grew up in the days when we saw objects as fundamentally stateful and mutable.
+In((("collections", "Java collections", id="Cjava06")))((("Java", "Java collections", id="JPScollect06"))) <<beans-to-values>> we saw how Java grew up in the days when we saw objects as fundamentally stateful and mutable.
 This was particularly true for collections—I mean, what is the point of a list if you can't add to it?
 We build collections by creating an empty one and adding to it.
 Need to remove an item from a shopping cart?
@@ -120,7 +120,7 @@ public static List<Journey> longestJourneysIn(
 
 <1> `journeys` parameter mutated by `sort`
 
-Ah, now we can see that finding the longest journeys has changed the apparent departure `Location`.
+Ah, now((("aliasing errors"))) we can see that finding the longest journeys has changed the apparent departure `Location`.
 A developer called methods on a parameter (`journeys`) to solve a problem, and that turned out to break code somewhere else in the system!
 You only have to spend several hundred hours of your life debugging the problems caused by https://oreil.ly/PeqKs[aliasing errors] like this to come to the conclusion that immutable data would be a better default.
 For the JDK developers, this point evidently came after the introduction of Java 2, so we have forever been stuck with mutable collections interfaces.
@@ -132,7 +132,7 @@ We could have found out about the problem of `shortestJourneyIn` mutating our li
 The tests of any code that combined the two would quickly fail, albeit only when run as opposed to when compiled.
 It's a shame that we cannot depend on the type system to ensure correctness, but we can't go back in time, so this is a pragmatic patch.
 
-Wrapping a list in an `UnmodifiableList` solves the problems of depended-on code mutating our collection.
+Wrapping((("List.copyOf(collection)")))((("UnmodifiableList"))) a list in an `UnmodifiableList` solves the problems of depended-on code mutating our collection.
 If it's possible for the _original list_ to be modified, we can still have issues though, because the wrapper reads through to its underlying collection.
 So an `UnmodifiableList` doesn't guarantee that it never changes, just that it cannot be modified through the wrapper.
 In these cases we have to take a defensive copy of the original list if we are to be isolated from changes.
@@ -145,14 +145,14 @@ Rather than taking defensive copies at every function boundary, many teams, your
 [[dont-mutate-shared-collections]]
 .Don't Mutate Shared Collections
 ****
-Treat any collection shared between separate pieces of code as immutable.
+Treat((("mutability", "shared collections")))((("collections", "shared collections"))) any collection shared between separate pieces of code as immutable.
 Sharing includes references received as a parameter, returned as a result, or assigned to a shared variable.
 This applies even if the collection started life as mutable, and despite the mutation operations present in the Java interfaces.
 
 When code that we don't own does not respect this convention, we can use copies to insulate our code from mutation.
 ****
 
-This strategy doesn't stop us from creating mutable collections and populating them within a function, but code should only change a collection that it has just created.
+This((("Collections.unmodifiableList(...)"))) strategy doesn't stop us from creating mutable collections and populating them within a function, but code should only change a collection that it has just created.
 As soon as we return a reference as a result, we should treat it as immutable—_create, don't mutate_.
 We might occasionally enforce this immutability by wrapping with `Collections.unmodifiableList(...)` etc., but in an aligned development team this is unnecessary, because no one would treat a shared collection as mutable.
 
@@ -163,18 +163,18 @@ Within a function is ideal, between private methods in a class acceptable, acros
 
 Project teams that adopt this convention can produce simple and reliable software in spite of collections' mutability.
 On the whole, the benefits of treating collections as immutable outweigh the problems of a type system that is lying to you, because values are just so valuable.
-The JVM's libraries may hark back to the days when mutability was the norm, but this is a case where the grain of Java is shifting to the immutable, and it's better to be ahead of this change than behind it.
+The JVM's libraries may hark back to the days when mutability was the norm, but this is a case where the grain of Java is shifting to the immutable, and it's better to be ahead of this change than behind it.((("", startref="Cjava06")))((("", startref="JPScollect06")))
 
 === Kotlin Collections
 
-In contrast to Java, Kotlin and its standard library were designed in an age when mutability had fallen out of fashion.
+In((("collections", "Kotlin collections", id="Ckotling06")))((("Kotlin", "Kotlin collections", id="Kcollect06"))) contrast to Java, Kotlin and its standard library were designed in an age when mutability had fallen out of fashion.
 However, smooth interoperation with Java was a key goal, and Java has mutable collections.
 Scala had tried introducing its own sophisticated persistent (immutable but data-sharing) collections, but this forced developers to copy information between collections on the interop boundary, which was both inefficient and annoying.
 How could Kotlin square the circle and have immutable collections interoperate seamlessly with Java?
 
 The Kotlin developers removed the mutation methods from the Jave collections interfaces and published them in the `kotlin.collections` package as `Collection<E>`, `List<E>` and so on.
 These were then extended by `MutableCollection<E>`, `MutableList<E>` etc., which add back in the Java mutation methods.
-So in Kotlin we have `MutableList`, which is a subtype of `List`, which is a subtype of `Collection`.
+So((("MutableList")))((("MutableCollection"))) in Kotlin we have `MutableList`, which is a subtype of `List`, which is a subtype of `Collection`.
 `MutableList` also implements `MutableCollection`.
 
 On the face of it, this is a simple scheme.
@@ -289,7 +289,7 @@ Having nonmutable collections interfaces has not resulted in immutable collectio
 .Immutable, Read-Only, Mutable
 [TIP]
 ====
-The official line is that a nonmutable Kotlin collection is not _immutable_, but rather a _read-only view_ of a collection.
+The((("read-only views"))) official line is that a nonmutable Kotlin collection is not _immutable_, but rather a _read-only view_ of a collection.
 As with the Java `UnmodifiableList`, a read-only collection can't be changed through its interface, but may be changed through some other mechanism.
 Only true _immutable_ collections are guaranteed never to change.
 
@@ -300,13 +300,13 @@ This is the unfortunate consequence of having your mutable collections extend yo
 
 The rigorous solution to this problem is to separate mutable from immutable collections by not having a subtype relationship.
 In this scheme, if we have a mutable list and want an immutable copy of it, we have to copy the data.
-A good analogy is a `StringBuilder`.
+A((("StringBuilder"))) good analogy is a `StringBuilder`.
 This is effectively a mutable `String`, but is not a subtype of `String`.
 Once we have a result we want to publish, we need to call `.toString()`,
 and subsequent modifications to the `StringBuilder` will not affect previous results.
 Both Clojure and Scala adopted this builder approach for their mutable collections—why doesn't Kotlin?
 
-We suspect that the answer is: because the Kotlin designers, like your authors, had adopted the convention described in <<dont-mutate-shared-collections>>.
+We((("collections", "shared collections"))) suspect that the answer is: because the Kotlin designers, like your authors, had adopted the convention described in <<dont-mutate-shared-collections>>.
 If you treat any collection received as a parameter, returned as a result, or otherwise shared between code as immutable, then having mutable collections extend nonmutable collections turns out to be quite safe.
 Admittedly _quite_ in the sense of _mainly_, rather than _completely_, but still the benefits outweigh the costs.
 
@@ -336,11 +336,11 @@ Here the list is built in place by mutation and then returned as read-only.
 This is simple _and_ efficient.
 Technically, we _could_ downcast the result to `MutableList` and change the result, but we shouldn't.
 Instead, we should take the result type at face value.
-That way, any code sharing this collection will not have to worry about it changing.
+That way, any code sharing this collection will not have to worry about it changing.((("", startref="Kcollect06")))((("", startref="Ckotling06")))
 
 === Refactoring from Java to Kotlin Collections
 
-Because of the smooth interop between Java and Kotlin collections described earlier, converting code with collections is usually seamless, at least at the syntactic level.
+Because((("collections", "refactoring from Java to Kotlin collections", id="Crefact06")))((("refactoring", "Java to Kotlin collections", id="RjavatoK06"))) of the smooth interop between Java and Kotlin collections described earlier, converting code with collections is usually seamless, at least at the syntactic level.
 If our Java code relies on mutating collections, though, we may have to take extra care to avoid ending up breaking invariants in Kotlin.
 
 A good approach is to refactor your Java code to the convention used in <<dont-mutate-shared-collections>>  before converting it to Kotlin.
@@ -426,7 +426,7 @@ default void sort(Comparator<? super E> c) {
 ----
 
 This just goes to show how mutable thinking was the grain of Java, back in the Java 8 days when this was written.
-There is now `Stream.sorted`, but in our experience streams rarely perform well with small collections (see <<streams-to-sequences>>).
+There((("Stream.sorted"))) is now `Stream.sorted`, but in our experience streams rarely perform well with small collections (see <<streams-to-sequences>>).
 Maybe we shouldn't care about performance, but we can't help ourselves!
 We justify our indulgence by reasoning that we know of several places in the code that currently sort in place, so will have to be changed to remove the mutation of shared collections.
 Reasoning that the authors of `List.sort` actually knew a thing or two about Java efficiency, we copy their code and write:
@@ -906,7 +906,7 @@ object Suffering {
 
 We say final, but in practice we probably wouldn't finish this refactoring at this point.
 Those `List<List<Journey>>` types are hinting at some type trying to get out, and in Kotlin we don't usually publish static methods in an object like this; we prefer top-level function definitions.
-<<static-methods-to-top-level-functions>> will fix the latter at least.
+<<static-methods-to-top-level-functions>> will fix the latter at least.((("", startref="RjavatoK06")))((("", startref="Crefact06")))
 
 === Moving On
 
@@ -914,7 +914,7 @@ Java at one time favored programming with mutability.
 That has fallen out of vogue, but more by convention than by enforcement.
 Kotlin has taken a very pragmatic approach to mutability in its collections, giving smooth operation and a simple programming model, but only where your Java conventions align with its approach.
 
-To help your Java and Kotlin interoperate smoothly:
+To((("collections", "assuring smooth interoperation"))) help your Java and Kotlin interoperate smoothly:
 
 * Beware that Java can mutate a collection that it has passed to Kotlin.
 * Beware that Java can (at least try to) mutate a collection that is has received from Kotlin.

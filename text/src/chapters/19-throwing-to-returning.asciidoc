@@ -9,7 +9,7 @@ Why did Kotlin reject Java's approach, and what should we use instead?</p>
 </blockquote>
 ++++
 
-You don't have program computers for long to discover that things go wrong...
+You((("throwing to returning", "impact of errors")))((("error handling", "impact of errors"))) don't have program computers for long to discover that things go wrong...
 
 ...in _so many_ ways.
 
@@ -47,7 +47,7 @@ Programs can go wrong for many reasons.
 When we say _program_, we also mean functions, methods, procedures—any code that we invoke.
 And when we say _go wrong_, we mean fail to do the job that we expected them to do.
 
-Reasons for this failure include:
+Reasons((("throwing to returning", "reasons for failure")))((("error handling", "reasons for failure"))) for this failure include:
 
 * Sometimes programs need to talk to other systems and that communication fails in some way.
 * Often we don’t give software the correct input it needs to do its job.
@@ -72,7 +72,7 @@ Yes they were, so we will focus on error handling through the lens of how our pr
 [[errors-invoking-a-function]]
 === Error Handling Before Exceptions
 
-Most error handling these days is based on exceptions, but other techniques have been used and are still applicable in some circumstances.
+Most((("error handling", "techniques other than exceptions")))((("throwing to returning", "error handling before exceptions"))) error handling these days is based on exceptions, but other techniques have been used and are still applicable in some circumstances.
 We'll look at the pros and cons of those techniques first.
 The cons will show us why exceptions now dominate; the pros may give us options when exceptions aren't appropriate.
 
@@ -137,7 +137,7 @@ endif::[]
 
 === Error Handling with Exceptions
 
-All these techniques suffer from the drawback that the calling code is able, to a greater or lesser extent, to ignore that an error occurred.
+All((("error handling", "using exceptions")))((("throwing to returning", "error handling using exceptions")))((("exceptions", "error handling with"))) these techniques suffer from the drawback that the calling code is able, to a greater or lesser extent, to ignore that an error occurred.
 
 Exceptions solve this problem.
 The operation automatically aborts on error, and the caller explicitly handles the exception.
@@ -145,7 +145,7 @@ If the caller does not handle it, the exception propagates further down the call
 
 === Java and Checked Exceptions
 
-Exceptions were relatively new when Java was released, and the language designers decided to innovate in this area.
+Exceptions((("error handling", "Java and checked exceptions", id="EHchecked18")))((("throwing to returning", "Java and checked exceptions", id="TRchecked18")))((("checked exceptions", id="checkedE18")))((("exceptions", "Java and checked exceptions", id="Ejava18"))) were relatively new when Java was released, and the language designers decided to innovate in this area.
 They made the exceptions that a method could throw part of its signature.
 This way, callers could know that, for example, a method might fail because the network resource that it was reading was no longer available.
 If a method declared that it could fail in this way, then every caller of that method would either have to deal with the failure (by specifying in a `catch` block how it should be handled) or declare that it, too, was liable to fail with the same exception.
@@ -156,13 +156,13 @@ Checked exceptions were designed for when the programmer might reasonably be abl
 The language designers identified two other types: errors and runtime exceptions.
 
 Errors::
-Subclasses of `java.lang.Error` are reserved for failures so severe that the JVM can no longer guarantee the correct functioning of the runtime.
+Subclasses((("errors"))) of `java.lang.Error` are reserved for failures so severe that the JVM can no longer guarantee the correct functioning of the runtime.
 Maybe a class cannot be loaded, or the system runs out of memory.
 These conditions can happen at any point in the execution of a program, and so could cause any function to fail.
 Because any method could fail in this way, there is no value in including them in every method signature, so ++Error++s do not have to be declared.
 
 RuntimeExceptions::
-Subclasses of `RuntimeException` represent other errors.
+Subclasses((("RuntimeExceptions"))) of `RuntimeException` represent other errors.
 The intention was that these would be reserved for problems caused by programmer mistakes, such as accessing a null reference or trying to read outside the bounds of a collection.
 In both these cases the programmer could have been more careful.
 Again though, every piece of code is subject to programmer error, so `RuntimeExceptions` are also exempted from having to be declared.
@@ -177,11 +177,11 @@ Otherwise, we might try to recover, especially if our system has been designed t
 Your authors both really liked checked exceptions, but it seems they were in the minority, because checked exceptions fell out of favor in Java over the years.
 Checked exceptions were hampered from the start by the odd decision to make the unchecked `RuntimeException` a subclass of the otherwise checked `Exception`, so that code that wanted to handle all checked exceptions found itself catching unchecked ones as well, hiding programming errors.
 They were also not helped by the fact that the Java APIs used them inconsistently.
-Take extracting data from a string for example: the `URL` constructor `URL(String)` throws the _checked_ `MalformedURLException`, while `Integer.parseInt(String)` throws the _unchecked_ `NumberFormatException`.
+Take((("MalformedURLException")))((("NumberFormatException"))) extracting data from a string for example: the `URL` constructor `URL(String)` throws the _checked_ `MalformedURLException`, while `Integer.parseInt(String)` throws the _unchecked_ `NumberFormatException`.
 
 .How Should `parseInt` Fail?
 ****
-This is an interesting case and shows why error handling is so hard.
+This((("parseInt"))) is an interesting case and shows why error handling is so hard.
 
 Looking through our strategies,
 `parseInt` can't return a special integer value, because all the ints are valid results.
@@ -200,7 +200,7 @@ They would have considered not planning for this failure to be a programmer erro
 Your authors, though, would appreciate being reminded of the possibility of failure and would have specified a checked exception.
 ****
 
-Confusion over what type of exception to use multiplied, and it wasn't long before the default was that the only checked exceptions that most Java libraries declared were `IOExceptions`.
+Confusion((("IOExceptions"))) over what type of exception to use multiplied, and it wasn't long before the default was that the only checked exceptions that most Java libraries declared were `IOExceptions`.
 Even then, database libraries such as Hibernate, which were definitely talking over the network and definitely subject to `IOExceptions`, would throw only `RuntimeExceptions`.
 
 Once a good proportion of the code that you call just uses unchecked exceptions, the game is up.
@@ -210,7 +210,7 @@ Instead, you are reduced to some tactical defensive programming and the age-old 
 ifdef::optional-content[]
 .What should Hibernate Throw?
 ****
-In the checked exceptions scheme, where a programmer explicitly invokes a Hibernate method to load an object, that method should declare `IOException`.
+In((("HibernateException"))) the checked exceptions scheme, where a programmer explicitly invokes a Hibernate method to load an object, that method should declare `IOException`.
 If there are other ways that function could fail - maybe failure to parse a query - the method might also declare a checked exception to cover these.
 So most Hibernate methods should declare both `IOException`
 and a checked `HibernateException`, with the latter having different subclasses for different failure modes.
@@ -231,14 +231,14 @@ As you can see, checked exceptions do introduce complication.
 ****
 endif::[]
 
-The final nail in the coffin of checked exceptions was the introduction of lambdas in Java 8.
+The((("lambda functions"))) final nail in the coffin of checked exceptions was the introduction of lambdas in Java 8.
 The decision was taken not to declare an exception type in the signature of the functional interfaces introduced to support lambdas (`Producer`, `Consumer`, etc.), so these cannot propagate checked exceptions.
 This wasn't an insurmountable problem, but to be fair, your authors would probably have given up there too.
-The net result, though, is that the old standard Java API declares checked exceptions (in particular `IOException`) that the new standard API (in particular streams) forces developers to deny.
+The net result, though, is that the old standard Java API declares checked exceptions (in particular `IOException`) that the new standard API (in particular streams) forces developers to deny.((("", startref="EHchecked18")))((("", startref="TRchecked18")))((("", startref="checkedE18")))((("", startref="Ejava18")))
 
 === Kotlin and Exceptions
 
-Kotlin has exceptions, because it runs on the JVM, and exceptions are built into the platform.
+Kotlin((("exceptions", "Kotlin and")))((("throwing to returning", "Kotlin and exceptions")))((("error handling", "Kotlin and exceptions"))) has exceptions, because it runs on the JVM, and exceptions are built into the platform.
 It does not treat checked exceptions specially though, because Java had already lost that fight, and, as with Java, they are hard to reconcile with higher-order functions.
 Kotlin is able to largely ignore checked exceptions because they are not a feature of the JVM but, rather, of the Java compiler.
 The compiler does record in the bytecode what checked exceptions a method declares (to be able to check them), but the JVM itself does not care.
@@ -251,7 +251,7 @@ Tellingly, though, the runtime also defines `first()`, which throws `NoSuchEleme
 
 === Beyond Exceptions: Functional Error Handling
 
-Statically typed functional programming languages often reject exceptions in favor of another error handling technique based on _Either Types_.
+Statically((("error handling", "functional error handling", id="EHfunction18")))((("throwing to returning", "functional error handling", id="TRfunc18")))((("functional error handling", id="funcerror04")))((("Either Types")))((("referential transparency"))) typed functional programming languages often reject exceptions in favor of another error handling technique based on _Either Types_.
 We'll see what an Either Type is shortly, but why don't functional programmers like exceptions?
 
 A distinguishing feature of functional programming is _referential transparency_.
@@ -420,11 +420,11 @@ In this way a chain of `map` and/or `flatMap` calls acts like a series of expres
 
 If you come from an object-oriented background, this style does take some getting used to.
 In our experience no amount of reading helps; you just have to knuckle down and start writing code this way until it becomes less strange.
-We'll share your pain by pairing with you in the worked example later.
+We'll share your pain by pairing with you in the worked example later.((("", startref="EHfunction18")))((("", startref="TRfunc18")))((("", startref="funcerror04")))
 
 === Error Handling in Kotlin
 
-Now that we know the error handling options open to us, which should we use in our Kotlin projects, and how do we migrate our Java code?
+Now((("error handling", "in Kotlin", secondary-sortas="Kotlin")))((("throwing to returning", "error handling in Kotlin"))) that we know the error handling options open to us, which should we use in our Kotlin projects, and how do we migrate our Java code?
 
 As usual, it depends.
 
@@ -454,7 +454,7 @@ We'll see some of these operations as we refactor.
 
 === Refactoring Exceptions to Errors
 
-Now that we know the error handling options available to us, let's refactor some Java code to Kotlin, converting the error handling as we go.
+Now((("refactoring", "exceptions to errors", id="Rexcept18")))((("error handling", "refactoring exceptions to errors", id="EHrefact18")))((("throwing to returning", "refactoring exceptions to errors", id="TRrefact19"))) that we know the error handling options available to us, let's refactor some Java code to Kotlin, converting the error handling as we go.
 
 There is an HTTP endpoint in Travelator that allows the client app to register a `Customer`:
 
@@ -506,7 +506,7 @@ public class CustomerRegistrationHandler {
 
 .HTTP
 ****
-We'd rather not tie our example code to a particular Java HTTP framework, so we have abstracted incoming calls behind a simple function that takes a `Request` and returns a `Response`.
+We'd((("HTTP protocol"))) rather not tie our example code to a particular Java HTTP framework, so we have abstracted incoming calls behind a simple function that takes a `Request` and returns a `Response`.
 
 HTTP status codes are another example of a result type.
 The HTTP protocol returns 4xx errors when a request is unsuccessful because the request was wrong in some way, 5xx errors when a request couldn't be processed for server-related reasons; 2xx status codes are success cases; and 1xx and 3xx codes are used to signal an ongoing interaction.
@@ -682,7 +682,7 @@ interface Customers {
 
 .Naming
 ****
-It's a bit irritating that we can't name the new method `add` as well, but the JVM won't allow methods that differ only on return type to have the same name.
+It's((("naming conventions"))) a bit irritating that we can't name the new method `add` as well, but the JVM won't allow methods that differ only on return type to have the same name.
 
 If we can't think of a good enough name in these sorts of situations, we err on the side of using a bad one.
 In all likelihood we'll come up with a better name later, and the bad name will reduce the risk that we settle for not good enough.
@@ -1380,11 +1380,11 @@ First, the `ObjectMapper` can still throw `JSONProcessingException`.
 That is the reality of Java (and frankly most Kotlin) APIs, but the code is safe and communicates well, because the throwing and catching are in the same method.
 Second, we still have to consider other ++RuntimeException++s that could be thrown from anywhere: `NullPointerException` and so on.
 These could have crossed function boundaries and leaked up to here, where the buck stops at the top-level catch-all, which returns `HTTP_INTERNAL_ERROR`.
-The reality is that we can still have _unexpected_ exceptions, but the _expected_ failure cases are now expressed by `Results` and communicated in our code.
+The reality is that we can still have _unexpected_ exceptions, but the _expected_ failure cases are now expressed by `Results` and communicated in our code.((("", startref="EHrefact18")))((("", startref="Rexcept18")))((("", startref="TRrefact19")))
 
 === More Fixup
 
-We can now confess that the `RegistrationHandlerTests` got broken a few steps ago.
+We((("throwing to returning", "fixing mock tests", id="TRfix19"))) can now confess that the `RegistrationHandlerTests` got broken a few steps ago.
 Ordinarily we would have fixed them straightaway, but that would have interrupted our explanation.
 
 The problem is that the tests are mock tests, which expect calls to `IRegister.register`, but we are now calling `registerToo`.
@@ -1740,12 +1740,12 @@ interface Customers {
 Hmm, not quite exception-free because of that `DuplicateException`.
 It is not actually _thrown_ from anywhere anymore, just created and put into a `Failure`.
 We can fix this either by renaming the class to `DuplicateCustomerProblem` and stop it from extending `Exception`, or reuse the existing `Duplicate` subclass of `RegistrationProblem`.
-Which is better?
+Which is better?((("", startref="TRfix19")))
 
 [[error-layers]]
 === Layers
 
-If we think in terms of layers, `Customers` is in a lower layer than `Registration`, which depends on it.
+If((("throwing to returning", "benefits of checked exceptions"))) we think in terms of layers, `Customers` is in a lower layer than `Registration`, which depends on it.
 So `Customers` should not depend on the higher-level `RegistrationProblem`.
 We could try to invert the dependency so that the `Duplicate` subclass of `RegistrationProblem` is a subtype (or even just the same type) of `DuplicateCustomerProblem` declared in the repository layer.
 That would work here, but is a bit of a dead-end if `Customers::add` ever needs to declare another way that it might fail.
@@ -1896,7 +1896,7 @@ Because the `CustomerRegistrationHandler` is the entry point for this interactio
 
 === Moving On
 
-This has been a long chapter, but its length is in proportion to its importance.
+This((("error handling", "Java versus Kotlin approaches"))) has been a long chapter, but its length is in proportion to its importance.
 
 Your Java project may already have declared exception bankruptcy, with no systematic use of checked exceptions.
 In this case, Kotlin's policy of treating everything as an unchecked exception will be fine.

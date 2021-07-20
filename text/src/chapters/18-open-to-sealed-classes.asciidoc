@@ -9,7 +9,7 @@ What do they bring to the party?</p>
 </blockquote>
 ++++
 
-Change is a constant challenge in designing software.
+Change((("open to sealed classes", "benefits of polymorphism", id="OSCpoly18")))((("sealed classes", "benefits of polymorphism", id="SCbene18"))) is a constant challenge in designing software.
 The more people use our software, the more they think of things they want it to do.
 To support new use cases, we need to add new functions that work with existing data types, and new data types that work with existing functions.
 If our design is well-aligned with the way the software has to evolve, we can add new features by adding new code and making few, localized changes to our existing code.
@@ -117,7 +117,7 @@ Recently, we find that most of the new functionality we add to Travelator involv
 Changes to the `ItineraryItem` interface and its implementations are a common source of merge conflicts between team members who are working on different features.
 With every new feature, the `ItineraryItem` gets larger.
 It seems to attract behavior to support distantly related parts of the application, with properties to support rendering, cost estimation, ranking by comfort, maps drawing and more hidden beyond that `...and other methods`.
-Paradoxically, in the core of our application, object-oriented polymorphism is _increasing_ coupling!
+Paradoxically,((("object-oriented polymorphism"))) in the core of our application, object-oriented polymorphism is _increasing_ coupling!
 
 // Reference the collections to type aliases example where we discuss coupling?
 
@@ -131,8 +131,8 @@ For a while, that was what our codebase needed, but now that it has stabilized, 
 If we were writing in Java (at least up to Java 16), there is no language feature to help us cope with variability in this dimension.
 Java's principal feature to support variability is object-oriented polymorphism, and that doesn't help when operations change more frequently than the set of data types.
 
-We could use the https://oreil.ly/8m2HL[double dispatch] pattern, but it involves a lot of boilerplate code and, because it does not play well with checked exceptions, is not widely used in Java.
-Instead, Java programmers often resort to runtime type checks, using the `instanceof` and downcast operators to run different code for different classes of object:
+We((("double dispatch pattern"))) could use the https://oreil.ly/8m2HL[double dispatch] pattern, but it involves a lot of boilerplate code and, because it does not play well with checked exceptions, is not widely used in Java.
+Instead, Java((("instanceof operator")))((("downcast operator"))) programmers often resort to runtime type checks, using the `instanceof` and downcast operators to run different code for different classes of object:
 
 // begin-insert: open-to-sealed-2.0:src/main/java/travelator/itinerary/ItineraryItems.java#type_switch
 [source,java]
@@ -159,7 +159,7 @@ if (item instanceof Journey) {
 ++++
 // end-insert
 
-That `IllegalStateException` shows that this approach is risky.
+That((("type checks"))) `IllegalStateException` shows that this approach is risky.
 Whereas the compiler can type check our calls to polymorphic methods, our hand-coded runtime type checks and casts are explicitly circumventing compile-time checks.
 The type checker cannot tell whether our casts are correct or our conditional statement is _exhaustive_: whether it applies to all possible subclasses.
 If returning a value from the method, we have to write an `else` clause to return a dummy value or throw an exception, even if we have branches for every subclass of `ItineraryItem`, and the else clause "cannot possibly be executed™."
@@ -178,7 +178,7 @@ The static type checker can guarantee that `when` expressions that perform runti
 [WARNING]
 .When Statements Are Not Checked for Exhaustiveness
 ====
-The compiler checks `when` expressions for exhaustiveness but does not check `when` _statements_;
+The((("exhaustiveness")))((("statements", "checking for exhaustiveness"))) compiler checks `when` expressions for exhaustiveness but does not check `when` _statements_;
 `when` becomes is a statement if the value of the entire `when` expression is not used.
 You can force the compiler to check for exhaustiveness by using the result of the `when`, even though it is of type `Unit`.
 
@@ -209,20 +209,20 @@ when (instanceOfSealedClass) {
 ====
 
 Compared to polymorphic methods, sealed classes and `when` expressions make it easy to add new operations that apply to a fixed type hierarchy, although we still have to change all those operations if we add a new type to that hierarchy.
-At this point the compiler will help us by checking that all those operations cover all possible types in the hierarchy.
+At this point the compiler will help us by checking that all those operations cover all possible types in the hierarchy.((("", startref="OSCpoly18")))((("", startref="SCbene18")))
 
 === Polymorphism or Sealed Classes?
 
-Some languages have mechanisms that let us vary types _and_ operations without modifying existing code.
+Some((("open to sealed classes", "polymorphism versus sealed classes")))((("sealed classes", "polymorphism versus sealed classes"))) languages have mechanisms that let us vary types _and_ operations without modifying existing code.
 Haskell has type classes, Scala has implicit parameters, Rust has traits, Swift has protocols, and Clojure and Common Lisp have polymorphic functions that dispatch on the classes of multiple arguments.
 
-Kotlin doesn't have any equivalent.
+Kotlin((("object-oriented polymorphism"))) doesn't have any equivalent.
 When we're designing in Kotlin, we have to choose between object-oriented polymorphism or sealed classes based on the dimension—types or operations—we expect to vary most frequently as the program evolves.
 Object-oriented polymorphism is preferable when the set of data types varies more frequently than the set of operations on those data types, and sealed class hierarchies when the set of operations varies more frequently than the set of data types they apply to.
 
 === Converting an Interface to a Sealed Class
 
-We're about to add another feature that involves itineraries and itinerary items: making the `Itinerary` appear in the traveler's calendar app.
+We're((("open to sealed classes", "converting interfaces to sealed classes", id="OSCinter18")))((("sealed classes", "converting interfaces to sealed classes", id="SCinterf18")))((("refactoring", "interfaces to sealed classes", id="Ringerf18"))) about to add another feature that involves itineraries and itinerary items: making the `Itinerary` appear in the traveler's calendar app.
 We don't want to add more methods to the already bloated `ItineraryItem` interface and couple the core classes of our application's domain to the needs of another peripheral module.
 It's time to bite the bullet and convert `ItineraryItem` from an interface of polymorphic methods to a sealed class hierarchy and freestanding functions, and move those freestanding functions into the modules that use them.
 
@@ -338,7 +338,7 @@ fun ItineraryItem.toCalendarEvent(): CalendarEvent? = when (this) {
 [TIP]
 .Only Typecast Down a Sealed Class Hierarchy
 ====
-Only use typecasts to cast from the root of a sealed class hierarchy to one of the children in an exhaustive `when` expression.
+Only((("typecasts"))) use typecasts to cast from the root of a sealed class hierarchy to one of the children in an exhaustive `when` expression.
 Otherwise, it is risky to cast away from the static type.
 The actual class used to implement a value may have operations that violate the constraints expressed by its static type.
 
@@ -348,7 +348,7 @@ It could introduce aliasing errors that are very hard to find, because the possi
 If a future version of the Kotlin standard library returned immutable lists from its higher-order functions, the function would continue to compile successfully but crash at runtime.
 
 Just because you _can_ cast from a super type to a subtype doesn’t mean you are intended to. The possibility is likely to be a mere implementation detail.
-A sealed class hierarchy signals that downcasting is intended, supported, and made safe by the compiler's exhaustiveness checks.
+A((("downcasting"))) sealed class hierarchy signals that downcasting is intended, supported, and made safe by the compiler's exhaustiveness checks.
 ====
 
 Now, let's refactor the rest of the `ItineraryItem` methods from being polymorphic methods defined on the (now sealed) class, to extension functions that use `when` expressions to switch on the type of item.
@@ -640,7 +640,7 @@ data class RestaurantBooking(
 
 Our `ItineraryItem` model is now a sealed class hierarchy of pure data classes.
 The operations needed by the features of our application are all extension functions in the modules for those features.
-Only the `id` property remains as a polymorphic `val`, because it is a fundamental property of the type that is not specific to any one feature of the application.
+Only the `id` property remains as a polymorphic `val`, because it is a fundamental property of the type that is not specific to any one feature of the application.((("", startref="OSCinter18")))((("", startref="SCinterf18")))((("", startref="Ringerf18")))
 
 === Moving On
 

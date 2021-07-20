@@ -8,7 +8,7 @@ When should we use this form, why might we prefer it, and what Kotlin features c
 </blockquote>
 ++++
 
-As with Java, the code in a Kotlin function is usually { defined inside braces } and uses
+As((("multi- to single-expression functions", "Java and Kotlin syntax")))((("{} (curly braces)")))((("braces ({})")))((("curly braces ({})"))) with Java, the code in a Kotlin function is usually { defined inside braces } and uses
 `return` to define the result of the function, (unless it is `Unit`, Kotlin's alias for `void`):
 
 // begin-insert: src/main/java/singleExpressionFunctions/functions.kt#add
@@ -20,7 +20,7 @@ fun add(a: Int, b: Int): Int {
 ----
 // end-insert
 
-If the top level of the code is a single expression though, we can optionally drop the result type, and define the code with an expression after an equals sign:
+If((("&#x3D; (equals sign)")))((("equals sign (&#x3D;)"))) the top level of the code is a single expression though, we can optionally drop the result type, and define the code with an expression after an equals sign:
 
 // begin-insert: src/main/java/singleExpressionFunctions/functions.kt#addToo
 [source,kotlin]
@@ -29,7 +29,7 @@ fun addToo(a: Int, b: Int): Int = a + b
 ----
 // end-insert
 
-We can read this as, the result of function `add` equals `a + b`.
+We((("subexpressions"))) can read this as, the result of function `add` equals `a + b`.
 Which makes sense for a single expression, and can also read nicely when that expression is itself composed of subexpressions:
 
 // begin-insert: src/main/java/singleExpressionFunctions/functions.kt#max
@@ -43,7 +43,7 @@ fun max(a: Int, b: Int): Int =
 ----
 // end-insert
 
-This interpretation makes less sense for functions that have side effects, especially those that perform I/O or write to mutable state.
+This((("side effects"))) interpretation makes less sense for functions that have side effects, especially those that perform I/O or write to mutable state.
 For instance:
 
 // begin-insert: src/main/java/singleExpressionFunctions/functions.kt#printTwice
@@ -60,18 +60,18 @@ Its function is entirely side effects, as we explored in <<actions-to-calculatio
 [TIP]
 .Reserve Single-Expression Functions for Calculations
 ====
-If we adopt a convention of reserving single-expression functions for calculations (<<calculations>>), then we have a way of communicating our intent when we use them.
+If((("calculations", "reserving single-expression functions for")))((("single-expression functions", seealso="multi- to single-expression functions"))) we adopt a convention of reserving single-expression functions for calculations (<<calculations>>), then we have a way of communicating our intent when we use them.
 When we see a single-expression function, we will know that it isn't an action (<<actions>>), and so is much safer to refactor.
 
 In practice this means that single-expression functions shouldn't return `Unit`, or read or write from mutable state, including performing I/O.
 ====
 
-Your authors have found that attempting to make as many functions as possible into single expressions improves our software.
+Your((("multi- to single-expression functions", "benefits of single expressions"))) authors have found that attempting to make as many functions as possible into single expressions improves our software.
 For one thing, if we reserve the single-expression form for calculations, then this will decrease the proportion of our code that is <<actions,actions>>, making it easier to understand and modify.
 Single expressions will also tend to be shorter than the alternative, limiting the complexity of each function.
 When a function does get too large to be easily understood, single-expression style lets us more easily refactor for clarity, because there is less risk of breaking logic that depends on side effects and the order in which actions are performed.
 
-We also prefer expressions as opposed to statements.
+We((("multi- to single-expression functions", "expressions versus statements")))((("expressions, versus statements", seealso="multi- to single-expression functions")))((("statements", "versus expressions"))) also prefer expressions as opposed to statements.
 Expressions are _declarative_: we declare _what_ we want the function to calculate and let the Kotlin compiler and runtime decide _how_ to compute that calculation.
 We don't have to run the code in a simulated computer in our heads to figure out what the function does.
 
@@ -111,15 +111,15 @@ data class EmailAddress(
 ++++
 // end-insert
 
-The `toString` method is already a nice simple single expression.
+The((("toString method"))) `toString` method is already a nice simple single expression.
 As we said at the time though, the amount of code required in the `parse` method adds insult to the injury of having to declare static methods in a companion object.
 Maybe focusing on making the function into a simple single expression would help?
 
-Before we go on, we should say that lots of the refactoring sequences presented in this book are of the form "Here's one I prepared earlier."
+Before((("refactoring", "in real-life", secondary-sortas="real-life"))) we go on, we should say that lots of the refactoring sequences presented in this book are of the form "Here's one I prepared earlier."
 We show you the successful take.
 Real-life refactorings, like writing code from scratch, aren't like that.
 We try things that don't work at all, or we take a much more circuitous route than we show in the final edit.
-Because this is an otherwise small example, we've taken this opportunity to show what actually happened when we tried to convert `parse` to a single expression.
+Because((("refactoring", "multi- to single-expression functions", id="Rmulti09")))((("multi- to single-expression functions", "step-by-step example", id="MSEstep09"))) this is an otherwise small example, we've taken this opportunity to show what actually happened when we tried to convert `parse` to a single expression.
 We think that there are valuable lessons in the journey, but if you just want the destination, you should skip ahead to <<take-4>>.
 
 === Take 1: Inlining
@@ -806,12 +806,12 @@ Before we leave this example, note that this refactoring would have been easier 
 <<throwing-to-returning>> talks about this in detail, but had we written `EmailAddress` from scratch in Kotlin, we would probably have returned `EmailAddress?` from `parse`, with `null` on failure.
 That doesn't sit well with Java clients, where the type system doesn't warn about nullability.
 So we would probably end up with two parsing methods, one for legacy code and one for Kotlin, removing the exception version when there were no Java clients left.
-We explore how to support both languages' conventions during a gradual conversion from Kotlin to Java in <<functions-to-operators>>.
+We explore how to support both languages' conventions during a gradual conversion from Kotlin to Java in <<functions-to-operators>>.((("", startref="MSEstep09")))((("", startref="Rmulti09")))
 ****
 
 === Moving On
 
-Defining our calculations as single-expression functions lets us communicate that they are different from side-effecting actions.
+Defining((("multi- to single-expression functions", "benefits of single expressions"))) our calculations as single-expression functions lets us communicate that they are different from side-effecting actions.
 Trying to express functions as a simple single expression is a useful discipline that can lead to well-factored, clean code.
 To achieve single-expression form, we usually have to factor out subexpressions into their own functions.
 
@@ -819,7 +819,7 @@ Single-expression form is declarative: the expression describes the function's r
 Factoring subexpressions into their own functions prompts us to think about what those subexpressions should be denoting, and so guides us to write clearer code.
 For example, `String.splitAroundLast('@')` better described what we wanted to calculate than `emailAddress(value: String, atIndex: Int)`.
 
-At a deeper level, this chapter is about more than single expressions; it's about how we can rearrange our code without changing its behavior.
+At((("refactoring", "art of"))) a deeper level, this chapter is about more than single expressions; it's about how we can rearrange our code without changing its behavior.
 Many different arrangements of statements and expressions will have the same behavior; refactoring is the art of finding a better one, and getting there safely.
 The more arrangements we can visualize, and the more safe routes we can plan, the more options we have to make our code better.
 

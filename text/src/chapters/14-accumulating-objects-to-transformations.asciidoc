@@ -10,7 +10,7 @@ What is the best way to translate Java code that relies upon mutable objects and
 
 === Calculating with Accumulator Parameters
 
-One of the most important things our travelers want to know is how much their adventures will cost.
+One((("accumulating objects to transformations", "calculating with accumulator parameters", id="ACTcalc14")))((("accumulator parameters", id="accparam14"))) of the most important things our travelers want to know is how much their adventures will cost.
 International travel makes this rather complicated.
 A trip will incur costs in multiple currencies as it wends its way across borders, but the traveler wants to be able to compare overall costs to make decisions about routes and where to stay.
 So Travelator summarizes costs by local currency _and_ the traveler's preferred currency, and then shows the overall total in the preferred currency.
@@ -93,7 +93,7 @@ That knowledge is encapsulated in the `Route` and `Accommodation` classes.
 
 However, our use of mutable state has two significant disadvantages.
 
-First, it introduces the possibility of https://oreil.ly/PeqKs[aliasing errors].
+First, it((("aliasing errors"))) introduces the possibility of https://oreil.ly/PeqKs[aliasing errors].
 Aliasing errors create "spooky action at a distance" (as Einstein famously described quantum entanglement) that is not immediately obvious from the source code.
 We saw an example in <<java-to-kotlin-collections>>, when a function sorted a mutable list parameter and broke its caller.
 
@@ -235,8 +235,8 @@ Such smearing of responsibilities across classes is common when we compute by mu
 We'd like to disentangle the responsibilities and simplify the implementation. What final structure we should we aim for?
 
 One clue is in the name of the `CostCurrencyCalculator` class.
-In linguistic jargon, the `CostCurrencyCalculator` is an _agent noun_: a noun derived from a verb that means no more than a thing that performs the action identified by the verb, like _driver_ or _baker_ or _calculator_.
-`CostCurrencyCalculator` is a so-called "doer class."
+In linguistic jargon, the `CostCurrencyCalculator` is an((("agent nouns"))) _agent noun_: a noun derived from a verb that means no more than a thing that performs the action identified by the verb, like _driver_ or _baker_ or _calculator_.
+`CostCurrencyCalculator` is a so-called((("doer classes"))) "doer class."
 
 Another clue is in the data that the class holds.
 The traveler's preferred currency and source of exchange rates are the context for the calculation.
@@ -247,11 +247,11 @@ The class doesn't _own_ any data, only holds it temporarily for operational reas
 The `CostCurrencyCalculator` class doesn't represent a _concept_ in our application domain model, but a _function_ that we perform upon elements of that domain model.
 In Kotlin, we usually implement functions not with objects but with, well, functions.
 
-Let's refactor the calculation from mutable classes to functions that work with immutable data.
+Let's refactor the calculation from mutable classes to functions that work with immutable data.((("", startref="ACTcalc14")))((("", startref="accparam14")))
 
 === Refactoring to Functions over Immutable Data
 
-Converting the two classes to Kotlin leaves us with Java in Kotlin syntax.
+Converting((("accumulating objects to transformations", "refactoring to functions over immutable data", id="AOTfuncover14")))((("refactoring", "to functions over immutable data", secondary-sortas="functions over immutable data", id="Rfunc14"))) the two classes to Kotlin leaves us with Java in Kotlin syntax.
 Here is `CostSummary` after a little tidying and rearranging:
 
 // begin-insert: accumulator.1:src/main/java/travelator/itinerary/CostSummary.kt
@@ -639,7 +639,7 @@ class CostSummary(userCurrency: Currency) {
 ++++
 // end-insert
 
-Now the calculation is a single expression in `summarise`:
+Now((("", startref="Rfunc14")))((("", startref="AOTfuncover14"))) the calculation is a single expression in `summarise`:
 
 // begin-insert: accumulator.9:src/main/java/travelator/itinerary/CostSummaryCalculator.kt#total
 [source,kotlin]
@@ -659,7 +659,7 @@ val total = lines
 
 === Let's Do That Again
 
-Similarly, whatever is happening with currencies is still hidden in the remaining mutations in `CostSummaryCalculator`:
+Similarly, whatever((("accumulating objects to transformations", "expand-and-contract refactoring", id="AOTexpand14")))((("expand-and-contract refactoring", id="expand14")))((("refactoring", "expand-and-contract refactoring", id="Rexpand14"))) is happening with currencies is still hidden in the remaining mutations in `CostSummaryCalculator`:
 
 // begin-insert: accumulator.9:src/main/java/travelator/itinerary/CostSummaryCalculator.kt
 [source,kotlin]
@@ -885,12 +885,12 @@ If you can't write that easily in one step, transform the inputs into an interme
 Introduce intermediate forms and transformations until you have a pipeline of simple transformations between intermediate forms that compose to transform the inputs that you _have_ to the outputs that you _want_.
 ====
 
-We will look more at pure functions evaluated in context in <<interfaces-to-functions>>.
+We will look more at pure functions evaluated in context in <<interfaces-to-functions>>.((("", startref="Rexpand14")))((("", startref="expand14")))((("", startref="AOTexpand14")))
 
 [[pricing-context]]
 === Enriching the Abstraction We Discovered
 
-Travelator does more with exchange rates and the traveler's preferred currency than summarize costs.
+Travelator((("accumulating objects to transformations", "enriching the abstraction", id="AOTenrich14"))) does more with exchange rates and the traveler's preferred currency than summarize costs.
 For example, while the user is browsing hotel rooms, it shows the cost of each room in both local and preferred currencies.
 That is, the hotel room browser performs a currency conversion on an individual cost.
 The `CostSummaryCalculator` also has to perform currency conversions on individual costs to calculate a summary.
@@ -940,7 +940,7 @@ class PricingContext(
 
 .Naming
 ****
-The name is a bit too generic for our tastes, but will do until we think of something better.
+The((("naming conventions"))) name is a bit too generic for our tastes, but will do until we think of something better.
 At least it's not misleading.
 Renames are cheap, even in a mixed Java/Kotlin codebase, so a small incremental improvement is better than no improvement.
 ****
@@ -967,7 +967,7 @@ fun costSummary(i: Itinerary) = pricing.summarise(i.costs())
 
 Now that we have this concept in our codebase, we can identify other parts of our application that can use it.
 We can move logic from those parts onto the `PricingContext`, making it a one-stop shop for operations that need to convert monetary amounts into the traveler's preferred currency.
-And should it end up full of disparate methods for different use cases, then we can move the operations from methods to extension functions to keep them closer to where they are needed (see <<functions-to-extension-functions>>).
+And should it end up full of disparate methods for different use cases, then we can move the operations from methods to extension functions to keep them closer to where they are needed (see <<functions-to-extension-functions>>).((("", startref="AOTenrich14")))
 
 === Moving On
 
@@ -989,6 +989,6 @@ The standard library does not always have a higher-order function that transform
 If we do need a mutable collection, we can hide that mutation inside a calculation to limit the blast radius of any potential aliasing errors.
 However, every release adds more functions to the standard library, so the need diminishes over time.
 
-Functional programming does not eliminate mutable state but instead _makes it the responsibility of the runtime_.
+Functional programming((("functional programming"))) does not eliminate mutable state but instead _makes it the responsibility of the runtime_.
 A functional program declares what the runtime should calculate and lets the runtime be responsible for computing that calculation.
 Kotlin is not a pure functional language, but we benefit by following that principle where we can.

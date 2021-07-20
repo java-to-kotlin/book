@@ -11,7 +11,7 @@ When should we prefer one to the other?</p>
 
 === Functions and Methods
 
-Object-oriented programming is the art of solving problems by sending messages to objects.
+Object-oriented programming((("functions to extension functions", "functions and methods", id="FEFfunc10")))((("object-oriented programming")))((("methods", id="meth10"))) is the art of solving problems by sending messages to objects.
 Want to know the length of `myString`?
 Ask it by sending it a message `myString.length()`.
 Want to print that string to the console?
@@ -20,12 +20,12 @@ In classic OO languages, we define how an object reacts to a message by defining
 Methods are bound to their class and have access to the members (fields and other methods) associated with a particular instance.
 When we invoke a method, the runtime arranges for the correct version to be called (depending on the runtime type of the object), and for it to have access to instance state.
 
-In contrast, in functional programming, we solve problems by calling functions with values.
+In((("functional programming"))) contrast, in functional programming, we solve problems by calling functions with values.
 We find the length of `myString` by passing it to a function: `length(myString)`.
 We print to the console with `println(myString)`, and if we wanted to print somewhere else, we would pass that to the function: `println(myString, System.err)`.
 Functions are not defined _on_ a type; function parameters and results _have_ a type.
 
-The paradigms have pros and cons, but for now let's just consider discoverability and extensibility.
+The((("discoverability")))((("extensibility"))) paradigms have pros and cons, but for now let's just consider discoverability and extensibility.
 
 Here is a `Customer` type:
 
@@ -63,7 +63,7 @@ Often we don't even get as far as looking at the definition.
 If we have a variable `val customer: Customer`, we can type `customer.` and our IDE will eagerly tell us that we can call `id`, `givenName`, `familyName`, or `fullName`.
 In fact, this auto-complete is in many ways better than looking at the class definition, because it also shows us other operations (`equals`, `copy`, and so on) that are defined in supertypes or implicit in the language.
 
-In a functional decomposition, `fullName` would be a function, and, if we suspect it exists, we would have to search our codebase for it.
+In((("functional decomposition"))) a functional decomposition, `fullName` would be a function, and, if we suspect it exists, we would have to search our codebase for it.
 In this case it will be a function where the only argument is of type `Customer`.
 It's surprisingly hard to get IntelliJ to help us.
 "Find Usages" grouped by parameter type will do the job, but it's hardly convenient.
@@ -93,7 +93,7 @@ data class Customer(
 
 If we don't own the code, then we can't add a method, so we have to fall back on a function.
 In Java we might have a collection of these static functions in a class called `Marketing`, or `CustomerUtils`.
-In Kotlin we can make them top-level functions (see <<static-methods-to-top-level-functions>>), but the principle is the same:
+In((("top-level functions"))) Kotlin we can make them top-level functions (see <<static-methods-to-top-level-functions>>), but the principle is the same:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#nameForMarketing
 [source,kotlin]
@@ -112,11 +112,11 @@ If the class `Customer` is a fundamental domain class in our application, lots o
 Adding a report for marketing shouldn't force us to recompile and retest everything, but it will if we add a method.
 So it's better that we keep `Customer` as small as possible and have noncore operations as external functions, even if this means they are not as discoverable as methods.
 
-In Kotlin, those functions don't have to be as hard to find as we've made out, though; they can be extension functions.
+In Kotlin, those functions don't have to be as hard to find as we've made out, though; they can be extension functions.((("", startref="meth10")))((("", startref="FEFfunc10")))
 
 === Extension Functions
 
-Kotlin's extension functions look like methods, but are in fact just functions.
+Kotlin's extension functions((("extension functions", seealso="functions to extension functions")))((("functions to extension functions", "extension functions"))) look like methods, but are in fact just functions.
 (As we saw in <<static-methods-to-top-level-functions>>, technically they are _also_ methods, because on the JVM all code has to be defined in a method.
 In <<extension-functions-as-methods>>, we'll see that extension functions can in fact also be nonstatic methods of another class.)
 
@@ -168,14 +168,14 @@ This fails to compile, with the error:
 > `Unresolved reference. None of the following candidates is applicable because of receiver type mismatch:
 public fun Customer.nameForMarketing(): String ...`.
 
-_Receiver_, by the way, is the term that Kotlin uses for the object named `this` in an extension function (or normal method): the object that receives messages.
+_Receiver_, by((("receivers"))) the way, is the term that Kotlin uses for the object named `this` in an extension function (or normal method): the object that receives messages.
 
 Note that extension functions don't have any special access to the private members of the class that they are extending; they only have the same privileges as normal functions in their scope.
 
 
 === Extensions and Function Types
 
-Although we can't call extension functions as normal functions in Kotlin, we can assign them to normal function references. So the following compiles:
+Although((("functions to extension functions", "extensions and function types"))) we can't call extension functions as normal functions in Kotlin, we can assign them to normal function references. So the following compiles:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#references
 [source,kotlin]
@@ -229,7 +229,7 @@ customer.extensionAsFunctionReference()
 
 === Extension Properties
 
-Kotlin also supports extension properties.
+Kotlin((("functions to extension functions", "extension properties"))) also supports extension properties.
 As we discuss in <<methods-to-properties>>, Kotlin property accessors are actually method calls.
 In the same way that extension functions are static functions that are called like methods, extension properties are static functions that are called like properties, which are in turn methods.
 Extension properties can't store any data because they don't really add fields to their class—their value can only be computed.
@@ -250,7 +250,7 @@ Most of what we have to say about extension functions applies to extension prope
 [WARNING]
 .Extensions Are Not Polymorphic
 ====
-Although invoking an extension function looks like a method call, it is not, in fact, sending a message to an object.
+Although((("method calls")))((("polymorphic method calls"))) invoking an extension function looks like a method call, it is not, in fact, sending a message to an object.
 For polymorphic method calls, Kotlin uses the dynamic type of the receiver at runtime to select the method to execute.
 For extensions, Kotlin uses the static type of the receiver at compile time to select the function to call.
 
@@ -259,7 +259,7 @@ If we need to use extensions in a polymorphic way, we can often achieve this by 
 
 === Conversions
 
-So far, we have seen extension functions adding operations to a type.
+So far, we((("functions to extension functions", "type conversions", id="FEFtype10")))((("type conversions", id="tycon10"))) have seen extension functions adding operations to a type.
 Conversions from one type to another are a common case.
 Travelator needs to convert customer details to and from JSON and XML.
 How should we convert from `JsonNode` to `Customer`?
@@ -292,7 +292,7 @@ static Customer customerFrom(JsonNode node) {
 
 .Naming Conversions
 ****
-A function converting a `JsonNode` to a `Customer` might be called `nodeToCustomer`, `createCustomer`, `toCustomer`, `customerFrom`, or `customerFor`.
+A((("naming conventions")))((("functions", "naming conventions"))) function converting a `JsonNode` to a `Customer` might be called `nodeToCustomer`, `createCustomer`, `toCustomer`, `customerFrom`, or `customerFor`.
 Why should we pick `customerFrom`?
 
 [TODO - Production: can we talk about formatting this list please!]
@@ -375,11 +375,11 @@ val marketingLength = jsonNode.toCustomer().nameForMarketing().length
 ----
 // end-insert
 
-Ahh ... that's much more readable.
+Ahh ... that's much more readable.((("", startref="FEFtype10")))((("", startref="tycon10")))
 
 === Nullable Parameters
 
-Extensions really come into their own when we work with optional data.
+Extensions((("functions to extension functions", "nullable parameters")))((("nullability", "nullable parameters"))) really come into their own when we work with optional data.
 When we are sending messages to a potentially `null` object, we can use the safe-call operator `?.` that we saw in <<optional-to-nullable>>.
 That doesn't help with parameters though; to pass a nullable reference as an argument to a function that takes a nonnull parameter, we have to wrap the call in conditional logic:
 
@@ -394,7 +394,7 @@ val greeting: String? = when (customer) {
 ----
 // end-insert
 
-Kotlin's _scoping functions_, such as `let`, `apply`, and `also`, can help here.
+Kotlin's((("scoping functions")))((("functions", "scoping functions"))) _scoping functions_, such as `let`, `apply`, and `also`, can help here.
 In particular, `let` converts its receiver into a lambda parameter:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#single_let
@@ -405,8 +405,8 @@ val greeting: String? = customer?.let { greetingForCustomer(it) }
 ----
 // end-insert
 
-Here the `?.` ensures that `let` is only called when the customer is not `null`, meaning that the lambda parameter, `it`, is never null, and can be passed to the function within the lambda body.
-You can think of `?.let` as a safe-call operator for (single) arguments.
+Here((("?.let expression"))) the `?.` ensures that `let` is only called when the customer is not `null`, meaning that the lambda parameter, `it`, is never null, and can be passed to the function within the lambda body.
+You can think of `?.let` as a((("safe-call operator"))) safe-call operator for (single) arguments.
 
 If a function returns a nullable result, and we must pass that result to another function that expects a nonnull parameter, the scoping functions start to get cumbersome:
 
@@ -463,7 +463,7 @@ Part of the grain of Kotlin is the way these features interact to smooth our way
 
 === Nullable Receivers
 
-One major difference between invoking a method and calling a function is in the treatment of `null` references.
+One((("functions to extension functions", "nullable receivers")))((("receivers")))((("nullability", "nullable receivers"))) major difference between invoking a method and calling a function is in the treatment of `null` references.
 If we have a reference that is `null`, we can't send a message to it, because there is nothing to send a message to—the JVM throws a `NullPointerException` if we try.
 In contrast, we are able to have `null` _parameters_.
 We may not know what to do with them, but they don't prevent the runtime from finding code to invoke.
@@ -483,7 +483,7 @@ fun Trip?.reminderAt(currentTime: ZonedDateTime): String? =
 ----
 // end-insert
 
-Note that we have to use the safe-call operator to dereference `this` inside the extension.
+Note((("safe-call operator"))) that we have to use the safe-call operator to dereference `this` inside the extension.
 Although `this` is never `null` inside a method, it can be inside an extension of a nullable type.
 A `null` `this` can be surprising if you're coming from Java, where it can never happen, but for extensions, Kotlin treats `this` as just another nullable parameter.
 
@@ -544,7 +544,7 @@ This neatly brings up the subject of generic extensions.
 
 === Generics
 
-Just as with normal functions, extensions can have generic parameters, and things become really interesting when the receiver is generic.
+Just((("functions to extension functions", "generics")))((("receivers")))((("generic parameters"))) as with normal functions, extensions can have generic parameters, and things become really interesting when the receiver is generic.
 
 Here's a useful extension function that for some reason isn't part of the standard library.
 It is defined as an extension on any type, including `null` references:
@@ -619,7 +619,7 @@ We can also extract parts of collections pipelines into named operations; see <<
 [[extension-functions-as-methods]]
 === Extension Functions as Methods
 
-We normally define extension functions as top-level functions.
+We((("functions to extension functions", "extension functions as methods")))((("methods"))) normally define extension functions as top-level functions.
 They can, though, be defined _inside_ a class definition.
 In this case they can access the members of their own class and 'extend' another type.
 
@@ -652,7 +652,7 @@ In particular, it allows DSLs to hide details (like the `ObjectMapper`) that cli
 [[refactoring-to-extension-functions]]
 === Refactoring to Extension Functions
 
-The actual mechanics of converting a static method to an extension function are simple, but we have to hone a sense for where an extension function will make things better.
+The((("functions to extension functions", "refactoring to extension functions", id="FEFref10")))((("refactoring", "functions to extension functions", id="Rfunctions10"))) actual mechanics of converting a static method to an extension function are simple, but we have to hone a sense for where an extension function will make things better.
 Let's work our way through a part of Travelator and see how we do.
 
 Those clever people in marketing have come up with a spreadsheet that gives customers a score according to how valuable they are to the company: their expected future spending.
@@ -1595,11 +1595,11 @@ private val CustomerData.marketingName: String
 
 Note that every function except the entry point is a single-expression extension function.
 We haven't made `generate` an extension function because there isn't a natural parameter to make the receiver; it doesn't feel like a natural operation on `Reader` or `Writer`.
-That may change when we continue refactoring this code in <<performing-io-to-passing-data>>. Let's see, shall we?
+That may change when we continue refactoring this code in <<performing-io-to-passing-data>>. Let's see, shall we?((("", startref="Rfunctions10")))((("", startref="FEFref10")))
 
 === Moving On
 
-Extension functions and properties are the unsung heroes of the Kotlin language.
+Extension functions((("extension functions")))((("functions to extension functions", "writing your own types"))) and properties are the unsung heroes of the Kotlin language.
 Their canonical use is to add operations to types we cannot modify ourselves.
 
 However, Kotlin language features and tooling combine to encourage us—quite insistently—to write extension functions for our _own_ types as well.

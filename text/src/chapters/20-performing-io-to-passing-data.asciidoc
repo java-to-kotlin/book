@@ -14,7 +14,7 @@ Now that earlier chapters have built some foundations, we're going to up the pac
 
 === Listening to Tests
 
-In <<functions-to-extension-functions>>, we looked at some Java code that produced a report for marketing.
+In((("performing I/O to passing data", "listening to tests"))) <<functions-to-extension-functions>>, we looked at some Java code that produced a report for marketing.
 When we left the code, we had introduced extension functions to the `HighValueCustomersReport`, giving us:
 
 // begin-insert: io-to-data.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt#all
@@ -103,7 +103,7 @@ class HighValueCustomersReportTests {
 // end-insert
 
 We didn't really look at the tests in <<functions-to-extension-functions>>, but if we do now, what stands out in the light of your authors' obsession with actions and calculations (<<actions-to-calculations>>)?
-In particular, look at that `check` function.
+In particular, look at that((("check function"))) `check` function.
 
 `check` is evidently not a calculation (<<calculations>>), because it works entirely by throwing an exception instead of returning a value.
 What if we look at it this way though?
@@ -148,7 +148,7 @@ You're right, that was a rhetorical question.
 
 === I/O to Data
 
-As the first stage in our refactor, let's try to wean `generate` off its `reader` parameter.
+As((("performing I/O to passing data", "I/O to data", id="PIOiotodata20")))((("refactoring", "I/O to data", id="Rio20"))) the first stage in our refactor, let's try to wean `generate` off its `reader` parameter.
 The code is currently:
 
 // begin-insert: io-to-data.3:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
@@ -488,11 +488,11 @@ fun generate(lines: List<String>): List<String> {
 That's better.
 The local variable `valuableCustomers` does a good job of telling us what the expression means, and the list operations spell out the implementation in place.
 This function is a case where a single-expression function (<<multi-to-single-expression-functions>>) would probably make things worse, so we'll leave it in two parts.
-We'll also continue to resist the temptation to make it an extension function, `List<String>.toReport()`, at least for now.
+We'll also continue to resist the temptation to make it an extension function, `List<String>.toReport()`, at least for now.((("", startref="PIOiotodata20")))((("", startref="Rio20")))
 
 .Refactoring for Readability
 ****
-Refactoring for readability is often this way.
+Refactoring((("refactoring", "for readability", secondary-sortas="readability")))((("performing I/O to passing data", "refactoring for readability"))) for readability is often this way.
 We might extract a function to make something more readable in context, but when the context changes, the function we extracted makes things worse.
 Time is also a context.
 Sometimes something that we felt was quite expressive when we wrote it turns out to be less so when we read it back later, or could now be improved because we have internalized new idioms.
@@ -500,10 +500,10 @@ Sometimes something that we felt was quite expressive when we wrote it turns out
 
 === Efficient Writing
 
-We're quite pleased with this refactor.
+We're((("performing I/O to passing data", "efficient writing", id="PIOwrit20"))) quite pleased with this refactor.
 It has simplified our tests and the production code, and we have moved from mixing I/O and logic to a simpler calculation with no side effects.
 
-For a while, all is fine in production too, but with the easing of COVID-19 travel restrictions, Travelator becomes the roaring success that we all knew it would be.
+For((("OutOfMemoryError")))((("error handling", "OutOfMemoryError"))) a while, all is fine in production too, but with the easing of COVID-19 travel restrictions, Travelator becomes the roaring success that we all knew it would be.
 Eventually, though, the lovely people in marketing start complaining that the report generation is failing with an `OutOfMemoryError`.
 Could we look into it?
 
@@ -565,7 +565,7 @@ fun main() {
 Ah, there's our problem.
 We're reading the whole of the input into memory (`readLines()`), processing it, and then creating the entire output in memory (`joinToString()`) before writing it back out.
 
-We sometimes run into problems like these with functional decomposition.
+We sometimes run into problems like these with((("functional decomposition"))) functional decomposition.
 In this case the original `Reader` and `Writer` code did not have this issue, so we have brought it on ourselves in the name of good style.
 We could quickly revert our changes and go and see whether there are any crumpets left, or we could find a more functional solution.
 
@@ -677,7 +677,7 @@ fun main() {
 ++++
 // end-insert
 
-`main` needs to be _recompiled_ now that `generate` returns a `Sequence` rather than a `List`, but its _source_ doesn't need to be changed.
+`main` needs((("recompilation"))) to be _recompiled_ now that `generate` returns a `Sequence` rather than a `List`, but its _source_ doesn't need to be changed.
 This is because there are extension functions `joinToString()` defined on both `Iterable` and `Sequence`, both returning `String`.
 
 It might not _need_ to change, but unless `main` _does_ change, we are still creating one large string of all the output before writing it in one operation.
@@ -744,11 +744,11 @@ Note that although the definition of `Writer::appendLines` is a single expressio
 
 Now that we are here, we realize that we could have postponed our memory crisis by just iterating over the original result `List` in `main`, writing each line individually, as we are doing now with the `Sequence`.
 This solution will use even less memory, though, so we'll commit it, having bought ourselves lots of headroom with few changes and earned our crumpets.
-Is there any butter?
+Is there any butter?((("", startref="PIOwrit20")))
 
 === Efficient Reading
 
-We would be remiss if we didn't finish the job and pretend that we also need to save memory on reading too.
+We((("performing I/O to passing data", "efficient reading", id="PIOread20"))) would be remiss if we didn't finish the job and pretend that we also need to save memory on reading too.
 Let's look at `generate` again:
 
 // begin-insert: io-to-data.15:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
@@ -1039,7 +1039,7 @@ fun Sequence<String>.toHighValueCustomerReport(): Sequence<String> {
 
 === Moving On
 
-This refactoring was motivated by a desire to simplify our code.
+This((("", startref="PIOread20"))) refactoring was motivated by a desire to simplify our code.
 By moving I/O to the entry point of our program, the inner workings can be calculations rather than actions.
 They can also abdicate responsibility for I/O errors.
 That was all well and good, but calculations take and return values, and forming a value of the entire contents of large files is sometimes too much for even today's computers.

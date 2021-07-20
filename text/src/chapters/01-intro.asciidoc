@@ -4,14 +4,14 @@
 [[grain]]
 === The Grain of a Programming Language
 
-Like wood, a programming language has a grain.
+Like((("Java", "versus Kotlin", secondary-sortas="Kotlin", id="Jvkotlin01")))((("Kotlin", "versus Java", secondary-sortas="Java", id="Kvjava01"))) wood, a programming language has a grain.
 In both carpentry and programming, when you work _with_ the grain, things go smoothly.
 When you work _against_ the grain, things are more difficult.
 When you work against the grain of a programming language, you have to write more code than necessary, performance suffers, you are more likely to introduce defects, you usually have to override convenient defaults, and you have to fight against the tooling every step of the way.
 
 Going against the grain involves constant effort with an uncertain payoff.
 
-For example, it has always been possible to write Java code in a functional style, but few programmers did before Java 8—for good reasons.
+For((("functional style"))) example, it has always been possible to write Java code in a functional style, but few programmers did before Java 8—for good reasons.
 
 Here's Kotlin code that calculates the sum of a list of numbers by folding the list with the addition operator:
 
@@ -26,7 +26,7 @@ Let's compare that to what was required in Java 1.0 to do the same.
 
 The mists of time will pass over you while transporting you to 1995...
 
-Java 1.0 does not have first-class functions, so we have to implement functions as objects and define our own interfaces for different types of function.
+Java 1.0 does not have((("first-class functions"))) first-class functions, so we have to implement functions as objects and define our own interfaces for different types of function.
 For example, the addition function takes two arguments, so we have to define the type of two-argument functions.
 
 // begin-insert: src/main/java/grain/java1/Function2.java
@@ -38,7 +38,7 @@ public interface Function2 {
 ----
 // end-insert
 
-Then we have to write the `fold` higher-order function, hiding the iteration and mutation required by the `Vector` class.
+Then((("higher-order functions"))) we have to write the `fold` higher-order function, hiding the iteration and mutation required by the `Vector` class.
 (The 1995 Java standard library doesn't yet include the Collections Framework.)
 
 // begin-insert: src/main/java/grain/java1/Vectors.java#reduce
@@ -110,7 +110,7 @@ Writing functional code _goes against the grain_ of Java 1.0.
 A language's grain forms over time as its designers and users build a common understanding of how language features interact and encode their understanding and preferences in libraries that others build upon.
 The grain influences the way that programmers write code in the language, which influences the evolution of the language and its libraries and programming tools, changing the grain, altering the way that programmers write code in the language, on and on in a continual cycle of mutual feedback and evolution.
 
-For example, as we move forward through time, Java 1.1 adds anonymous inner classes to the language, and Java 2 adds the Collections Framework to the standard library.
+For((("anonymous inner classes"))) example, as we move forward through time, Java 1.1 adds anonymous inner classes to the language, and Java 2 adds the Collections Framework to the standard library.
 Anonymous inner classes mean that we don't need to write a named class for each function we want to pass to our `fold` function, but the resulting code is arguably harder to read.
 
 // begin-insert: src/test/java/grain/java2/TheGrainOfJavaTest.java#reduce
@@ -129,7 +129,7 @@ int sum = ((Integer) Lists.fold(counts, new Integer(0),
 
 Functional idioms still go against the grain of Java 2.
 
-Fast-forward to 2004, and Java 5 is the next release that significantly changes the language.  It adds generics and autoboxing, which improve type safety and reduce boilerplate code:
+Fast-forward to 2004, and Java 5 is the next release that significantly changes the language.  It((("generics")))((("autoboxing")))((("type safety")))((("boilerplate code"))) adds generics and autoboxing, which improve type safety and reduce boilerplate code:
 
 // begin-insert: src/main/java/grain/java5/Function2.java
 [source,java]
@@ -153,13 +153,13 @@ int sum = Lists.fold(counts, 0,
 ----
 // end-insert
 
-Java developers often use https://github.com/google/guava[Google's Guava library] to add some common higher-order functions over collections (although `fold` is not among them), but even the authors of Guava recommend writing imperative code by default, because it has better performance and is usually easier to read.
+Java((("Guava library"))) developers often use https://github.com/google/guava[Google's Guava library] to add some common higher-order functions over collections (although `fold` is not among them), but even the authors of Guava recommend writing imperative code by default, because it has better performance and is usually easier to read.
 
 Functional programming still goes largely against the grain of Java 5, but we can see the start of a trend.
 
-Java 8 adds anonymous functions (aka lambda expressions) and method references to the language, and the Streams API to the standard library.
+Java 8((("anonymous functions")))((("lambda expressions"))) adds anonymous functions (aka lambda expressions) and method references to the language, and the Streams API to the standard library.
 The compiler and virtual machine optimize lambdas to avoid the performance overhead of anonymous inner classes.
-The Streams API fully embraces functional idioms, finally allowing:
+The((("Streams API"))) Streams API fully embraces functional idioms, finally allowing:
 
 // begin-insert: src/test/java/grain/java8/TheGrainOfJavaTest.java#reduce
 [source,java]
@@ -169,7 +169,7 @@ int sum = counts.stream().reduce(0, Integer::sum);
 // end-insert
 
 However, it isn't entirely plain sailing.
-We still can't pass the addition operator as a parameter to the Streams `reduce` function, but we have the standard library function `Integer::sum` that does the same thing.
+We still can't pass the addition operator as a parameter to the Streams `reduce` function, but we have the standard library function((("Integer::sum function"))) `Integer::sum` that does the same thing.
 Java's type system still creates awkward edge cases because of its distinction between reference and primitive types.
 The Streams API is missing some common higher-order functions that we would expect to find if coming from a functional language (or even Ruby).
 Checked exceptions don't play well with the Streams API and functional programming in general.
@@ -179,12 +179,12 @@ But with Java 8, Java has fundamentally changed to make a functional style work,
 The releases after Java 8 add a variety of smaller language and library features that support more functional programming idioms, but nothing that changes our sum calculation.
 And that brings us back to the present day.
 
-In the case of Java, the grain of the language, and the way programmers adapted to it, evolved through several distinct programming styles.
+In the case of Java, the grain of the language, and the way programmers adapted to it, evolved through several distinct programming styles.((("", startref="Jvkotlin01")))((("", startref="Kvjava01")))
 
 [[java-programming-style]]
 === An Opinionated History of Java Programming Style
 
-Like ancient poets, we divide the development of Java programming style into four distinct ages: Primeval, Beans, Enterprise, and Modern.
+Like((("Java", "history of development", id="JPShist01"))) ancient poets, we divide the development of Java programming style into four distinct ages: Primeval, Beans, Enterprise, and Modern.
 
 ==== Primeval Style
 
@@ -213,7 +213,7 @@ Java's one true coding convention meant that Java programmers could seamlessly i
 [[bean-java-style]]
 ==== Bean Style
 
-After Java's initial success, Sun set out to make it a practical tool for building applications.
+After((("JavaBeans"))) Java's initial success, Sun set out to make it a practical tool for building applications.
 Java 1.1 (1996) added language features (most notably inner classes), improved the runtime (most notably just-in-time compilation and reflection), and extended the standard library.
 Java 1.2 (1998) added a standard collections API and the Swing cross-platform GUI framework, which ensured Java applications looked and felt equally awkward on every desktop operating system.
 
@@ -251,12 +251,12 @@ Java did eventually spread through the enterprise.
 It didn't replace Visual Basic on the corporate desktop as expected, but rather unseated C++ as the server-side language of choice.
 In 1998, Sun released Java 2 Enterprise Edition (then known as J2EE, now JakartaEE), a suite of standard APIs for programming server-side, transaction processing systems.
 
-The J2EE APIs suffer from _abstraction inversion_.
+The((("abstraction inversion"))) J2EE APIs suffer from _abstraction inversion_.
 The JavaBeans and applets APIs also suffer from abstraction inversion—they both disallow passing parameters to constructors, for example—but it is far more severe in J2EE.
 J2EE applications don't have a single entry point.
 They are composed of many small components whose lifetime is managed by an application container, and are exposed to one another through a JNDI name service.
 Applications need a lot of boilerplate code and mutable state to look up the resources they depend on.
-Programmers responded by inventing [class="pattern"]_dependency injection_ (DI) frameworks that did all the resource lookup and binding, and managed lifetimes.
+Programmers((("dependency injection (DI)"))) responded by inventing [class="pattern"]_dependency injection_ (DI) frameworks that did all the resource lookup and binding, and managed lifetimes.
 The most successful of these is Spring.
 It builds upon the JavaBeans coding conventions and uses reflection to compose applications from Bean-like objects.
 
@@ -348,12 +348,12 @@ With no DI framework or mutable state, there's less need to follow JavaBean codi
 Within a single codebase, exposing fields of immutable values works fine, because the IDE can encapsulate a field behind accessors in an instant if they're needed.
 
 Java 9 introduced modules, but so far they have not seen widespread adoption outside the JDK itself.
-The most exciting thing about recent Java releases has been the modularization of the JDK and removal of seldom-used modules, such as CORBA, from the JDK into optional extensions.
+The most exciting thing about recent Java releases has been the modularization of the JDK and removal of seldom-used modules, such as CORBA, from the JDK into optional extensions.((("", startref="JPShist01")))
 
 [[future-java-style]]
 ==== The Future
 
-The future of Java promises more features to make Modern Style easier to apply: records, pattern matching, user-defined value types, and eventually the unification of primitive and reference types into a uniform type system.
+The((("Java", "future of"))) future of Java promises more features to make Modern Style easier to apply: records, pattern matching, user-defined value types, and eventually the unification of primitive and reference types into a uniform type system.
 
 However, this is a challenging effort that will take many years to complete.
 Java started off with some deep-seated inconsistencies and edge cases that are hard to unify into clean abstractions while staying backward compatible.
@@ -362,14 +362,14 @@ Kotlin has the benefit of 25 years of hindsight, and a clean slate from which to
 [[grain-of-kotlin]]
 === The Grain of Kotlin
 
-Kotlin is a young language, but it clearly has a different grain than Java.
+Kotlin((("Kotlin", "preferences contributing to design goals"))) is a young language, but it clearly has a different grain than Java.
 
 When we wrote this, the https://kotlinlang.org/#why-kotlin["Why Kotlin"] section of https://kotlinlang.org[kotlinlang.org] gave four design goals: "Concise," "Safe," "Interoperable," and "Tool-friendly."
 The designers of the language and its standard library also encoded implicit preferences that contribute to these design goals.
 These preferences include:
 
 Kotlin prefers the transformation of immutable data to mutation of state.::
-Data classes make it easy to define new types with value semantics.
+Data((("mutability", "Kotlin preferences"))) classes make it easy to define new types with value semantics.
 The standard library makes it easier and more concise to transform collections of immutable data than to iterate and mutate data in place.
 
 Kotlin prefers behavior to be explicit.::
@@ -413,7 +413,7 @@ We have to work with the different grains of Java _and_ Kotlin, being sympatheti
 [[intro-refactoring-to-kotlin]]
 === Refactoring to Kotlin
 
-When we started our journey to Kotlin, we were responsible for maintaining and enhancing business-critical systems.
+When((("Kotlin", "refactoring considerations", id="Krefact01")))((("refactoring", "considerations for", id="Rconsid01"))) we started our journey to Kotlin, we were responsible for maintaining and enhancing business-critical systems.
 We were never able to focus _only_ on converting our Java codebase to Kotlin.
 We always had to migrate code to Kotlin at the same time as changing the system to meet new business needs, maintaining a mixed Java/Kotlin codebase as we did so.
 We managed the risk by working in small changes, making each easy to understand and cheap to discard if we found out it broke something.
@@ -477,7 +477,7 @@ We've listed more books about these topics in <<bibliography>>.
 
 ==== We Commit for Git Bisect
 
-Just as we don't explicitly state when we run our tests, nor do we explicitly state when we commit our changes.
+Just((("git bisect command"))) as we don't explicitly state when we run our tests, nor do we explicitly state when we commit our changes.
 Assume we commit our changes whenever they have added value to the code, no matter how small.
 
 We know our test suite isn't perfect.
@@ -495,7 +495,7 @@ For the same reason, we very rarely squash commits.
 
 [NOTE]
 ====
-We prefer to commit changes straight onto the mainline branch—"trunk-based development"—but changing code in a sequence of small, independent commits is just as beneficial when working in branches and merging less frequently.
+We prefer to commit changes straight onto the mainline branch—"trunk-based development"—but changing code in a sequence of small, independent commits is just as beneficial when working in branches and merging less frequently.((("", startref="Krefact01")))((("", startref="Rconsid01")))
 ====
 
 === What Are We Working On?

@@ -11,7 +11,7 @@ What can we do to support the conventions of both languages as we gradually tran
 So far, we have shown the translation of code from Java to Kotlin happening all in one go.
 We have used automatic refactorings to perform the translation safely, but by the end, all the affected code has been converted to idiomatic Kotlin.
 
-In large codebases, this is not always possible.
+In((("functions to operators", "Kotlin/Java interop", id="FOinter12"))) large codebases, this is not always possible.
 We must continue to evolve features in Java while we are introducing Kotlin.
 Where there is a boundary between the two, we want to use conventional Java on one side and conventional Kotlin on the other.
 This is especially true when we convert foundational classes that support a lot of our system's functionality.
@@ -31,7 +31,7 @@ Or do we convert the `Money` class to Kotlin while we still have Java code using
 
 The fact that we even have these options is a testament to how well Kotlin/Java interop works in both directions.
 In practice, we don't have to choose.
-With some cunning refactoring tactics and a few annotations to control how the Kotlin compiler generates code for the JVM, we can get the best of both worlds.
+With some cunning refactoring tactics and a few((("annotations"))) annotations to control how the Kotlin compiler generates code for the JVM, we can get the best of both worlds.
 We can define `Money` in Kotlin, allowing us to take advantage of Kotlin's features, and still provide an idiomatic API for Java code that we are maintaining.
 
 We converted the `Money` class to Kotlin in <<java-to-kotlin-classes>>.
@@ -94,12 +94,12 @@ In particular, it uses methods of a companion object to create values, and it us
 In a monolingual codebase, it would be pretty straightforward to address those issues.
 However, we still have plenty of Java code that uses the `Money` class.
 We'll continue to make changes in Java _and_ Kotlin, until Kotlin has edged Java out altogether.
-In the meantime, we want to ensure that code that uses `Money` in either language is conventional enough not to frighten the horses.
+In the meantime, we want to ensure that code that uses `Money` in either language is conventional enough not to frighten the horses.((("", startref="FOinter12")))
 
 
 === Adding a User-Defined Operator
 
-Kotlin code that calculates with `Money` values is still rather clumsy:
+Kotlin code((("functions to operators", "user-defined operators")))((("user-defined operators")))((("operators", "user-defined operators")))((("operators", see="also functions to operators"))) that calculates with `Money` values is still rather clumsy:
 
 [source,kotlin]
 ----
@@ -154,7 +154,7 @@ class Money private constructor(
 ++++
 // end-insert
 
-With this change, our Kotlin code can add `Money` values with the + operator, whereas the Java code calls `plus` as a method.
+With((("+ operator", id="plusop12"))) this change, our Kotlin code can add `Money` values with the + operator, whereas the Java code calls `plus` as a method.
 
 When we go to check in, though, we find that our rename has rippled across hundreds of files of Java code, introducing a name that doesn't follow Java conventions.
 Java classes in the standard library with arithmetic operations, such as `BigDecimal` and `BigInteger`, all use the name `add`, not `plus`.
@@ -214,7 +214,7 @@ but in general you will need to come to an agreement within your team about how 
 
 === Calling Our Operator from Existing Kotlin Code
 
-Looking at our Kotlin client code, we find we still have a problem.
+Looking((("functions to operators", "calling operators from existing Kotlin code")))((("operators", "calling operators from existing Kotlin code"))) at our Kotlin client code, we find we still have a problem.
 At the time of writing, IntelliJ does not have an automated refactoring to replace all direct calls to an operator method with use of the respective operator.
 Any of our Kotlin code that had been calling the `Money.add` method before we turned it into an operator will be left calling `Money.plus` as a method instead of using the `+` operator.
 IntelliJ can automatically refactor each of those call sites from a method call to an operator, but we would have to go through them one by one, invoking the refactoring individually.
@@ -323,7 +323,7 @@ Our codebase will then only use the `+` operator.
 
 === Operators for Existing Java Classes
 
-While we're working on the `plus` method, we can also take the opportunity to use the `+` operator _inside_ the method.
+While((("functions to operators", "operators for existing Java classes")))((("operators", "for existing Java classes"))) we're working on the `plus` method, we can also take the opportunity to use the `+` operator _inside_ the method.
 The `Money` class represents its `amount` property as a `BigDecimal`, a class from the Java standard library.
 We can replace the call to the `BigDecimal.add` method with the + operator:
 
@@ -350,18 +350,18 @@ Our code continues to compile.
 How is that possible?
 
 The Kotlin standard library includes extension functions that define operators for classes in the Java standard library: mathematical classes, such as `BigInteger` and `BigDecimal` and collections, such as `List<T>` or `Set<T>`.
-Because these extension functions are defined in the `kotlin` package, they are available to any package automatically: we don't need to import them.
+Because these extension functions are defined in the `kotlin` package, they are available to any package automatically: we don't need to import them.((("", startref="plusop12")))
 
 
 === Conventions for Denoting Values
 
-The static `of` functions on the companion object, used to denote `Money` values, also break Kotlin conventions.
+The((("functions to operators", "conventions for denoting values", id="FOvalue12"))) static `of` functions on the companion object, used to denote `Money` values, also break Kotlin conventions.
 
-Java syntax distinguishes between instantiating a class with the `new` operator and obtaining an object as the result of a method call.
+Java((("new operator")))((("Java", "new operator versus method calls"))) syntax distinguishes between instantiating a class with the `new` operator and obtaining an object as the result of a method call.
 A <<modern-java-style,Modern Java>> convention is that stateful objects, for which identity is significant, are constructed with the new operator, and values are denoted by calls to static factory functions.
 For example, the expression `new ArrayList<>()` constructs a new mutable list distinct from any other mutable list, while the expression `List.of("a","b","c")` denotes an immutable list value.
 
-Kotlin does not draw a distinction between constructing objects and calling functions: the syntax for instantiating a class is the same as that for calling a function.
+Kotlin((("Kotlin", "constructing objects versus calling functions"))) does not draw a distinction between constructing objects and calling functions: the syntax for instantiating a class is the same as that for calling a function.
 Nor are there coding conventions to distinguish between constructing a new stateful object that has a distinct identity and denoting values that do not.
 
 WARNING: Although the Kotlin code for calling a function and instantiating a class look the same, they are implemented by different JVM bytecode. A source-compatible change between calling a constructor and a function will not be binary-compatible.
@@ -377,7 +377,7 @@ So it looks like the easiest option would be to define top-level `moneyOf` funct
 However, those `moneyOf` functions would have to call the `Money` class's constructor.
 They can't call it if it is still declared as `private`, but could if we change the constructor to `internal`.
 
-Internal visibility would make the constructor visible to any Kotlin code in the same compilation unit (Gradle subproject or IntelliJ module) but prevent it from being called by Kotlin code in other compilation units.
+Internal visibility((("internal visibility"))) would make the constructor visible to any Kotlin code in the same compilation unit (Gradle subproject or IntelliJ module) but prevent it from being called by Kotlin code in other compilation units.
 The compilation unit, rather than the class, would be responsible for guaranteeing the invariants of the `Money` class by never calling its constructor inappropriately.
 That would be safe enough if it wasn't for those Java parts of our system that we will continue to maintain during our system's transition to Kotlin.
 
@@ -386,7 +386,7 @@ The Kotlin compiler translates internal features of a class to a public feature 
 As a result, Kotlin features declared as internal appear to be public to the Java compiler and JVM, allowing us to create invalid `Money` values accidentally when we're working in the Java code of our project.
 That makes top-level `moneyOf` functions an unattractive option.
 
-Instead, we can lean on Kotlin's operator overloading again.
+Instead, we can lean on Kotlin's((("operator overloading"))) operator overloading again.
 If we define a function call operator for the `Money` class's companion object, Kotlin code can create `Money` values by using the same syntax as if they were directly calling the constructor:
 
 [source,kotlin]
@@ -548,7 +548,7 @@ interface ExchangeRates {
 ++++
 // end-insert:
 
-We're left with a class that is conventional and convenient, whether we're using it from Kotlin or Java.
+We're left with a class that is conventional and convenient, whether we're using it from Kotlin or Java.((("", startref="FOvalue12")))
 
 
 === Moving On

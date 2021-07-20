@@ -11,9 +11,9 @@ When should we prefer a computed property to a function returning a result?</p>
 
 === Fields, Accessors, and Properties
 
-Most programming languages allow us to group data together in some way, giving names (and often types) to the properties of a composite.
+Most programming languages((("methods to properties", "fields, accessors, and properties", id="MPfields11"))) allow us to group data together in some way, giving names (and often types) to the properties of a composite.
 
-Here, for example, is a _record_, composed of three _fields_, in ALGOL W, one of the first general-purpose languages to support record types. (ALGOL W was also the language in which Tony Hoare introduced null references.)
+Here, for((("records")))((("fields"))) example, is a _record_, composed of three _fields_, in ALGOL W, one of the first general-purpose languages to support record types. (ALGOL W was also the language in which Tony Hoare introduced null references.)
 
 [source,algol-w]
 ----
@@ -34,7 +34,7 @@ AGE(WILMA) := AGE(WILMA) + 1;
 ----
 
 In this case the compiler will emit the instructions to reach into the memory of the record, find the bytes representing Wilma's age, and increment it.
-Records, also known as _structs_ (for structure) in other languages, are a convenience for grouping related data.
+Records, also known as((("structs"))) _structs_ (for structure) in other languages, are a convenience for grouping related data.
 There is no information hiding here; just composition.
 
 Most early object-oriented systems (C++ in particular) were based on this record mechanism.
@@ -43,7 +43,7 @@ Smalltalk was different.
 Smalltalk objects can have instance variables, but access to this state is by sending a message to the object asking for the value.
 Messages, not fields, is the fundamental abstraction.
 
-The Java implementers took a little of each approach.
+The((("Java", "fields, accessors, and properties", id="JPSfield11"))) Java implementers took a little of each approach.
 Objects can have public fields, but clients can't just reach into their memory to retrieve them; they have to call bytecode instructions to access their values.
 This allows us to treat classes as records while allowing the runtime to enforce private field access.
 
@@ -53,7 +53,7 @@ We also cannot maintain any invariant relationships between fields if clients ca
 Fields access is also not polymorphic, so subclasses cannot change their implementation.
 In those days, objects were all about the subclassing too.
 
-So instead of direct field access in Java, we usually write _accessor_ methods: getters and (if need be) setters.
+So((("accessor methods"))) instead of direct field access in Java, we usually write _accessor_ methods: getters and (if need be) setters.
 Getters usually do nothing except return the value of a field, but they may instead compute a value from other fields.
 Setters may maintain invariants or fire events as well as update a field or, perhaps, more than one field.
 
@@ -66,7 +66,7 @@ The language doesn't support giving direct access to fields.
 Kotlin will generate code to access public fields of Java classes but does not define public fields itself. (A special annotation, `@JvmField`, provides a back door if you really need it.)
 They did this to encourage us to use accessors so that we can change representations without affecting clients.
 
-To encourage accessors further, Kotlin allows us to generate both a private member-variable and an accessor in a single _property_ declaration.
+To((("properties", seealso="methods to properties"))) encourage accessors further, Kotlin allows us to generate both a private member-variable and an accessor in a single _property_ declaration.
 
 So in Java we can give access to a field directly:
 
@@ -174,7 +174,7 @@ Properties are a convenience backed by some compiler magic.
 They make it as simple to use fields and accessors in Kotlin as plain old fields in Java, so we will naturally write code that can take advantage of encapsulation.
 For example, we might find that we want to define a property in an interface or compute a property that we previously stored.
 
-_Computed_ properties are those not backed by a field.
+_Computed_ properties((("computed properties"))) are those not backed by a field.
 If we have `givenName` and `familyName` backed by fields, there is no need to store `fullName`; we can compute it when we need it:
 
 // begin-insert: src/main/java/properties/PersonWithPublicFields.java#fullName
@@ -239,11 +239,11 @@ So, in Java, we _can_ define classes that give direct access to fields, but _sho
 In Kotlin, we cannot define fields and accessors separately.
 When we define a property in Kotlin, the compiler generates a field and accessors that follow the Java naming convention.
 When we refer to a property in Kotlin, the syntax is the same as Java's syntax for field access, but the compiler generates a call to the accessor.
-This even applies across the interop boundary: when we refer to properties of Java objects, the compiler will generate a call to the accessor if one exists and follows the Java naming convention.
+This even applies across the interop boundary: when we refer to properties of Java objects, the compiler will generate a call to the accessor if one exists and follows the Java naming convention.((("", startref="MPfields11")))((("", startref="JPSfield11")))
 
 === How to Choose
 
-Returning to the question at the beginning of the chapter: given that computed properties are just methods with sugar on top, when should we choose a computed property, and when should we choose a method?
+Returning((("methods to properties", "choosing computed properties versus methods", id="MPchoos11"))) to the question at the beginning of the chapter: given that computed properties are just methods with sugar on top, when should we choose a computed property, and when should we choose a method?
 
 A good rule of thumb is to use a property when it depends only on other properties on the type and is cheap to compute.
 This applies to `fullName`, so that is a good computed property.
@@ -342,11 +342,11 @@ data class PersonWithProperties(
 
 In this case, we might consider an extension property.
 As we saw in <<functions-to-extension-functions>>, though, extension properties can only be computed rather than backed by a field and so cannot be lazy.
-Apart from that, most of the discussion here also applies to extension functions versus extension properties.
+Apart from that, most of the discussion here also applies to extension functions versus extension properties.((("", startref="MPchoos11")))
 
 === Mutable Properties
 
-So what of mutable properties?
+So((("methods to properties", "mutable properties")))((("mutability", "mutable properties"))) what of mutable properties?
 Kotlin allows us to define properties as `var`, for variable.
 
 If you've read this far, you'll know that your authors like to keep their data (<<beans-to-values>>) and collections (<<java-to-kotlin-collections>>) immutable.
@@ -356,7 +356,7 @@ In practice, we find that data classes with copy methods work better in almost a
 
 === Refactoring to Properties
 
-IntelliJ provides excellent refactoring support for converting between Kotlin methods and properties.
+IntelliJ((("methods to properties", "refactoring to properties", id="MPreftop11")))((("IntelliJ IDE", "converting between Kotlin methods and properties", id="IJconvert11")))((("refactoring", "methods to properties", id="Rmethods11"))) provides excellent refactoring support for converting between Kotlin methods and properties.
 This is on one hand simple, because both are simply method calls, and on the other complicated, because Java interop relies on naming conventions to identify accessors.
 Let's look at an example from Travelator.
 
@@ -698,7 +698,7 @@ Duncan likes a good Elvis but thinks the code is clearer his way.
 Your team will probably have these little battles (choose Duncan's way).
 
 A fundamental operation like `isIn` might now be promoted to a method (as opposed to an extension function) on `Campsite` or, even better, `Address`.
-This way, the problem of regions not being entities is confined to the type closest to the problem, and fixing it there will have the least effect on the rest of the codebase.
+This way, the problem of regions not being entities is confined to the type closest to the problem, and fixing it there will have the least effect on the rest of the codebase.((("", startref="MPreftop11")))((("", startref="IJconvert11")))((("", startref="Rmethods11")))
 
 === Moving On
 

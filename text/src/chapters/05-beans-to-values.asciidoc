@@ -11,7 +11,7 @@ Why are immutable values a better choice, and how can we reduce the cost of muta
 
 === Beans
 
-As we discussed in <<bean-java-style>>, JavaBeans were introduced to allow the development of drag-and-drop GUI builders in the Visual Basic style.
+As((("JavaBeans")))((("mutability", "JavaBeans"))) we discussed in <<bean-java-style>>, JavaBeans were introduced to allow the development of drag-and-drop GUI builders in the Visual Basic style.
 A developer could drop a button onto a form, change its title and icon, and then wire in an on-click handler.
 Behind the scenes, the GUI builder would write code to instantiate a button object and then call setters for the properties that the developer had changed.
 
@@ -35,7 +35,7 @@ For most things that we want to represent with objects, a value would be better.
 
 === Values
 
-_Value_ is a much overloaded term in English.
+_Value_ is((("mutability", "values and")))((("values", "mutability and"))) a much overloaded term in English.
 In computing, we say that variables, parameters, and fields have values: the primitive or reference that they are bound to.
 When we refer to _a value_ in this book, we are referring to a specific type of primitive or reference: those with value semantics.
 An object has value semantics if only its value is significant in its interactions, not its identity.
@@ -53,7 +53,7 @@ In the case of beans used to represent plain data, it will depend on whether the
 It is possible to create immutable beans, but most developers would think of these more as plain old java objects.
 
 Are POJOs values?
-The term was coined to refer to classes that don't have to extend from framework types to be useful.
+The((("POJOs (plain old Java objects)"))) term was coined to refer to classes that don't have to extend from framework types to be useful.
 They usually represent data and conform to the JavaBeans conventions for accessor methods.
 Many POJOs will not have a default constructor, but instead define constructors to initialize properties that don't have sensible defaults.
 Because of this, immutable POJOs are common and may have value semantics.
@@ -67,7 +67,7 @@ We hope you'll forgive the sloppy title.
 
 === Why Should We Prefer Values?
 
-A value is immutable data.
+A((("values", "benefits of immutable objects"))) value is immutable data.
 Why should we prefer immutable objects to mutable objects, and objects that represent data to other types of object?
 This is a theme that we will visit time and again in this book.
 For now, let's just say that immutable objects are easier to reason about because they don't change, and so:
@@ -79,7 +79,7 @@ For now, let's just say that immutable objects are easier to reason about becaus
 
 === Refactoring Beans to Values
 
-Let's look at refactoring a use of a mutable bean or POJO to a value.
+Let's((("mutability", "refactoring JavaBeans to values", id="Mjbtov05")))((("refactoring", "JavaBeans to values", id="Rjbtov05")))((("values", "refactoring JavaBeans to values", id="Vrefact05"))) look at refactoring a use of a mutable bean or POJO to a value.
 
 Travelator has a mobile app, and the Android version is written in Java.
 In that code, we represent user preferences with a `UserPreferences` JavaBean.
@@ -441,7 +441,7 @@ While Kotlin _allows_ mutable data classes, we should be even more wary of them 
 [[object-equality]]
 .Object Equality
 ****
-Data classes derive `equals` and `hashCode` methods from the values of all the properties declared in their primary constructor.
+Data((("object equality")))((("data classes", "object equality"))) classes derive `equals` and `hashCode` methods from the values of all the properties declared in their primary constructor.
 So two instances of the same class will be equal when (and only when) all their corresponding properties have the same values.
 
 If we add two instances with the different properties to a set, they will both be present in that set.
@@ -522,7 +522,7 @@ Now we have only one place that preferences can change, made clear by the assign
 It is also clear that `showWelcome` can only read from the object.
 It may seem a bit of a waste to create a new `UserPreferences` to return from `showModal` even if nothing has changed.
 If you're used to sharing mutable objects, it may even seem dangerous.
-In the world of values, though, two `UserPreferences` with the same values are to almost all intents and purposes the same object (see <<object-equality>>), and you would have to be in a very constrained environment to detect the extra allocation.
+In the world of values, though, two `UserPreferences` with the same values are to almost all intents and purposes the same object (see <<object-equality>>), and you would have to be in a very constrained environment to detect the extra allocation.((("", startref="Mjbtov05")))((("", startref="Rjbtov05")))((("", startref="Vrefact05")))
 
 === Moving On
 

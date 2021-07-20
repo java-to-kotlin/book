@@ -9,7 +9,7 @@
 
 === Strategy
 
-The first time your authors, Nat and Duncan, introduced Kotlin to a Java codebase, we were a small team that included six developers, building a relatively greenfield project.
+The((("Java Way to Kotlin Way", "strategy behind Java to Kotlin projects"))) first time your authors, Nat and Duncan, introduced Kotlin to a Java codebase, we were a small team that included six developers, building a relatively greenfield project.
 We had already deployed some web applications with Kotlin, but our enterprise architects insisted that we write the new system in Java 8.
 This was shortly after Kotlin 1.0 had been released, but before Google announced that Kotlin was an official language for Android, so the architects were understandably wary about committing to a language with an uncertain future for a strategic system that they expected to be around for decades.
 
@@ -54,10 +54,10 @@ But all that follows the first small step.
 
 === Adding Kotlin Support to a Java Build
 
-If we want to refactor our Java to Kotlin, the first change we must make is to give ourselves the ability to write Kotlin code in our codebase.
+If((("Java Way to Kotlin Way", "adding Kotlin support to Java builds", id="JWKWsupport02")))((("Gradle build configuration", id="gradle02"))) we want to refactor our Java to Kotlin, the first change we must make is to give ourselves the ability to write Kotlin code in our codebase.
 Happily, the Kotlin build tools and IDE make this very straightforward.
 It takes a few additional lines in our Gradle build configuration for it to compile Kotlin as well as Java.
-IntelliJ will pick up that configuration when we resync the build file, allowing us to navigate, autocomplete, and refactor across both languages almost seamlessly.
+IntelliJ((("IntelliJ IDE", "adding Kotlin support to Java builds"))) will pick up that configuration when we resync the build file, allowing us to navigate, autocomplete, and refactor across both languages almost seamlessly.
 
 To add Kotlin to our Gradle build, we need to add the Kotlin plug-in.
 There is a different plug-in for each target that Kotlin supports (JVM, JavaScript, and native code), and a plug-in for building multiplatform projects.
@@ -70,7 +70,7 @@ At the time of writing, the Kotlin compiler can generate bytecode compatible wit
 [WARNING]
 .Kotlin Versions
 ====
-The Kotlin language and standard library are still maturing, but JetBrains policy is to provide a clear migration path.
+The((("Kotlin", "versions"))) Kotlin language and standard library are still maturing, but JetBrains policy is to provide a clear migration path.
 The current version of Kotlin was 1.3 when we started writing this book.
 As we finish it, 1.5 has just been released, deprecating some standard APIs used in our code examples!
 We have chosen not to migrate to their replacements, so that the code is able to run on Kotlin 1.4 and 1.5.
@@ -180,7 +180,7 @@ fun main() {
 [TIP]
 .Where to Put Kotlin Source
 ====
-The Kotlin build plug-in adds additional source roots, `src/main/kotlin` and `src/test/kotlin`, and compiles Kotlin source files found in any of their subdirectories.
+The((("Kotlin", "source placement"))) Kotlin build plug-in adds additional source roots, `src/main/kotlin` and `src/test/kotlin`, and compiles Kotlin source files found in any of their subdirectories.
 
 It will also compile Kotlin source found in Java source trees, in particular `src/main/java` and `src/test/java`.
 Although you can separate your source files by language, putting Java files in the `java` directories and Kotlin into `kotlin`, in practice your authors don't bother.
@@ -206,11 +206,11 @@ It lives!
 
 Let's delete `HelloWorld.kt`—it's done its job—commit and push.
 
-We now have the _option_ to use Kotlin in our project; the first part of this chapter gives some pointers to _where_ to start using it.
+We now have the _option_ to use Kotlin in our project; the first part of this chapter gives some pointers to _where_ to start using it.((("", startref="gradle02")))
 
 .Other Build Systems
 ****
-We've chosen to show the changes necessary to add Kotlin support to a Gradle build here, but you can use Maven or Ant by following the instructions provided in the Tools section at https://KotlinLang.org[https://kotlinlang.org/docs/reference/].
+We've((("Java Way to Kotlin Way", "build systems other than Gradle"))) chosen to show the changes necessary to add Kotlin support to a Gradle build here, but you can use Maven or Ant by following the instructions provided in the Tools section at https://KotlinLang.org[https://kotlinlang.org/docs/reference/].
 This also gives instructions for using the command-line compiler, `kotlinc`.
 
 If you use Gradle, there is the option to use Kotlin, rather than the traditional Groovy, as the build definition language.
@@ -218,7 +218,7 @@ This has the advantage of providing better tool support through strong typing, a
 
 As we are Java and Kotlin developers rather than Java and Groovy developers, your authors start new projects with the Kotlin DSL, but we don't feel the need to convert existing Groovy builds, at least not immediately.
 As with the Java and Kotlin in production code, we can mix and match Kotlin and Groovy in our build, so this is a conversion that we can take our time over.
-We don't recommend that you switch your build from Groovy to Kotlin as your first act of conversion, and certainly don't look to us to write a Groovy to Kotlin Gradle book!
+We don't recommend that you switch your build from Groovy to Kotlin as your first act of conversion, and certainly don't look to us to write a Groovy to Kotlin Gradle book!((("", startref="JWKWsupport02")))
 ****
 
 === Moving On

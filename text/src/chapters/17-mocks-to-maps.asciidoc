@@ -8,7 +8,7 @@ Are better solutions available in Kotlin?</p>
 </blockquote>
 ++++
 
-This is a short bonus chapter, following on from <<interfaces-to-functions>>.
+This((("refactoring", "mocks to maps", id="Rmock17")))((("mocking frameworks", id="mfram17"))) is a short bonus chapter, following on from <<interfaces-to-functions>>.
 In that chapter, we saw that our tests used mocks because they had to implement two multimethod interfaces, even though most of those methods were not used.
 We left the refactoring, having replaced dependencies on multimethod interfaces with a dependency on just the two operations that were actually required to perform the task.
 The tests, though, still mock the whole interface, and then pass a reference to the required methods to the subject under test (`Recommendations`):
@@ -99,7 +99,7 @@ private void givenADistanceBetween(
 
 .Mock-Induced Test Damage
 ****
-David Heinemeier Hansson coined the term https://oreil.ly/8vgJU[test-induced design damage] to refer to harm caused to systems in the name of testability.
+David Heinemeier Hansson((("test-induced design damage")))((("mock-induced test damage"))) coined the term https://oreil.ly/8vgJU[test-induced design damage] to refer to harm caused to systems in the name of testability.
 In practice, your authors don't recognize this as much of a problem; we find that systems are usually _improved_ by the decoupling required to test them well.
 We _do_ often see tests ruined by mocks though, so much so that mocking has fallen out of favour in our circles.
 
@@ -152,11 +152,11 @@ In the end, maybe it doesn't matter, because in both of our experiences, most Ja
 
 For now though, we are still mocking, but our previous refactoring has resulted in our passing narrow interfaces (the function types) to the code under test.
 Now that we don't need to implement uncalled methods, do we still need the mocks?
-Let's see where pulling that thread takes us.
+Let's see where pulling that thread takes us.((("", startref="mfram17")))
 
 === Replacing Mocks with Maps
 
-Before we go on, we'll convert the tests to Kotlin, because it has better support for function types.
+Before((("maps, replacing mocks with", id="maprepl17")))((("mocks to maps", "replacing mocks with maps", id="MMreplace17"))) we go on, we'll convert the tests to Kotlin, because it has better support for function types.
 We could stay in Java, but then we would have to work out which of the Java function types (`Function`, `BiFunction` etc) expresses the operations.
 And we'd still have Java.
 
@@ -184,7 +184,7 @@ class RecommendationsTests {
 ++++
 // end-insert
 
-We could use Kotlin reified types to avoid those `::class.java` arguments, but we're moving away from mocks, not toward them, so we resist.
+We((("reified types"))) could use Kotlin reified types to avoid those `::class.java` arguments, but we're moving away from mocks, not toward them, so we resist.
 
 The term `when` is a keyword in Kotlin, but the converter is smart enough to quote it where required:
 
@@ -462,7 +462,7 @@ private fun of(vararg destination: FeaturedDestination)
 [TIP]
 .Faking in Kotlin
 ====
-There will be times, even in Kotlin, when we want to implement just some of an interface's methods for testing.
+There((("", startref="MMreplace17")))((("", startref="maprepl17")))((("dynamic proxies")))((("anonymous objects")))((("delegation")))((("selective overriding"))) will be times, even in Kotlin, when we want to implement just some of an interface's methods for testing.
 On the JVM, we can combine dynamic proxies with anonymous objects, delegation, and selective overriding to write the following:
 
 // begin-insert: src/main/java/encapsulation/faking.kt
@@ -489,7 +489,7 @@ val testCollaborator: EmailSystem = object: EmailSystem by fake() {
 
 === Have We Really Weaned Off Mocks, Though?
 
-Ah, now that is a good question!
+Ah, now((("mocks to maps", "benefits of refactoring", id="MMbene17"))) that is a good question!
 
 In some ways, we have just implemented a poor imitation of a mocking framework: we have no parameter matchers, no way of failing if a method isn't called, and no way of expressing execution order.
 
@@ -690,11 +690,11 @@ public void returns_recommendations_for_multi_location() {
 ++++
 // end-insert
 
-Admittedly, this is Java, and broken up a bit by the `givenADistanceBetween` calls, but you can see how this refactoring has migrated our tests from woolly functions that may or may not have a common structure to a clear testing of inputs against outputs.
+Admittedly, this is Java, and broken up a bit by the `givenADistanceBetween` calls, but you can see how this refactoring has migrated our tests from woolly functions that may or may not have a common structure to a clear testing of inputs against outputs.((("", startref="MMbene17")))((("", startref="Rmock17")))
 
 === Moving On
 
-Mocks have their place in software, and outside-in test-driven development (TDD) can certainly improve our designs by allowing us to prototype how to distribute functionality between collaborating objects without having to commit to complete implementations.
+Mocks((("mocks to maps", "benefits and drawbacks of maps"))) have their place in software, and outside-in test-driven development (TDD) can certainly improve our designs by allowing us to prototype how to distribute functionality between collaborating objects without having to commit to complete implementations.
 However, they have a habit of masking design problems by allowing us to test designs expressed as object interactions that would be better seen as data flows.
 
 In this example, we've seen how focusing on data can simplify our tests, especially where we are only reading values.

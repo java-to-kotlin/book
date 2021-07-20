@@ -12,9 +12,9 @@ How far can we go without defining new types?</p>
 In <<encapsulated-collections-to-typealiases>>, we saw the advantages of working with raw collections, and in <<interfaces-to-functions>>, we looked at using built-in function types rather than creating new ones.
 In this chapter, we'll apply the lessons we've learned to write some Kotlin from scratch.
 
-Even in these days of REST APIs and webhooks, much of automatic business-to-business communication is in the form of tabular text data exchanged by Secure File Transfer Protocol (SFTP).
+Even in these days of REST APIs and webhooks, much of automatic business-to-business communication is in the form of tabular text data exchanged by((("Secure File Transfer Protocol (SFTP)"))) Secure File Transfer Protocol (SFTP).
 Travelator has to import data for campsite locations, points of interest, unsettled bills, and more, all in regular rows and columns, with different  column separators, and with and without a header naming the columns for the remaining rows.
-In <<performing-io-to-passing-data>>, we saw that one team had created its own parser; in other places, we use the tried-and-trusted https://oreil.ly/jnI4h[Apache Commons CSV library].
+In <<performing-io-to-passing-data>>, we((("Commons CSV library")))((("Apache Commons CSV library"))) saw that one team had created its own parser; in other places, we use the tried-and-trusted https://oreil.ly/jnI4h[Apache Commons CSV library].
 Honestly, for most uses, we would still use Commons CSV, because it works out of the box, is nicely configurable for special cases, and plays really well with Kotlin.
 
 Today though we're going to see what a clean-room Kotlin parser would look like.
@@ -22,7 +22,7 @@ When we're done, we'll compare what we come up with to the Commons CSV functiona
 
 === An Acceptance Test
 
-As you might have been able to tell from the preceding chapters, the Travelator developers are Extreme Programmers (<<B_EPEEC_1999,_Extreme Programming Explained: Embrace Change_>>).
+As((("classes to functions", "acceptance tests", id="CFacc22")))((("acceptance tests", id="accept22"))) you might have been able to tell from the preceding chapters, the Travelator developers are Extreme Programmers (<<B_EPEEC_1999,_Extreme Programming Explained: Embrace Change_>>).
 We write code test-first, starting with a high-level acceptance test.
 We're working on a table reader, so we create a class `TableReaderAcceptanceTests` with a stub method and check that it runs:
 
@@ -251,11 +251,11 @@ We don't expect to get them to pass quickly, more tell us when we are done.
 For now, it has done its job, helping us sketch a simple API that we can now implement.
 
 Before we do go on, let's reflect on the fact that we have managed to define the interface to our parser without defining any new types, instead using `List` and `Map` of `String`.
-By using standard types, we know that we have rich Kotlin APIs to supply the `List` that we are reading from, and to interpret the `List` of ++Map++s that we are returning.
+By using standard types, we know that we have rich Kotlin APIs to supply the `List` that we are reading from, and to interpret the `List` of ++Map++s that we are returning.((("", startref="CFacc22")))((("", startref="accept22")))
 
 === Unit Testing
 
-Now that we have an interface to implement, we can park the acceptance test and write a minimal unit test.
+Now((("classes to functions", "unit testing", id="CFunit22")))((("unit testing", id="unit22"))) that we have an interface to implement, we can park the acceptance test and write a minimal unit test.
 What is minimal?
 We like to start with empty: what should happen if we read an empty file?
 
@@ -304,7 +304,7 @@ fun readTable(input: List<String>): List<Map<String, String>> {
 This passes.
 It may seem trivial, but it's always a good idea to have a test for empty input. The more complicated our algorithm, the more likely it is to fail in this case.
 It's a poor parser that always returns an empty result, though, so let's crack on.
-Following TDD (<<B_TDDBE_2002,_Test Driven Development By Example_>>), we need to add a failing test first to give us a reason to change the implementation.
+Following((("TDD (Test Driven Development)"))) TDD (<<B_TDDBE_2002,_Test Driven Development By Example_>>), we need to add a failing test first to give us a reason to change the implementation.
 We choose to add the case of reading a table with no header and one line of data.
 
 Why this rather than a header and one line of data?
@@ -616,11 +616,11 @@ fun `two lines of input with default field names`() {
 // end-insert
 
 It passes, and we reason that `(0, 1, 2)` is close enough to `(0, 1, 2147483647)` that we are done for now.
-This seems like a good place to check in, make a fresh coffee and dispose of the last one before getting back to work.
+This seems like a good place to check in, make a fresh coffee and dispose of the last one before getting back to work.((("", startref="CFunit22")))((("", startref="unit22")))
 
 === Headers
 
-Ready to go again?
+Ready((("classes to functions", "headers", id="CFheader22")))((("header lines", id="header22"))) to go again?
 OK, what about a header line?
 
 First, how should our API know to expect one?
@@ -1082,7 +1082,7 @@ fun `can specify header names when there is no header row`() {
 ++++
 // end-insert
 
-See how easy it is to convert from a `List<String>` to our header provider function `(Int) -> String` with the method reference `headers::get`?
+See how easy it is to convert from a `List<String>` to our header provider function `(Int) -> String` with the method reference((("headers::get"))) `headers::get`?
 This is an interesting way to view collections.
 We can view:
 
@@ -1164,11 +1164,11 @@ assertEquals(
 ++++
 // end-insert
 
-It passes, and we ride the little dopamine hit to check in the code and take a coffee break.
+It passes, and we ride the little dopamine hit to check in the code and take a coffee break.((("", startref="CFheader22")))((("", startref="header22")))
 
 === Different Field Separators
 
-Returning from coffee, we make a quick survey of the different places in Travelator that read tables.
+Returning((("classes to functions", "different field separators", id="CFdiff22")))((("field separators", id="field22"))) from coffee, we make a quick survey of the different places in Travelator that read tables.
 Interestingly, we only have one use case that reads classic "comma","separated","variables" (with the quotes), but several need to use a semicolon as the field separator.
 It seems that some French SQL Server export job is using semicolons and then saving the file with a `.CSV` extension; maybe the `C` is for çemicolon?
 We'll address reading those next, but try to find an interface that will work with more complicated quoting and escaping rules.
@@ -1581,11 +1581,11 @@ fun `can specify splitter`() {
 // end-insert
 
 This passes, giving us both reassurance and documentation.
-Let's check it in and take a break for a few minutes, before coming back to take stock.
+Let's check it in and take a break for a few minutes, before coming back to take stock.((("", startref="CFdiff22")))((("", startref="field22")))
 
 === Sequences
 
-We now have the basics of a table parser, and we haven't introduced any new types beyond those in the standard Kotlin runtime.
+We((("classes to functions", "sequences", id="CFseq22")))((("sequences", id="seq22"))) now have the basics of a table parser, and we haven't introduced any new types beyond those in the standard Kotlin runtime.
 This is often the way with a more functional approach.
 The grain of Kotlin is to leverage the rich abstractions provided by the standard library, where Java programs are more likely to define new types.
 As we saw in <<java-to-kotlin-collections>> and <<encapsulated-collections-to-typealiases>>, one reason for the difference is that Kotlin allows us to treat collections as values, which makes them more safely composable than Java's mutable objects.
@@ -1849,7 +1849,7 @@ Given how easy it is to convert a `List` argument to a `Sequence`, and a `Sequen
 Let's just move their definitions into the tests while we don't have any production uses.
 That way, the tests can use them to stay simple, and the production code is kept minimal.
 
-Here, then, is the entire public interface to our table parser:
+Here, then, is the entire public interface to our((("table parsers"))) table parser:
 
 // begin-insert: table-reader.47:src/main/java/travelator/tablereader/table-reading.kt#public
 [source,kotlin]
@@ -1935,11 +1935,11 @@ When we looked back at the code, we realized that it wasn't clear _why_ we neede
 It's often easier to do this in retrospect when we are trying to understand code we are returning to, rather than code we have just written.
 Apart from that, we think that the code is pretty self-explanatory.
 Sometimes we're wrong about that.
-If it takes us more than a glance to work out what is going on next time we read this code, we'll take the opportunity then to add more comments or, better, refactor to be more expressive.
+If it takes us more than a glance to work out what is going on next time we read this code, we'll take the opportunity then to add more comments or, better, refactor to be more expressive.((("", startref="CFseq22")))((("", startref="seq22")))
 
 === Reading from a File
 
-This seems a fine interface in the abstract, but the first time we come to use it in anger, we hit on a snag.
+This((("classes to functions", "reading from files", id="CFread22")))((("files, reading from", id="fread22"))) seems a fine interface in the abstract, but the first time we come to use it in anger, we hit on a snag.
 Let's illustrate the problem with a test.
 This calls the `Sequence` version of `readTableWithHeader`:
 
@@ -2245,11 +2245,11 @@ This is an important step.
 As we saw in <<mocks-to-maps>>, finding the patterns in our tests and expressing them in functions (like `checkReadTable`) both help readers of the tests to see what the code is doing and can help us find gaps in our test coverage.
 For example, what is the behavior of our parser when there are more fields than headers or vice versa?
 The tests that we write for quick feedback while we are test-driving our implementation are unlikely to be optimally effective for communicating about the API, finding issues, or catching regressions if we return to the implementation and modify it.
-If we use TDD as a design technique, we mustn't forget to make sure that the final tests are fit for determining correctness, adding documentation, and preventing regression.
+If we use TDD as a design technique, we mustn't forget to make sure that the final tests are fit for determining correctness, adding documentation, and preventing regression.((("", startref="fread22")))((("", startref="CFread22")))
 
 === Comparison with Commons CSV
 
-We started this chapter by saying that in most real-world situations, we would reach for Apache Commons CSV rather than rolling our own parser.
+We((("classes to functions", "comparison with Commons CSV", id="CFcomp22")))((("Commons CSV library", id="commonsCSV22")))((("Apache Commons CSV library", id="acoommonsCSV22"))) started this chapter by saying that in most real-world situations, we would reach for Apache Commons CSV rather than rolling our own parser.
 Before we finish the chapter, let's compare our API with that of the Commons equivalent.
 
 The most common use case for a table parser is to read a file with known columns, translating each row into some data class.
@@ -2530,7 +2530,7 @@ private fun tableOf(
 
 === Moving On
 
-In this final leg of our journey, we allowed ourselves the luxury of writing Kotlin from scratch rather than refactoring our existing Java.
+In((("", startref="CFcomp22")))((("", startref="commonsCSV22")))((("", startref="acoommonsCSV22"))) this final leg of our journey, we allowed ourselves the luxury of writing Kotlin from scratch rather than refactoring our existing Java.
 Even then, we started from the tests and then just copied the test data into our implementation and refactored from there.
 We can't write all code this way, but it does work well when our code is just calculations, and the more of it that is just calculations, the better our code works, too.
 

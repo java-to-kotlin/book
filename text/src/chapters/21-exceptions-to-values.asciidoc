@@ -20,7 +20,7 @@ Without a person in the loop to interpret those stack traces, it looks like we'l
 
 === Identifying What Can Go Wrong
 
-Here's the code as we left it:
+Here's((("exceptions to values", "identifying what can go wrong", id="EVid21"))) the code as we left it:
 
 // begin-insert: exceptions-to-values.0:src/main/java/travelator/marketing/HighValueCustomersReport.kt
 [source,kotlin]
@@ -117,7 +117,7 @@ private fun Any?.formattedAs(format: String) = String.format(format, this)
 ++++
 // end-insert
 
-`String.format(format, this)` is implemented as `java.lang.String::format`, which is documented to throw `IllegalFormatException` if the `format` is not compatible with its other input.
+`String.format(format, this)` is((("IllegalFormatException")))((("error handling", "IllegalFormatException"))) implemented as `java.lang.String::format`, which is documented to throw `IllegalFormatException` if the `format` is not compatible with its other input.
 This is a https://en.wikipedia.org/wiki/Partial_function[partial function]: one that only returns a result for some of the possible values of its parameters.
 In this case, it can return a result for all values of `Double`, but only when we use very specific values of `format`.
 Luckily, we are only feeding it one particular `format`, the value `%#.2f`, which we know works, so this and its only caller, `Double.toMoneyString()`, should not fail.
@@ -180,14 +180,14 @@ Finally, `parts[3]` may not represent an `Int`, or `parts[4]` may not represent 
 
 Having established that `toCustomerData` can fail if passed a `String` that doesn't meet our format specification, what should we do about it?
 At the moment, all the ways that it can fail result in an exception being thrown, the program being aborted with an unfriendly error message, and marketing calling us over.
-Which leads to two follow-on questions: "Should we abort?" and "How can we improve the error message so that marketing can interpret it?"
+Which leads to two follow-on questions: "Should we abort?" and "How can we improve the((("error messages"))) error message so that marketing can interpret it?"
 
 As we saw in <<throwing-to-returning>>, we shouldn't use exceptions to abort on predictable errors.
 The lack of checked exceptions in Kotlin (and their lack of use in Java) means that if we do, we lose the opportunity to communicate that the code is susceptible to failure.
 The callers of our code then have to do what we are currently doing: reason with every line of code in an implementation.
 Even after then, the implementation might change, silently invalidating the findings.
 
-If we aren't to throw an exception, then the cheapest change (provided our callers are all Kotlin) is to return `null` when we fail.
+If((("null, returning in place of exceptions"))) we aren't to throw an exception, then the cheapest change (provided our callers are all Kotlin) is to return `null` when we fail.
 Client code will then be forced to consider the `null` case and act accordingly.
 For example:
 
@@ -307,7 +307,7 @@ internal fun String.toCustomerData(): CustomerData? =
 ++++
 // end-insert
 
-Note that the Kotlin standard library has helped us out by providing `String::toSomethingOrNull` functions with just this error-handling convention.
+Note((("String::toSomethingOrNull"))) that the Kotlin standard library has helped us out by providing `String::toSomethingOrNull` functions with just this error-handling convention.
 Now that this code represents all reasonable errors with `null`, we can go back to `toHighValueCustomerReport` and work out what to do with them instead of pretending that they haven't happened (pronounced `filterNotNull`).
 
 We could abort on the first error, but it seems worth the extra effort to collect all the problem lines and report them somehow.
@@ -442,11 +442,11 @@ In <<performing-io-to-passing-data>>, we went out of our way to convert `toHighV
 We then relaxed the purity a little by reading and writing from and to a `Sequence`.
 Here we have introduced an error-handling function returning `Unit`, a sure sign that we have introduced an action.
 Provided that action's scope is confined to error handling, and any side effects are, as in this `main`, restricted to local variables, this is another reasonable compromise.
-This is an expedient error-handling solution that is flexible and communicates well, but pure it isn't.
+This is an expedient error-handling solution that is flexible and communicates well, but pure it isn't.((("", startref="EVid21")))
 
 === Representing Errors
 
-Now that we are communicating _that_ our parsing can fail (by returning a nullable type), and _where_ it has failed (with a callback passing the line), can we better communicate _why_ it has failed?
+Now((("exceptions to values", "representing errors", id="EVrep21"))) that we are communicating _that_ our parsing can fail (by returning a nullable type), and _where_ it has failed (with a callback passing the line), can we better communicate _why_ it has failed?
 
 Returning a result type rather than a nullable type allows us to specify what failure modes there are and provide details when they happen.
 Let's change `String.toCustomerData()` to return a `Result` rather than nullable:
@@ -852,7 +852,7 @@ private fun List<ParseFailure>.writeTo(error: OutputStreamWriter) {
 
 === What About I/O?
 
-That's very nearly good enough.
+That's((("", startref="EVrep21")))((("exceptions to values", "I/O errors")))((("I/O errors"))) very nearly good enough.
 Before we go, though, we should think about I/O errors.
 Since we introduced ++List++s and then ++Sequence++s, our report generation code does not have to worry about writing failing, because it is the calling code's responsibility to iterate over the result lines and actually perform the write.
 The `main` function in this case makes the reasonable assumption that `System.out` will always be there, but when we implement the unattended job that motivated this refactor, we will have to deal with the possibility that the file or network socket may disappear even if it was open when we started.
@@ -913,7 +913,7 @@ fun main() {
 This is perhaps overkill for this application, but it shows the pattern of catching and dealing with the exceptions that we _expect_ (printing a relatively friendly message for `IOException`) but allowing all others to leak and quit the application.
 If we follow the strategy from <<throwing-to-returning>>, _unexpected_ exceptions are either unrecoverable environment errors or programmer errors. In both cases, the default JVM behavior of quitting the process after printing a stack trace gives us a fighting chance of diagnosing the issue.
 When we convert this to an unattended server job, we will similarly process expected errors in our top-level handler function.
-We might abort on `IOException` or retry the whole interaction if we think the problem may be transient.
+We might abort on((("IOExceptions"))) `IOException` or retry the whole interaction if we think the problem may be transient.
 We know that retrying won't help with parse errors, so we will have to log these and/or send notifications somewhere.
 Unexpected errors in handler functions are normally allowed to leak to generic exception-handling code, which will log them and send an internal server error status before returning the thread to its pool.
 

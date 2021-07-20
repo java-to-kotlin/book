@@ -11,7 +11,7 @@ What does Kotlin use instead of Java streams, when should we convert, and how?</
 
 === Java Streams
 
-Java 8 introduced streams in 2014, making good use of the new lambdas.
+Java 8((("Java streams")))((("streams to iterables to sequences", "Java streams"))) introduced streams in 2014, making good use of the new lambdas.
 Say we want to work out the average length of some strings, except that blank strings (those with only whitespace characters) should be treated as if they are empty.
 Previously we might have written:
 
@@ -29,7 +29,7 @@ public static double averageNonBlankLength(List<String> strings) {
 ----
 // end-insert
 
-With Java streams, we can express this algorithm as `filter`, `map`, and `reduce` by first converting the `List` to a `Stream` and applying transformations:
+With((("filter")))((("map")))((("reduce"))) Java streams, we can express this algorithm as `filter`, `map`, and `reduce` by first converting the `List` to a `Stream` and applying transformations:
 
 // begin-insert: src/main/java/sequences/Streams.java#stream
 [source,java]
@@ -119,7 +119,7 @@ Kotlin doesn't try to implement parallel operations, leaving two abstractions; i
 
 === Kotlin Iterables
 
-Instead of creating a new interface to define collections operations, Kotlin provides extension functions on `Iterable`.
+Instead((("streams to iterables to sequences", "Kotlin iterables")))((("Kotlin", "Kotlin iterables"))) of creating a new interface to define collections operations, Kotlin provides extension functions on `Iterable`.
 The simplest Kotlin expression of the same algorithm is:
 
 // begin-insert: src/main/java/sequences/sequences.kt#lists
@@ -151,7 +151,7 @@ When we do have large collections, we can switch over to sequences.
 
 === Kotlin Sequences
 
-The Kotlin `Sequence` abstraction offers the same lazy evaluation as Java streams.
+The((("streams to iterables to sequences", "Kotlin sequences")))((("Kotlin", "Kotlin sequences"))) Kotlin `Sequence` abstraction offers the same lazy evaluation as Java streams.
 The `map` operation on a `Sequence` returns another `Sequence`: the operations in the chain are only performed when some terminal operation requires their evaluation.
 If we have a `Collection`, `Iterable`, or even an `Iterator`, there are `asSequence()` extension functions to convert.
 After that the API is suspiciously familiar:
@@ -212,7 +212,7 @@ endif::[]
 [[sequences-multiple-operations]]
 === Multiple Iterations
 
-If you use Java streams, you have probably tried to do something like this:
+If((("streams to iterables to sequences", "multiple iterations", id="SISmult13"))) you use Java streams, you have probably tried to do something like this:
 
 // begin-insert: src/main/java/sequences/Streams.java#consumingTwice
 [source,java]
@@ -347,13 +347,13 @@ In general, even if we can, in practice, iterate over a `Sequence` more than onc
 As a rule of thumb, if they operate on a `Sequence`, our algorithms should complete in a single pass.
 This way, they will be able to work with sequences that do not support multiple iteration and can be efficient with large numbers of items.
 
-We can use `Sequence.constrainOnce()` in our tests to make sure that we don't accidentally go around again.
+We can use `Sequence.constrainOnce()` in our tests to make sure that we don't accidentally go around again.((("", startref="SISmult13")))
 ====
 
 [[choosing-sequences]]
 === Choosing Between Streams, Iterables, and Sequences
 
-If we already have code using Java streams, it will continue to run just fine on the JVM, even when converted to Kotlin.
+If((("streams to iterables to sequences", "choosing between"))) we already have code using Java streams, it will continue to run just fine on the JVM, even when converted to Kotlin.
 It will even look a little nicer, since Kotlin can move the lambda outside the method and allow the use of the implicit `it` lambda parameter.
 
 // begin-insert: src/main/java/sequences/sequences.kt#streams
@@ -435,7 +435,7 @@ If that still isn't enough, we can move (hopefully not back) to streams, and may
 
 === Algebraic Transformation
 
-Laziness and parallelism will of course affect _when_ the stages of our pipeline are invoked.
+Laziness and parallelism((("laziness")))((("parallelism")))((("streams to iterables to sequences", "algebraic transformation", id="SISalgebra13")))((("algebraic transformation", id="algtrans13"))) will of course affect _when_ the stages of our pipeline are invoked.
 If any of our algorithm depends on the order of operations, it may be broken if we swap between streams, iterables, and sequences.
 What we want is code with a predictable _algebra_: a set of rules for manipulating operations while preserving behavior.
 
@@ -579,11 +579,11 @@ public static double averageNonBlankLength(List<String> strings) {
 ----
 // end-insert
 
-In that case, we would have had a shorter chapter but learned less.
+In that case, we would have had a shorter chapter but learned less.((("", startref="SISalgebra13")))((("", startref="algtrans13")))
 
 === Refactoring from Streams to Iterables and Sequences
 
-Travelator logs operational events as it runs, so we know that it is working as we expect.
+Travelator logs((("streams to iterables to sequences", "refactoring", id="SISrefact13")))((("refactoring", "streams to iterables and sequences", id="Rstreams13"))) operational events as it runs, so we know that it is working as we expect.
 These are sent as JSON to an indexing server, which can generate pretty graphs and alerts specified with its own query language.
 Somehow, though, those nice people in marketing are always asking questions that we can't write queries for.
 
@@ -659,7 +659,7 @@ We sometimes end up in a losing battle like this: we could extract a function to
 [TIP]
 .Implicit or Explicit Types
 ====
-Sometimes a variable's type is essential to understanding how code works; other times it just clutters an already wordy block.
+Sometimes((("implicit types")))((("explicit types"))) a variable's type is essential to understanding how code works; other times it just clutters an already wordy block.
 In this respect, explicit types are like comments, but they have the added advantage of being checked and enforced by the compiler.
 As with comments, we should try to write code that doesn't need explicit variable types.
 Good naming can help, as can refactoring into functions where the return type can be shown.
@@ -1425,7 +1425,7 @@ fun EventStore.queryAsSequence(query: String) =
 // end-insert
 
 In passing, note that `allEventsInSameInteractions` is an example of a extension function as method that we discussed in <<functions-to-extension-functions>>.
-It has access to both `this` from `MarketingAnalytics` (to access `eventStore`) and `this` from `Sequence<Event>`.
+It has access to both `this` from `MarketingAnalytics` (to access `eventStore`) and `this` from `Sequence<Event>`.((("", startref="SISrefact13")))((("", startref="Rstreams13")))
 
 === Moving On
 
