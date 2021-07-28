@@ -2,7 +2,7 @@
 
 # Once this is done
 # Delete the attic branches by hand
-# git remote add origin git@github.com:refactoring-to/kotlin-code-public.git
+# git remote add origin git@github.com:java-to-kotlin/code.git
 # git push origin --all
 # git push origin --tags
 
