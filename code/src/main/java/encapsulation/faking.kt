@@ -12,8 +12,9 @@ inline fun <reified T> fake(): T =
 
 
 val sentEmails = mutableListOf<Email>()
-val testCollaborator: EmailSystem = object: EmailSystem by fake() {
-    override fun send(email: Email) {
-        sentEmails.add(email)
+val testCollaborator: EmailSystem =
+    object : EmailSystem by fake() {
+        override fun send(email: Email) {
+            sentEmails.add(email)
+        }
     }
-}

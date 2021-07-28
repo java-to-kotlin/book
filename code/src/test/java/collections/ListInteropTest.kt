@@ -46,7 +46,8 @@ class ListInteropTest {
     @Test
     fun testKotlinCanAcceptJavaListAsMutableList() {
         /// begin: mutable
-        val aMutableList: MutableList<String> = SomeJavaCode.mutableListOfStrings("0", "1")
+        val aMutableList: MutableList<String> = SomeJavaCode.mutableListOfStrings(
+            "0", "1")
         aMutableList.removeAt(1)
         assertEquals(listOf("0"), aMutableList)
         /// end: mutable
