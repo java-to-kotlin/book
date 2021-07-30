@@ -170,7 +170,7 @@ fun averageNonBlankLength(strings: List<String>): Double =
 // end-insert
 
 The familiarity is suspicious because all those operations (`filter`, `map`, `sum`) are now extensions not on `Iterable` but `Sequence`, and they don't return a `List`; they return another `Sequence`.
-Except that is for `sum`, which can't even pretend to do its job without reading all the data, so it is a terminal operation.
+Except, that is, for `sum`, which can't even pretend to do its job without reading all the data, so it is a terminal operation.
 This code reads the same as the iterable version, but each of the functions is actually different.
 
 .Swapping Iterables and Sequences
@@ -354,7 +354,7 @@ We can use `Sequence.constrainOnce()` in our tests to make sure that we don't ac
 === Choosing Between Streams, Iterables, and Sequences
 
 If((("streams to iterables to sequences", "choosing between"))) we already have code using Java streams, it will continue to run just fine on the JVM, even when converted to Kotlin.
-It will even look a little nicer, since Kotlin can move the lambda outside the method and allow the use of the implicit `it` lambda parameter.
+It will even look a little nicer, since Kotlin can move the lambda outside the method and allow the use of the implicit `it` lambda parameter:
 
 // begin-insert: src/main/java/sequences/sequences.kt#streams
 [source,kotlin]
@@ -439,7 +439,7 @@ Laziness and parallelism((("laziness")))((("parallelism")))((("streams to iterab
 If any of our algorithm depends on the order of operations, it may be broken if we swap between streams, iterables, and sequences.
 What we want is code with a predictable _algebra_: a set of rules for manipulating operations while preserving behavior.
 
-We saw in <<actions-to-calculations>> that we can categorize functions (actually any code, including lambdas), according to whether they depend on when they are run.
+We saw in <<actions-to-calculations>> that we can categorize functions (actually any code, including lambdas) according to whether they depend on when they are run.
 Calculations (<<calculations>>) are safe to refactor because we can move their invocations around without affecting their result or the result of any other code.
 In contrast, moving an action (<<actions>>) from an iterable to a sequence, or vice versa, may change when it is invoked, and hence the outcome of our program.
 The more of our code that is expressed as calculations, the more we can treat its representation as something that we can transform according to rules.
@@ -485,7 +485,7 @@ fun averageNonBlankLength(strings: Sequence<String>): Double =
 This is a mathematical rearrangement, and, as with our code refactoring, works only if all the operations are calculations.
 It is also dangerously seductive, because we have slipped back to boxing our integers to pass them to `average`.
 
-What we need is an `averageBy` analogue of `sumBy`.
+What we need is an `averageBy` analog of `sumBy`.
 We can do that by mating the Kotlin runtime definitions of `Sequence.sumBy` with `Sequence.average` to give:
 
 // begin-insert: src/main/java/sequences/sequences.kt#averageBy
@@ -549,7 +549,7 @@ public static double averageNonBlankLength(List<String> strings) {
 ----
 // end-insert
 
-What if our original code had been more slightly more functional, selecting the value to be added to the `sum` (with a ternary operator) rather than whether to add (with an `if` statement)?
+What if our original code had been slightly more functional, selecting the value to be added to the `sum` (with a ternary operator) rather than whether to add (with an `if` statement)?
 
 // begin-insert: src/main/java/sequences/Streams.java#loop2
 [source,java]
@@ -588,7 +588,7 @@ These are sent as JSON to an indexing server, which can generate pretty graphs a
 Somehow, though, those nice people in marketing are always asking questions that we can't write queries for.
 
 In these cases, we fetch events from the server and process them locally.
-The querying, marshaling, and paging of the events is hidden behind a simple `EventStore` interface that returns an `Iterator<Map<String, Object>>`, where `Map<String, Object>` represents JSON objects.
+The querying, marshaling, and paging of the events is hidden behind a simple `EventStore` interface that returns an `Iterator<Map<String, Object>>`, where `Map<String, Object>` represents JSON objects:
 
 // begin-insert: streams-to-sequences.0:src/main/java/travelator/analytics/EventStore.java
 [source,java]
@@ -1102,7 +1102,7 @@ val eventsForSuccessfulBookings = eventStore
 ++++
 // end-insert
 
-Awesomely, this continues to compile and to pass our (cursory) test!
+Awesomely, this continues to compile and pass our (cursory) test!
 It compiles because, although we have changed the type of `eventsForSuccessfulBookings` from `Stream` to `Sequence`, we then call `eventsForSuccessfulBookings.asSequence()`:
 
 // begin-insert: streams-to-sequences.11:src/main/java/travelator/analytics/MarketingAnalytics.kt#part2
@@ -1424,7 +1424,7 @@ fun EventStore.queryAsSequence(query: String) =
 ++++
 // end-insert
 
-In passing, note that `allEventsInSameInteractions` is an example of a extension function as method that we discussed in <<functions-to-extension-functions>>.
+In passing, note that `allEventsInSameInteractions` is an example of an extension function as method that we discussed in <<functions-to-extension-functions>>.
 It has access to both `this` from `MarketingAnalytics` (to access `eventStore`) and `this` from `Sequence<Event>`.((("", startref="SISrefact13")))((("", startref="Rstreams13")))
 
 === Moving On

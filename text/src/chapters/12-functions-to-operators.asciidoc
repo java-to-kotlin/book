@@ -283,7 +283,7 @@ fun add(that: Money): Money {
 ++++
 // end-insert
 
-Finally we can transform the `add` method to single-expression form.
+Finally we can transform the `add` method to single-expression form:
 
 // begin-insert: operators.9:src/main/java/travelator/money/Money.kt#extract_plus
 [source,kotlin]
@@ -310,7 +310,7 @@ We now have two methods for addition.
 The `plus` operator implements the addition logic and is what we'd like all our Kotlin code to use in the future, but nothing calls it directly yet.
 The `add` method will remain for use by our Java code, while it exists, and its body contains the ideal syntax we would like to use in our Kotlin code.
 
-We can convet all our Kotlin code that adds `Money` values to use the operator syntax by inlining the `Money.add` method.
+We can convert all our Kotlin code that adds `Money` values to use the operator syntax by inlining the `Money.add` method.
 When we do, IntelliJ reports that it was unable to inline all the uses of `add`.
 That's just what we want!
 We can't inline Kotlin code into Java, so IntelliJ has inlined the body of the `add` method only into the Kotlin call sites and has kept its definition in the `Money` class because it is still called by Java.
@@ -349,7 +349,7 @@ operator fun plus(that: Money): Money {
 Our code continues to compile.
 How is that possible?
 
-The Kotlin standard library includes extension functions that define operators for classes in the Java standard library: mathematical classes, such as `BigInteger` and `BigDecimal` and collections, such as `List<T>` or `Set<T>`.
+The Kotlin standard library includes extension functions that define operators for classes in the Java standard library: mathematical classes, such as `BigInteger` and `BigDecimal`, and collections, such as `List<T>` or `Set<T>`.
 Because these extension functions are defined in the `kotlin` package, they are available to any package automatically: we don't need to import them.((("", startref="plusop12")))
 
 
@@ -364,7 +364,7 @@ For example, the expression `new ArrayList<>()` constructs a new mutable list di
 Kotlin((("Kotlin", "constructing objects versus calling functions"))) does not draw a distinction between constructing objects and calling functions: the syntax for instantiating a class is the same as that for calling a function.
 Nor are there coding conventions to distinguish between constructing a new stateful object that has a distinct identity and denoting values that do not.
 
-WARNING: Although the Kotlin code for calling a function and instantiating a class look the same, they are implemented by different JVM bytecode. A source-compatible change between calling a constructor and a function will not be binary-compatible.
+WARNING: Although the Kotlin code for calling a function and instantiating a class look the same, they are implemented by different JVM bytecode. A source-compatible change between calling a constructor and a function will not be binary compatible.
 
 Where a class needs multiple factory functions, as does our `Money` class, they are usually defined as top-level functions, not on the companion object of the class.
 IntelliJ does its bit to nudge one toward this style:
@@ -410,7 +410,7 @@ Renaming from `of` to `invoke` doesn't affect the former but messes up the latte
 
 We can use the same combination of extract method and refactor the call to the extracted method and inline method to avoid any negative effects on our Java code as we refactor our Kotlin code to follow Kotlin conventions.
 
-First, extract the `of` method's entire body as a method called `invoke`.
+First, extract the `of` method's entire body as a method called `invoke`:
 
 // begin-insert: operators.12:src/main/java/travelator/money/Money.kt#money
 [source,kotlin]

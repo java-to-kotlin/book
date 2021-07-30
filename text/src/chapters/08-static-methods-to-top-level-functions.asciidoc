@@ -98,7 +98,7 @@ They are the simplest to declare and reference, and can be moved from file to fi
 We reserve declaring functions as methods on a singleton object instead of top-level functions for when we need the ability to implement an interface, or otherwise group functions more tightly.
 We use a companion object when we need to mix static and nonstatic behavior within a class, or to write factory methods with names like `MyType.of(...)`.
 
-As with many aspects of programming, we start with the simplest thing that could work, which is usually a top-level function, and refactor to a more complicated solution only when it brings benefits, such as a more expressive API for our clients, or better maintainablity for us.
+As with many aspects of programming, we start with the simplest thing that could work, which is usually a top-level function, and refactor to a more complicated solution only when it brings benefits, such as a more expressive API for our clients, or better maintainability for us.
 
 === Refactoring from Static Methods to Top-Level Functions
 
@@ -109,7 +109,7 @@ Let's see how to refactor from Java, through object declarations, to top-level f
 At Travelator, we allow our customers to build shortlists, such as a shortlist of routes when planning their trip, or a shortlist of hotel rooms on those routes.
 The user can rank items in a shortlist by different criteria and discard items to narrow down the results to a final choice.
 Following the guidance in <<dont-mutate-shared-collections>>, a shortlist is stored as an immutable list.
-The functions for manipulating a shortlist (returning a modified copy rather than mutating the list) are implemented as static methods of the `Shortlists` class.
+The functions for manipulating a shortlist (returning a modified copy rather than mutating the list) are implemented as static methods of the `Shortlists` class:
 
 // begin-insert: static-to-top-level.0:src/main/java/travelator/Shortlists.java#functions
 [source,java]
@@ -237,7 +237,7 @@ object Shortlists {
 // end-insert
 
 Actually, that isn't quite true.
-At the time of writing, the converter added some spurious nullability to types, undid static imports (leaving us with `Collectors.toUnmodifiableList()` for example), and managed to create an imports list that didn't compile.
+At the time of writing, the converter added some spurious nullability to types, undid static imports (leaving us with `Collectors.toUnmodifiableList()`, for example), and managed to create an imports list that didn't compile.
 Fixing up the file manually gives us confidence that the machines won't take our jobs for a few years yet.
 
 In <<java-to-kotlin-classes>>, we saw that converting a Java class with static _and_ nonstatic methods produced a Kotlin class with a companion object.
@@ -376,7 +376,7 @@ var reordered = travelator.ShortlistsKt.sorted(items, byPriceLowToHigh());
 // end-insert
 
 We can fix that with Alt-Enter and "Add on demand static import...".
-We have to do that once in each affected file; we should have checked in before the refactor so that we could easily see which files it changed.
+We have to do that once in each affected file; we should have checked in before the refactor so that we could easily see which files it changed:
 
 // begin-insert: static-to-top-level.9:src/test/java/travelator/ShortlistsTest.java#example_usage_imported
 [source,java]

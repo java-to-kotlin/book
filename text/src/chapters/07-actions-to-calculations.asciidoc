@@ -3,7 +3,7 @@
 
 ++++
 <blockquote data-type="epigraph">
-<p>Neither Java nor Kotlin makes any formal distinction between imperative and functional code, although Kotlin's emphasis on immutability and expressions generally lead to more functional programs.
+<p>Neither Java nor Kotlin makes any formal distinction between imperative and functional code, although Kotlin's emphasis on immutability and expressions generally leads to more functional programs.
 Can we improve our code by making more of it functional?</p>
 </blockquote>
 ++++
@@ -14,7 +14,7 @@ Can we improve our code by making more of it functional?</p>
 As((("actions to calculations", "functions")))((("functions", "defined")))((("subroutines")))((("procedures")))((("methods"))) an industry, we have invented a lot of phrases to describe callable subprograms within a larger program.
 We have the very generic _subroutine_.
 Some languages (notably Pascal) distinguish between _functions_ that return a result, and _procedures_, which don't; but most developers use the terms interchangeably.
-Then there are _methods_, which are subroutines associated with an object (or a class, in the case of static methods).
+Then there are _methods_, which are subroutines associated with an object (or a class, in the case of static [.keep-together]#methods#).
 
 The((("void type"))) C language calls them all functions but has a special `void` type to represent the absence of a return value.
 This was carried forward into Java.
@@ -256,7 +256,7 @@ public class CurrentTripsHandler {
 Actions are code that is sensitive to time, so words like _current_ in `CurrentTripsHandler` are a dead giveaway.
 The `handle` method is an action, and that's OK: things on the edge of our systems often are.
 
-The handler delegates to some business logic, implemented in `Tracking`.
+The handler delegates to some business logic, implemented in `Tracking`:
 
 // begin-insert: actions.0:src/main/java/travelator/Tracking.java
 [source,java]
@@ -295,7 +295,7 @@ class Tracking implements ITrackTrips {
 // end-insert
 
 Using the _current_ rule, `Tracking.currentTripFor` is evidently an action too, as is `Trips.currentTripsFor`.
-Here is its implementation in `InMemoryTrips`, which is used for testing in place of a version implemented with database queries.
+Here is its implementation in `InMemoryTrips`, which is used for testing in place of a version implemented with database queries:
 
 // begin-insert: actions.0:src/test/java/travelator/InMemoryTrips.java#foo
 [source,java]
@@ -320,7 +320,7 @@ public class InMemoryTrips implements Trips {
 ++++
 // end-insert
 
-The conversion from `Set<Trip>` (the result of `Trips.currentTripsFor`) and to `Optional<Trip>` (returned from `Tracking.currentTripFor`) seems to be because there is some business rule around there being only one active trip at any time that is not enforced in the persistence layer.
+The conversions from `Set<Trip>` (the result of `Trips.currentTripsFor`) and to `Optional<Trip>` (returned from `Tracking.currentTripFor`) seem to be because there is some business rule around there being only one active trip at any time—a rule that is not enforced in the persistence layer.
 
 Until we got here, we were relying on our knowledge of the meanings of words (in particular _current_) to deduce that Java methods represent actions rather than calculations.
 Here, though, there is a smoking gun.
@@ -443,10 +443,10 @@ Duncan and Nat returned to work after the Christmas holidays at the beginning of
 It turns out that 2015-01-01T00:00:00 had been used as a time that would always be in the future.
 When 2015 arrived, all the tests that relied on before and after relationships began failing.
 
-We fixed the tests with the refactoring in this chapter.
+They fixed the tests with the refactoring in this chapter.
 ****
 
-Is having to inject a clock https://dhh.dk/2014/test-induced-design-damage.html[Test-Induced Design Damage]?
+Is having to inject a clock https://oreil.ly/YZx1T[test-induced design damage]?
 In this case it is.
 The fake clock has allowed us to solve a testing problem, but at the expense of making the code more complicated.
 It has also allowed us to avoid a rethink that might lead to ...
@@ -455,7 +455,7 @@ It has also allowed us to avoid a rethink that might lead to ...
 
 What would a better design look like here?
 
-To make this code less time-dependant, we can supply the time as an argument to the method.
+To make this code less time dependant, we can supply the time as an argument to the method.
 Although this forces the _caller_ to know the time, it is as easy for our caller to ask the time as it is for this method.
 This is a special case of the way that we refactor to avoid dependencies on other global state; instead of reading a value within a function, we pass the value into it.
 
@@ -820,7 +820,7 @@ We'll see this again in <<mocks-to-maps>>.
 
 We're almost done now. (Refactoring is never completely done.)
 
-With all this focus on the tests, we were about to check in before we realized that we haven't completed our refactor in `CurrentTripsHandler`.
+With all this focus on the tests, we were about to check in before we realized that we haven't completed our refactor in `CurrentTripsHandler`:
 
 // begin-insert: actions.8:src/main/java/travelator/handlers/CurrentTripsHandler.java#foo
 [source,java]
@@ -902,10 +902,10 @@ If we want to add them, this is the level at which we would now inject a `Clock`
 Mocks or stubs allow us to test actions, but are rarely required to test calculations.
 
 We won't show it, but we also have to consider the production implementation of `Trips`, the one that reads from our database.
-We are lucky and find that this passes the current time into its SQL query, so now we can just pass the `at` in `Trips.currentTripsFor(String customerId, Instant at)`.
-It would have been more complicated if the SQL query was using the current time of the database server from a database-specific construct such as `CURRENT_TIMESTAMP` or `NOW`.
-As with non-SQL code, actions are so pervasive that this is quite a common practice even though it makes testing more complicated and the code itself less versatile.
-If our query had used the database time, we would have to rewrite it to receive the time from our function as a parameter and make a mental note not to read the time unless we have a very good reason not to.
+We are lucky and find that this passes the current time into its SQL query, so now we can just use the value of the `at` parameter in `Trips.currentTripsFor(String customerId, Instant at)` instead.
+It would have been more complicated if the SQL query was using the current time of the database server from a database-specific expression such as `CURRENT_TIMESTAMP` or `NOW`.
+As with non-SQL code, actions are so pervasive that this is a common practice even though it makes testing more complicated and the code itself less versatile.
+If our query had used the database time, we would have to rewrite it to receive the time from our function as a parameter, and make a mental note not to make the same mistake again.
 
 With that done, we review our changes and find that we haven't converted any code to Kotlin!
 
@@ -973,7 +973,7 @@ As developers, we intuit the difference and soon learn to rely on our intuition,
 Giving names to the categories, and studying their qualities, allows us to reason at a more conscious and effective level.
 
 In pass:[<a data-type="xref" data-xrefstyle="chap-num-title" href="#beans-to-values">#beans-to-values</a>], we refactored from a mutable bean to an immutable value.
-Similarly, in pass:[<a data-type="xref" data-xrefstyle="chap-num-title" href="#java-to-kotlin-collections">#java-to-kotlin-collections</a>] we refactored from mutable to immutable collections.
+Similarly, in pass:[<a data-type="xref" data-xrefstyle="chap-num-title" href="#java-to-kotlin-collections">#java-to-kotlin-collections</a>], we refactored from mutable to immutable collections.
 In both cases, we trade mutating an object for returning an amended copy, converting an action into a calculation.
 In doing so, we gain the advantages we've seen in this chapter: better comprehension, easier testing, and predictable refactoring.
 The more of our code that is calculations, the better off we are.

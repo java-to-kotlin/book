@@ -19,7 +19,7 @@ To define a JavaBean, a class needs a default (no-argument) constructor, getters
 This makes sense for objects that have a lot of properties.
 GUI components typically have foreground and background colors, font, label, borders, size, alignments, paddings, and so on.
 Mostly the defaults for these properties are fine, so calling setters for just the special values minimizes the amount of code to be generated.
-Even today a mutable component model is a solid choice for GUI toolkits.
+Even today, a mutable component model is a solid choice for GUI toolkits.
 
 When JavaBeans were introduced, though, we thought of most objects as mutable, not just UI components.
 I mean, why not? The point of objects was to encapsulate properties and manage the relationships between them.
@@ -43,7 +43,7 @@ Java primitives all have value semantics: every `7` is equal to every other `7`.
 Objects may or may not have value semantics though; in particular, mutable objects do not.
 In later chapters we'll look at finer distinctions, but for now, let's just define a _value_ to be an immutable piece of data, and a _value type_ to be a type that defines the behavior of an immutable piece of data.
 
-So `7` is a value, and the boxed `Integer` is a value type (because boxed types are immutable), `banana` is a value (because ++String++s are immutable), a `URI` is a value (because ++URI++s are immutable), but `java.util.Date` is not a value type (because we can call `setYear`, etc. on the date).
+So `7` is a value, and the boxed `Integer` is a value type (because boxed types are immutable), `banana` is a value (because ++String++s are immutable), a `URI` is a value (because ++URI++s are immutable), but `java.util.Date` is not a value type (because we can call `setYear` and others on the date).
 
 An instance of an immutable `DBConnectionInfo` is a value, but an instance of `Database` is not a value, even if all its properties are immutable. This is because it is not a piece of data; it is a means of accessing, and mutating, pieces of data.
 
@@ -68,7 +68,7 @@ We hope you'll forgive the sloppy title.
 === Why Should We Prefer Values?
 
 A((("values", "benefits of immutable objects"))) value is immutable data.
-Why should we prefer immutable objects to mutable objects, and objects that represent data to other types of object?
+Why should we prefer immutable objects to mutable objects, and objects that represent data to other types of objects?
 This is a theme that we will visit time and again in this book.
 For now, let's just say that immutable objects are easier to reason about because they don't change, and so:
 
@@ -82,7 +82,7 @@ For now, let's just say that immutable objects are easier to reason about becaus
 Let's((("mutability", "refactoring JavaBeans to values", id="Mjbtov05")))((("refactoring", "JavaBeans to values", id="Rjbtov05")))((("values", "refactoring JavaBeans to values", id="Vrefact05"))) look at refactoring a use of a mutable bean or POJO to a value.
 
 Travelator has a mobile app, and the Android version is written in Java.
-In that code, we represent user preferences with a `UserPreferences` JavaBean.
+In that code, we represent user preferences with a `UserPreferences` JavaBean:
 
 // begin-insert: beans-to-values.0:src/main/java/travelator/mobile/UserPreferences.java#excerpt
 [source,java]
@@ -531,6 +531,6 @@ The refactoring example showed how to migrate mutation toward our application's 
 The result is that less of our code has to deal with the consequences and complications of mutability.
 
 That said, JavaBeans were designed for use in user interface frameworks, and UIs are in many ways the last bastion of mutable objects.
-If we had more exacting liveness requirements, for example updating a `WelcomeView` when the greeting preference changed, we might prefer using shared objects with change events rather than using immutable values.
+If we had more exacting liveness requirements, for example, updating a `WelcomeView` when the greeting preference changed, we might prefer using shared objects with change events rather than using immutable values.
 
-Converting mutable objects to values and transformations is a repeating motif. pass:[<a data-type="xref" data-xrefstyle="chap-num-title" href="#java-to-kotlin-collections">#java-to-kotlin-collections</a>] continues the discussion with respect to collections. pass:[<a data-type="xref" data-xrefstyle="chap-num-title" href="#accumulating-objects-to-transformations">#accumulating-objects-to-transformations</a>] looks at how to translate code that uses accumulating parameters to use higher-order functions over collections instead.
+Converting mutable objects to values and transformations is a repeating motif. pass:[<a data-type="xref" data-xrefstyle="chap-num-title" href="#java-to-kotlin-collections">#java-to-kotlin-collections</a>], continues the discussion with respect to collections. pass:[<a data-type="xref" data-xrefstyle="chap-num-title" href="#accumulating-objects-to-transformations">#accumulating-objects-to-transformations</a>], looks at how to translate code that uses accumulating parameters to use higher-order functions over collections instead.

@@ -9,7 +9,7 @@
 
 === Strategy
 
-The((("Java Way to Kotlin Way", "strategy behind Java to Kotlin projects"))) first time your authors, Nat and Duncan, introduced Kotlin to a Java codebase, we were a small team that included six developers, building a relatively greenfield project.
+The((("Java Way to Kotlin Way", "strategy behind Java to Kotlin projects"))) first time your authors, Nat and Duncan, introduced Kotlin to a Java codebase, we were part of a small team that included six developers, building a relatively greenfield project.
 We had already deployed some web applications with Kotlin, but our enterprise architects insisted that we write the new system in Java 8.
 This was shortly after Kotlin 1.0 had been released, but before Google announced that Kotlin was an official language for Android, so the architects were understandably wary about committing to a language with an uncertain future for a strategic system that they expected to be around for decades.
 
@@ -38,7 +38,7 @@ They gradually refactored the underpinnings of their system from a framework tha
 This work became the https://http4k.org[http4k] web programming toolkit.
 
 As these two examples show, your choice of starting point should depend on a number of factors, including why your team is adopting Kotlin, how large the codebase is, and how frequently it changes.
-Your know your project and can decide what is most important to change.
+You know your project and can decide what is most important to change.
 
 If you are choosing Kotlin for its language features, it makes sense to convert the classes you are working in most frequently, as we did in our first project.
 If you are choosing Kotlin to use a specific library, then it makes sense to start writing Kotlin against the API, annotate it to make your Kotlin code convenient to the Java code in the rest of the app, and continue from there.
@@ -46,7 +46,7 @@ If you are choosing Kotlin to use a specific library, then it makes sense to sta
 In a small team it’s easy to establish the Kotlin coding style for your system (beyond the standard style guide), for instance, error handling conventions, how code is to be organized into files, what should be a top-level declaration and what should be in an object, and so on.
 
 Above a certain size, you run the risk of Kotlin code becoming inconsistent as people establish their own conventions in different parts of the system.
-So it may be worth starting with a small sub-team working in one area of the system, who establish conventions and build up a body of example code.
+So it may be worth starting with a small subteam working in one area of the system, who establish conventions and build up a body of example code.
 Once there are some established conventions, you can expand the effort to the rest of the team and other parts of the system.
 
 In the rest of this book, we will examine in detail how to progress, how to keep your Java code maintainable while you are introducing Kotlin that it depends upon, and how to take advantage of Kotlin's features to simplify the code further after IntelliJ has performed its conversion magic.
@@ -158,7 +158,7 @@ If we resync the Gradle project in IntelliJ (this may happen automatically on sa
 
 Our tests still pass, so we haven't broken anything, but neither have we proved that we can use Kotlin in our project.
 Let's test that by writing a "hello world" program.
-We create a file, `HelloWorld.kt`, in the root package of our Java source tree, `src/main/java`:
+We create a file, __HelloWorld.kt__, in the root package of our Java source tree, __src/main/java__:
 
 .HelloWorld.kt
 // begin-insert: projects.2:src/main/java/HelloWorld.kt
@@ -180,11 +180,11 @@ fun main() {
 [TIP]
 .Where to Put Kotlin Source
 ====
-The((("Kotlin", "source placement"))) Kotlin build plug-in adds additional source roots, `src/main/kotlin` and `src/test/kotlin`, and compiles Kotlin source files found in any of their subdirectories.
+The((("Kotlin", "source placement"))) Kotlin build plug-in adds additional source roots, _src/main/kotlin_ and __src/test/kotlin__, and compiles Kotlin source files found in any of their subdirectories.
 
-It will also compile Kotlin source found in Java source trees, in particular `src/main/java` and `src/test/java`.
-Although you can separate your source files by language, putting Java files in the `java` directories and Kotlin into `kotlin`, in practice your authors don't bother.
-It's nice to be able to look into a directory and see all the source for the the corresponding package rather than casting around the filesystem.
+It will also compile Kotlin source found in Java source trees, in particular _src/main/java_ and __src/test/java__.
+Although you can separate your source files by language, putting Java files in the _java_ directories and Kotlin into _kotlin_, in practice your authors don't bother.
+It's nice to be able to look into a directory and see all the source for the corresponding package rather than casting around the filesystem.
 To make this work, though, we keep Kotlin source in directories mirroring the package structure rather than taking advantage of Kotlin's ability to have files in a single directory but multiple packages.
 
 In a similar vein, while Kotlin does allow multiple public classes to be defining in a single class, when we are mixing Java and Kotlin in a project, we tend to stick to one class per file for consistency.
@@ -193,8 +193,8 @@ In a similar vein, while Kotlin does allow multiple public classes to be definin
 We can run that within the IDE by clicking the little green arrow in the lefthand margin next to `fun main()`.
 
 We can run our build and then run it from the command line with the `java` command.
-Compiling the source file named HelloWorld.kt creates a Java class file named `HelloWorldKt`.
-We'll look into how Kotlin source gets translated into Java class files in more detail later, but for now, we can run our program with the `java` command like so:
+Compiling the source file named _HelloWorld.kt_ creates a Java class file named `HelloWorldKt`.
+We'll look into how Kotlin source gets translated into Java class files in more detail later, but for now, we can run our program with the `java` command, like so:
 
 [source,text]
 ----
@@ -204,13 +204,13 @@ hello, world
 
 It lives!
 
-Let's delete `HelloWorld.kt`—it's done its job—commit and push.
+Let's delete __HelloWorld.kt__—it's done its job—commit and push.
 
 We now have the _option_ to use Kotlin in our project; the first part of this chapter gives some pointers to _where_ to start using it.((("", startref="gradle02")))
 
 .Other Build Systems
 ****
-We've((("Java Way to Kotlin Way", "build systems other than Gradle"))) chosen to show the changes necessary to add Kotlin support to a Gradle build here, but you can use Maven or Ant by following the instructions provided in the Tools section at https://KotlinLang.org[https://kotlinlang.org/docs/reference/].
+We've((("Java Way to Kotlin Way", "build systems other than Gradle"))) chosen to show the changes necessary to add Kotlin support to a Gradle build here, but you can use Maven or Ant by following the instructions provided in the Tools section of https://oreil.ly/bWi9n[the Kotlin documentiation].
 This also gives instructions for using the command-line compiler, `kotlinc`.
 
 If you use Gradle, there is the option to use Kotlin, rather than the traditional Groovy, as the build definition language.
@@ -227,9 +227,9 @@ We expect the technical information in this chapter to date very quickly, as nei
 Your current Java build file is also almost certainly incompatible with our example in some crucial way.
 Despite this, though, adding Kotlin to a Java build is generally straightforward.
 
-Devising a strategy for moving code from Java to Kotlin is more complicated and context-specific.
-Or at least differently complicated and context-specific.
+Devising a strategy for moving code from Java to Kotlin is more complicated and context specific.
+Or at least differently complicated and context specific.
 Individual projects should examine where Java is and isn’t working for them, and where using Kotlin would alleviate problems and improve the code.
-You might choose to dive in and write some Kotlin from scratch or convert an existing Java class to Kotlin.
-In the spirit of this book, that's the approach we'll take in pass:[<a data-type="xref" href="#java-to-kotlin-classes" data-xrefstyle="chap-num-title">#java-to-kotlin-classes</a>].
+You might choose to dive in and write some Kotlin from scratch, or to convert an existing Java class to Kotlin.
+In the spirit of this book, the latter is the approach we'll take in pass:[<a data-type="xref" href="#java-to-kotlin-classes" data-xrefstyle="chap-num-title">#java-to-kotlin-classes</a>].
 

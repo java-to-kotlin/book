@@ -27,7 +27,7 @@ Let's compare that to what was required in Java 1.0 to do the same.
 The mists of time will pass over you while transporting you to 1995...
 
 Java 1.0 does not have((("first-class functions"))) first-class functions, so we have to implement functions as objects and define our own interfaces for different types of function.
-For example, the addition function takes two arguments, so we have to define the type of two-argument functions.
+For example, the addition function takes two arguments, so we have to define the type of two-argument functions:
 
 // begin-insert: src/main/java/grain/java1/Function2.java
 [source,java]
@@ -60,7 +60,7 @@ public class Vectors {
 
 We have to define a separate class for every function we want to pass to our `fold` function.
 The addition operator can't be passed around as a value, and the language has no method references, lambdas, or closures at this time, not even inner classes.
-Nor does Java 1.0 have generics or autoboxing—we have to cast the arguments to the expected type and write the boxing between reference types and primitives.
+Nor does Java 1.0 have generics or autoboxing—we have to cast the arguments to the expected type and write the boxing between reference types and primitives:
 
 // begin-insert: src/main/java/grain/java1/AddIntegers.java
 [source,java]
@@ -111,7 +111,7 @@ A language's grain forms over time as its designers and users build a common und
 The grain influences the way that programmers write code in the language, which influences the evolution of the language and its libraries and programming tools, changing the grain, altering the way that programmers write code in the language, on and on in a continual cycle of mutual feedback and evolution.
 
 For((("anonymous inner classes"))) example, as we move forward through time, Java 1.1 adds anonymous inner classes to the language, and Java 2 adds the Collections Framework to the standard library.
-Anonymous inner classes mean that we don't need to write a named class for each function we want to pass to our `fold` function, but the resulting code is arguably harder to read.
+Anonymous inner classes mean that we don't need to write a named class for each function we want to pass to our `fold` function, but the resulting code is arguably harder to read:
 
 // begin-insert: src/test/java/grain/java2/TheGrainOfJavaTest.java#reduce
 [source,java]
@@ -153,7 +153,7 @@ int sum = Lists.fold(counts, 0,
 ----
 // end-insert
 
-Java((("Guava library"))) developers often use https://github.com/google/guava[Google's Guava library] to add some common higher-order functions over collections (although `fold` is not among them), but even the authors of Guava recommend writing imperative code by default, because it has better performance and is usually easier to read.
+Java((("Guava library"))) developers often use https://oreil.ly/dMX73[Google's Guava library] to add some common higher-order functions over collections (although `fold` is not among them), but even the authors of Guava recommend writing imperative code by default, because it has better performance and is usually easier to read.
 
 Functional programming still goes largely against the grain of Java 5, but we can see the start of a trend.
 
@@ -195,20 +195,20 @@ Interest in Java as a programming language exploded.
 The fundamentals of Java were in place by this time:
 
 * The Java virtual machine and its bytecode and class file format
-* Primitive and reference types; null references; garbage collection
-* Classes and interfaces; methods and control flow statements
-* Checked exceptions for error handling; the abstract windowing toolkit
-* Classes for networking with Internet and web protocols
+* Primitive and reference types, null references, garbage collection
+* Classes and interfaces, methods and control flow statements
+* Checked exceptions for error handling, the abstract windowing toolkit
+* Classes for networking with internet and web protocols
 * The loading and linking of code at runtime, sandboxed by a security manager
 
-However, Java wasn’t yet ready for general purpose programming: the JVM was slow and the standard library sparse.
+However, Java wasn’t yet ready for general-purpose programming: the JVM was slow and the standard library sparse.
 
 Java looked like a cross between C++ and Smalltalk, and those two languages influenced the Java programming style of the time.
 The "getFoo/setFoo" and "AbstractSingletonProxyFactoryBean" conventions that programmers of other languages poke fun at were not yet widespread.
 
 One of Java's unsung innovations was an official coding convention that spelled out how programmers should name packages, classes, methods, and variables.
 C and C++ programmers followed a seemingly infinite variety of coding conventions, and code that combined multiple libraries ended up looking [.line-through]#like a right dog's dinner# somewhat inconsistent.
-Java's one true coding convention meant that Java programmers could seamlessly integrate strangers' libraries into their programs, and encouraged the growth of a vibrant open-source community that continues to this day.
+Java's one true coding convention meant that Java programmers could seamlessly integrate strangers' libraries into their programs, and encouraged the growth of a vibrant open source community that continues to this day.
 
 [[bean-java-style]]
 ==== Bean Style
@@ -222,13 +222,13 @@ Java had the potential to be a strong competitor to Visual Basic and Delphi.
 Sun added a slew of APIs that were heavily inspired by Microsoft APIs:
 JDBC for data base access (equivalent to Microsoft's ODBC), Swing for desktop GUI programming (equivalent to Microsoft's MFC), and the framework that had the greatest influence on Java programming style, JavaBeans.
 
-JavaBeans was Sun's answer to Microsoft's ActiveX component model for low-code, graphical, drag-and-drop programming.
+The JavaBeans API was Sun's answer to Microsoft's ActiveX component model for low-code, graphical, drag-and-drop programming.
 Windows programmers could use ActiveX components in their Visual Basic programs or embed them in office documents or web pages on their corporate intranet.
 Despite how easy it was to use ActiveX components, they were notoriously difficult to write.
 JavaBeans were much easier; you merely had to follow some additional coding conventions for your Java class to be considered a "bean" that could be instantiated and configured in a graphical designer.
-The promise of "Write once. Run anywhere" meant you would also be able to use—or sell—JavaBean components on any operating system, not just Windows.
+The promise of "Write once, run anywhere" meant you would also be able to use—or sell—JavaBean components on any operating system, not just Windows.
 
-For a class to be a JavaBean, it must have a constructor that took no arguments, be serializable, and declare an API made up of public properties that could be read and optionally written, methods that could be invoked, and events that objects of the class would emit.
+For a class to be a JavaBean, it needed to have a constructor that took no arguments, be serializable, and declare an API made up of public properties that could be read and optionally written, methods that could be invoked, and events that objects of the class would emit.
 The idea was that programmers would instantiate beans in a graphical application designer, configure them by setting their properties, and connect events emitted by beans to the methods of other beans.
 By default, the Beans API defined properties by pairs of methods whose names started with _get_ and _set_.
 This default could be overridden, but doing so required the programmer to write more classes of boilerplate code.
@@ -273,7 +273,7 @@ In fact, the web application wasn't written in Java at all;
 it was an XML file that listed the classes that the servlet container would instantiate.
 So every servlet had to have a no-argument constructor, and the web application couldn't initialize its servlets by passing objects to their constructors.
 
-Instead, you had to write a ServletContextListener that created objects required by the application's servlets and stored them as named, untyped attributes of the ServletContext:
+Instead, you had to write a `ServletContextListener` that created objects required by the application's servlets and stored them as named, untyped attributes of the `ServletContext`:
 
 // begin-insert: src/main/java/grain/j2ee/ExampleServletContextListener.java#listener
 [source,java]
@@ -294,7 +294,7 @@ public class ExampleServletContextListener
 ----
 // end-insert
 
-Servlets initialized themselves by looking for the objects they needed in the context and casting them to the expected type.
+Servlets initialized themselves by looking for the objects they needed in the context and casting them to the expected type:
 
 // begin-insert: src/main/java/grain/j2ee/ExampleServlet.java#servlet
 [source,java]
@@ -364,7 +364,7 @@ Kotlin has the benefit of 25 years of hindsight, and a clean slate from which to
 
 Kotlin((("Kotlin", "preferences contributing to design goals"))) is a young language, but it clearly has a different grain than Java.
 
-When we wrote this, the https://kotlinlang.org/#why-kotlin["Why Kotlin"] section of https://kotlinlang.org[kotlinlang.org] gave four design goals: "Concise," "Safe," "Interoperable," and "Tool-friendly."
+When we wrote this, the https://oreil.ly/pqZbu["Why Kotlin"] section of the Kotlin home page gave four design goals: concise, safe, interoperable, and tool-friendly.
 The designers of the language and its standard library also encoded implicit preferences that contribute to these design goals.
 These preferences include:
 
@@ -463,7 +463,7 @@ As Martin Fowler says in <<F_RITDOEC_1999,_Refactoring: Improving the Design of 
 Good test coverage ensures that the code transformations we want to only improve design have not inadvertently changed our system's behavior.
 In this book, we assume that you have good test coverage.
 We do not cover how to write automated tests.
-Other authors have addressed these topics in more detail than we could in this book, for example: <<B_TDDBE_2002,_Test Driven Development By Example_>> by Kent Beck and <<FP_GOOSGBT_2009,_Growing Object-Oriented Software Guided By Tests_>> by Steve Freeman and Nat Pryce.
+Other authors have addressed these topics in more detail than we could in this book, for example: <<B_TDDBE_2002,_Test Driven Development By Example_>> by Kent Beck (Addison-Wesley) and <<FP_GOOSGBT_2009,_Growing Object-Oriented Software Guided By Tests_>> by Steve Freeman and Nat Pryce (Addison-Wesley).
 We do, however, show how to apply Kotlin features to improve our tests.
 
 As we walk through multistep code transformations, we won't always say when we run the tests.
@@ -471,7 +471,7 @@ Assume that we run our tests after every change that we show that compiles, no m
 
 If your system does not already have good test coverage, it can be difficult (and expensive) to retrofit tests to the code because the logic you want to test is entangled with other aspects of the system.
 You're in a chicken and egg situation: you have to refactor to be able to add tests so that you can safely refactor.
-Again, other authors have addressed these topics in more detail than we could, for example: <<F_WEWLC_2004,_Working Effectively with Legacy Code_>> by Michael Feathers.
+Again, other authors have addressed these topics in more detail than we could, for example: <<F_WEWLC_2004,_Working Effectively with Legacy Code_>> by Michael Feathers (Pearson).
 
 We've listed more books about these topics in <<bibliography>>.
 
@@ -501,7 +501,7 @@ We prefer to commit changes straight onto the mainline branch—"trunk-based dev
 === What Are We Working On?
 
 In the chapters that follow, we take examples from the codebase of _Travelator_, a fictional application for planning and booking international surface travel.
-Our (still fictional) users plan routes by sea, rail, and road; search for places to stay and sights to see; compare their options by price, time and spectacle; and finally book their trips, all from web and mobile frontends that invoke backend services via HTTP.
+Our (still fictional) users plan routes by sea, rail, and road; search for places to stay and sights to see; compare their options by price, time, and spectacle; and finally book their trips, all from web and mobile frontends that invoke backend services via HTTP.
 
 Each chapter pulls an informative example from a different part of the Travelator system, but they share common domain concepts: money, currency conversion, journeys, itineraries, bookings, and so on.
 

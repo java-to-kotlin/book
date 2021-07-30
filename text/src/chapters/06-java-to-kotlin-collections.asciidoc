@@ -30,7 +30,7 @@ There was no choice, because all the constructors created empty collections.
 Java 2 (which was version 1.2 until Java had to compete with C# version numbers) introduced a revised collections library.
 This tidied up the ad hoc `Vector`, `Stack`, and `Hashtable` classes and created a common `Collection` interface with more useful implementations, including `ArrayList` and `HashSet`.
 It was now possible to create a collection as a copy of another collection.
-The static `Collections` class provided some helpful utility operations like `sort` and `reverse`.
+The static `Collections` class provided some helpful utility operations, like `sort` and `reverse`.
 Java 5 introduced generics, and cleverly retrofitted them to the existing collections, so that now we could declare types like `List<Journey>`.
 
 The Java collections remained mutable, though—very mutable.
@@ -172,15 +172,15 @@ However, smooth interoperation with Java was a key goal, and Java has mutable co
 Scala had tried introducing its own sophisticated persistent (immutable but data-sharing) collections, but this forced developers to copy information between collections on the interop boundary, which was both inefficient and annoying.
 How could Kotlin square the circle and have immutable collections interoperate seamlessly with Java?
 
-The Kotlin developers removed the mutation methods from the Jave collections interfaces and published them in the `kotlin.collections` package as `Collection<E>`, `List<E>` and so on.
-These were then extended by `MutableCollection<E>`, `MutableList<E>` etc., which add back in the Java mutation methods.
+The Kotlin developers removed the mutation methods from the Jave collections interfaces and published them in the `kotlin.collections` package as `Collection<E>`, `List<E>`, and so on.
+These were then extended by `MutableCollection<E>`, `MutableList<E>`, etc., which add back in the Java mutation methods.
 So((("MutableList")))((("MutableCollection"))) in Kotlin we have `MutableList`, which is a subtype of `List`, which is a subtype of `Collection`.
 `MutableList` also implements `MutableCollection`.
 
 On the face of it, this is a simple scheme.
 Mutable collections have the same operations as collections that are not mutable, plus the mutation methods.
 It is safe to pass a `MutableList` as an argument to code that expects a `List`, because all the `List` methods will be present and can be invoked.
-In terms of the https://oreil.ly/8A8KO[Liskov Substitution Principle], we can substitute a `MutableList` for a `List`, without affecting our program correctness.
+In terms of the https://oreil.ly/8A8KO[Liskov Substitution Principle], we can substitute a `MutableList` for a `List` without affecting our program correctness.
 
 A little compiler magic allows Kotlin code to accept a `java.util.List` as a `kotlin.collections.List`:
 
@@ -216,7 +216,7 @@ assertEquals(listOf("0"), aMutableList)
 ----
 // end-insert
 
-In the other direction, the compiler will allow both a `kotlin.collections.MutableList` and a `kotlin.collections.List` where a `java.util.List` is needed.
+In the other direction, the compiler will allow both a `kotlin.collections.MutableList` and a `kotlin.collections.List` where a `java.util.List` is needed:
 
 // begin-insert: src/test/java/collections/ListInteropTest.kt#javaAcceptMutableList
 [source,kotlin]
@@ -281,7 +281,7 @@ assertEquals(holdsState.first, holdsState.strings.first()) // <1>
 ----
 // end-insert
 
-<1> `Expected "0", actual "banana"`.
+<1> `Expected "0", actual "banana"`
 
 `AValueType` turns out to be mutable after all!
 Because of this, `first`, which is initialized on construction, can get out of date.
@@ -294,7 +294,7 @@ The((("read-only views"))) official line is that a nonmutable Kotlin collection 
 As with the Java `UnmodifiableList`, a read-only collection can't be changed through its interface, but may be changed through some other mechanism.
 Only true _immutable_ collections are guaranteed never to change.
 
-It is possible to have true immutable collections on the JVM, (the result of `java.util.List.of(...)` for example), but this is not (yet) a standard Kotlin feature.
+It is possible to have true immutable collections on the JVM, (the result of `java.util.List.of(...)`, for example), but this is not (yet) a standard Kotlin feature.
 ====
 
 This is the unfortunate consequence of having your mutable collections extend your otherwise nonmutable collections; the recipient of a nonmutable collection cannot modify it, but cannot know that it won't change, because a reference of type nonmutable `List` may in fact be pointing to an object of type `MutableList`.
@@ -312,7 +312,7 @@ If you treat any collection received as a parameter, returned as a result, or ot
 Admittedly _quite_ in the sense of _mainly_, rather than _completely_, but still the benefits outweigh the costs.
 
 The Kotlin collections make this scheme even more powerful.
-In Java, we have the situation where we can in theory mutate any collections, so the type system doesn't tell us when this is safe or otherwise.
+In Java, we have the situation where we can, in theory, mutate any collections, so the type system doesn't tell us when this is safe or otherwise.
 In Kotlin, if we declare all normal references as the nonmutable versions, we can use a `MutableCollection` to document when we do, in fact, consider that the collection is subject to change.
 In return for accepting a largely theoretical risk, we reap the rewards of very simple and efficient interoperation with Java.
 Pragmatism is typical of the grain of Kotlin; in this case it might be expressed as "be as safe as is sensible, but no safer."
@@ -347,7 +347,7 @@ If our Java code relies on mutating collections, though, we may have to take ext
 A good approach is to refactor your Java code to the convention used in <<dont-mutate-shared-collections>>  before converting it to Kotlin.
 That's what we'll do here.
 
-==== Fixup the Java
+==== Fix Up the Java
 
 Let's have a look at the code from Travelator we saw earlier.
 The static methods we've been looking at are in a class called `Suffering`:
@@ -918,8 +918,8 @@ Kotlin has taken a very pragmatic approach to mutability in its collections, giv
 To((("collections", "assuring smooth interoperation"))) help your Java and Kotlin interoperate smoothly:
 
 * Beware that Java can mutate a collection that it has passed to Kotlin.
-* Beware that Java can (at least try to) mutate a collection that is has received from Kotlin.
+* Beware that Java can (at least try to) mutate a collection that it has received from Kotlin.
 * Remove mutation from your use of Java collections. Where you can't, take defensive copies.
 
 We have more to say about collections in pass:[<a data-type="xref" data-xrefstyle="chap-num-title" href="#encapsulated-collections-to-typealiases">#encapsulated-collections-to-typealiases</a>].
-In terms of this code example, pass:[<a data-type="xref" data-xrefstyle="chap-num-title" href="#static-methods-to-top-level-functions">#static-methods-to-top-level-functions</a>] continues where this chapter leaves off.
+In terms of this code example, pass:[<a data-type="xref" data-xrefstyle="chap-num-title" href="#static-methods-to-top-level-functions">#static-methods-to-top-level-functions</a>], continues where this chapter leaves off.

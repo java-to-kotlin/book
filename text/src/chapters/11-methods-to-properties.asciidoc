@@ -15,7 +15,7 @@ Most programming languages((("methods to properties", "fields, accessors, and pr
 
 Here, for((("records")))((("fields"))) example, is a _record_, composed of three _fields_, in ALGOL W, one of the first general-purpose languages to support record types. (ALGOL W was also the language in which Tony Hoare introduced null references.)
 
-[source,algol-w]
+[source]
 ----
 RECORD PERSON (
     STRING(20) NAME;
@@ -28,14 +28,14 @@ Things were different then: real programmers only had CAPITAL LETTERS, and gende
 
 In ALGOL W, we can (well OK, could) update the age held in a `PERSON` record:
 
-[source,algol-w]
+[source]
 ----
 AGE(WILMA) := AGE(WILMA) + 1;
 ----
 
 In this case the compiler will emit the instructions to reach into the memory of the record, find the bytes representing Wilma's age, and increment it.
 Records, also known as((("structs"))) _structs_ (for structure) in other languages, are a convenience for grouping related data.
-There is no information hiding here; just composition.
+There is no information hiding here, just composition.
 
 Most early object-oriented systems (C++ in particular) were based on this record mechanism.
 Instance variables were simply record fields, and methods (aka member functions) were fields holding pointers to functions.
@@ -249,7 +249,7 @@ A good rule of thumb is to use a property when it depends only on other properti
 This applies to `fullName`, so that is a good computed property.
 What about a person's age?
 
-We can compute age easily (ignoring timezones) from the `dateOfBirth` property, so we might be tempted in Java to write `fred.getAge()`.
+We can compute age easily (ignoring time zones) from the `dateOfBirth` property, so we might be tempted in Java to write `fred.getAge()`.
 But this doesn't depend only on other properties, it also depends on when we call it.
 Unlikely though it is, `fred.age == fred.age` can return `false`.
 
@@ -288,7 +288,7 @@ data class PersonWithProperties(
 ----
 // end-insert
 
-We could make a property by calculating it upfront and storing it in a field:
+We could make a property by calculating it up front and storing it in a field:
 
 // begin-insert: src/main/java/properties/PersonWithProperties.kt#hash
 [source,kotlin]
@@ -322,7 +322,7 @@ data class PersonWithProperties(
 ----
 // end-insert
 
-In a limited scope this would be fine, but if the class was more widely used, we should at least hint at the potential first-invocation performance issue by hiding the computed property behind a function.
+In a limited scope this would be fine, but if the class was more widely used, we should at least hint at the potential first-invocation performance issue by hiding the computed property behind a function:
 
 // begin-insert: src/main/java/properties/PersonWithProperties.kt#hash3
 [source,kotlin]
@@ -357,7 +357,7 @@ In practice, we find that data classes with copy methods work better in almost a
 === Refactoring to Properties
 
 IntelliJ((("methods to properties", "refactoring to properties", id="MPreftop11")))((("IntelliJ IDE", "converting between Kotlin methods and properties", id="IJconvert11")))((("refactoring", "methods to properties", id="Rmethods11"))) provides excellent refactoring support for converting between Kotlin methods and properties.
-This is on one hand simple, because both are simply method calls, and on the other complicated, because Java interop relies on naming conventions to identify accessors.
+This is on the one hand simple, because both are simply method calls, and on the other complicated, because Java interop relies on naming conventions to identify accessors.
 Let's look at an example from Travelator.
 
 Some of our hardier clients like to camp, so we list campsites in the application:
@@ -475,7 +475,7 @@ data class CampSite(
 ++++
 // end-insert
 
-Our field-backed properties have become constructor properties and the computed `countryCode` a computed property.
+Our field-backed properties have become constructor properties, and the computed `countryCode` a computed property.
 However, IntelliJ has not realized that `region` is a property, because it didn't obey getter naming conventions and has simply converted the method.
 The net result is that client code doesn't need to change.
 If we want to correct the oversight, we can Alt-Enter on `region` and "Convert function to property", yielding:
@@ -654,7 +654,7 @@ fun CampSite.isIn(countryISO: String, region: String) =
 // end-insert
 
 Now that we have `Campsite.isIn(...)`, maybe `sitesInRegion` could be inlined into the places that call it, because the code is now really quite self-explanatory.
-We prefer to find and publish the fundamental operations that clients can build on, rather hiding them inside functions.
+We prefer to find and publish the fundamental operations that clients can build on, rather than hiding them inside functions.
 Pulling on this thread, we might expand the functionality of `isIn` by making `region` optional:
 
 // begin-insert: methods-to-properties.8:src/main/java/travelator/CampSites.kt#excerpt

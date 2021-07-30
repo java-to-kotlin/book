@@ -143,7 +143,7 @@ val s = customer.nameForMarketing()
 
 IntelliJ will auto-suggest extension functions along with the actual methods, even if they need to be imported to bring them into scope.
 
-Java isn't quite so helpful - it just sees the extension function as a static function:
+Java isn't quite so helpful—it just sees the extension function as a static function:
 
 // begin-insert: src/main/java/extensionFunctions/SomeJava.java#callingExt
 [source,java]
@@ -290,7 +290,7 @@ static Customer customerFrom(JsonNode node) {
 ----
 // end-insert
 
-.Naming Conversions
+.How to Name Conversions
 ****
 A((("naming conventions")))((("functions", "naming conventions"))) function converting a `JsonNode` to a `Customer` might be called `nodeToCustomer`, `createCustomer`, `toCustomer`, `customerFrom`, or `customerFor`.
 Why should we pick `customerFrom`?
@@ -375,7 +375,7 @@ val marketingLength = jsonNode.toCustomer().nameForMarketing().length
 ----
 // end-insert
 
-Ahh ... that's much more readable.((("", startref="FEFtype10")))((("", startref="tycon10")))
+Ahh...that's much more readable.((("", startref="FEFtype10")))((("", startref="tycon10")))
 
 === Nullable Parameters
 
@@ -621,7 +621,7 @@ We can also extract parts of collections pipelines into named operations; see <<
 
 We((("functions to extension functions", "extension functions as methods")))((("methods"))) normally define extension functions as top-level functions.
 They can, though, be defined _inside_ a class definition.
-In this case they can access the members of their own class and 'extend' another type.
+In this case they can access the members of their own class and 'extend' another type:
 
 // begin-insert: src/main/java/extensionFunctions/extension-functions.kt#jsonWriter
 [source,kotlin]
@@ -725,7 +725,7 @@ class HighValueCustomersReportTests {
 ++++
 // end-insert
 
-You can see that we haven't gone to town on these, because marketing do have a habit of changing their minds, but in essence the report needs to list the customers who have a score of 10 or more, sorted by spend, with a final total line.
+You can see that we haven't gone to town on these, because the people in marketing do have a habit of changing their minds, but in essence the report needs to list the customers who have a score of 10 or more, sorted by spend, with a final total line.
 
 Here is the code:
 
@@ -839,7 +839,7 @@ I doubt we (erm, whoever wrote it) would even have bothered with `equals` and `h
 That `double` for spend looks suspicious too, but it hasn't caused us any problems yet, so we'll suspend our disbelief and just convert the whole thing to a Kotlin data class (see <<beans-to-values>>) before we go on.
 
 Normally, that would be a really simple job because of the excellent interop, but it turns out that (at the time of writing) the converter cannot believe that anyone would stoop to raw field access. So it doesn't update Java that accesses, for example, `customerData.score` to call `customerData.getScore()` (the Kotlin property), resulting in a slew of compile failures.
-Rather than fixing those, we revert, and use the "Encapsulate Fields" refactor to convert all the fields and field accesses in `Customer` to getters.
+Rather than fixing those, we revert, and use the "Encapsulate Fields" refactor to convert all the fields and field accesses in `Customer` to getters:
 
 // begin-insert: extensions.1:src/main/java/travelator/marketing/CustomerData.java#foo
 [source,java]
@@ -892,7 +892,7 @@ private static String lineFor(CustomerData customer) {
 // end-insert
 
 The getters allow us to convert `CustomerData` to a Kotlin data class without breaking the Java.
-"Convert Java file to Kotlin File", followed by adding the `data` modifier and deleting the `equals` and `hashCode` overrides, gives us:
+"Convert Java File to Kotlin File", followed by adding the `data` modifier and deleting the `equals` and `hashCode` overrides, gives us:
 
 // begin-insert: extensions.2:src/main/java/travelator/marketing/CustomerData.kt
 [source,kotlin]
@@ -1496,7 +1496,7 @@ private fun List<String>.withoutHeader() = drop(1)
 ++++
 // end-insert
 
-We can make this even more expressive with two more extensions, `List<String>.toValuableCustomers()` and `CustomerData.outputLine`.
+We can make this even more expressive with two more extensions, `List<String>.toValuableCustomers()` and `CustomerData.outputLine`:
 
 // begin-insert: extensions.23:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
@@ -1532,7 +1532,7 @@ private val CustomerData.outputLine: String
 // end-insert
 
 This still isn't quite as sweet as we might like, but we've proved the point of extension functions.
-<<performing-io-to-passing-data>> and <<exceptions-to-values>> will finish off this refactoring, looking at the use of the reader and writer.
+Chapters <<performing-io-to-passing-data,20>> and <<exceptions-to-values,21>> will complete this refactoring.
 In the meantime, here's the whole file:
 
 // begin-insert: extensions.23:src/main/java/travelator/marketing/HighValueCustomersReport.kt#all

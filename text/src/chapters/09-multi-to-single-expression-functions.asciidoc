@@ -9,7 +9,7 @@ When should we use this form, why might we prefer it, and what Kotlin features c
 ++++
 
 As((("multi- to single-expression functions", "Java and Kotlin syntax")))((("{} (curly braces)")))((("braces ({})")))((("curly braces ({})"))) with Java, the code in a Kotlin function is usually { defined inside braces } and uses
-`return` to define the result of the function, (unless it is `Unit`, Kotlin's alias for `void`):
+`return` to define the result of the function (unless it is `Unit`, Kotlin's alias for `void`):
 
 // begin-insert: src/main/java/singleExpressionFunctions/functions.kt#add
 [source,kotlin]
@@ -29,7 +29,7 @@ fun addToo(a: Int, b: Int): Int = a + b
 ----
 // end-insert
 
-We((("subexpressions"))) can read this as, the result of function `add` equals `a + b`.
+We((("subexpressions"))) can read this as: the result of function `add` equals `a + b`.
 Which makes sense for a single expression, and can also read nicely when that expression is itself composed of subexpressions:
 
 // begin-insert: src/main/java/singleExpressionFunctions/functions.kt#max
@@ -124,7 +124,7 @@ We think that there are valuable lessons in the journey, but if you just want th
 
 === Take 1: Inlining
 
-Let's analyze the code and see what is preventing this function from being a nice single expression.
+Let's analyze the code and see what is preventing this function from being a nice single expression:
 
 // begin-insert: single-expressions.1:src/main/java/travelator/EmailAddress.kt#parse
 [source,kotlin]
@@ -253,7 +253,7 @@ This is the opposite of an expression, which needs to evaluate to a value.
 
 Often when we reach this sort of impasse when refactoring, inlining the cause of the problem will let us see the way ahead.
 So let's inline `require`.
-(Suspend disbelief for now; things are going to get worse before they get better.):
+(Suspend disbelief for now; things are going to get worse before they get better.)
 
 // begin-insert: single-expressions.5:src/main/java/travelator/EmailAddress.kt#emailAddress
 [source,kotlin]
@@ -802,7 +802,7 @@ We've spent enough time for today though, so we'll make a mental note that we ha
 .What Should Parse Return?
 ****
 Before we leave this example, note that this refactoring would have been easier had `parse` not thrown an exception on error.
-`throw` is an expression that returns `Nothing`--it doesn't complete--and so doesn't sit well when we are trying to decompose into expressions.
+`throw` is an expression that returns `Nothing`—it doesn't complete—and so doesn't sit well when we are trying to decompose into expressions.
 <<throwing-to-returning>> talks about this in detail, but had we written `EmailAddress` from scratch in Kotlin, we would probably have returned `EmailAddress?` from `parse`, with `null` on failure.
 That doesn't sit well with Java clients, where the type system doesn't warn about nullability.
 So we would probably end up with two parsing methods, one for legacy code and one for Kotlin, removing the exception version when there were no Java clients left.
