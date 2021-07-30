@@ -12,8 +12,8 @@ What do they bring to the party?</p>
 Change((("open to sealed classes", "benefits of polymorphism", id="OSCpoly18")))((("sealed classes", "benefits of polymorphism", id="SCbene18"))) is a constant challenge in designing software.
 The more people use our software, the more they think of things they want it to do.
 To support new use cases, we need to add new functions that work with existing data types, and new data types that work with existing functions.
-If our design is well-aligned with the way the software has to evolve, we can add new features by adding new code and making few, localized changes to our existing code.
-If it isn't well-aligned, we will have to change many functions when we add a new data type, or change many data types when we need to add a function.
+If our design is well aligned with the way the software has to evolve, we can add new features by adding new code and making few, localized changes to our existing code.
+If it isn't well aligned, we will have to change many functions when we add a new data type, or change many data types when we need to add a function.
 
 We feel this tension between the variability of data types and of functions most keenly in the core entities of our domain model.
 For example, the traveler's itinerary is a core entity of our Travelator application.
@@ -23,7 +23,7 @@ Our travelers want to include more kinds of things in their itineraries: not jus
 They also want to do more things with their itineraries.
 In <<accumulating-objects-to-transformations>>, we saw how we estimate their cost, but our customers also want to compare them by cost, time, or comfort, view them on a map, import them into their calendar, share them with their friends...their imagination is endless.
 
-When we last looked at the `Itinerary` class, in <<accumulating-objects-to-transformations>>, we were modeling an itinerary as a data class, with a property for the route and another for the accommodation required along the route:
+When we last looked at the `Itinerary` class in <<accumulating-objects-to-transformations>>, we were modeling an itinerary as a data class, with a property for the route and another for the accommodation required along the route:
 
 // begin-insert: accumulator.17:src/main/java/travelator/itinerary/Itinerary.kt#excerpt
 [source,kotlin]
@@ -116,7 +116,7 @@ For a while now, though, we haven't had to do that.
 Recently, we find that most of the new functionality we add to Travelator involves adding new operations to `Itinerary` and `ItineraryItem` rather than new types of `ItineraryItem`.
 Changes to the `ItineraryItem` interface and its implementations are a common source of merge conflicts between team members who are working on different features.
 With every new feature, the `ItineraryItem` gets larger.
-It seems to attract behavior to support distantly related parts of the application, with properties to support rendering, cost estimation, ranking by comfort, maps drawing and more hidden beyond that `...and other methods`.
+It seems to attract behavior to support distantly related parts of the application, with properties to support rendering, cost estimation, ranking by comfort, maps drawing, and more hidden beyond that `...and other methods`.
 Paradoxically,((("object-oriented polymorphism"))) in the core of our application, object-oriented polymorphism is _increasing_ coupling!
 
 // Reference the collections to type aliases example where we discuss coupling?
@@ -179,7 +179,7 @@ The static type checker can guarantee that `when` expressions that perform runti
 .When Statements Are Not Checked for Exhaustiveness
 ====
 The((("exhaustiveness")))((("statements", "checking for exhaustiveness"))) compiler checks `when` expressions for exhaustiveness but does not check `when` _statements_;
-`when` becomes is a statement if the value of the entire `when` expression is not used.
+`when` becomes a statement if the value of the entire `when` expression is not used.
 You can force the compiler to check for exhaustiveness by using the result of the `when`, even though it is of type `Unit`.
 
 If the `when` is the only statement in the body of a function, you can refactor the function to single-expression form.
@@ -417,7 +417,7 @@ data class Accommodation(
 <3> The IDE left `override` modifiers on the `mapOverlay` properties in the subclasses, which no longer have a method in the superclass to override.
 
 We can get the code compiling again by removing the `override` modifiers in the subclasses.
-Then we'll make the code actually work by implementing the body of an extension function as a `when` expression that switches on the type of `ItineraryItem` and calls the now monomorphic `mapOverlay` getter on each concrete class.
+Then we'll make the code actually work by implementing the body of an extension function as a `when` expression that switches on the type of `ItineraryItem` and calls the now monomorphic `mapOverlay` getter on each concrete class:
 
 // begin-insert: open-to-sealed.5:src/main/java/travelator/itinerary/ItineraryItem.kt#mapOverlay
 [source,kotlin]
@@ -520,7 +520,7 @@ val ItineraryItem.mapOverlay: MapOverlay get() = when (this) {
 
 Look closer, though (well, hover in IntelliJ), and we can see that those property accesses are now extension properties, not method calls—`Accommodation` and so on no longer depend on `MapOverlay`.
 And now that `ItineraryItem.mapOverlay` and all the subclass properties are extensions, they don't need to be defined in the same file as the sealed classes.
-We can move them to the module or package where they are used, and they won't clutter our core domain abstraction.
+We can move them to the module or package where they are used, and they won't clutter our core domain abstraction:
 
 // begin-insert: open-to-sealed.7:src/main/java/travelator/geo/ItineraryToMapOverlay.kt#mapOverlay
 [source,kotlin]
@@ -662,4 +662,4 @@ Managing variability in Kotlin involves mastering when to apply these two mechan
 If our bet turns out to have been wrong, we must refactor from one to the other.
 When all the code is in a single codebase, Kotlin and IntelliJ make refactoring between the two forms straightforward.
 This chapter described going from the kind of object-oriented polymorphism we'd write in Java to Kotlin's sealed classes.
-Going the other way involves refactoring steps described in <<F_RITDOEC_1999,_Refactoring: Improving the Design of Existing Code_>>, such as _Replace Conditional with Polymorphism_, so we won't cover it in this book.
+Going the other way involves refactoring steps described in Martin Fowler's <<F_RITDOEC_1999,_Refactoring: Improving the Design of Existing Code_>>, such as "Replace Conditional with Polymorphism," so we won't cover it in this book.

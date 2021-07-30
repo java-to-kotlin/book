@@ -132,7 +132,7 @@ private fun check(
 ++++
 // end-insert
 
-This is to all intents and purposes the same code, but now we can see that we have a calculation, taking `inputLines` and yielding `outputLines`, before we go on to the assertion.
+This is for all intents and purposes the same code, but now we can see that we have a calculation, taking `inputLines` and yielding `outputLines`, before we go on to the assertion.
 Even though `generate` is an action, relying on the side effects of reading and writing to and from its parameters, we can convert it to a calculation by limiting the scope of its side effects to local variables.
 
 If we stop for a moment and listen, we can hear the tests talking to us.
@@ -778,7 +778,7 @@ The pipeline of operations that builds `valuableCustomers` will build intermedia
 Every line in the input is going to be in memory at once, along with a `CustomerData` object for every line.
 
 We can avoid the intermediate collections by reading from a `Sequence`, although that will bring a few problems of its own.
-We can see this if we change the code in `generate` to convert the `lines` to a `Sequence` and fix up the methods that did take `List`.
+We can see this if we change the code in `generate` to convert the `lines` to a `Sequence` and fix up the methods that did take `List`:
 
 // begin-insert: io-to-data.16:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]
@@ -844,7 +844,7 @@ We can show that we are abusing this `Sequence` by adding a `.constrainOnce()` c
 // end-insert
 
 This will cause our tests to fail with an `IllegalStateException`.
-The simplest fix is to resolve the `Sequence` with a `.toList()` call.
+The simplest fix is to resolve the `Sequence` with a `.toList()` call:
 
 // begin-insert: io-to-data.18:src/main/java/travelator/marketing/HighValueCustomersReport.kt#generate
 [source,kotlin]

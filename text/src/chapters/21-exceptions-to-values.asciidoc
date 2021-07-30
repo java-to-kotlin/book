@@ -118,7 +118,7 @@ private fun Any?.formattedAs(format: String) = String.format(format, this)
 // end-insert
 
 `String.format(format, this)` is((("IllegalFormatException")))((("error handling", "IllegalFormatException"))) implemented as `java.lang.String::format`, which is documented to throw `IllegalFormatException` if the `format` is not compatible with its other input.
-This is a https://en.wikipedia.org/wiki/Partial_function[partial function]: one that only returns a result for some of the possible values of its parameters.
+This is a https://oreil.ly/ErpGo[partial function]: one that only returns a result for some of the possible values of its parameters.
 In this case, it can return a result for all values of `Double`, but only when we use very specific values of `format`.
 Luckily, we are only feeding it one particular `format`, the value `%#.2f`, which we know works, so this and its only caller, `Double.toMoneyString()`, should not fail.
 If they do fail, it's because our analysis is incorrect (or its assumptions are no longer true), and runtime errors are a reasonable way of signaling this programmer error.
@@ -540,7 +540,7 @@ fun Sequence<String>.toHighValueCustomerReport(
 // end-insert
 
 What we really want, though, is to expose the `ParseFailure`.
-Let's change the test first to collect the ++ParseFailure++'s instead of lines with errors:
+Let's change the test first to collect the ++ParseFailure++s instead of lines with errors:
 
 // begin-insert: exceptions-to-values.6:src/test/java/travelator/marketing/HighValueCustomersReportTests.kt#excerpt
 [source,kotlin]
@@ -671,7 +671,7 @@ fun Sequence<String>.toHighValueCustomerReport(
 // end-insert
 
 There's something about yielding `null` from the `recover` block and then skipping these with `filterNotNull` that is a little unsatisfactory. It doesn't communicate how it works directly, and gets in the way of the happy path.
-We would like to be able to find a nicer formulation of the `valuableCustomers` expression, but the truth is that everything else is a bit worse in your authors` eyes.
+We would like to be able to find a nicer formulation of the `valuableCustomers` expression, but the truth is that everything else is a bit worse in your authors' eyes.
 If you do find a nice simple way, then please let us know.
 
 Similarly, the early returns in `toCustomerData` look a bit ugly:
@@ -926,7 +926,7 @@ Very often in engineering, we have to make compromises.
 In particular, attempts to make one thing simpler often complicate another.
 I/O complicates our software in two ways.
 It is an action, so we can't just ignore whether or when it happens as we refactor; and it is subject to errors, which we have to deal with if we want a robust system.
-These errors may be simple environmental failures to read or write, or because the things that we are reading don't meet our expectations—when the marketing file ends badly formatted for example.
+These errors may be simple environmental failures to read or write, or because the things that we are reading don't meet our expectations—when the marketing file ends badly formatted, for example.
 
 Both actions and errors taint their callers, and the solution in both cases is the same: move the code closer to the entry points so that it taints less of our system.
 This, then, is an area where, rather than having to compromise, we can kill two birds with one stone.

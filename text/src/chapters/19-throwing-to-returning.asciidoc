@@ -19,7 +19,7 @@ As the system grows, though, we learn how failures affect the application and st
 In this respect our error handling evolves in the same way as other aspects of our software design.
 Sometimes we design up front, making use of our experience of similar systems; other times we allow the writing of the software to teach us what it needs.
 
-In the absence of a more deliberate strategy, most systems default to raising exceptions when something goes wrong and catching and logging those exceptions at some outer level.
+In the absence of a more deliberate strategy, most systems default to raising exceptions when something goes wrong, and catching and logging those exceptions at some outer level.
 Command-line utilities will just exit in this case, hopefully having provided enough information for the user to correct the problem and try again.
 A server app, or a GUI with an event loop, will usually abort only the current interaction and get on with the next.
 
@@ -32,8 +32,8 @@ If not, well, you've probably been in a situation where the only solution has be
 ****
 Duncan had a problem where the integration between his Nest thermostat and IfThisThenThat was not working.
 IFTTT was receiving notifications when the Nest entered home mode, but not away mode.
-The great AWS outage of 28th February 2017 mysteriously fixed the problem.
-It turns out that all it required was a reboot of the Internet.
+The great AWS outage of February 28, 2017 mysteriously fixed the problem.
+It turns out that all it required was a reboot of the internet.
 ****
 
 If errors are not well managed, but despite this the system becomes successful, diagnosing and fixing corruption due to errors can expand to fill all the team's time.
@@ -161,7 +161,7 @@ Maybe a class cannot be loaded, or the system runs out of memory.
 These conditions can happen at any point in the execution of a program, and so could cause any function to fail.
 Because any method could fail in this way, there is no value in including them in every method signature, so ++Error++s do not have to be declared.
 
-RuntimeExceptions::
+Runtime Exceptions::
 Subclasses((("RuntimeExceptions"))) of `RuntimeException` represent other errors.
 The intention was that these would be reserved for problems caused by programmer mistakes, such as accessing a null reference or trying to read outside the bounds of a collection.
 In both these cases the programmer could have been more careful.
@@ -234,7 +234,7 @@ endif::[]
 The((("lambda functions"))) final nail in the coffin of checked exceptions was the introduction of lambdas in Java 8.
 The decision was taken not to declare an exception type in the signature of the functional interfaces introduced to support lambdas (`Producer`, `Consumer`, etc.), so these cannot propagate checked exceptions.
 This wasn't an insurmountable problem, but to be fair, your authors would probably have given up there too.
-The net result, though, is that the old standard Java API declares checked exceptions (in particular `IOException`) that the new standard API (in particular streams) forces developers to deny.((("", startref="EHchecked18")))((("", startref="TRchecked18")))((("", startref="checkedE18")))((("", startref="Ejava18")))
+The net result, though, is that the old standard Java API declares checked exceptions (in particular, `IOException`) that the new standard API (in particular streams) forces developers to deny.((("", startref="EHchecked18")))((("", startref="TRchecked18")))((("", startref="checkedE18")))((("", startref="Ejava18")))
 
 === Kotlin and Exceptions
 
@@ -446,7 +446,7 @@ It is designed for coroutines, is restricted to an `Exception` (actually `Throwa
 This would be reasonable if it wasn't published in the `kotlin` package.
 It is, though, so if you try to use a more useful type called `Result`, you get strange error messages until you remember that the compiler is assuming that `Result` refers to the `kotlin.Result` type that you aren't supposed to use.
 
-Plenty of other result types are available, but for this book we will use https://github.com/fork-handles/forkhandles/tree/trunk/result4k[Result4k], not coincidentally written by Nat.
+Plenty of other result types are available, but for this book we will use https://oreil.ly/F5Y4M[Result4k], not coincidentally written by Nat.
 Compared to the generic `Either` type we introduced earlier, Result4k defines `Result<SuccessType, FailureType>`, with subtypes `Success` and `Failure` rather than `Left` and `Right`.
 Because it is specialized for representing errors, Result4k reverses the `Either` convention by having the success type as the first of the generic parameters.
 It can also offer operations, such as `onFailure` and `recover`, that would not make sense on `Either`.
@@ -576,7 +576,7 @@ public interface Customers {
 // end-insert
 
 Finally, `Customer` is another value type.
-Here it is after conversion to Kotlin.
+Here it is after conversion to Kotlin:
 
 // begin-insert: errors.1:src/main/java/travelator/Customer.kt
 [source,kotlin]
@@ -930,7 +930,7 @@ We currently have two implementations of `Customers::add`.
 One is the production implementation that talks to the database, the other a test implementation.
 Our code now calls them via the default implementation of `Customers::addToo` that we added to the interface.
 We want to delete the `add` implementations, so we need to implement `addToo` directly.
-Let's look at the (not thread-safe) test version.
+Let's look at the (not thread-safe) test version:
 
 // begin-insert: errors.12:src/test/java/travelator/InMemoryCustomers.java
 [source,java]
@@ -1503,7 +1503,7 @@ The tests are actually simplified, because instead of having to choose `thenRetu
 
 Now that our tests are passing again, we can return to production code and implement `CustomerRegistration::registerToo` directly.
 In lieu of any cleverer idea, we do this by duplicating the `register` method and fettling the error handling.
-We do this using `Result::mapFailure` (part of Result4k) to convert `DuplicateException` to `Duplicate`.
+We do this using `Result::mapFailure` (part of Result4k) to convert `DuplicateException` to `Duplicate`:
 
 // begin-insert: errors.22:src/main/java/travelator/CustomerRegistration.kt
 [source,kotlin]
@@ -1548,7 +1548,7 @@ As we will see later, this way if we change the return type of `add` to have a d
 
 There are two problems with this.
 First, `registerToo` has no test code, and second, we have the duplicate logic caused by our duplicating `register` to create `registerToo`.
-We can fix both by implementing `register` in terms of `registerToo`—the opposite of what we did in `Customers`.
+We can fix both by implementing `register` in terms of `registerToo`—the opposite of what we did in `Customers`:
 
 // begin-insert: errors.23:src/main/java/travelator/CustomerRegistration.kt
 [source,kotlin]
@@ -1691,7 +1691,7 @@ fun `returns Duplicate when email address exists`() {
 ++++
 // end-insert
 
-Now that we have no callers of `register`, we can finally remove it and rename `registerToo` to `register`, ending up with exception-free Kotlin.
+Now that we have no callers of `register`, we can finally remove it and rename `registerToo` to `register`, ending up with exception-free Kotlin:
 
 // begin-insert: errors.25:src/main/java/travelator/IRegisterCustomers.kt
 [source,kotlin]
@@ -1911,7 +1911,7 @@ As well as the material covered here, this shows how to reduce the number of fun
 Reducing the number of our functions that can fail is important, because code that is subject to error is very similar to the actions that we saw in pass:[<a data-type="xref" data-xrefstyle="chap-num-title" href="#actions-to-calculations">#actions-to-calculations</a>].
 Actions pollute their callers: by default, code that calls an action becomes an action.
 In the same way, code that calls code that is subject to failure is itself subject to failure.
-We can mitigate the effects of both by actions and errors by moving them as close as we can to the entry points to our system, so that they taint the least code.
+We can mitigate the effects of both actions and errors by moving them as close as we can to the entry points to our system, so that they taint the least code.
 
 We touched briefly in this chapter on making our code robust to errors when they occur.
 Actions are a problem here too, because they affect the state of our system.

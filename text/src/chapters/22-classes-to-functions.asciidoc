@@ -9,7 +9,7 @@ How far can we go without defining new types?</p>
 </blockquote>
 ++++
 
-In <<encapsulated-collections-to-typealiases>>, we saw the advantages of working with raw collections, and in <<interfaces-to-functions>>, we looked at using built-in function types rather than creating new ones.
+In pass:[<a data-type="xref" data-xrefstyle="chap-num-title" href="#encapsulated-collections-to-typealiases">#encapsulated-collections-to-typealiases</a>], we saw the advantages of working with raw collections, and in pass:[<a data-type="xref" data-xrefstyle="chap-num-title" href="#interfaces-to-functions">#interfaces-to-functions</a>], we looked at using built-in function types rather than creating new ones.
 In this chapter, we'll apply the lessons we've learned to write some Kotlin from scratch.
 
 Even in these days of REST APIs and webhooks, much of automatic business-to-business communication is in the form of tabular text data exchanged by((("Secure File Transfer Protocol (SFTP)"))) Secure File Transfer Protocol (SFTP).
@@ -23,7 +23,7 @@ When we're done, we'll compare what we come up with to the Commons CSV functiona
 === An Acceptance Test
 
 As((("classes to functions", "acceptance tests", id="CFacc22")))((("acceptance tests", id="accept22"))) you might have been able to tell from the preceding chapters, the Travelator developers are Extreme Programmers (<<B_EPEEC_1999,_Extreme Programming Explained: Embrace Change_>>).
-We write code test-first, starting with a high-level acceptance test.
+We write code test first, starting with a high-level acceptance test.
 We're working on a table reader, so we create a class `TableReaderAcceptanceTests` with a stub method and check that it runs:
 
 // begin-insert: table-reader.1:src/test/java/travelator/tablereader/TableReaderAcceptanceTests.kt
@@ -130,7 +130,7 @@ private fun someFunction(input: List<String>): List<Measurement> =
 <1> `readTable` is our table reading API entry point
 <2> It returns something that has a `map` implementation.
 <3> `record` is our representation of a row in the table...
-<4> And we can index into `record` by field name, yielding a `String` that we can convert to other types.
+<4> We can index into `record` by field name, yielding a `String` that we can convert to other types.
 
 This doesn't compile, because we don't have `readTable` yet, but if we Alt-Enter on the error, IntelliJ will create the function for us:
 
@@ -153,7 +153,7 @@ private fun readTable(input: List<String>): Any {
 We haven't given IntelliJ enough clues about the return type of `readTable`, so it chose `Any`, and so `someFunction` still doesn't compile.
 What type could we return to fix that?
 Well, if we return a `List` from `readTable`, then `map` is an operation on `List`.
-And if that `List` contained `Map<String, String>`, our `record` variable would be `Map<String, String>`, so we could call `record["time"]` and so on.
+And if that `List` contained `Map<String, String>`, our `record` variable would be `Map<String, String>`, so we could call `record["time"]`, and so on.
 The only issue is that `Map.get` returns a nullable value.
 That's close enough—let's take account of it in `someFunction` by raising errors if `get` returns `null`:
 
@@ -187,7 +187,7 @@ This compiles, although obviously the `TODO` fails the test.
 The answer is that this is just test code: the API of `Map.get` is forcing us to consider what to do in the case of errors, and our test is choosing to throw.)
 
 We put our client hats on to write the acceptance tests, and these tests have shown that we can at least use a function with the signature of `readTable` to convert lines to a list of `Measurement`.
-Now that we have a plausible API, we can move the definition of `readTable` into `src/main/travelator/tablereader/table-reading.kt`:
+Now that we have a plausible API, we can move the definition of `readTable` into __src/main/travelator/tablereader/table-reading.kt__:
 
 // begin-insert: table-reader.5:src/main/java/travelator/tablereader/table-reading.kt
 [source,kotlin]
@@ -304,12 +304,12 @@ fun readTable(input: List<String>): List<Map<String, String>> {
 This passes.
 It may seem trivial, but it's always a good idea to have a test for empty input. The more complicated our algorithm, the more likely it is to fail in this case.
 It's a poor parser that always returns an empty result, though, so let's crack on.
-Following((("TDD (Test Driven Development)"))) TDD (<<B_TDDBE_2002,_Test Driven Development By Example_>>), we need to add a failing test first to give us a reason to change the implementation.
+Following((("TDD (Test Driven Development)"))) TDD (<<B_TDDBE_2002,_Test-Driven Development By Example_>>), we need to add a failing test first to give us a reason to change the implementation.
 We choose to add the case of reading a table with no header and one line of data.
 
 Why this rather than a header and one line of data?
 To be honest, this is just the first thing that came to mind; maybe if we were actually pairing at this point, you would have suggested using a header row.
-Our choice leaves us having to decide how to name the columns, and we decide to use the `String` representation of their index, `"0"` for the first column, `"1"` for the second and so on; this feels like the simplest way that we can generate a `String` key:
+Our choice leaves us having to decide how to name the columns, and we decide to use the `String` representation of their index, `"0"` for the first column, `"1"` for the second, and so on; this feels like the simplest way that we can generate a `String` key:
 
 // begin-insert: table-reader.8:src/test/java/travelator/tablereader/TableReaderTests.kt#excerpt
 [source,kotlin]
@@ -616,7 +616,7 @@ fun `two lines of input with default field names`() {
 // end-insert
 
 It passes, and we reason that `(0, 1, 2)` is close enough to `(0, 1, 2147483647)` that we are done for now.
-This seems like a good place to check in, make a fresh coffee and dispose of the last one before getting back to work.((("", startref="CFunit22")))((("", startref="unit22")))
+This seems like a good place to check in, make a fresh coffee, and dispose of the last one before getting back to work.((("", startref="CFunit22")))((("", startref="unit22")))
 
 === Headers
 
@@ -1169,8 +1169,8 @@ It passes, and we ride the little dopamine hit to check in the code and take a c
 === Different Field Separators
 
 Returning((("classes to functions", "different field separators", id="CFdiff22")))((("field separators", id="field22"))) from coffee, we make a quick survey of the different places in Travelator that read tables.
-Interestingly, we only have one use case that reads classic "comma","separated","variables" (with the quotes), but several need to use a semicolon as the field separator.
-It seems that some French SQL Server export job is using semicolons and then saving the file with a `.CSV` extension; maybe the `C` is for çemicolon?
+Interestingly, we only have one use case that reads classic &#x22;comma&#x22;,&#x22;separated&#x22;,&#x22;variables&#x22; (with the quotes), but several need to use a semicolon as the field separator.
+It seems that some French SQL Server export job is using semicolons and then saving the file with a __.CSV__ extension; maybe the _C_ is for çemicolon?
 We'll address reading those next, but try to find an interface that will work with more complicated quoting and escaping rules.
 To add flexibility, we need to identify an abstraction, as we did with the `headerProvider` previously.
 What is the abstraction here?
@@ -1581,7 +1581,7 @@ fun `can specify splitter`() {
 // end-insert
 
 This passes, giving us both reassurance and documentation.
-Let's check it in and take a break for a few minutes, before coming back to take stock.((("", startref="CFdiff22")))((("", startref="field22")))
+Let's check it in and take a break for a few minutes before coming back to take stock.((("", startref="CFdiff22")))((("", startref="field22")))
 
 === Sequences
 
@@ -1650,7 +1650,7 @@ fun readTable(
 // end-insert
 
 That passes the tests, and they all funnel through this function, so that's reassuring.
-Now we can extract the inner workings into a function taking and returning a `Sequence`; this is extracting part of a chain as described in <<extracting-part-of-a-pipeline>>.
+Now we can extract the inner workings into a function taking and returning a `Sequence`; this is extracting part of a chain as described in <<extracting-part-of-a-pipeline>>:
 
 // begin-insert: table-reader.41:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
@@ -1977,7 +1977,7 @@ fun `read from reader`() {
 Can you see why this fails?
 What if we say that it fails with `java.lang.IllegalStateException: This sequence can be consumed only once.`?
 
-Yes, once again (<<sequences-multiple-operations>>), ++Sequence++s bite us because we didn't test both types—those that can and can't be consumed twice—as input.
+Yes, once again (<<sequences-multiple-operations>>), ++Sequence++s bite us because we didn't test both types—those that can and can't be consumed twice—as input:
 
 // begin-insert: table-reader.47:src/main/java/travelator/tablereader/table-reading.kt#readTableWithHeader
 [source,kotlin]
@@ -2334,11 +2334,11 @@ fun `commons csv`() {
 ++++
 // end-insert
 
-It too has a static function entry point, `CSVParser.parse`, which also takes configuration about the table format (in this case `CSVFormat.DEFAULT.withFirstRecordAsHeader()`; in ours `splitOnComma`).
+It too has a static function entry point, `CSVParser.parse`, which also takes configuration about the table format (in this case, `CSVFormat.DEFAULT.withFirstRecordAsHeader()`; in ours, `splitOnComma`).
 We have two functions to differentiate between files with or without headers; the Apache API rolls this into the `CSVFormat`.
 
 The Commons `parse` takes a `Reader` though, rather than our `Sequence<String>`.
-This allows it to handle record separators other than newLine and new lines in the middle of fields, but leads to a proliferation of `parse` methods. There are variants taking `Path`, `File`, `InputStream`, `String` and `URL`.
+This allows it to handle record separators other than newline, and cope with having new lines in the middle of fields, but leads to a proliferation of `parse` methods. There are variants taking `Path`, `File`, `InputStream`, `String`, and `URL`.
 The developers probably felt these were necessary because Java provides so little support for converting between these types of sources and disposing of them safely.
 The `CSVParser` returned by the `parse` static method has a lot of code to manage resources.
 Our API delegates these to the workings of `Sequence` and Kotlin life cycle functions like `use` and `useLines`.
@@ -2372,16 +2372,16 @@ Moving on, the code to create an individual `Measurement` looks identical in bot
 // end-insert
 
 Although the type of `record` in our parser is `Map<String, String>`, in the Commons case it is `CSVRecord`.
-`CSVRecord` has a `get(String)` method, which is how `record["time"]` an so on are resolved.
+`CSVRecord` has a `get(String)` method, which is how `record["time"]` and so on are resolved.
 It also has methods: `get(int)` to retrieve a field by index, where we could use `Map.values.get(Int)`;
-`size()` rather than `Map.size()`, and `isSet(String)` to substitute for `Map.hasKey(String)`.
+`size()` rather than `Map.size()`; and `isSet(String)` to substitute for `Map.hasKey(String)`.
 
 Basically, `CSVRecord` is having to reproduce the `Map` interface by hand rather than just _being_ a `Map`.
 Why?
 Because, as we discussed in <<java-to-kotlin-collections>>, the Java `Map` interface is mutable, and mutation makes no sense in the context of reading fields from a file; mutations certainly aren't going to be written back to the source.
 When programming in Java, we find ourselves having to create new types to solve problems, where in Kotlin we can express ourselves in standard types and then enjoy the richness of the Kotlin API on those types.
 
-One area in which the Commons CSV library Excels is its provision of ready-made parser defaults.
+One area in which the Commons CSV library Excels™️ is its provision of ready-made parser defaults.
 These are expressed as constants in the `CSVFormat` class.
 We've seen `CSVFormat.DEFAULT`, but there are many others, including `CSVFormat.EXCEL`.
 Armed with a `CSVFormat`, you can pass it to the `CSVParser.parse` method as we saw, or use it directly, for example, `CSVFormat.EXCEL.parse(reader)`.
@@ -2534,7 +2534,7 @@ In((("", startref="CFcomp22")))((("", startref="commonsCSV22")))((("", startref=
 Even then, we started from the tests and then just copied the test data into our implementation and refactored from there.
 We can't write all code this way, but it does work well when our code is just calculations, and the more of it that is just calculations, the better our code works, too.
 
-We saw the power of reusing built-in types in pass:[<a data-type="xref" data-xrefstyle="chap-num-title" href="#encapsulated-collections-to-typealiases">#encapsulated-collections-to-typealiases</a>] and pass:[<a data-type="xref" data-xrefstyle="chap-num-title" href="#interfaces-to-functions">#interfaces-to-functions</a>], and defining APIs as extension functions in pass:[<a data-type="xref" data-xrefstyle="chap-num-title" href="#functions-to-extension-functions">#functions-to-extension-functions</a>].
+We saw the power of reusing built-in types in pass:[<a data-type="xref" data-xrefstyle="chap-num-title" href="#encapsulated-collections-to-typealiases">#encapsulated-collections-to-typealiases</a>], and pass:[<a data-type="xref" data-xrefstyle="chap-num-title" href="#interfaces-to-functions">#interfaces-to-functions</a>], and defining APIs as extension functions in pass:[<a data-type="xref" data-xrefstyle="chap-num-title" href="#functions-to-extension-functions">#functions-to-extension-functions</a>].
 In this example, both collection and function types came together nicely, and we even managed to define an extension function on a function type!
 Where we would have had to define new classes to encapsulate Java's mutable collections, and methods to manipulate those collections, we passed Kotlin's immutable collections between our functions and wrote application-specific extensions on those collection types.
 Where we would have needed to define interfaces in Java, we used Kotlin's function types.

@@ -101,7 +101,7 @@ private void givenADistanceBetween(
 ****
 David Heinemeier Hansson((("test-induced design damage")))((("mock-induced test damage"))) coined the term https://oreil.ly/8vgJU[test-induced design damage] to refer to harm caused to systems in the name of testability.
 In practice, your authors don't recognize this as much of a problem; we find that systems are usually _improved_ by the decoupling required to test them well.
-We _do_ often see tests ruined by mocks though, so much so that mocking has fallen out of favour in our circles.
+We _do_ often see tests ruined by mocks though, so much so that mocking has fallen out of favor in our circles.
 
 The problem is that, as well as implementing interfaces, mock frameworks allow us to specify the expected invocations of their methods and what should be returned in those cases.
 Often, though, expected calls and their results don't make for a human-readable description, as we'll see if we look at the inlined version of the last expectations:
@@ -147,7 +147,7 @@ In practice, though, very few developers take this step, leading to cryptic test
 ****
 
 Nat is keen to point out that the mocks that he and Steve Freeman wrote about (<<FP_GOOSGBT_2009,_Growing Object-Oriented Software Guided by Tests_>>) were never supposed to be used to implement query functionality like `findCloseTo` and `distanceInMetersBetween`, but only methods that change state.
-Duncan doesn't remember noticing that and is personally not against using mocks in this way, because they are still a nice way to specify what we expect of collaborators when practicing outside-in test-driven development, whether reading-from or writing-to.
+Duncan doesn't remember noticing that, and is personally not against using mocks in this way, because they are still a nice way to specify what we expect of collaborators when practicing outside-in test-driven development, whether reading-from or writing-to.
 In the end, maybe it doesn't matter, because in both of our experiences, most Java codebases have mocks that are used in this way, and most Kotlin codebases would be better off without them.
 
 For now though, we are still mocking, but our previous refactoring has resulted in our passing narrow interfaces (the function types) to the code under test.
@@ -157,7 +157,7 @@ Let's see where pulling that thread takes us.((("", startref="mfram17")))
 === Replacing Mocks with Maps
 
 Before((("maps, replacing mocks with", id="maprepl17")))((("mocks to maps", "replacing mocks with maps", id="MMreplace17"))) we go on, we'll convert the tests to Kotlin, because it has better support for function types.
-We could stay in Java, but then we would have to work out which of the Java function types (`Function`, `BiFunction` etc) expresses the operations.
+We could stay in Java, but then we would have to work out which of the Java function types (`Function`, `BiFunction`, etc.) expresses the operations.
 And we'd still have Java.
 
 The automated conversion is quite smooth, although for some reason the converter created lambdas rather than using method references in the `Recommendations` constructor call that we have to replace by hand, leaving the setup as:
@@ -503,7 +503,7 @@ In our tests, though, the distinction is moot, and we could treat `recommendatio
 Calculations are easier to test than actions—we just check that a given input returns a given output—so let's pull on this thread.
 
 At the moment, _when_ we call `recommendationsFor` in the tests matters too, because the result will depend on the contents of the `featuredDestinations` and `distanceInMetersBetween` maps.
-These are initially empty, and are populated by calls to `givenFeaturedDestinationsFor` and `givenADistanceFrom`. That's a time-sensitivity right there.
+These are initially empty, and are populated by calls to `givenFeaturedDestinationsFor` and `givenADistanceFrom`. That's a time sensitivity right there.
 What we need is some way to convert an action to a calculation, and we can do that by manipulating scope.
 
 In <<interfaces-to-functions>>, we saw that we can view methods as functions with some of their arguments partially applied by capturing them as fields.

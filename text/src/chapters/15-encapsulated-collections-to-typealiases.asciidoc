@@ -71,7 +71,7 @@ public class Route {
 ****
 To((("defensive copies")))((("aliasing errors"))) fully encapsulate the list, the `Route` constructor could take a defensive copy of the `journeys` parameter.
 However, we "know" that our system only creates `Route` objects in the JSON deserializer or in tests, neither of which holds onto the list of journeys after creating the `Route` that uses it.
-There is, therefore, no risk of https://martinfowler.com/bliki/AliasingBug.html[aliasing errors], and we can save the cost of a copy whenever we create a `Route`.
+There is, therefore, no risk of https://oreil.ly/PeqKs[aliasing errors], and we can save the cost of a copy whenever we create a `Route`.
 
 If someone comes along and creates a `Route` with a collection that they later modify, we may come to regret this optimization.
 This is the problem with using conventions that are not underwritten by the type system.
@@ -162,7 +162,7 @@ Encapsulating immutable collections should be the exception rather than the rule
 === Collections with Other Properties
 
 Of((("encapsulated collections to type aliases", "collections with other properties"))) course, we can't always just substitute type aliases for classes.
-Take our `Itinerary` class for example:
+Take our `Itinerary` class, for example:
 
 // begin-insert: encapsulated-collections.0:src/main/java/travelator/itinerary/Itinerary.kt#excerpt
 [source,kotlin]
@@ -419,7 +419,7 @@ But now that they _are_ extensions, we can move them from this file to others, e
 ==== Substitute a Type Alias
 
 Now that we've achieved our goal of decoupling the `Route` functionality from the class, is that class superfluous?
-Actually, wrapping the `List` is worse than superfluous: it prevents us easily using all the useful extension functions in Kotlin's standard library to construct, transform, and process routes.
+Actually, wrapping the `List` is worse than superfluous: it prevents us from easily using all the useful extension functions in Kotlin's standard library to construct, transform, and process routes.
 To quote one of Alan Perlis's https://oreil.ly/QDOJz[Epigrams of Programming]: "It is better to have 100 functions operate on one data structure than 10 functions on 10 data structures."
 We don't want a `Route` to _have_ a `List` of `Journey`; we want it to _be_ a `List` of `Journey`.
 This is very easy to achieve in Kotlin with delegation:
@@ -580,7 +580,7 @@ val Route.journeys get() = this
 
 Because there is no `new` keyword in Kotlin, we can emulate the constructor call `Route(...)` with a function of the same name.
 Similarly, we replace the `journeys` property with an extension property that returns the receiver itself.
-The net result is that our Kotlin clients continue to compile against this new API.
+The net result is that our Kotlin clients continue to compile against this new API:
 
 // begin-insert: encapsulated-collections.8:src/test/java/travelator/itinerary/RouteTests.kt#replaceJourney
 [source,kotlin]
@@ -1029,7 +1029,7 @@ In pass:[<a data-type="xref" data-xrefstyle="chap-num-title" href="#open-to-seal
 
 Finally, note that reusing built-in types like `List` rather than defining a specific type is not without cost.
 We might be storing items in a `List` as an implementation detail rather than a modeling choice.
-It's also a lot easier to "Find useages" of a specific wrapper class than a generic specialization.
+It's also a lot easier to "Find usages" of a specific wrapper class than a generic specialization.
 Nevertheless, the standard collection types are pervasive because they are such good abstractions—so good that we generally shouldn't hide them.
-pass:[<a data-type="xref" data-xrefstyle="chap-num-title" href="#classes-to-functions">#classes-to-functions</a>] looks at what happens if we take this idea and run with it.
+pass:[<a data-type="xref" data-xrefstyle="chap-num-title" href="#classes-to-functions">#classes-to-functions</a>], looks at what happens if we take this idea and run with it.
 

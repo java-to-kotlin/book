@@ -39,7 +39,7 @@ fun send(email: Email) {
 
 Of course when we come to implement this function, we discover that to actually send email, we require all sorts of other information.
 Not information about the email itself but, rather, configuration about how to send it.
-Things like the sending server's host name and security credentials—all the things that your nontechnical relative doesn't know, but you need to set up their new computer.
+Things like the sending server's hostname and security credentials—all the things that your nontechnical relative doesn't know, but you need to set up their new computer.
 We'll add three extra parameters to `sendEmail` to stand in for all this configuration:
 
 // begin-insert: src/main/java/encapsulation/encapsulation.kt#sendEmail
@@ -63,7 +63,7 @@ There must be a better way of hiding these petty details.
 
 === Object-Oriented Encapsulation
 
-Object-oriented languages((("interfaces to functions", "object-oriented encapsulation", id="IFooencap16")))((("object-oriented encapsulation", id="OOencap16")))((("encapsulated collections to type aliases", "hiding collections inside another object", id="ECThid16"))) have a ready made solution to this problem—objects can encapsulate the data:
+Object-oriented languages((("interfaces to functions", "object-oriented encapsulation", id="IFooencap16")))((("object-oriented encapsulation", id="OOencap16")))((("encapsulated collections to type aliases", "hiding collections inside another object", id="ECThid16"))) have a ready-made solution to this problem—objects can encapsulate the data:
 
 // begin-insert: src/main/java/encapsulation/EmailSender.kt#plain
 [source,kotlin]
@@ -362,7 +362,7 @@ fun createEmailSender(
 So `createEmailSender` is a function that returns a lambda that calls `sendEmail`, combining the lambda's single `Email` argument with the configuration from its own parameters.
 This((("closures"))) is a closure in functional land, and it's not a coincidence that it is very similar to the OO versions with a `fun interface` or `object` definition.
 
-To use this function, we can create it in one place and invoke it in another, very much as we did with the object solution.
+To use this function, we can create it in one place and invoke it in another, very much as we did with the object solution:
 
 // begin-insert: src/main/java/encapsulation/FP-usage.kt#foo
 [source,kotlin]
@@ -572,7 +572,7 @@ In the OO case, fields carry configuration, and the client invokes a method.
 In the functional scheme, a function closes over the configuration, and the client invokes the function.
 
 Can we unify these approaches, passing an OO implementation to a function-expecting client or vice versa?
-Or, in Kotlin terms, can we convert `ISendEmail` to `(Email) -> Unit` and the inverse.
+Or, in Kotlin terms, can we convert `ISendEmail` to `(Email) -> Unit` and the inverse?
 Why yes we can!
 
 Remember that in Java and Kotlin, function types are just interfaces.
@@ -668,7 +668,7 @@ All it does is give the name `send` to what happens when you invoke it.
 Maybe we could just use the type `(Email) -> Unit` everywhere in place of `ISendEmail`?
 
 If you think that isn't expressive enough, then maybe you aren't a functional programmer.
-Luckily, there is a middle ground: we can use a type alias to give a name to the functional type, thus communicating our intent.
+Luckily, there is a middle ground: we can use a type alias to give a name to the functional type, thus communicating our intent:
 
 // begin-insert: src/main/java/encapsulation/typealias.kt#typealias
 [source,kotlin]
@@ -952,7 +952,7 @@ With((("dependency inversion"))) or without dependency inversion, the result is 
 Any change to methods on `EmailSystem` might affect all code that depends on the interface.
 
 In contrast, in the functional world, the runtime defines all the function types, so they don't introduce a compile-time dependency between the client and an implementation.
-Unlike `ISendEmail`, which we have to define somewhere, `(Email) -> Unit` (or in Java, `Consumer<Email>`) are part of the language.
+Unlike `ISendEmail`, which we have to define somewhere, `(Email) -> Unit` (or in Java, `Consumer<Email>`) is part of the language.
 Of course, there will be a runtime dependency—the constructor code needs to be visible where the dependency is created, and the client has to be able to invoke the implementation code—but these cause less coupling.
 For example, when a dependency is expressed as a function type, we can rename `EmailSystem.send`, and the only change in our client code will be to use a different method reference; the internals of `sendThanks` are unaffected.
 
@@ -1145,7 +1145,7 @@ Our implementation then can be just a function, or something implementing the fu
 
 === The Legacy of Java
 
-Although((("interfaces to functions", "legacy of Java")))((("Java", "dependencies in legacy code"))) we said earlier that "our runtime defines all the functions types", that wasn't true of Java until Java 8 introduced `Supplier`, `Consumer`, `Predicate`, and so on, and the ability to implement them with method references or lambdas.
+Although((("interfaces to functions", "legacy of Java")))((("Java", "dependencies in legacy code"))) we said earlier that "our runtime defines all the functions types," that wasn't true of Java until Java 8 introduced `Supplier`, `Consumer`, `Predicate`, and so on, and the ability to implement them with method references or lambdas.
 
 Because of this, legacy Java code usually expresses dependencies with the same multimethod interfaces that we would use to group them by subsystem (like `EmailSystem`), even when only one of those methods is required to implement the functionality.
 This leads to the coupling problems described earlier.
@@ -1162,7 +1162,7 @@ Expressing dependencies as function types is one example; another is moving the 
 There((("interfaces to functions", "traceability")))((("traceability")))((("indirection"))) is a downside to expressing dependencies with function types, and it is a common issue with adding a layer of indirection.
 If we use IntelliJ to find the callers of `EmailSystem.send`, the trail goes cold at the point where `EmailSystem::send` is converted to `(Email) -> Unit`.
 The IDE doesn't know that invocations of the function are actually calling the method.
-It's like our hero enters a river, and the posse tracking her has to scour both banks upstream and downstream to find where she gets out.
+It's like our hero enters a river, and the posse tracking them has to scour both banks upstream and downstream to find where they get out.
 
 This is a price we pay for indirection with method calls too, but our tooling is wise to these and can at least find all places where a particular method is implemented, and where an implementation is called through an interface.
 As with using unencapsulated collections (<<encapsulated-collections-to-typealiases>>), the price that we pay for decoupling and generality is that tooling, and developers, have less context to hang analysis on.
