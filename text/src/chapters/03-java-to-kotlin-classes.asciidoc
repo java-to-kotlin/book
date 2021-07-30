@@ -569,7 +569,7 @@ There is a detail hiding in the implementation of `Money`.
 The class maintains an invariant between its properties, guaranteeing that the scale of the amount field is equal to the default number of minor currency digits of the currency field.
 The private constructor prevents code outside the `Money` class from creating values that violate the invariant.
 The `Money.of(BigDecimal,Currency)` method ensures the invariant is true for new `Money` values.
-The `add` method maintains the invariant because adding two `BigDecimal` values with the same scale produces a `BigDecimal` that also has the same scale, and it can therefore call the constructor directly.
+The `add` method maintains the invariant because adding two [.keep-together]#++BigDecimal++# values with the same scale produces a `BigDecimal` that also has the same scale, and it can therefore call the constructor directly.
 The constructor, therefore, need only assign fields, safe in the knowledge that it is never called with parameters that violate the class invariant.
 
 However, the `copy` method of a data class is always public and so _would_ allow client code to create `Money` values that violate the invariant.
