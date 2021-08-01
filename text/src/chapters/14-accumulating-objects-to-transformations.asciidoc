@@ -894,7 +894,7 @@ We will look more at pure functions evaluated in context in <<interfaces-to-func
 Travelator((("accumulating objects to transformations", "enriching the abstraction", id="AOTenrich14"))) does more with exchange rates and the traveler's preferred currency than summarize costs.
 For example, while the user is browsing hotel rooms, it shows the cost of each room in both local and preferred currencies.
 That is, the hotel room browser performs a currency conversion on an individual cost.
-The `CostSummaryCalculator` also has to perform currency conversions on individual costs to calculate a summary.
+The ++CostSummary&#x200b;Cal&#x2060;cu&#x2060;lator++ also has to perform currency conversions on individual costs to calculate a summary.
 If we extract that functionality as a public method, which we can call `toUserCurrency`, we can initialize the hotel room browser with a `CostSummaryCalculator` instead of passing it both the exchange rates and preferred currency.
 We can also remove the currency conversion calculation—that we now see is duplicated code—from the hotel room browser.
 
@@ -967,7 +967,7 @@ fun costSummary(i: Itinerary) = pricing.summarise(i.costs())
 // end-insert
 
 Now that we have this concept in our codebase, we can identify other parts of our application that can use it.
-We can move logic from those parts onto the `PricingContext`, making it a one-stop shop for operations that need to convert monetary amounts into the traveler's preferred currency.
+We can move logic from those parts onto the ++Pricing&#x200b;Con&#x2060;text++, making it a one-stop shop for operations that need to convert monetary amounts into the traveler's preferred currency.
 And should it end up full of disparate methods for different use cases, then we can move the operations from methods to extension functions to keep them closer to where they are needed (see <<functions-to-extension-functions>>).((("", startref="AOTenrich14")))
 
 === Moving On
