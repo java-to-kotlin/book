@@ -601,7 +601,7 @@ This is typical of your authors' Java style.
 It expresses the things that might reasonably go wrong as the checked `ExcludedException` and `DuplicateException`, and these are all caught at the top level in `handle`, where they are reported to the caller, in this case as HTTP status codes.
 Your style might be to use unchecked exceptions, in which case this code would be similar but without the exceptions as part of the method [.keep-together]#signatures#.
 
-One thing we don't see is any checked exception related to failures to persist a `Customer` in `Customers::add`.
+One thing we don't see is any checked exception related to failures to persist a [.keep-together]#++Customer++# in `Customers::add`.
 This method will be talking across the network to a database, but our query code is evidently swallowing `IOException` at some point and raising a `RuntimeException` in its place.
 These will propagate out of `CustomerRegistration::register`, be caught at the top level of `CustomerRegistrationHandler`, and passed back to clients as `HTTP_INTERNAL_ERROR` (500).
 It's a shame that we aren't logging any information about those stray ++RuntimeException++s, because they might reveal systematic connection issues or be hiding a frequent `NullPointerException` in some lower-level code.
