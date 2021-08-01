@@ -640,7 +640,7 @@ interface Customers {
 // end-insert
 
 <1> Although Kotlin doesn't have checked exceptions, the `@Throws` annotation allows interop with Java code by adding the exception to the method's signature in the bytecode.
-Without it, a Java implementation of `Customers` that does throw `DuplicateException` cannot implement the method.
+Without it, a Java implementation of `Customers` that does throw [.keep-together]#++DuplicateException++# cannot implement the method.
 Worse, Java code that calls the method on the interface would not be able to catch the exception or declare that it is passed on, because it is a compile error for Java code to handle a checked exception that the compiler cannot see is possible.
 
 Our strategy is to add to our interface a version of `Customers::add` that, instead of throwing an exception, returns `Result<Customer, DuplicateException>`.
