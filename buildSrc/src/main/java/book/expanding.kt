@@ -25,25 +25,27 @@ fun processFiles(
     abortOnFailure: Boolean,
     kotlinVersion: String
 ) {
-    inputRoot.walkTopDown()
-        .filter { it.name.endsWith(".ad") || it.name.endsWith(".asciidoc") }
-        .toList()
-        .also {
-            if (it.isEmpty()) {
-                throw IllegalStateException("no asciidoc files found!")
+    val diffTracks: List<DiffTracking> =
+        inputRoot.walkTopDown()
+            .filter { it.name.endsWith(".ad") || it.name.endsWith(".asciidoc") }
+            .toList()
+            .sortedBy { it.name }
+            .also {
+                if (it.isEmpty())
+                    throw IllegalStateException("no asciidoc files found!")
+                else
+                    println("expanding ${it.size} asciidoc files")
             }
-
-            println("expanding ${it.size} asciidoc files")
-        }
-        .forEach { file ->
-            processFile(
-                file,
-                outputRoot.resolve(file.relativeTo(inputRoot)),
-                sourceRoots,
-                abortOnFailure,
-                kotlinVersion
-            )
-        }
+            .map { file ->
+                processFile(
+                    file,
+                    outputRoot.resolve(file.relativeTo(inputRoot)),
+                    sourceRoots,
+                    abortOnFailure,
+                    kotlinVersion
+                )
+            }
+    diffTracks.writeTo(File("buildSrc/diff-tracking.json"))
 }
 
 fun processFile(
@@ -52,40 +54,49 @@ fun processFile(
     roots: SourceRoots,
     abortOnFailure: Boolean,
     kotlinVersion: String
-) {
+): DiffTracking {
     log("Processing $src")
     val text = src.readText()
+
+    val diffTracking = DiffTracking(src)
     val newText = expandCodeBlocks(
         text,
-        lookupWithRoot(src, roots, abortOnFailure, kotlinVersion)
+        lookupWithRoot(roots, diffTracking, abortOnFailure, kotlinVersion, src)
     )
     dest.also {
         it.parentFile.mkdirs()
     }.writeText(newText)
+    return diffTracking
 }
 
 private fun lookupWithRoot(
-    src: File,
     roots: SourceRoots,
+    diffTracking: DiffTracking,
     abortOnFailure: Boolean,
-    kotlinVersion: String
-) =
-    fun(key: String): String {
-        val (codeFile, tag) = key.parse(roots)
-        if (!codeFile.exists) {
-            val message =
-                "${src.canonicalPath}:\n" +
-                    "inserted file $codeFile not found\n" +
-                    "(${codeFile.lines.recover { it.message }})"
-            if (abortOnFailure) {
-                error(message)
-            } else {
-                log(message)
-                return message
-            }
+    kotlinVersion: String,
+    srcFileForDebug: File
+) = { key: String ->
+    val (codeFile, fragment) = key.parse(roots)
+    if (codeFile.exists) {
+        val linkTag = when (codeFile) {
+            is GitFile -> diffTracking.record(codeFile)
+            else -> null
         }
-        return FileSnippet(codeFile, tag, kotlinVersion).rendered()
+        FileSnippet(codeFile, fragment, linkTag, kotlinVersion)
+            .rendered()
+    } else {
+        val message =
+            "${srcFileForDebug.canonicalPath}:\n" +
+                "inserted file $codeFile not found\n" +
+                "(${codeFile.lines.recover { it.message }})"
+        if (abortOnFailure) {
+            error(message)
+        } else {
+            log(message)
+            message
+        }
     }
+}
 
 private fun String.parse(roots: SourceRoots): Pair<CodeFile, String?> {
     val (file, fragment) = this.trim().split("#").let { parts ->
@@ -121,3 +132,4 @@ private fun expandCodeBlocks(text: String, lookup: (String) -> String): String =
 private val expandedCodeBlockFinder =
     """^(?<intro>// begin-insert: (?<key>.*?)$)(.*?)^(?<outro>// end-insert.*?)$"""
         .toRegex(setOf(DOT_MATCHES_ALL, MULTILINE))
+

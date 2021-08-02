@@ -5,6 +5,7 @@ import com.natpryce.onFailure
 data class FileSnippet(
     val codeFile: CodeFile,
     val fragment: String?,
+    val linkTag: String?,
     val kotlinVersion: String
 ) {
     fun rendered() =
@@ -13,7 +14,7 @@ data class FileSnippet(
             "----",
             codeLines().joinToString("\n"),
             "----",
-            codeFile.toTag()
+            linkTag
         ).filterNotNull().joinToString("\n")
 
     private fun codeLines() =
@@ -34,16 +35,3 @@ data class FileSnippet(
         else -> "text"
     }
 }
-
-private fun CodeFile.toTag(): String? =
-    when (this) {
-        is GitFile -> """
-            ++++
-            <div class="coderef">
-                <a class="orm:hideurl" href="https://github.com/java-to-kotlin/code/blob/$version/$relativePath">
-                    $version:$relativePath
-                </a>
-            </div>
-            ++++""".trimIndent()
-        else -> null
-    }
