@@ -45,7 +45,10 @@ fun processFiles(
                     kotlinVersion
                 )
             }
-    diffTracks.writeTo(File("buildSrc/diff-tracking.json"))
+
+    val file = File("buildSrc/diff-tracking.json")
+    file.parentFile.mkdirs()
+    diffTracks.writeTo(file)
 }
 
 fun processFile(

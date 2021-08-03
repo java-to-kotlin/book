@@ -5,7 +5,7 @@ import java.io.File
 class DiffTracking(
     asciiDocFile: File
 ) {
-    private val linkUrl = "https://java-to-kotlin.dev/code-links.html"
+    private val linkUrl = "https://java-to-kotlin.dev/code.html"
     private val chapterNumber = asciiDocFile.name.split("-")[0].toIntOrNull() ?: 0
     private val versions = mutableListOf<GitFile>()
 
@@ -17,7 +17,7 @@ class DiffTracking(
     private fun GitFile.toTag(exampleNumber: String): String = """
         ++++
         <div class="coderef">
-            <a class="orm:hideurl" href="$linkUrl?ref=$exampleNumber">Example $exampleNumber [$version:$relativePath]</a> <a class="orm:hideurl print-hide" href="$linkUrl?diff=$exampleNumber">(diff)</a> 
+            <a class="orm:hideurl" href="$linkUrl?ref=$exampleNumber&show=file">Example $exampleNumber [$version:$relativePath]</a> <a class="orm:hideurl print-hide" href="$linkUrl?ref=$exampleNumber&show=diff">(diff)</a> 
         </div>
         ++++""".trimIndent()
 
