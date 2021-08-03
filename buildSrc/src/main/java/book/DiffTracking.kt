@@ -25,7 +25,7 @@ class DiffTracking(
         val previousVersionLookup = mutableMapOf<String, GitFile>()
         return versions
             .mapIndexed { index, gitFile ->
-                jsonFor(index, gitFile, previousVersionLookup[gitFile.relativePath]?.version)
+                jsonFor(index + 1, gitFile, previousVersionLookup[gitFile.relativePath]?.version)
                     .also {
                         previousVersionLookup[gitFile.relativePath] = gitFile
                     }
