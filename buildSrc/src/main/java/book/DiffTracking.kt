@@ -17,7 +17,7 @@ class DiffTracking(
     private fun GitFile.toTag(exampleNumber: String): String = """
         ++++
         <div class="coderef">
-            <a class="orm:hideurl" href="$linkUrl?ref=$exampleNumber&show=file">Example $exampleNumber [$version:$relativePath]</a> <a class="orm:hideurl print-hide" href="$linkUrl?ref=$exampleNumber&show=diff">(diff)</a> 
+            <a class="orm:hideurl" href="$linkUrl?ref=$exampleNumber&amp;show=file">Example $exampleNumber [$version:$relativePath]</a> <a class="orm:hideurl print-hide" href="$linkUrl?ref=$exampleNumber&amp;show=diff">(diff)</a> 
         </div>
         ++++""".trimIndent()
 
