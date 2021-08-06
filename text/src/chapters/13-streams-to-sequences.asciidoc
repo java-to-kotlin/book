@@ -435,12 +435,12 @@ If that still isn't enough, we can move (hopefully not back) to streams, and may
 
 === Algebraic Transformation
 
-Laziness and parallelism((("laziness")))((("parallelism")))((("streams to iterables to sequences", "algebraic transformation", id="SISalgebra13")))((("algebraic transformation", id="algtrans13"))) will of course affect _when_ the stages of our pipeline are invoked.
+Laziness and parallelism((("transformations, algebraic", id="tranal13")))((("laziness")))((("parallelism")))((("streams to iterables to sequences", "algebraic transformation", id="SISalgebra13")))((("algebraic transformation", id="algtrans13"))) will of course affect _when_ the stages of our pipeline are invoked.
 If any of our algorithm depends on the order of operations, it may be broken if we swap between streams, iterables, and sequences.
 What we want is code with a predictable _algebra_: a set of rules for manipulating operations while preserving behavior.
 
 We saw in <<actions-to-calculations>> that we can categorize functions (actually any code, including lambdas) according to whether they depend on when they are run.
-Calculations (<<calculations>>) are safe to refactor because we can move their invocations around without affecting their result or the result of any other code.
+Calculations((("calculations", "refactoring"))) (<<calculations>>) are safe to refactor because we can move their invocations around without affecting their result or the result of any other code.
 In contrast, moving an action (<<actions>>) from an iterable to a sequence, or vice versa, may change when it is invoked, and hence the outcome of our program.
 The more of our code that is expressed as calculations, the more we can treat its representation as something that we can transform according to rules.
 
@@ -579,7 +579,7 @@ public static double averageNonBlankLength(List<String> strings) {
 ----
 // end-insert
 
-In that case, we would have had a shorter chapter but learned less.((("", startref="SISalgebra13")))((("", startref="algtrans13")))
+In that case, we would have had a shorter chapter but learned less.((("", startref="SISalgebra13")))((("", startref="algtrans13")))((("", startref="tranal13")))
 
 === Refactoring from Streams to Iterables and Sequences
 
