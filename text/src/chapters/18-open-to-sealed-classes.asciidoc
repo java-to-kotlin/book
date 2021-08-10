@@ -210,6 +210,22 @@ Kotlin((("object-oriented polymorphism"))) doesn't have any equivalent.
 When we're designing in Kotlin, we have to choose between object-oriented polymorphism or sealed classes based on the dimension—types or operations—we expect to vary most frequently as the program evolves.
 Object-oriented polymorphism is preferable when the set of data types varies more frequently than the set of operations on those data types, and sealed class hierarchies when the set of operations varies more frequently than the set of data types they apply to.
 
+[TIP]
+.Only Typecast Down a Sealed Class Hierarchy
+====
+Only((("typecasts"))) use typecasts to cast from the root of a sealed class hierarchy to one of the children in an exhaustive `when` expression.
+Otherwise, it is risky to cast away from the static type.
+The actual class used to implement a value may have operations that violate the constraints expressed by its static type.
+
+For example, as we saw in <<java-to-kotlin-collections>>, the static type `List` prevents mutation, but Kotlin's higher-order functions return lists that can be mutated if you downcast from `List` to `MutableList`.
+A function that downcasts a list argument from `List` to `MutableList` and mutates it is likely to introduce bugs in code, because it violates the expectations of its callers.
+It could introduce aliasing errors that are very hard to find, because the possibility of spooky action at a distance is not explicit in the type declarations of the function's signature.
+If a future version of the Kotlin standard library returned immutable lists from its higher-order functions, the function would continue to compile successfully but crash at runtime.
+
+Just because you _can_ cast from a super type to a subtype doesn’t mean you are intended to. The possibility is likely to be a mere implementation detail.
+A((("downcasting"))) sealed class hierarchy signals that downcasting is intended, supported, and made safe by the compiler's exhaustiveness checks.
+====
+
 === Converting an Interface to a Sealed Class
 
 We're((("open to sealed classes", "converting interfaces to sealed classes", id="OSCinter18")))((("sealed classes", "converting interfaces to sealed classes", id="SCinterf18")))((("refactoring", "interfaces to sealed classes", id="Ringerf18"))) about to add another feature that involves itineraries and itinerary items: making the `Itinerary` appear in the traveler's calendar app.
@@ -324,22 +340,6 @@ fun ItineraryItem.toCalendarEvent(): CalendarEvent? = when (this) {
 </div>
 ++++
 // end-insert
-
-[TIP]
-.Only Typecast Down a Sealed Class Hierarchy
-====
-Only((("typecasts"))) use typecasts to cast from the root of a sealed class hierarchy to one of the children in an exhaustive `when` expression.
-Otherwise, it is risky to cast away from the static type.
-The actual class used to implement a value may have operations that violate the constraints expressed by its static type.
-
-For example, as we saw in <<java-to-kotlin-collections>>, the static type `List` prevents mutation, but Kotlin's higher-order functions return lists that can be mutated if you downcast from `List` to `MutableList`.
-A function that downcasts a list argument from `List` to `MutableList` and mutates it is likely to introduce bugs in code, because it violates the expectations of its callers.
-It could introduce aliasing errors that are very hard to find, because the possibility of spooky action at a distance is not explicit in the type declarations of the function's signature.
-If a future version of the Kotlin standard library returned immutable lists from its higher-order functions, the function would continue to compile successfully but crash at runtime.
-
-Just because you _can_ cast from a super type to a subtype doesn’t mean you are intended to. The possibility is likely to be a mere implementation detail.
-A((("downcasting"))) sealed class hierarchy signals that downcasting is intended, supported, and made safe by the compiler's exhaustiveness checks.
-====
 
 Now, let's refactor the rest of the `ItineraryItem` methods from being polymorphic methods defined on the (now sealed) class, to extension functions that use `when` expressions to switch on the type of item.
 We'll walk through the process with the `mapOverlay` property.
