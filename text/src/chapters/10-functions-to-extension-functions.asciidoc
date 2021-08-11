@@ -294,46 +294,44 @@ static Customer customerFrom(JsonNode node) {
 .How to Name Conversions
 ****
 A((("naming conventions")))((("functions", "naming conventions"))) function converting a `JsonNode` to a `Customer` might be called `nodeToCustomer`, `createCustomer`, `toCustomer`, `customerFrom`, or `customerFor`.
-Why should we pick `customerFrom`?
+Why should we pick `customerFrom`? Let's examine the alternatives where they are invoked.
 
-[TODO - Production: can we talk about formatting this list please!]
-
-Let's examine the alternatives where they are invoked:
+`nodeToCustomer` is OK, but the repetition of `node` is irritating when called:
 
 [source,java]
 ----
 var customer = nodeToCustomer(node)
 ----
 
-This is OK, but the repetition of `node` is irritating.
+`createCustomer` is OK, but doesn't hint at the relationship between `node` and `customer`:
 
 [source,java]
 ----
 var customer = createCustomer(node)
 ----
 
-This is better but doesn't hint at the relationship between `node` and `customer`.
+`toCustomer` lets us know that `node` contains everything we need to create a `Customer`, but doesn't flow in English:
 
 [source,java]
 ----
 var customer = toCustomer(node)
 ----
 
-This lets us know that `node` contains everything we need to create a `Customer`, but doesn't flow in English.
+Our preferred `customerFrom` flows, and hints that we are extracting the data for `customer` from `node`:
 
 [source,java]
 ----
 var customer = customerFrom(node)
 ----
 
-This flows, and hints that we are extracting the data for `customer` from `node`.
+We could also try `customerFor`, which also flows:
 
 [source,java]
 ----
 var customer = customerFor(node)
 ----
 
-This also flows, but suggests a different relationship than parsing.
+But `customerFor` suggests a different relationship than parsing.
 _For_ implies a lookup operation: `phoneNumberFor(customer)`, or composition: `wheelFor(bicycle)`.
 
 Do these distinctions actually matter?
