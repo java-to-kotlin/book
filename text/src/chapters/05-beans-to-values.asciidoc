@@ -424,9 +424,7 @@ While Kotlin _allows_ mutable data classes, we should be even more wary of them 
 Data((("object equality")))((("data classes", "object equality"))) classes derive `equals` and `hashCode` methods from the values of all the properties declared in their primary constructor.
 So two instances of the same class will be equal when (and only when) all their corresponding properties have the same values.
 
-If we add two instances with the different properties to a set, they will both be present in that set.
-If we now mutate one to have the same properties as the other, they will both still be in the set, so the set will have two of the same object (at least as far as equality goes).
-Similar weird things happen if we use an object as a key in a map and then mutate it.
+Maps and sets call `equals` and `hashCode` when they store objects, but if we subsequently mutate those objects, https://oreil.ly/keALT[strange things happen].
 
 Don't rely on equality and hash-code for mutable objects, and don't define mutable data classes.
 ****
