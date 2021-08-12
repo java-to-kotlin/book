@@ -124,7 +124,7 @@ private fun someFunction(input: List<String>): List<Measurement> =
 
 <1> `readTable` is our table reading API entry point
 <2> It returns something that has a `map` implementation.
-<3> `record` is our representation of a row in the table...
+<3> `record` is our representation of a row in the table.
 <4> We can index into `record` by field name, yielding a `String` that we can convert to other types.
 
 This doesn't compile, because we don't have `readTable` yet, but if we Alt-Enter on the error, IntelliJ will create the function for us:
@@ -976,7 +976,7 @@ fun readTable(
 This is nice.
 Our clients now can read with or without a header row.
 But wait!
-Looking at the code, we realize that if they want to specify their own field names for `readTable`, they can do this by overriding the default `headerProvider` in `readTable`.
+Looking at the code, we realize that if they want to specify their own field names for ++read&#x200b;Ta&#x2060;ble++, they can do this by overriding the default `headerProvider` in `readTable`.
 We have a feature for free!
 Let's write a test to demonstrate it:
 
@@ -1090,7 +1090,7 @@ It passes, and we ride the little dopamine hit to check in the code and take a c
 === Different Field Separators
 
 Returning((("classes to functions", "different field separators", id="CFdiff22")))((("field separators", id="field22"))) from coffee, we make a quick survey of the different places in Travelator that read tables.
-Interestingly, we only have one use case that reads classic &#x22;comma&#x22;,&#x22;separated&#x22;,&#x22;variables&#x22; (with the quotes), but several need to use a semicolon as the field separator.
+Interestingly, we only have one use case that reads classic “comma”,“separated”,“variables” (with the quotes), but several need to use a semicolon as the field separator.
 It seems that some French SQL Server export job is using semicolons and then saving the file with a __.CSV__ extension; maybe the _C_ is for çemicolon?
 We'll address reading those next, but try to find an interface that will work with more complicated quoting and escaping rules.
 To add flexibility, we need to identify an abstraction, as we did with the `headerProvider` previously.
@@ -1125,7 +1125,7 @@ private fun String.splitFields(separators: String): List<String> =
 ++++
 // end-insert
 
-Neither the header parsing nor the body parsing really want to depend on the details of how the splitting should happen, so let's abstract that behind a function `(String) -> List<String>`.
+Neither the header parsing nor the body parsing really want to depend on the details of how the splitting should happen, so let's abstract that behind a function `(String)` [.keep-together]#+->+# `List<String>`.
 Why that signature rather than just parameterizing the character?
 
 That's an interesting question, thank you for asking it.
@@ -1199,7 +1199,7 @@ fun readTable(
 // end-insert
 
 Now we can cut the `val` from the function and move it to the top level.
-It feels like there should be an automated refactor for this, but nothing works at the time of writing:
+It feels like there should be an automated refactor for this, but nothing works at the time of [.keep-together]#writing#:
 
 // begin-insert: table-reader.31:src/main/java/travelator/tablereader/table-reading.kt#excerpt
 [source,kotlin]
